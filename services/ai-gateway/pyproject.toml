@@ -3,8 +3,7 @@ name = "scr-ai-gateway"
 version = "0.1.0"
 description = "SCR Platform — AI Gateway Service"
 authors = ["SCR Team"]
-readme = "README.md"
-packages = [{include = "app"}]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
