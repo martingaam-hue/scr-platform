@@ -1,0 +1,3 @@
+{
+  "extends": ["@scr/config/eslint/nextjs"]
+}

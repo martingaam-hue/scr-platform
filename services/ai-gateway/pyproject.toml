@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "scr-ai-gateway"
+version = "0.1.0"
+description = "SCR Platform — AI Gateway Service"
+authors = ["SCR Team"]
+readme = "README.md"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.6"
+uvicorn = {extras = ["standard"], version = "^0.34.0"}
+litellm = "^1.55.3"
+pydantic = "^2.10.3"
+pydantic-settings = "^2.7.0"
+redis = "^5.2.1"
+httpx = "^0.28.1"
+structlog = "^24.4.0"
+tiktoken = "^0.8.0"
+tenacity = "^9.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+pytest-asyncio = "^0.25.0"
+ruff = "^0.8.4"
+mypy = "^1.13.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
