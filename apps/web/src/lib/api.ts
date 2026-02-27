@@ -9,7 +9,7 @@ export const api = axios.create({
 
 // Token injection is handled by setTokenProvider() in @/lib/auth.ts.
 // Call useAuthenticatedApi() in a top-level client component to activate it.
-// For server components, use serverFetch() from @/lib/auth.ts instead.
+// For server components, use serverFetch() from @/lib/auth.server instead.
 
 api.interceptors.response.use(
   (response) => response,

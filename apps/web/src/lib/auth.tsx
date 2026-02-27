@@ -67,43 +67,8 @@ export function setTokenProvider(fn: () => Promise<string | null>) {
   );
 }
 
-// ── Server-side helpers ─────────────────────────────────────────────────
-
-/**
- * Get Clerk token in server components / Route Handlers / Server Actions.
- * Must be called in a server context only.
- */
-export async function getServerToken(): Promise<string | null> {
-  const { auth } = await import("@clerk/nextjs/server");
-  const { getToken } = await auth();
-  return getToken();
-}
-
-/**
- * Server-side API call helper with automatic Clerk JWT.
- */
-export async function serverFetch<T>(
-  url: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = await getServerToken();
-  const baseURL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
-  const response = await fetch(`${baseURL}${url}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
-  }
-
-  return response.json() as Promise<T>;
-}
+// Server-side helpers (getServerToken, serverFetch) are in @/lib/auth.server.ts
+// to avoid importing @clerk/nextjs/server into client bundles.
 
 // ── Hooks ───────────────────────────────────────────────────────────────
 
