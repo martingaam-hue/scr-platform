@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  FolderLock,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -48,6 +49,7 @@ const investorNav: NavSection[] = [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Portfolio", href: "/dashboard/portfolio", icon: Briefcase },
       { label: "Deals", href: "/dashboard/deals", icon: FolderKanban },
+      { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock },
       { label: "Risk", href: "/dashboard/risk", icon: ShieldAlert },
       { label: "Marketplace", href: "/dashboard/marketplace", icon: Store },
       { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
@@ -64,6 +66,7 @@ const allyNav: NavSection[] = [
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Projects", href: "/dashboard/projects", icon: FolderKanban },
+      { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock },
       { label: "Funding", href: "/dashboard/funding", icon: Wallet },
       { label: "Documents", href: "/dashboard/documents", icon: FileCheck },
       { label: "Legal", href: "/dashboard/legal", icon: Scale },
@@ -82,6 +85,7 @@ const adminNav: NavSection[] = [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Portfolio", href: "/dashboard/portfolio", icon: Briefcase },
       { label: "Projects", href: "/dashboard/projects", icon: FolderKanban },
+      { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock },
       { label: "Deals", href: "/dashboard/deals", icon: FolderKanban },
       { label: "Risk", href: "/dashboard/risk", icon: ShieldAlert },
       { label: "Marketplace", href: "/dashboard/marketplace", icon: Store },
