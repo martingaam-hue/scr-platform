@@ -30,6 +30,15 @@ from app.modules.marketplace.router import router as marketplace_router
 from app.modules.tax_credits.router import router as tax_credits_router
 from app.modules.legal.router import router as legal_router
 from app.modules.carbon_credits.router import router as carbon_credits_router
+from app.modules.board_advisor.router import router as board_advisor_router
+from app.modules.investor_personas.router import router as investor_personas_router
+from app.modules.equity_calculator.router import router as equity_calculator_router
+from app.modules.capital_efficiency.router import router as capital_efficiency_router
+from app.modules.investor_signal_score.router import router as investor_signal_score_router
+from app.modules.value_quantifier.router import router as value_quantifier_router
+from app.modules.tokenization.router import router as tokenization_router
+from app.modules.development_os.router import router as development_os_router
+from app.modules.ecosystem.router import router as ecosystem_router
 
 logger = structlog.get_logger()
 
@@ -80,6 +89,15 @@ app.include_router(marketplace_router)
 app.include_router(tax_credits_router)
 app.include_router(legal_router)
 app.include_router(carbon_credits_router)
+app.include_router(board_advisor_router)
+app.include_router(investor_personas_router)
+app.include_router(equity_calculator_router)
+app.include_router(capital_efficiency_router)
+app.include_router(investor_signal_score_router)
+app.include_router(value_quantifier_router)
+app.include_router(tokenization_router)
+app.include_router(development_os_router)
+app.include_router(ecosystem_router)
 
 
 @app.get("/health")
