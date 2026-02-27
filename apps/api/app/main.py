@@ -24,6 +24,7 @@ from app.modules.deal_intelligence.router import router as deal_intelligence_rou
 from app.modules.risk.router import router as risk_router
 from app.modules.matching.router import router as matching_router
 from app.modules.settings.router import router as settings_router
+from app.modules.impact.router import router as impact_router
 
 logger = structlog.get_logger()
 
@@ -68,6 +69,7 @@ app.include_router(deal_intelligence_router)
 app.include_router(risk_router)
 app.include_router(matching_router)
 app.include_router(settings_router)
+app.include_router(impact_router)
 
 
 @app.get("/health")
