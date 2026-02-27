@@ -3,14 +3,16 @@
 import { useState } from "react";
 import {
   AlertTriangle,
+  Bell,
+  BellOff,
   ChevronDown,
   ChevronRight,
   Download,
   Filter,
   Search,
   ShieldCheck,
-  TrendingDown,
-  TrendingUp,
+  Sparkles,
+  X,
 } from "lucide-react";
 import {
   Badge,
@@ -26,10 +28,22 @@ import {
   TabsContent,
 } from "@scr/ui";
 import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  ResponsiveContainer,
+} from "recharts";
+import {
   useRiskDashboard,
   useRunScenario,
   useComplianceStatus,
   useAuditTrail,
+  useDomainScores,
+  useMonitoringAlerts,
+  useResolveAlert,
+  useTriggerMonitoringCheck,
+  useGenerateMitigation,
   severityColor,
   severityBadge,
   probabilityLabel,
@@ -37,6 +51,11 @@ import {
   sfdrColor,
   complianceStatusColor,
   paiStatusColor,
+  domainRiskColor,
+  domainRiskLabel,
+  alertSeverityBadge,
+  DOMAIN_LABELS,
+  DOMAIN_COLORS,
   SEVERITY_ORDER,
   PROBABILITY_ORDER,
   SCENARIO_TYPES,
@@ -46,6 +65,9 @@ import {
   type ComplianceStatus,
   type AuditEntry,
   type ScenarioType,
+  type FiveDomainRisk,
+  type MonitoringAlert,
+  type MitigationResponse,
 } from "@/lib/risk";
 import { usePortfolios } from "@/lib/portfolio";
 
@@ -1044,6 +1066,336 @@ function AuditEntryRow({
   );
 }
 
+// ── 5-Domain Risk Tab ─────────────────────────────────────────────────────────
+
+function DomainRadar({ domains }: { domains: FiveDomainRisk["domains"] }) {
+  const data = domains.map((d) => ({
+    domain: DOMAIN_LABELS[d.domain] ?? d.domain,
+    score: d.score ?? 0,
+  }));
+
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+      <RadarChart cx="50%" cy="50%" outerRadius="75%" data={data}>
+        <PolarGrid stroke="#e5e7eb" />
+        <PolarAngleAxis
+          dataKey="domain"
+          tick={{ fontSize: 11, fill: "#6b7280" }}
+        />
+        <Radar
+          name="Risk"
+          dataKey="score"
+          stroke="#ef4444"
+          fill="#ef4444"
+          fillOpacity={0.18}
+          strokeWidth={2}
+        />
+      </RadarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function AlertCard({
+  alert,
+  onResolve,
+}: {
+  alert: MonitoringAlert;
+  onResolve: (id: string, action: string) => void;
+}) {
+  const [action, setAction] = useState("");
+  const [resolving, setResolving] = useState(false);
+
+  const handleResolve = () => {
+    if (!action.trim()) return;
+    onResolve(alert.id, action);
+    setResolving(false);
+  };
+
+  return (
+    <div
+      className={`border rounded-lg p-4 ${
+        alert.is_actioned ? "border-neutral-200 opacity-60" : "border-orange-200 bg-orange-50"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant={alertSeverityBadge(alert.severity)} className="capitalize">
+              {alert.severity}
+            </Badge>
+            <span className="text-xs text-neutral-500 capitalize">
+              {DOMAIN_LABELS[alert.domain] ?? alert.domain}
+            </span>
+            {alert.source_name && (
+              <span className="text-xs text-neutral-400">{alert.source_name}</span>
+            )}
+          </div>
+          <p className="mt-1 text-sm font-semibold text-neutral-800">{alert.title}</p>
+          <p className="text-xs text-neutral-500 mt-0.5">{alert.description}</p>
+          {alert.is_actioned && alert.action_taken && (
+            <p className="text-xs text-green-700 mt-1">
+              ✓ Resolved: {alert.action_taken}
+            </p>
+          )}
+        </div>
+        {!alert.is_actioned && (
+          <button
+            onClick={() => setResolving(!resolving)}
+            className="text-xs text-primary-600 hover:text-primary-700 flex-shrink-0"
+          >
+            {resolving ? <X className="h-4 w-4" /> : "Resolve"}
+          </button>
+        )}
+      </div>
+      {resolving && (
+        <div className="mt-3 flex gap-2">
+          <input
+            className="flex-1 text-sm border border-neutral-200 rounded px-2 py-1"
+            placeholder="Describe action taken…"
+            value={action}
+            onChange={(e) => setAction(e.target.value)}
+          />
+          <Button size="sm" onClick={handleResolve} disabled={!action.trim()}>
+            Save
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MitigationPanel({
+  portfolioId,
+  domain,
+}: {
+  portfolioId: string;
+  domain: string;
+}) {
+  const [result, setResult] = useState<MitigationResponse | null>(null);
+  const generate = useGenerateMitigation(portfolioId);
+
+  const handleGenerate = async () => {
+    const res = await generate.mutateAsync(domain);
+    setResult(res);
+  };
+
+  return (
+    <div className="mt-3 border-t pt-3">
+      {!result ? (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleGenerate}
+          disabled={generate.isPending}
+        >
+          <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+          {generate.isPending ? "Generating…" : "AI Mitigation Strategies"}
+        </Button>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-primary-500" />
+            <p className="text-xs font-medium text-neutral-700">
+              AI Mitigation ({result.model_used})
+            </p>
+            <button
+              onClick={() => setResult(null)}
+              className="ml-auto text-neutral-400 hover:text-neutral-600"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <p className="text-xs text-neutral-600">{result.mitigation_text}</p>
+          {result.key_actions.length > 0 && (
+            <ul className="space-y-1">
+              {result.key_actions.map((a, i) => (
+                <li key={i} className="text-xs text-neutral-600 flex items-start gap-1">
+                  <span className="text-primary-500 font-bold flex-shrink-0">{i + 1}.</span>
+                  {a}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DomainsTab({ portfolioId }: { portfolioId: string }) {
+  const { data, isLoading } = useDomainScores(portfolioId);
+  const { data: alerts } = useMonitoringAlerts(portfolioId);
+  const resolveAlert = useResolveAlert();
+  const triggerCheck = useTriggerMonitoringCheck(portfolioId);
+  const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
+  const [showResolved, setShowResolved] = useState(false);
+
+  if (isLoading) return <LoadingSpinner />;
+  if (!data) return <NoPortfolio />;
+
+  const openAlerts = alerts?.items.filter((a) => !a.is_actioned) ?? [];
+  const resolvedAlerts = alerts?.items.filter((a) => a.is_actioned) ?? [];
+  const displayedAlerts = showResolved ? alerts?.items ?? [] : openAlerts;
+
+  const handleResolve = (alertId: string, actionTaken: string) => {
+    resolveAlert.mutate({ alertId, actionTaken });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-neutral-500">
+            {data.source === "stored" ? "Stored domain scores" : "Computed from assessments"} ·{" "}
+            {data.active_alerts_count} active alert{data.active_alerts_count !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => triggerCheck.mutate()}
+          disabled={triggerCheck.isPending}
+        >
+          <Bell className={`mr-1.5 h-3.5 w-3.5 ${triggerCheck.isPending ? "animate-pulse" : ""}`} />
+          {triggerCheck.isPending ? "Checking…" : "Run Check"}
+        </Button>
+      </div>
+
+      {/* Overall score + radar */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <Card className="md:col-span-2">
+          <CardContent className="p-5 flex flex-col items-center justify-center">
+            <ScoreGauge
+              score={data.overall_risk_score ?? 0}
+              size={110}
+              strokeWidth={10}
+            />
+            <p className="text-xs text-neutral-400 mt-2">Overall Risk Score</p>
+            <p className="text-xs text-neutral-400">(higher = more risk)</p>
+          </CardContent>
+        </Card>
+        <Card className="md:col-span-3">
+          <CardContent className="p-4">
+            <p className="text-xs font-medium text-neutral-500 mb-2">
+              Domain Risk Radar
+            </p>
+            <DomainRadar domains={data.domains} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Domain cards */}
+      <div className="space-y-3">
+        {data.domains.map((d) => (
+          <Card key={d.domain}>
+            <button
+              onClick={() =>
+                setExpandedDomain(expandedDomain === d.domain ? null : d.domain)
+              }
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50"
+            >
+              <div className="flex items-center gap-4">
+                <div
+                  className="h-3 w-3 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: DOMAIN_COLORS[d.domain] ?? "#6b7280" }}
+                />
+                <div>
+                  <p className="font-semibold text-neutral-800">
+                    {DOMAIN_LABELS[d.domain] ?? d.domain}
+                  </p>
+                  <p className={`text-xs font-medium ${domainRiskColor(d.score)}`}>
+                    {domainRiskLabel(d.score)}
+                    {d.score !== null && ` · ${d.score.toFixed(0)}/100`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {d.score !== null && (
+                  <div className="w-24 h-2 bg-neutral-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${d.score}%`,
+                        backgroundColor: DOMAIN_COLORS[d.domain] ?? "#6b7280",
+                      }}
+                    />
+                  </div>
+                )}
+                {expandedDomain === d.domain ? (
+                  <ChevronDown className="h-4 w-4 text-neutral-400" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-neutral-400" />
+                )}
+              </div>
+            </button>
+            {expandedDomain === d.domain && (
+              <div className="border-t px-4 pb-4">
+                {d.details && Object.keys(d.details).length > 0 && (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {Object.entries(d.details).map(([k, v]) => (
+                      <div key={k} className="text-xs">
+                        <span className="text-neutral-500 capitalize">
+                          {k.replace(/_/g, " ")}:{" "}
+                        </span>
+                        <span className="font-medium text-neutral-700">
+                          {typeof v === "number" ? v.toFixed(1) : String(v)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <MitigationPanel portfolioId={portfolioId} domain={d.domain} />
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      {/* Alerts section */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-semibold text-neutral-700">
+              Monitoring Alerts
+              {openAlerts.length > 0 && (
+                <span className="ml-2 bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {openAlerts.length}
+                </span>
+              )}
+            </p>
+            <button
+              onClick={() => setShowResolved(!showResolved)}
+              className="text-xs text-neutral-500 flex items-center gap-1 hover:text-neutral-700"
+            >
+              {showResolved ? (
+                <BellOff className="h-3.5 w-3.5" />
+              ) : (
+                <Bell className="h-3.5 w-3.5" />
+              )}
+              {showResolved ? "Hide resolved" : `Show resolved (${resolvedAlerts.length})`}
+            </button>
+          </div>
+
+          {displayedAlerts.length === 0 ? (
+            <EmptyState
+              icon={<ShieldCheck className="h-10 w-10 text-neutral-400" />}
+              title="No active alerts"
+              description="All monitoring checks are clear. Run a check to refresh."
+            />
+          ) : (
+            <div className="space-y-3">
+              {displayedAlerts.map((alert) => (
+                <AlertCard key={alert.id} alert={alert} onResolve={handleResolve} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ── Shared components ─────────────────────────────────────────────────────────
 
 function LoadingSpinner() {
@@ -1086,6 +1438,7 @@ export default function RiskPage() {
       <Tabs defaultValue="dashboard">
         <TabsList>
           <TabsTrigger value="dashboard">Risk Dashboard</TabsTrigger>
+          <TabsTrigger value="domains">5-Domain Risk</TabsTrigger>
           <TabsTrigger value="scenarios">Scenario Analysis</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
           <TabsTrigger value="audit">Audit Trail</TabsTrigger>
@@ -1094,6 +1447,14 @@ export default function RiskPage() {
         <TabsContent value="dashboard" className="mt-6">
           {portfolioId ? (
             <DashboardTab portfolioId={portfolioId} />
+          ) : (
+            <NoPortfolio />
+          )}
+        </TabsContent>
+
+        <TabsContent value="domains" className="mt-6">
+          {portfolioId ? (
+            <DomainsTab portfolioId={portfolioId} />
           ) : (
             <NoPortfolio />
           )}

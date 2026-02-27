@@ -10,9 +10,15 @@ from app.auth.dependencies import get_current_user, require_permission
 from app.core.database import get_db
 from app.modules.risk import service
 from app.modules.risk.schemas import (
+    AlertResolveRequest,
     AuditTrailResponse,
     ComplianceStatusResponse,
     ConcentrationAnalysisResponse,
+    FiveDomainRiskResponse,
+    MitigationRequest,
+    MitigationResponse,
+    MonitoringAlertListResponse,
+    MonitoringAlertResponse,
     RiskAssessmentCreate,
     RiskAssessmentResponse,
     RiskDashboardResponse,
@@ -119,6 +125,110 @@ async def get_compliance(
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+
+
+# ── 5-Domain Risk Framework ───────────────────────────────────────────────────
+
+
+@router.get("/domains/{portfolio_id}", response_model=FiveDomainRiskResponse)
+async def get_domain_scores(
+    portfolio_id: uuid.UUID,
+    current_user: CurrentUser = Depends(require_permission("view", "portfolio")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get 5-domain risk scores (market, climate, regulatory, technology, liquidity)."""
+    try:
+        return await service.get_five_domain_scores(
+            db, portfolio_id, current_user.org_id
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.post("/domains/{portfolio_id}/mitigation", response_model=MitigationResponse)
+async def generate_mitigation(
+    portfolio_id: uuid.UUID,
+    body: MitigationRequest,
+    current_user: CurrentUser = Depends(require_permission("view", "portfolio")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate AI-powered mitigation strategies for a specific risk domain."""
+    valid_domains = {"market", "climate", "regulatory", "technology", "liquidity"}
+    if body.domain not in valid_domains:
+        raise HTTPException(status_code=422, detail=f"domain must be one of {valid_domains}")
+    try:
+        return await service.generate_domain_mitigation(
+            db, portfolio_id, current_user.org_id, body.domain
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+# ── Monitoring Alerts ─────────────────────────────────────────────────────────
+
+
+@router.get("/alerts", response_model=MonitoringAlertListResponse)
+async def list_alerts(
+    portfolio_id: uuid.UUID | None = Query(None),
+    unread_only: bool = Query(False),
+    current_user: CurrentUser = Depends(require_permission("view", "portfolio")),
+    db: AsyncSession = Depends(get_db),
+):
+    """List monitoring alerts for the current organisation."""
+    return await service.get_monitoring_alerts(
+        db, current_user.org_id, portfolio_id, unread_only
+    )
+
+
+@router.post(
+    "/alerts/check/{portfolio_id}",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def trigger_monitoring_check(
+    portfolio_id: uuid.UUID,
+    current_user: CurrentUser = Depends(require_permission("view", "portfolio")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger a real-time monitoring check to generate fresh alerts."""
+    try:
+        result = await service.trigger_monitoring_check(
+            db, portfolio_id, current_user.org_id
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return result
+
+
+@router.put("/alerts/{alert_id}/resolve", response_model=MonitoringAlertResponse)
+async def resolve_alert(
+    alert_id: uuid.UUID,
+    body: AlertResolveRequest,
+    current_user: CurrentUser = Depends(require_permission("view", "portfolio")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark a monitoring alert as resolved with an action note."""
+    try:
+        alert = await service.resolve_alert(
+            db, alert_id, current_user.org_id, body.action_taken
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return MonitoringAlertResponse(
+        id=alert.id,
+        org_id=alert.org_id,
+        portfolio_id=alert.portfolio_id,
+        project_id=alert.project_id,
+        alert_type=alert.alert_type.value,
+        severity=alert.severity.value,
+        domain=alert.domain.value,
+        title=alert.title,
+        description=alert.description,
+        source_name=alert.source_name,
+        is_read=alert.is_read,
+        is_actioned=alert.is_actioned,
+        action_taken=alert.action_taken,
+        created_at=alert.created_at,
+    )
 
 
 @router.get("/audit-trail", response_model=AuditTrailResponse)

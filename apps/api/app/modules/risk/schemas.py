@@ -193,6 +193,67 @@ class ComplianceStatusResponse(BaseModel):
     last_assessed: datetime
 
 
+# ── 5-Domain Risk Framework ───────────────────────────────────────────────────
+
+
+class RiskDomainScore(BaseModel):
+    domain: str  # market|climate|regulatory|technology|liquidity
+    score: float | None       # 0–100 (higher = more risk)
+    label: str                # Low | Medium | High | Critical
+    details: dict[str, Any] | None = None
+    mitigation: dict[str, Any] | None = None
+
+
+class FiveDomainRiskResponse(BaseModel):
+    portfolio_id: uuid.UUID
+    overall_risk_score: float | None
+    domains: list[RiskDomainScore]
+    monitoring_enabled: bool
+    last_monitoring_check: datetime | None
+    active_alerts_count: int
+    source: str  # "stored" | "computed"
+
+
+# ── Monitoring Alerts ─────────────────────────────────────────────────────────
+
+
+class MonitoringAlertResponse(BaseModel):
+    id: uuid.UUID
+    org_id: uuid.UUID
+    portfolio_id: uuid.UUID | None
+    project_id: uuid.UUID | None
+    alert_type: str
+    severity: str
+    domain: str
+    title: str
+    description: str
+    source_name: str | None
+    is_read: bool
+    is_actioned: bool
+    action_taken: str | None
+    created_at: datetime
+
+
+class MonitoringAlertListResponse(BaseModel):
+    items: list[MonitoringAlertResponse]
+    total: int
+
+
+class AlertResolveRequest(BaseModel):
+    action_taken: str
+
+
+class MitigationRequest(BaseModel):
+    domain: str  # market|climate|regulatory|technology|liquidity
+
+
+class MitigationResponse(BaseModel):
+    domain: str
+    mitigation_text: str
+    key_actions: list[str]
+    model_used: str
+
+
 # ── Audit Trail ───────────────────────────────────────────────────────────────
 
 

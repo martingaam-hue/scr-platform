@@ -171,6 +171,55 @@ export interface AuditTrail {
   total: number;
 }
 
+// ── 5-Domain Risk Framework ────────────────────────────────────────────────
+
+export interface RiskDomainScore {
+  domain: string;
+  score: number | null;
+  label: string;
+  details: Record<string, unknown> | null;
+  mitigation: Record<string, unknown> | null;
+}
+
+export interface FiveDomainRisk {
+  portfolio_id: string;
+  overall_risk_score: number | null;
+  domains: RiskDomainScore[];
+  monitoring_enabled: boolean;
+  last_monitoring_check: string | null;
+  active_alerts_count: number;
+  source: "stored" | "computed";
+}
+
+export interface MonitoringAlert {
+  id: string;
+  org_id: string;
+  portfolio_id: string | null;
+  project_id: string | null;
+  alert_type: string;
+  severity: string;
+  domain: string;
+  title: string;
+  description: string;
+  source_name: string | null;
+  is_read: boolean;
+  is_actioned: boolean;
+  action_taken: string | null;
+  created_at: string;
+}
+
+export interface MonitoringAlertList {
+  items: MonitoringAlert[];
+  total: number;
+}
+
+export interface MitigationResponse {
+  domain: string;
+  mitigation_text: string;
+  key_actions: string[];
+  model_used: string;
+}
+
 // ── Query Keys ─────────────────────────────────────────────────────────────
 
 export const riskKeys = {
@@ -187,6 +236,10 @@ export const riskKeys = {
     [...riskKeys.all, "compliance", portfolioId] as const,
   auditTrail: (entityType?: string, entityId?: string) =>
     [...riskKeys.all, "audit", entityType ?? "", entityId ?? ""] as const,
+  domains: (portfolioId: string) =>
+    [...riskKeys.all, "domains", portfolioId] as const,
+  alerts: (portfolioId?: string) =>
+    [...riskKeys.all, "alerts", portfolioId ?? ""] as const,
 };
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
@@ -403,3 +456,111 @@ export const SCENARIO_TYPES = [
 ] as const;
 
 export type ScenarioType = (typeof SCENARIO_TYPES)[number];
+
+// ── 5-Domain hooks ─────────────────────────────────────────────────────────
+
+export function useDomainScores(portfolioId: string | undefined) {
+  return useQuery({
+    queryKey: riskKeys.domains(portfolioId ?? ""),
+    queryFn: () =>
+      api
+        .get<FiveDomainRisk>(`/risk/domains/${portfolioId}`)
+        .then((r) => r.data),
+    enabled: !!portfolioId,
+  });
+}
+
+export function useMonitoringAlerts(portfolioId?: string, unreadOnly = false) {
+  const params = new URLSearchParams();
+  if (portfolioId) params.set("portfolio_id", portfolioId);
+  if (unreadOnly) params.set("unread_only", "true");
+  const qs = params.toString();
+
+  return useQuery({
+    queryKey: riskKeys.alerts(portfolioId),
+    queryFn: () =>
+      api
+        .get<MonitoringAlertList>(`/risk/alerts${qs ? `?${qs}` : ""}`)
+        .then((r) => r.data),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useResolveAlert() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ alertId, actionTaken }: { alertId: string; actionTaken: string }) =>
+      api
+        .put<MonitoringAlert>(`/risk/alerts/${alertId}/resolve`, { action_taken: actionTaken })
+        .then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: riskKeys.alerts() });
+    },
+  });
+}
+
+export function useTriggerMonitoringCheck(portfolioId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api
+        .post(`/risk/alerts/check/${portfolioId}`)
+        .then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: riskKeys.alerts(portfolioId) });
+      qc.invalidateQueries({ queryKey: riskKeys.domains(portfolioId ?? "") });
+    },
+  });
+}
+
+export function useGenerateMitigation(portfolioId: string | undefined) {
+  return useMutation({
+    mutationFn: (domain: string) =>
+      api
+        .post<MitigationResponse>(`/risk/domains/${portfolioId}/mitigation`, { domain })
+        .then((r) => r.data),
+  });
+}
+
+// ── Domain helpers ──────────────────────────────────────────────────────────
+
+export const DOMAIN_LABELS: Record<string, string> = {
+  market:     "Market Risk",
+  climate:    "Climate Risk",
+  regulatory: "Regulatory Risk",
+  technology: "Technology Risk",
+  liquidity:  "Liquidity Risk",
+};
+
+export const DOMAIN_COLORS: Record<string, string> = {
+  market:     "#3b82f6",
+  climate:    "#10b981",
+  regulatory: "#f59e0b",
+  technology: "#8b5cf6",
+  liquidity:  "#ef4444",
+};
+
+export function domainRiskLabel(score: number | null): string {
+  if (score === null) return "Unknown";
+  if (score >= 75) return "Critical";
+  if (score >= 50) return "High";
+  if (score >= 25) return "Medium";
+  return "Low";
+}
+
+export function domainRiskColor(score: number | null): string {
+  if (score === null) return "text-neutral-400";
+  if (score >= 75) return "text-red-600";
+  if (score >= 50) return "text-orange-500";
+  if (score >= 25) return "text-amber-500";
+  return "text-green-600";
+}
+
+export function alertSeverityBadge(severity: string): "error" | "warning" | "neutral" | "success" {
+  switch (severity) {
+    case "critical": return "error";
+    case "high":     return "error";
+    case "medium":   return "warning";
+    default:         return "neutral";
+  }
+}

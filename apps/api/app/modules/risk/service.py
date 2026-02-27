@@ -15,9 +15,13 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.middleware.tenant import tenant_filter
+from app.models.advisory import MonitoringAlert
 from app.models.core import AuditLog
 from app.models.enums import (
     HoldingStatus,
+    MonitoringAlertDomain,
+    MonitoringAlertSeverity,
+    MonitoringAlertType,
     RiskAssessmentStatus,
     RiskEntityType,
     RiskProbability,
@@ -29,6 +33,7 @@ from app.models.investors import Portfolio, PortfolioHolding, PortfolioMetrics, 
 from app.models.projects import Project, SignalScore
 from app.modules.portfolio.service import _get_portfolio_or_raise
 from app.modules.risk.schemas import (
+    AlertResolveRequest,
     AuditEntry,
     AuditTrailResponse,
     AutoRiskItem,
@@ -38,12 +43,17 @@ from app.modules.risk.schemas import (
     DNSHCheck,
     ESGDimensionScore,
     ESGScoreResponse,
+    FiveDomainRiskResponse,
     HeatmapCell,
     HoldingImpact,
+    MitigationResponse,
+    MonitoringAlertListResponse,
+    MonitoringAlertResponse,
     PAIIndicator,
     RiskAssessmentResponse,
     RiskAssessmentCreate,
     RiskDashboardResponse,
+    RiskDomainScore,
     RiskHeatmapResponse,
     RiskTrendPoint,
     ScenarioResult,
@@ -969,3 +979,352 @@ async def get_audit_trail(
     ]
 
     return AuditTrailResponse(items=items, total=total)
+
+
+# ── 5-Domain Risk Framework ───────────────────────────────────────────────────
+
+
+def _domain_label(score: float | None) -> str:
+    if score is None:
+        return "Unknown"
+    if score >= 75:
+        return "Critical"
+    if score >= 50:
+        return "High"
+    if score >= 25:
+        return "Medium"
+    return "Low"
+
+
+async def get_five_domain_scores(
+    db: AsyncSession,
+    portfolio_id: uuid.UUID,
+    org_id: uuid.UUID,
+) -> FiveDomainRiskResponse:
+    """Return 5-domain risk scores for a portfolio.
+
+    Loads from stored RiskAssessment domain scores if available,
+    otherwise derives a deterministic estimate from portfolio assessments.
+    """
+    portfolio = await _get_portfolio_or_raise(db, portfolio_id, org_id)
+
+    # Load the most recent RiskAssessment for this portfolio
+    stmt = (
+        select(RiskAssessment)
+        .where(
+            RiskAssessment.entity_type == RiskEntityType.PORTFOLIO,
+            RiskAssessment.entity_id == portfolio_id,
+            RiskAssessment.org_id == org_id,
+        )
+        .order_by(RiskAssessment.created_at.desc())
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    assessment = result.scalar_one_or_none()
+
+    # Active alert count for this portfolio
+    alert_count_stmt = select(func.count(MonitoringAlert.id)).where(
+        MonitoringAlert.org_id == org_id,
+        MonitoringAlert.portfolio_id == portfolio_id,
+        MonitoringAlert.is_actioned.is_(False),
+    )
+    active_alerts = (await db.execute(alert_count_stmt)).scalar() or 0
+
+    if assessment and assessment.overall_risk_score is not None:
+        # Use stored domain scores from P01 schema
+        domains = [
+            RiskDomainScore(
+                domain="market",
+                score=float(assessment.market_risk_score) if assessment.market_risk_score else None,
+                label=_domain_label(float(assessment.market_risk_score) if assessment.market_risk_score else None),
+                details=assessment.market_risk_details,
+                mitigation=assessment.market_risk_mitigation,
+            ),
+            RiskDomainScore(
+                domain="climate",
+                score=float(assessment.climate_risk_score) if assessment.climate_risk_score else None,
+                label=_domain_label(float(assessment.climate_risk_score) if assessment.climate_risk_score else None),
+                details=assessment.climate_risk_details,
+                mitigation=assessment.climate_risk_mitigation,
+            ),
+            RiskDomainScore(
+                domain="regulatory",
+                score=float(assessment.regulatory_risk_score) if assessment.regulatory_risk_score else None,
+                label=_domain_label(float(assessment.regulatory_risk_score) if assessment.regulatory_risk_score else None),
+                details=assessment.regulatory_risk_details,
+                mitigation=assessment.regulatory_risk_mitigation,
+            ),
+            RiskDomainScore(
+                domain="technology",
+                score=float(assessment.technology_risk_score) if assessment.technology_risk_score else None,
+                label=_domain_label(float(assessment.technology_risk_score) if assessment.technology_risk_score else None),
+                details=assessment.technology_risk_details,
+                mitigation=assessment.technology_risk_mitigation,
+            ),
+            RiskDomainScore(
+                domain="liquidity",
+                score=float(assessment.liquidity_risk_score) if assessment.liquidity_risk_score else None,
+                label=_domain_label(float(assessment.liquidity_risk_score) if assessment.liquidity_risk_score else None),
+                details=assessment.liquidity_risk_details,
+                mitigation=assessment.liquidity_risk_mitigation,
+            ),
+        ]
+        return FiveDomainRiskResponse(
+            portfolio_id=portfolio_id,
+            overall_risk_score=float(assessment.overall_risk_score),
+            domains=domains,
+            monitoring_enabled=assessment.monitoring_enabled,
+            last_monitoring_check=assessment.last_monitoring_check,
+            active_alerts_count=active_alerts,
+            source="stored",
+        )
+
+    # Fallback: derive estimates from auto-identified risks
+    all_assessments_stmt = select(RiskAssessment).where(
+        RiskAssessment.entity_type == RiskEntityType.PORTFOLIO,
+        RiskAssessment.entity_id == portfolio_id,
+        RiskAssessment.org_id == org_id,
+    )
+    all_result = await db.execute(all_assessments_stmt)
+    all_assessments = list(all_result.scalars().all())
+
+    # Map legacy risk types to domains
+    domain_map: dict[str, str] = {
+        "concentration": "market",
+        "counterparty": "market",
+        "currency": "market",
+        "interest_rate": "market",
+        "climate": "climate",
+        "environmental": "climate",
+        "regulatory": "regulatory",
+        "compliance": "regulatory",
+        "legal": "regulatory",
+        "technology": "technology",
+        "liquidity": "liquidity",
+        "other": "market",
+    }
+    sev_weights = {"low": 15, "medium": 35, "high": 60, "critical": 85}
+    domain_scores: dict[str, list[float]] = {d: [] for d in ["market", "climate", "regulatory", "technology", "liquidity"]}
+
+    for a in all_assessments:
+        domain = domain_map.get(a.risk_type.value if hasattr(a.risk_type, "value") else str(a.risk_type), "market")
+        sev = a.severity.value if hasattr(a.severity, "value") else str(a.severity)
+        domain_scores[domain].append(sev_weights.get(sev, 35))
+
+    domains = []
+    computed_scores = []
+    for d in ["market", "climate", "regulatory", "technology", "liquidity"]:
+        scores_for_domain = domain_scores[d]
+        score: float | None = max(scores_for_domain) if scores_for_domain else None
+        if score is not None:
+            computed_scores.append(score)
+        domains.append(
+            RiskDomainScore(
+                domain=d,
+                score=score,
+                label=_domain_label(score),
+                details=None,
+                mitigation=None,
+            )
+        )
+
+    overall = round(sum(computed_scores) / len(computed_scores), 1) if computed_scores else None
+
+    return FiveDomainRiskResponse(
+        portfolio_id=portfolio_id,
+        overall_risk_score=overall,
+        domains=domains,
+        monitoring_enabled=True,
+        last_monitoring_check=None,
+        active_alerts_count=active_alerts,
+        source="computed",
+    )
+
+
+# ── Monitoring Alerts ─────────────────────────────────────────────────────────
+
+
+async def get_monitoring_alerts(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    portfolio_id: uuid.UUID | None = None,
+    unread_only: bool = False,
+) -> MonitoringAlertListResponse:
+    """List monitoring alerts for an org, optionally filtered by portfolio."""
+    stmt = select(MonitoringAlert).where(MonitoringAlert.org_id == org_id)
+    if portfolio_id:
+        stmt = stmt.where(MonitoringAlert.portfolio_id == portfolio_id)
+    if unread_only:
+        stmt = stmt.where(MonitoringAlert.is_read.is_(False))
+
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = (await db.execute(count_stmt)).scalar() or 0
+
+    stmt = stmt.order_by(MonitoringAlert.created_at.desc()).limit(50)
+    result = await db.execute(stmt)
+    alerts = result.scalars().all()
+
+    items = [
+        MonitoringAlertResponse(
+            id=a.id,
+            org_id=a.org_id,
+            portfolio_id=a.portfolio_id,
+            project_id=a.project_id,
+            alert_type=a.alert_type.value,
+            severity=a.severity.value,
+            domain=a.domain.value,
+            title=a.title,
+            description=a.description,
+            source_name=a.source_name,
+            is_read=a.is_read,
+            is_actioned=a.is_actioned,
+            action_taken=a.action_taken,
+            created_at=a.created_at,
+        )
+        for a in alerts
+    ]
+    return MonitoringAlertListResponse(items=items, total=total)
+
+
+async def trigger_monitoring_check(
+    db: AsyncSession,
+    portfolio_id: uuid.UUID,
+    org_id: uuid.UUID,
+) -> dict[str, Any]:
+    """Stub: generate sample alerts from heuristic thresholds.
+
+    In production this would call external data providers.
+    """
+    portfolio = await _get_portfolio_or_raise(db, portfolio_id, org_id)
+
+    # Check concentration risk
+    holdings_stmt = select(PortfolioHolding).where(
+        PortfolioHolding.portfolio_id == portfolio_id,
+        PortfolioHolding.org_id == org_id,
+        PortfolioHolding.status == HoldingStatus.ACTIVE,
+    )
+    holdings_result = await db.execute(holdings_stmt)
+    holdings = list(holdings_result.scalars().all())
+
+    alerts_created = 0
+
+    if holdings:
+        total_value = sum(float(h.current_value) for h in holdings)
+        if total_value > 0:
+            for h in holdings:
+                pct = float(h.current_value) / total_value
+                if pct > 0.30:
+                    alert = MonitoringAlert(
+                        org_id=org_id,
+                        portfolio_id=portfolio_id,
+                        alert_type=MonitoringAlertType.RISK_THRESHOLD,
+                        severity=MonitoringAlertSeverity.WARNING,
+                        domain=MonitoringAlertDomain.MARKET,
+                        title=f"Concentration risk: {h.asset_name}",
+                        description=(
+                            f"{h.asset_name} represents {pct*100:.1f}% of portfolio value, "
+                            f"exceeding the 30% concentration threshold."
+                        ),
+                        source_name="SCR Risk Monitor",
+                        affected_entities={"holding_id": str(h.id), "asset_name": h.asset_name},
+                    )
+                    db.add(alert)
+                    alerts_created += 1
+
+    await db.commit()
+    return {"alerts_created": alerts_created, "portfolio_id": str(portfolio_id)}
+
+
+async def resolve_alert(
+    db: AsyncSession,
+    alert_id: uuid.UUID,
+    org_id: uuid.UUID,
+    action_taken: str,
+) -> MonitoringAlert:
+    """Mark a monitoring alert as actioned."""
+    stmt = select(MonitoringAlert).where(
+        MonitoringAlert.id == alert_id,
+        MonitoringAlert.org_id == org_id,
+    )
+    result = await db.execute(stmt)
+    alert = result.scalar_one_or_none()
+    if not alert:
+        raise LookupError(f"Alert {alert_id} not found")
+
+    alert.is_read = True
+    alert.is_actioned = True
+    alert.action_taken = action_taken
+    await db.commit()
+    await db.refresh(alert)
+    return alert
+
+
+async def generate_domain_mitigation(
+    db: AsyncSession,
+    portfolio_id: uuid.UUID,
+    org_id: uuid.UUID,
+    domain: str,
+) -> MitigationResponse:
+    """Call AI Gateway to generate mitigation strategies for a risk domain."""
+    import httpx
+
+    from app.core.config import settings
+    from app.modules.risk.service import _get_portfolio_or_raise as _gp
+
+    portfolio = await _gp(db, portfolio_id, org_id)
+
+    prompt = (
+        f"You are a risk management expert for alternative investment portfolios.\n\n"
+        f"Portfolio: {portfolio.name} | Strategy: {portfolio.strategy.value} | "
+        f"AUM: {portfolio.target_aum}\n\n"
+        f"Generate specific, actionable risk mitigation strategies for the {domain.upper()} "
+        f"risk domain. Focus on practical steps an institutional investor can take.\n\n"
+        f"Respond with valid JSON:\n"
+        f'{{"mitigation_text": "2-3 sentence summary", '
+        f'"key_actions": ["action1", "action2", "action3", "action4", "action5"]}}'
+    )
+
+    model_used = "deterministic"
+    mitigation_text = f"Implement a comprehensive {domain} risk management framework with regular monitoring and threshold-based alerts."
+    key_actions = [
+        f"Establish {domain} risk KPIs and monitoring dashboards",
+        f"Define and enforce {domain} risk limits per holding",
+        f"Conduct quarterly {domain} risk reviews with the investment committee",
+        f"Implement hedging strategies appropriate for {domain} exposure",
+        f"Engage external {domain} risk specialists for independent validation",
+    ]
+
+    if settings.AI_GATEWAY_URL and settings.AI_GATEWAY_API_KEY:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(
+                    f"{settings.AI_GATEWAY_URL}/v1/completions",
+                    json={
+                        "prompt": prompt,
+                        "task_type": "analysis",
+                        "max_tokens": 512,
+                        "temperature": 0.4,
+                    },
+                    headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                )
+            if resp.status_code == 200:
+                content = resp.json().get("content", "")
+                import json as _json
+                # Strip markdown code blocks if present
+                if "```" in content:
+                    content = content.split("```")[1]
+                    if content.startswith("json"):
+                        content = content[4:]
+                parsed = _json.loads(content.strip())
+                mitigation_text = parsed.get("mitigation_text", mitigation_text)
+                key_actions = parsed.get("key_actions", key_actions)
+                model_used = resp.json().get("model_used", "claude")
+        except Exception:
+            pass  # fall back to deterministic response
+
+    return MitigationResponse(
+        domain=domain,
+        mitigation_text=mitigation_text,
+        key_actions=key_actions,
+        model_used=model_used,
+    )
