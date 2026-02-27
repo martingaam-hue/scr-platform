@@ -42,6 +42,7 @@ class Resource:
     MATCH = "match"
     LISTING = "listing"
     CONVERSATION = "conversation"
+    COMMENT = "comment"
 
 
 # ── Role hierarchy (higher = more privilege) ──────────────────────────────
@@ -64,6 +65,7 @@ _VIEWER_PERMS: set[tuple[str, str]] = {
     (Action.VIEW, Resource.MATCH),
     (Action.VIEW, Resource.LISTING),
     (Action.VIEW, Resource.CONVERSATION),
+    (Action.VIEW, Resource.COMMENT),
     (Action.DOWNLOAD, Resource.DOCUMENT),
     (Action.DOWNLOAD, Resource.REPORT),
 }
@@ -76,6 +78,8 @@ _ANALYST_EXTRA: set[tuple[str, str]] = {
     (Action.CREATE, Resource.REPORT),
     (Action.RUN_ANALYSIS, Resource.ANALYSIS),
     (Action.CREATE, Resource.CONVERSATION),
+    (Action.CREATE, Resource.COMMENT),
+    (Action.EDIT, Resource.COMMENT),
     (Action.EXPORT, Resource.REPORT),
 }
 
@@ -94,6 +98,7 @@ _ADMIN_EXTRA: set[tuple[str, str]] = {
     (Action.DELETE, Resource.PORTFOLIO),
     (Action.DELETE, Resource.REPORT),
     (Action.DELETE, Resource.LISTING),
+    (Action.DELETE, Resource.COMMENT),
     (Action.MANAGE_SETTINGS, Resource.SETTINGS),
     (Action.MANAGE_BILLING, Resource.BILLING),
     (Action.VIEW, Resource.AUDIT_LOG),
