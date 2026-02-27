@@ -123,18 +123,27 @@ class SignalScoreEngine:
                 "criteria": result["criteria"],
             }
 
-        # 9. Create SignalScore record
+        # 9. Build improvement guidance summary
+        improvement_guidance = self._build_improvement_guidance(
+            dimension_results, gaps
+        )
+
+        # 10. Create SignalScore record
         signal_score = SignalScore(
             project_id=project_id,
             overall_score=overall_score,
-            technical_score=dimension_results["technical"]["score"],
-            financial_score=dimension_results["financial"]["score"],
+            # 6 dimension scores (renamed from P01 migration)
+            project_viability_score=dimension_results["technical"]["score"],
+            financial_planning_score=dimension_results["financial"]["score"],
             esg_score=dimension_results["esg"]["score"],
-            regulatory_score=dimension_results["regulatory"]["score"],
-            team_score=dimension_results["team"]["score"],
+            risk_assessment_score=dimension_results["regulatory"]["score"],
+            team_strength_score=dimension_results["team"]["score"],
+            market_opportunity_score=dimension_results["market_opportunity"]["score"],
             scoring_details=scoring_details,
             gaps={"items": gaps},
             strengths={"items": strengths},
+            improvement_guidance=improvement_guidance,
+            is_live=False,
             model_used=model_used,
             version=next_version,
             calculated_at=datetime.now(timezone.utc),
@@ -317,6 +326,57 @@ class SignalScoreEngine:
         priority_order = {"high": 0, "medium": 1, "low": 2}
         gaps.sort(key=lambda g: (priority_order.get(g["priority"], 2), -g["max_points"]))
         return gaps
+
+    def _build_improvement_guidance(
+        self, dimension_results: dict, gaps: list[dict]
+    ) -> dict:
+        """Derive structured improvement guidance from gaps and dimension scores."""
+        high_gaps = [g for g in gaps if g["priority"] == "high"]
+        medium_gaps = [g for g in gaps if g["priority"] == "medium"]
+
+        # Quick wins: medium-priority gaps with low max_points (easy wins)
+        quick_wins = [
+            g["recommendation"]
+            for g in medium_gaps
+            if g["max_points"] <= 10
+        ][:3]
+
+        # Lowest scoring dimension
+        dim_scores = {
+            dim.id: dimension_results[dim.id]["score"] for dim in DIMENSIONS
+        }
+        weakest_dim_id = min(dim_scores, key=lambda k: dim_scores[k])
+        weakest_dim = next((d for d in DIMENSIONS if d.id == weakest_dim_id), None)
+
+        # Estimated potential: if all high gaps were filled
+        high_gap_points = sum(g["max_points"] - g["current_score"] for g in high_gaps)
+        total_max = sum(
+            sum(c["max_points"] for c in dimension_results[dim.id]["criteria"])
+            for dim in DIMENSIONS
+        )
+        potential_gain = round(high_gap_points / total_max * 100) if total_max > 0 else 0
+
+        return {
+            "quick_wins": quick_wins,
+            "focus_area": weakest_dim.name if weakest_dim else None,
+            "high_priority_count": len(high_gaps),
+            "medium_priority_count": len(medium_gaps),
+            "estimated_max_gain": potential_gain,
+            "top_actions": [
+                {
+                    "dimension_id": g["dimension_id"],
+                    "dimension_name": g["dimension_name"],
+                    "action": g["recommendation"],
+                    "expected_gain": round(
+                        (g["max_points"] - g["current_score"])
+                        / total_max * 100
+                    ) if total_max > 0 else 0,
+                    "effort": "high" if g["max_points"] >= 15 else "medium",
+                    "doc_types_needed": g["relevant_doc_types"],
+                }
+                for g in (high_gaps + medium_gaps)[:5]
+            ],
+        }
 
     def _identify_strengths(self, dimension_results: dict) -> list[dict]:
         """Identify criteria scoring at or above 80% of their max points."""

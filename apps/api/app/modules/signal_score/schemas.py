@@ -34,8 +34,10 @@ class SignalScoreDetailResponse(BaseModel):
     project_id: uuid.UUID
     overall_score: int
     dimensions: list[DimensionScoreResponse]
+    improvement_guidance: dict[str, Any] | None = None
     model_used: str
     version: int
+    is_live: bool = False
     calculated_at: datetime
 
 
@@ -59,22 +61,79 @@ class GapsResponse(BaseModel):
     total: int
 
 
+# ── Strengths ─────────────────────────────────────────────────────────────────
+
+
+class StrengthItem(BaseModel):
+    dimension_id: str
+    dimension_name: str
+    criterion_id: str
+    criterion_name: str
+    score: int
+    summary: str
+
+
+class StrengthsResponse(BaseModel):
+    items: list[StrengthItem]
+    total: int
+
+
 # ── History ──────────────────────────────────────────────────────────────────
 
 
 class ScoreHistoryItem(BaseModel):
     version: int
     overall_score: int
-    technical_score: int
-    financial_score: int
+    project_viability_score: int
+    financial_planning_score: int
     esg_score: int
-    regulatory_score: int
-    team_score: int
+    risk_assessment_score: int
+    team_strength_score: int
+    market_opportunity_score: int
+    is_live: bool
     calculated_at: datetime
 
 
 class ScoreHistoryResponse(BaseModel):
     items: list[ScoreHistoryItem]
+
+
+# ── Live Score ────────────────────────────────────────────────────────────────
+
+
+class LiveScoreFactor(BaseModel):
+    name: str
+    met: bool
+    impact: int
+
+
+class LiveScoreResponse(BaseModel):
+    overall_score: int
+    factors: list[LiveScoreFactor]
+    guidance: str
+    note: str = "Quick score based on project metadata completeness. Run full signal score for AI-powered analysis."
+
+
+# ── Improvement Guidance ──────────────────────────────────────────────────────
+
+
+class ImprovementAction(BaseModel):
+    dimension_id: str
+    dimension_name: str
+    action: str
+    expected_gain: int
+    effort: str
+    doc_types_needed: list[str]
+
+
+class ImprovementGuidanceResponse(BaseModel):
+    quick_wins: list[str]
+    focus_area: str | None
+    high_priority_count: int
+    medium_priority_count: int
+    estimated_max_gain: int
+    top_actions: list[ImprovementAction]
+    based_on_version: int
 
 
 # ── Calculate ────────────────────────────────────────────────────────────────

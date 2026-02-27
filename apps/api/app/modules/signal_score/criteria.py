@@ -1,4 +1,4 @@
-"""Signal Score criteria definitions: 5 dimensions with detailed scoring rubric."""
+"""Signal Score criteria definitions: 6 dimensions with detailed scoring rubric."""
 
 from dataclasses import dataclass, field
 
@@ -24,12 +24,12 @@ class Dimension:
     criteria: tuple[Criterion, ...]
 
 
-# ── Technical Readiness (25%) ────────────────────────────────────────────────
+# ── Project Viability (20%) ──────────────────────────────────────────────────
 
 TECHNICAL = Dimension(
     id="technical",
-    name="Technical Readiness",
-    weight=0.25,
+    name="Project Viability",
+    weight=0.20,
     criteria=(
         Criterion(
             id="tech_site_assessment",
@@ -97,12 +97,12 @@ TECHNICAL = Dimension(
     ),
 )
 
-# ── Financial Viability (25%) ────────────────────────────────────────────────
+# ── Financial Planning (20%) ─────────────────────────────────────────────────
 
 FINANCIAL = Dimension(
     id="financial",
-    name="Financial Viability",
-    weight=0.25,
+    name="Financial Planning",
+    weight=0.20,
     criteria=(
         Criterion(
             id="fin_revenue_model",
@@ -163,12 +163,12 @@ FINANCIAL = Dimension(
     ),
 )
 
-# ── ESG & Impact (20%) ──────────────────────────────────────────────────────
+# ── ESG & Impact (15%) ───────────────────────────────────────────────────────
 
 ESG = Dimension(
     id="esg",
     name="ESG & Impact",
-    weight=0.20,
+    weight=0.15,
     criteria=(
         Criterion(
             id="esg_environmental",
@@ -222,11 +222,11 @@ ESG = Dimension(
     ),
 )
 
-# ── Regulatory & Legal (15%) ────────────────────────────────────────────────
+# ── Risk Assessment (15%) ────────────────────────────────────────────────────
 
 REGULATORY = Dimension(
     id="regulatory",
-    name="Regulatory & Legal",
+    name="Risk Assessment",
     weight=0.15,
     criteria=(
         Criterion(
@@ -281,11 +281,11 @@ REGULATORY = Dimension(
     ),
 )
 
-# ── Team & Execution (15%) ──────────────────────────────────────────────────
+# ── Team Strength (15%) ──────────────────────────────────────────────────────
 
 TEAM = Dimension(
     id="team",
-    name="Team & Execution",
+    name="Team Strength",
     weight=0.15,
     criteria=(
         Criterion(
@@ -333,9 +333,61 @@ TEAM = Dimension(
     ),
 )
 
+# ── Market Opportunity (15%) ─────────────────────────────────────────────────
+
+MARKET_OPPORTUNITY = Dimension(
+    id="market_opportunity",
+    name="Market Opportunity",
+    weight=0.15,
+    criteria=(
+        Criterion(
+            id="mkt_market_research",
+            name="Market Research & Sizing",
+            description="Independent market research quantifying addressable market size, demand drivers, and growth trajectory.",
+            max_points=20,
+            relevant_classifications=("business_plan", "technical_study"),
+        ),
+        Criterion(
+            id="mkt_competitive_analysis",
+            name="Competitive Analysis",
+            description="Analysis of competitive landscape identifying key competitors, market positioning, and differentiation.",
+            max_points=15,
+            relevant_classifications=("business_plan",),
+        ),
+        Criterion(
+            id="mkt_demand_validation",
+            name="Demand Validation / LOIs",
+            description="Letters of Intent, offtake agreements, or other evidence of validated demand from potential customers.",
+            max_points=20,
+            relevant_classifications=("legal_agreement", "business_plan"),
+        ),
+        Criterion(
+            id="mkt_exit_strategy",
+            name="Exit Strategy & Liquidity",
+            description="Documented exit strategy with potential acquirers, comparable transactions, and expected return timeline.",
+            max_points=15,
+            relevant_classifications=("business_plan",),
+        ),
+        Criterion(
+            id="mkt_growth_plan",
+            name="Growth & Expansion Plan",
+            description="Roadmap for scaling the investment with milestones, resource requirements, and market expansion strategy.",
+            max_points=15,
+            relevant_classifications=("business_plan", "presentation"),
+        ),
+        Criterion(
+            id="mkt_macro_trends",
+            name="Macro Trend Alignment",
+            description="Analysis of alignment with macro trends (regulatory tailwinds, demographic shifts, technology disruption).",
+            max_points=15,
+            relevant_classifications=("business_plan", "technical_study"),
+        ),
+    ),
+)
+
 # ── Module-level exports ─────────────────────────────────────────────────────
 
-DIMENSIONS: list[Dimension] = [TECHNICAL, FINANCIAL, ESG, REGULATORY, TEAM]
+DIMENSIONS: list[Dimension] = [TECHNICAL, FINANCIAL, ESG, REGULATORY, TEAM, MARKET_OPPORTUNITY]
 
 ALL_CRITERIA: dict[str, Criterion] = {}
 for dim in DIMENSIONS:

@@ -1,5 +1,6 @@
 /**
  * Signal Score types and React Query hooks.
+ * Updated for 6-dimension scoring system.
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,13 +34,33 @@ export interface DimensionScore {
   criteria: CriterionScore[];
 }
 
+export interface ImprovementAction {
+  dimension_id: string;
+  dimension_name: string;
+  action: string;
+  expected_gain: number;
+  effort: "low" | "medium" | "high";
+  doc_types_needed: string[];
+}
+
+export interface ImprovementGuidance {
+  quick_wins: string[];
+  focus_area: string | null;
+  high_priority_count: number;
+  medium_priority_count: number;
+  estimated_max_gain: number;
+  top_actions: ImprovementAction[];
+}
+
 export interface SignalScoreDetail {
   id: string;
   project_id: string;
   overall_score: number;
   dimensions: DimensionScore[];
+  improvement_guidance: ImprovementGuidance | null;
   model_used: string;
   version: number;
+  is_live: boolean;
   calculated_at: string;
 }
 
@@ -60,19 +81,52 @@ export interface GapsResponse {
   total: number;
 }
 
+export interface StrengthItem {
+  dimension_id: string;
+  dimension_name: string;
+  criterion_id: string;
+  criterion_name: string;
+  score: number;
+  summary: string;
+}
+
+export interface StrengthsResponse {
+  items: StrengthItem[];
+  total: number;
+}
+
 export interface ScoreHistoryItem {
   version: number;
   overall_score: number;
-  technical_score: number;
-  financial_score: number;
+  project_viability_score: number;
+  financial_planning_score: number;
   esg_score: number;
-  regulatory_score: number;
-  team_score: number;
+  risk_assessment_score: number;
+  team_strength_score: number;
+  market_opportunity_score: number;
+  is_live: boolean;
   calculated_at: string;
 }
 
 export interface ScoreHistoryResponse {
   items: ScoreHistoryItem[];
+}
+
+export interface LiveScoreFactor {
+  name: string;
+  met: boolean;
+  impact: number;
+}
+
+export interface LiveScoreResponse {
+  overall_score: number;
+  factors: LiveScoreFactor[];
+  guidance: string;
+  note: string;
+}
+
+export interface ImprovementGuidanceResponse extends ImprovementGuidance {
+  based_on_version: number;
 }
 
 export interface CalculateAcceptedResponse {
@@ -99,6 +153,10 @@ export const signalScoreKeys = {
     [...signalScoreKeys.all, "details", projectId] as const,
   gaps: (projectId: string) =>
     [...signalScoreKeys.all, "gaps", projectId] as const,
+  strengths: (projectId: string) =>
+    [...signalScoreKeys.all, "strengths", projectId] as const,
+  guidance: (projectId: string) =>
+    [...signalScoreKeys.all, "guidance", projectId] as const,
   task: (taskId: string) =>
     [...signalScoreKeys.all, "task", taskId] as const,
 };
@@ -150,6 +208,31 @@ export function useSignalScoreGaps(projectId: string | undefined) {
   });
 }
 
+export function useSignalScoreStrengths(projectId: string | undefined) {
+  return useQuery({
+    queryKey: signalScoreKeys.strengths(projectId ?? ""),
+    queryFn: () =>
+      api
+        .get<StrengthsResponse>(`/signal-score/${projectId}/strengths`)
+        .then((r) => r.data),
+    enabled: !!projectId,
+  });
+}
+
+export function useImprovementGuidance(projectId: string | undefined) {
+  return useQuery({
+    queryKey: signalScoreKeys.guidance(projectId ?? ""),
+    queryFn: () =>
+      api
+        .get<ImprovementGuidanceResponse>(
+          `/signal-score/${projectId}/improvement-guidance`
+        )
+        .then((r) => r.data),
+    enabled: !!projectId,
+    retry: false,
+  });
+}
+
 export function useCalculateScore() {
   const qc = useQueryClient();
   return useMutation({
@@ -179,6 +262,15 @@ export function useRecalculateScore() {
       qc.invalidateQueries({ queryKey: signalScoreKeys.all });
       qc.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
     },
+  });
+}
+
+export function useLiveScore() {
+  return useMutation({
+    mutationFn: (projectId: string) =>
+      api
+        .post<LiveScoreResponse>(`/signal-score/${projectId}/live`)
+        .then((r) => r.data),
   });
 }
 
@@ -228,13 +320,27 @@ export function priorityColor(
 }
 
 const DIMENSION_LABELS: Record<string, string> = {
-  technical: "Technical",
-  financial: "Financial",
-  esg: "ESG",
-  regulatory: "Regulatory",
-  team: "Team",
+  technical: "Project Viability",
+  financial: "Financial Planning",
+  esg: "ESG & Impact",
+  regulatory: "Risk Assessment",
+  team: "Team Strength",
+  market_opportunity: "Market Opportunity",
 };
 
 export function dimensionLabel(id: string): string {
   return DIMENSION_LABELS[id] ?? id;
+}
+
+/** Map dimension id to the radar chart data key in ScoreHistoryItem */
+export function dimensionHistoryKey(id: string): keyof ScoreHistoryItem {
+  const map: Record<string, keyof ScoreHistoryItem> = {
+    technical: "project_viability_score",
+    financial: "financial_planning_score",
+    esg: "esg_score",
+    regulatory: "risk_assessment_score",
+    team: "team_strength_score",
+    market_opportunity: "market_opportunity_score",
+  };
+  return map[id] ?? ("overall_score" as keyof ScoreHistoryItem);
 }

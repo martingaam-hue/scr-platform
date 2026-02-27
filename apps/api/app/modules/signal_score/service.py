@@ -98,6 +98,63 @@ async def get_score_history(
     return list(result.scalars().all())
 
 
+async def get_live_score(
+    db: AsyncSession,
+    project_id: uuid.UUID,
+    org_id: uuid.UUID,
+) -> dict:
+    """Synchronous quick score from project metadata completeness only.
+
+    No AI calls, no document analysis. Returns immediately.
+    """
+    project = await _get_project_or_raise(db, project_id, org_id)
+
+    factors = []
+    score = 0
+
+    def _add(name: str, met: bool, impact: int) -> None:
+        if met:
+            score_inc = impact
+        else:
+            score_inc = 0
+        nonlocal score
+        score += score_inc
+        factors.append({"name": name, "met": met, "impact": impact})
+
+    desc = project.description or ""
+    if len(desc) >= 300:
+        _add("Detailed project description (300+ chars)", True, 15)
+    elif len(desc) >= 50:
+        _add("Basic project description", True, 8)
+    else:
+        _add("Project description", False, 15)
+
+    _add("Project stage defined", bool(project.stage), 10)
+    _add("Geography set", bool(project.geography_country), 10)
+    _add(
+        "Investment target set",
+        bool(project.total_investment_required)
+        and float(project.total_investment_required or 0) > 0,
+        15,
+    )
+    _add("Asset type defined", bool(project.project_type), 10)
+    _add("Project published", bool(project.is_published), 10)
+    _add("Cover image added", bool(project.cover_image_url), 5)
+    _add("Target close date set", bool(project.target_close_date), 10)
+    _add("Capacity specified", bool(project.capacity_mw), 10)
+
+    # Normalize: max reachable = 95 (description full = 15, rest = 80)
+    overall = min(100, round(score * 100 / 95))
+
+    missing = [f["name"] for f in factors if not f["met"]]
+    if missing:
+        guidance = f"Complete these fields to improve your quick score: {', '.join(missing[:3])}."
+    else:
+        guidance = "Excellent metadata completeness. Run a full signal score to unlock AI-powered analysis."
+
+    return {"overall_score": overall, "factors": factors, "guidance": guidance}
+
+
 async def get_task_status(
     db: AsyncSession, task_log_id: uuid.UUID, org_id: uuid.UUID
 ) -> AITaskLog | None:

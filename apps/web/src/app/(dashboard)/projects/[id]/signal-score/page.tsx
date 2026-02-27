@@ -391,20 +391,22 @@ export default function SignalScorePage() {
                         .map((h) => ({
                           version: `v${h.version}`,
                           Overall: h.overall_score,
-                          Technical: h.technical_score,
-                          Financial: h.financial_score,
+                          Viability: h.project_viability_score,
+                          Financial: h.financial_planning_score,
                           ESG: h.esg_score,
-                          Regulatory: h.regulatory_score,
-                          Team: h.team_score,
+                          Risk: h.risk_assessment_score,
+                          Team: h.team_strength_score,
+                          Market: h.market_opportunity_score,
                         }))}
                       xKey="version"
                       yKeys={[
                         "Overall",
-                        "Technical",
+                        "Viability",
                         "Financial",
                         "ESG",
-                        "Regulatory",
+                        "Risk",
                         "Team",
+                        "Market",
                       ]}
                       height={350}
                     />

@@ -12,13 +12,19 @@ from app.modules.signal_score import service
 from app.modules.signal_score.criteria import DIMENSIONS
 from app.modules.signal_score.schemas import (
     CalculateAcceptedResponse,
-    DimensionScoreResponse,
     CriterionScoreResponse,
+    DimensionScoreResponse,
     GapItem,
     GapsResponse,
+    ImprovementAction,
+    ImprovementGuidanceResponse,
+    LiveScoreFactor,
+    LiveScoreResponse,
     ScoreHistoryItem,
     ScoreHistoryResponse,
     SignalScoreDetailResponse,
+    StrengthItem,
+    StrengthsResponse,
     TaskStatusResponse,
 )
 from app.schemas.auth import CurrentUser
@@ -103,6 +109,34 @@ async def recalculate_score(
     )
 
 
+# ── Live Score (synchronous, no documents) ───────────────────────────────────
+
+
+@router.post("/{project_id}/live", response_model=LiveScoreResponse)
+async def live_score(
+    project_id: uuid.UUID,
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Quick synchronous score based on project metadata completeness only.
+
+    Returns immediately without AI evaluation or document analysis.
+    Use /calculate for a full AI-powered signal score.
+    """
+    try:
+        result = await service.get_live_score(
+            db, project_id, current_user.org_id
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    return LiveScoreResponse(
+        overall_score=result["overall_score"],
+        factors=[LiveScoreFactor(**f) for f in result["factors"]],
+        guidance=result["guidance"],
+    )
+
+
 # ── Read endpoints ──────────────────────────────────────────────────────────
 
 
@@ -168,6 +202,60 @@ async def get_gaps(
     return GapsResponse(items=items, total=len(items))
 
 
+@router.get("/{project_id}/strengths", response_model=StrengthsResponse)
+async def get_strengths(
+    project_id: uuid.UUID,
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get strengths identified by the scoring engine."""
+    try:
+        score = await service.get_latest_score(
+            db, project_id, current_user.org_id
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not score:
+        raise HTTPException(status_code=404, detail="No signal score found")
+
+    strengths_data = score.strengths or {}
+    items = [StrengthItem(**item) for item in strengths_data.get("items", [])]
+    return StrengthsResponse(items=items, total=len(items))
+
+
+@router.get("/{project_id}/improvement-guidance", response_model=ImprovementGuidanceResponse)
+async def get_improvement_guidance(
+    project_id: uuid.UUID,
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get structured improvement guidance from the latest signal score."""
+    try:
+        score = await service.get_latest_score(
+            db, project_id, current_user.org_id
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not score:
+        raise HTTPException(status_code=404, detail="No signal score found")
+
+    guidance = score.improvement_guidance or {}
+    return ImprovementGuidanceResponse(
+        quick_wins=guidance.get("quick_wins", []),
+        focus_area=guidance.get("focus_area"),
+        high_priority_count=guidance.get("high_priority_count", 0),
+        medium_priority_count=guidance.get("medium_priority_count", 0),
+        estimated_max_gain=guidance.get("estimated_max_gain", 0),
+        top_actions=[
+            ImprovementAction(**action)
+            for action in guidance.get("top_actions", [])
+        ],
+        based_on_version=score.version,
+    )
+
+
 @router.get("/{project_id}/history", response_model=ScoreHistoryResponse)
 async def get_score_history(
     project_id: uuid.UUID,
@@ -186,11 +274,13 @@ async def get_score_history(
         ScoreHistoryItem(
             version=s.version,
             overall_score=s.overall_score,
-            technical_score=s.technical_score,
-            financial_score=s.financial_score,
+            project_viability_score=s.project_viability_score,
+            financial_planning_score=s.financial_planning_score,
             esg_score=s.esg_score,
-            regulatory_score=s.regulatory_score,
-            team_score=s.team_score,
+            risk_assessment_score=s.risk_assessment_score,
+            team_strength_score=s.team_strength_score,
+            market_opportunity_score=s.market_opportunity_score,
+            is_live=s.is_live,
             calculated_at=s.calculated_at,
         )
         for s in scores
@@ -237,7 +327,9 @@ def _build_detail_response(score) -> SignalScoreDetailResponse:
         project_id=score.project_id,
         overall_score=score.overall_score,
         dimensions=dimensions,
+        improvement_guidance=score.improvement_guidance,
         model_used=score.model_used or "deterministic",
         version=score.version,
+        is_live=score.is_live,
         calculated_at=score.calculated_at,
     )
