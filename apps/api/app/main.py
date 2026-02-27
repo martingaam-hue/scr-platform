@@ -16,6 +16,7 @@ from app.modules.dataroom.router import router as dataroom_router
 from app.modules.portfolio.router import router as portfolio_router
 from app.modules.onboarding.router import router as onboarding_router
 from app.modules.projects.router import router as projects_router
+from app.modules.reporting.router import router as reporting_router
 
 logger = structlog.get_logger()
 
@@ -52,6 +53,7 @@ app.include_router(dataroom_router)
 app.include_router(projects_router)
 app.include_router(portfolio_router)
 app.include_router(onboarding_router)
+app.include_router(reporting_router)
 
 
 @app.get("/health")
