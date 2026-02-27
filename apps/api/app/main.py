@@ -21,6 +21,7 @@ from app.modules.collaboration.router import router as collaboration_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.signal_score.router import router as signal_score_router
 from app.modules.deal_intelligence.router import router as deal_intelligence_router
+from app.modules.risk.router import router as risk_router
 
 logger = structlog.get_logger()
 
@@ -62,6 +63,7 @@ app.include_router(collaboration_router)
 app.include_router(notifications_router)
 app.include_router(signal_score_router)
 app.include_router(deal_intelligence_router)
+app.include_router(risk_router)
 
 
 @app.get("/health")
