@@ -1,3 +1,7 @@
+# DEPRECATED: Use app.auth.dependencies.get_current_user for Clerk RS256 auth.
+# This module is retained for potential service-to-service HS256 tokens
+# (e.g. API-to-AI-Gateway internal calls).
+
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt

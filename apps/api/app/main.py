@@ -9,6 +9,10 @@ from app.core.config import settings
 
 import app.models  # noqa: F401 — register all models at startup
 
+from app.auth.router import router as auth_router
+from app.middleware.audit import AuditMiddleware
+from app.middleware.tenant import TenantMiddleware
+
 logger = structlog.get_logger()
 
 
@@ -35,6 +39,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AuditMiddleware)
+app.add_middleware(TenantMiddleware)
+
+# Routers
+app.include_router(auth_router)
 
 
 @app.get("/health")

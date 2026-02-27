@@ -7,12 +7,9 @@ export const api = axios.create({
   },
 });
 
-api.interceptors.request.use(async (config) => {
-  // Clerk token injection happens via middleware or on a per-request basis.
-  // In server components, use auth() from @clerk/nextjs/server.
-  // In client components, use useAuth().getToken() and pass to this client.
-  return config;
-});
+// Token injection is handled by setTokenProvider() in @/lib/auth.ts.
+// Call useAuthenticatedApi() in a top-level client component to activate it.
+// For server components, use serverFetch() from @/lib/auth.ts instead.
 
 api.interceptors.response.use(
   (response) => response,

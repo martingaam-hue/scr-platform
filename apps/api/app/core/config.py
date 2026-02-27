@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     # Auth (Clerk)
     CLERK_SECRET_KEY: str = ""
     CLERK_WEBHOOK_SECRET: str = ""
+    CLERK_ISSUER_URL: str = ""  # e.g. "https://your-app.clerk.accounts.dev"
+    CLERK_JWKS_CACHE_TTL: int = 3600  # seconds to cache JWKS public keys
 
     # S3 / MinIO
     AWS_ACCESS_KEY_ID: str = "minioadmin"

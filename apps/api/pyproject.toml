@@ -26,6 +26,7 @@ elasticsearch = {extras = ["async"], version = "^8.17.0"}
 tenacity = "^9.0.0"
 orjson = "^3.10.12"
 psycopg2-binary = "^2.9.11"
+svix = "^1.86.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
