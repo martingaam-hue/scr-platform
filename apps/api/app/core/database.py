@@ -1,3 +1,7 @@
+from decimal import Decimal
+
+from sqlalchemy import Numeric
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -19,7 +23,9 @@ async_session_factory = async_sessionmaker(
 
 
 class Base(DeclarativeBase):
-    pass
+    type_annotation_map = {
+        Decimal: Numeric(19, 4),
+    }
 
 
 async def get_db() -> AsyncSession:  # type: ignore[misc]

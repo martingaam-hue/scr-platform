@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 
+import app.models  # noqa: F401 — register all models at startup
+
 logger = structlog.get_logger()
 
 
