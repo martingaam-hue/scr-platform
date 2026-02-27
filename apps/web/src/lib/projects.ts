@@ -77,16 +77,34 @@ export type BudgetItemStatus =
 
 export interface SignalScoreResponse {
   overall_score: number;
-  technical_score: number;
-  financial_score: number;
+  project_viability_score: number;
+  financial_planning_score: number;
   esg_score: number;
-  regulatory_score: number;
-  team_score: number;
+  risk_assessment_score: number;
+  team_strength_score: number;
+  market_opportunity_score: number;
+  is_live: boolean;
   gaps: Record<string, unknown> | null;
   strengths: Record<string, unknown> | null;
+  improvement_guidance: Record<string, unknown> | null;
   model_used: string;
   version: number;
   calculated_at: string;
+}
+
+export interface BusinessPlanActionResponse {
+  task_log_id: string;
+  status: string;
+  message: string;
+}
+
+export interface BusinessPlanResultResponse {
+  task_log_id: string;
+  action_type: string;
+  status: string;
+  content: string | null;
+  model_used: string | null;
+  created_at: string;
 }
 
 export interface ProjectResponse {

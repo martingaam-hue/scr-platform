@@ -502,3 +502,73 @@ async def delete_budget_item(
     item.is_deleted = True
     await db.flush()
     await db.commit()
+
+
+# ── Business Plan AI ──────────────────────────────────────────────────────────
+
+
+async def create_business_plan_task(
+    db: AsyncSession,
+    project_id: uuid.UUID,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    action_type: str,
+) -> "AITaskLog":  # type: ignore[name-defined]
+    """Create an AITaskLog and enqueue the business plan Celery task."""
+    from app.models.ai import AITaskLog
+    from app.models.enums import AIAgentType, AITaskStatus
+    from app.modules.projects.tasks import business_plan_task
+
+    await _get_project_or_raise(db, project_id, org_id)
+
+    task_log = AITaskLog(
+        org_id=org_id,
+        user_id=user_id,
+        agent_type=AIAgentType.REPORT,
+        entity_type="project",
+        entity_id=project_id,
+        status=AITaskStatus.PENDING,
+        input_data={"action_type": action_type},
+    )
+    db.add(task_log)
+    await db.flush()
+    await db.refresh(task_log)
+    await db.commit()
+
+    business_plan_task.delay(
+        str(project_id),
+        str(org_id),
+        str(task_log.id),
+        action_type,
+    )
+    return task_log
+
+
+async def get_business_plan_result(
+    db: AsyncSession,
+    task_log_id: uuid.UUID,
+    project_id: uuid.UUID,
+    org_id: uuid.UUID,
+) -> dict | None:
+    from app.models.ai import AITaskLog
+    from app.modules.projects.schemas import BusinessPlanResultResponse
+
+    stmt = select(AITaskLog).where(
+        AITaskLog.id == task_log_id,
+        AITaskLog.entity_id == project_id,
+        AITaskLog.org_id == org_id,
+    )
+    result = await db.execute(stmt)
+    task_log = result.scalar_one_or_none()
+    if not task_log:
+        return None
+
+    output = task_log.output_data or {}
+    return BusinessPlanResultResponse(
+        task_log_id=task_log.id,
+        action_type=output.get("action_type", (task_log.input_data or {}).get("action_type", "")),
+        status=task_log.status.value,
+        content=output.get("content"),
+        model_used=task_log.model_used,
+        created_at=task_log.created_at,
+    )

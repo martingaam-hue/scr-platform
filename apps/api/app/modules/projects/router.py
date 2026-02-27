@@ -15,6 +15,8 @@ from app.modules.projects.schemas import (
     BudgetItemCreateRequest,
     BudgetItemResponse,
     BudgetItemUpdateRequest,
+    BusinessPlanActionResponse,
+    BusinessPlanResultResponse,
     MilestoneCreateRequest,
     MilestoneResponse,
     MilestoneUpdateRequest,
@@ -499,3 +501,61 @@ async def delete_budget_item(
         await service.delete_budget_item(db, budget_id, project_id, current_user.org_id)
     except LookupError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+# ── Business Plan AI ─────────────────────────────────────────────────────────
+
+VALID_ACTION_TYPES = {
+    "executive_summary", "financial_overview", "market_analysis",
+    "risk_narrative", "esg_statement", "technical_summary", "investor_pitch",
+}
+
+
+@router.post(
+    "/{project_id}/ai/generate/{action_type}",
+    response_model=BusinessPlanActionResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def generate_business_plan_content(
+    project_id: uuid.UUID,
+    action_type: str,
+    current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger async AI generation of business plan content."""
+    if action_type not in VALID_ACTION_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"action_type must be one of {sorted(VALID_ACTION_TYPES)}",
+        )
+    try:
+        task_log = await service.create_business_plan_task(
+            db, project_id, current_user.org_id, current_user.user_id, action_type
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    return BusinessPlanActionResponse(
+        task_log_id=task_log.id,
+        status=task_log.status.value,
+        message=f"Generating {action_type.replace('_', ' ')}…",
+    )
+
+
+@router.get(
+    "/{project_id}/ai/tasks/{task_log_id}",
+    response_model=BusinessPlanResultResponse,
+)
+async def get_business_plan_result(
+    project_id: uuid.UUID,
+    task_log_id: uuid.UUID,
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the status and result of a business plan generation task."""
+    result = await service.get_business_plan_result(
+        db, task_log_id, project_id, current_user.org_id
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return result

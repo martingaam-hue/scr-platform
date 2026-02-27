@@ -54,16 +54,34 @@ class ProjectUpdateRequest(BaseModel):
 
 class SignalScoreResponse(BaseModel):
     overall_score: int
-    technical_score: int
-    financial_score: int
+    project_viability_score: int
+    financial_planning_score: int
     esg_score: int
-    regulatory_score: int
-    team_score: int
+    risk_assessment_score: int
+    team_strength_score: int
+    market_opportunity_score: int
+    is_live: bool = False
     gaps: dict[str, Any] | None = None
     strengths: dict[str, Any] | None = None
+    improvement_guidance: dict[str, Any] | None = None
     model_used: str
     version: int
     calculated_at: datetime
+
+
+class BusinessPlanActionResponse(BaseModel):
+    task_log_id: uuid.UUID
+    status: str
+    message: str
+
+
+class BusinessPlanResultResponse(BaseModel):
+    task_log_id: uuid.UUID
+    action_type: str
+    status: str
+    content: str | None
+    model_used: str | None
+    created_at: datetime
 
 
 class ProjectResponse(BaseModel):

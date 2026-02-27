@@ -1,14 +1,18 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   ArrowLeft,
   Calendar,
   CheckCircle2,
+  Copy,
   DollarSign,
   FileText,
   Globe,
   MapPin,
+  RefreshCw,
+  Sparkles,
   Target,
   TrendingUp,
   Zap,
@@ -28,6 +32,12 @@ import {
 import {
   useCalculateScore,
 } from "@/lib/signal-score";
+import {
+  useGenerateBusinessPlan,
+  useBusinessPlanResult,
+  BUSINESS_PLAN_ACTIONS,
+  type BusinessPlanActionKey,
+} from "@/lib/business-plan";
 import { usePermission } from "@/lib/auth";
 import {
   useProject,
@@ -41,7 +51,110 @@ import {
   formatCurrency,
   type MilestoneResponse,
   type BudgetItemResponse,
+  type BusinessPlanResultResponse,
 } from "@/lib/projects";
+
+// ── AI Tools Tab ─────────────────────────────────────────────────────────────
+
+function AIToolResultCard({
+  projectId,
+  actionKey,
+}: {
+  projectId: string;
+  actionKey: BusinessPlanActionKey;
+}) {
+  const action = BUSINESS_PLAN_ACTIONS[actionKey];
+  const [taskLogId, setTaskLogId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const generate = useGenerateBusinessPlan(projectId);
+  const { data: result } = useBusinessPlanResult(projectId, taskLogId ?? undefined);
+
+  const handleGenerate = async () => {
+    const res = await generate.mutateAsync(actionKey);
+    setTaskLogId(res.task_log_id);
+  };
+
+  const handleCopy = () => {
+    if (result?.content) {
+      navigator.clipboard.writeText(result.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const isPending = result?.status === "pending" || result?.status === "processing";
+  const isComplete = result?.status === "completed";
+  const isFailed = result?.status === "failed";
+
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">{action.icon}</span>
+            <div>
+              <h4 className="font-semibold text-neutral-900 text-sm">{action.label}</h4>
+              <p className="text-xs text-neutral-500">{action.description}</p>
+            </div>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            {isComplete && result.content && (
+              <Button size="sm" variant="outline" onClick={handleCopy}>
+                <Copy className="h-3.5 w-3.5 mr-1" />
+                {copied ? "Copied!" : "Copy"}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={handleGenerate}
+              disabled={generate.isPending || isPending}
+            >
+              {isPending ? (
+                <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5 mr-1" />
+              )}
+              {isComplete ? "Regenerate" : isPending ? "Generating…" : "Generate"}
+            </Button>
+          </div>
+        </div>
+
+        {isFailed && (
+          <p className="mt-3 text-xs text-red-600 bg-red-50 rounded p-2">
+            Generation failed. Please try again.
+          </p>
+        )}
+
+        {isComplete && result.content && (
+          <div className="mt-4 border-t pt-4">
+            <p className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed">
+              {result.content}
+            </p>
+            {result.model_used && (
+              <p className="mt-2 text-xs text-neutral-400">{result.model_used}</p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AIToolsTab({ projectId }: { projectId: string }) {
+  const actionKeys = Object.keys(BUSINESS_PLAN_ACTIONS) as BusinessPlanActionKey[];
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-neutral-500">
+        Generate AI-powered content for your project. Each action uses your project data to produce relevant, investment-ready text.
+      </p>
+      <div className="grid grid-cols-1 gap-4">
+        {actionKeys.map((key) => (
+          <AIToolResultCard key={key} projectId={projectId} actionKey={key} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -197,6 +310,9 @@ export default function ProjectDetailPage() {
             Financials ({project.budget_item_count})
           </TabsTrigger>
           <TabsTrigger value="signal">Signal Score</TabsTrigger>
+          {canAnalyze && (
+            <TabsTrigger value="ai-tools">AI Tools</TabsTrigger>
+          )}
         </TabsList>
 
         {/* Overview Tab */}
@@ -421,6 +537,13 @@ export default function ProjectDetailPage() {
           )}
         </TabsContent>
 
+        {/* AI Tools Tab */}
+        {canAnalyze && (
+          <TabsContent value="ai-tools" className="mt-6">
+            <AIToolsTab projectId={id} />
+          </TabsContent>
+        )}
+
         {/* Signal Score Tab */}
         <TabsContent value="signal" className="mt-6">
           {!project.latest_signal ? (
@@ -463,15 +586,15 @@ export default function ProjectDetailPage() {
                     <h3 className="mb-4 font-semibold text-neutral-900">
                       Breakdown
                     </h3>
-                    <div className="grid grid-cols-5 gap-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
                       <ScoreGauge
-                        score={project.latest_signal.technical_score}
+                        score={project.latest_signal.project_viability_score}
                         size={72}
                         strokeWidth={7}
-                        label="Technical"
+                        label="Viability"
                       />
                       <ScoreGauge
-                        score={project.latest_signal.financial_score}
+                        score={project.latest_signal.financial_planning_score}
                         size={72}
                         strokeWidth={7}
                         label="Financial"
@@ -483,16 +606,22 @@ export default function ProjectDetailPage() {
                         label="ESG"
                       />
                       <ScoreGauge
-                        score={project.latest_signal.regulatory_score}
+                        score={project.latest_signal.risk_assessment_score}
                         size={72}
                         strokeWidth={7}
-                        label="Regulatory"
+                        label="Risk"
                       />
                       <ScoreGauge
-                        score={project.latest_signal.team_score}
+                        score={project.latest_signal.team_strength_score}
                         size={72}
                         strokeWidth={7}
                         label="Team"
+                      />
+                      <ScoreGauge
+                        score={project.latest_signal.market_opportunity_score}
+                        size={72}
+                        strokeWidth={7}
+                        label="Market"
                       />
                     </div>
                   </CardContent>
