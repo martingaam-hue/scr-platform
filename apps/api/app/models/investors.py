@@ -193,3 +193,29 @@ class RiskAssessment(BaseModel):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
     )
+
+    # 5-domain risk scores (additive — do not replace above per-risk-item fields)
+    overall_risk_score: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    market_risk_score: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    market_risk_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    market_risk_mitigation: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    climate_risk_score: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    climate_risk_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    climate_risk_mitigation: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    regulatory_risk_score: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    regulatory_risk_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    regulatory_risk_mitigation: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    technology_risk_score: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    technology_risk_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    technology_risk_mitigation: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    liquidity_risk_score: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    liquidity_risk_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    liquidity_risk_mitigation: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+
+    # Monitoring fields
+    monitoring_enabled: Mapped[bool] = mapped_column(
+        default=True, server_default="true", nullable=False
+    )
+    last_monitoring_check: Mapped[datetime | None] = mapped_column()
+    active_alerts_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    data_sources: Mapped[dict[str, Any] | None] = mapped_column(JSONB)

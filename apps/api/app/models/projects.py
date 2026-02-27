@@ -134,14 +134,33 @@ class SignalScore(TimestampedModel):
         nullable=False,
     )
     overall_score: Mapped[int] = mapped_column(Integer, nullable=False)
-    technical_score: Mapped[int] = mapped_column(Integer, nullable=False)
-    financial_score: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # 6-dimension scores (renamed from technical/financial/team/regulatory + new market_opportunity)
+    project_viability_score: Mapped[int] = mapped_column(Integer, nullable=False)
+    project_viability_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    financial_planning_score: Mapped[int] = mapped_column(Integer, nullable=False)
+    financial_planning_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    team_strength_score: Mapped[int] = mapped_column(Integer, nullable=False)
+    team_strength_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    risk_assessment_score: Mapped[int] = mapped_column(Integer, nullable=False)
+    risk_assessment_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     esg_score: Mapped[int] = mapped_column(Integer, nullable=False)
-    regulatory_score: Mapped[int] = mapped_column(Integer, nullable=False)
-    team_score: Mapped[int] = mapped_column(Integer, nullable=False)
+    market_opportunity_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    market_opportunity_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+
+    # Legacy fields retained for backward compatibility
     scoring_details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     gaps: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     strengths: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+
+    # New enrichment fields
+    improvement_guidance: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    score_factors: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    data_sources_used: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    is_live: Mapped[bool] = mapped_column(
+        default=True, server_default="true", nullable=False
+    )
+
     model_used: Mapped[str] = mapped_column(String(100), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     calculated_at: Mapped[datetime] = mapped_column(nullable=False)

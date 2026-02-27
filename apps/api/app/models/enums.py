@@ -379,6 +379,107 @@ class TransactionStatus(str, enum.Enum):
     DISPUTED = "disputed"
 
 
+# ── Advisory / Board ─────────────────────────────────────────────────────────
+
+
+class AdvisorAvailabilityStatus(str, enum.Enum):
+    AVAILABLE = "available"
+    LIMITED = "limited"
+    UNAVAILABLE = "unavailable"
+
+
+class AdvisorCompensationPreference(str, enum.Enum):
+    EQUITY = "equity"
+    CASH = "cash"
+    PRO_BONO = "pro_bono"
+    NEGOTIABLE = "negotiable"
+
+
+class BoardAdvisorApplicationStatus(str, enum.Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    WITHDRAWN = "withdrawn"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+
+
+# ── Investor Personas ─────────────────────────────────────────────────────────
+
+
+class InvestorPersonaStrategy(str, enum.Enum):
+    CONSERVATIVE = "conservative"
+    MODERATE = "moderate"
+    GROWTH = "growth"
+    AGGRESSIVE = "aggressive"
+    IMPACT_FIRST = "impact_first"
+
+
+# ── Equity Scenarios ──────────────────────────────────────────────────────────
+
+
+class EquitySecurityType(str, enum.Enum):
+    COMMON_EQUITY = "common_equity"
+    PREFERRED_EQUITY = "preferred_equity"
+    CONVERTIBLE_NOTE = "convertible_note"
+    SAFE = "safe"
+    REVENUE_SHARE = "revenue_share"
+
+
+class AntiDilutionType(str, enum.Enum):
+    NONE = "none"
+    BROAD_BASED = "broad_based"
+    NARROW_BASED = "narrow_based"
+    FULL_RATCHET = "full_ratchet"
+
+
+# ── Monitoring Alerts ─────────────────────────────────────────────────────────
+
+
+class MonitoringAlertType(str, enum.Enum):
+    REGULATORY_CHANGE = "regulatory_change"
+    MARKET_SHIFT = "market_shift"
+    RISK_THRESHOLD = "risk_threshold"
+    DATA_UPDATE = "data_update"
+    NEWS_ALERT = "news_alert"
+    COMPLIANCE_DEADLINE = "compliance_deadline"
+
+
+class MonitoringAlertSeverity(str, enum.Enum):
+    INFO = "info"
+    WARNING = "warning"
+    CRITICAL = "critical"
+
+
+class MonitoringAlertDomain(str, enum.Enum):
+    MARKET = "market"
+    CLIMATE = "climate"
+    REGULATORY = "regulatory"
+    TECHNOLOGY = "technology"
+    LIQUIDITY = "liquidity"
+
+
+# ── Insurance ─────────────────────────────────────────────────────────────────
+
+
+class InsurancePremiumFrequency(str, enum.Enum):
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    ANNUAL = "annual"
+
+
+class InsurancePolicyStatus(str, enum.Enum):
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+    PENDING_RENEWAL = "pending_renewal"
+
+
+class InsuranceSide(str, enum.Enum):
+    ALLY = "ally"
+    INVESTOR = "investor"
+
+
 # ── Reporting ────────────────────────────────────────────────────────────────
 
 

@@ -2,20 +2,29 @@
 
 from app.models.base import AuditMixin, BaseModel, ModelMixin, TimestampedModel
 from app.models.enums import (
+    AdvisorAvailabilityStatus,
+    AdvisorCompensationPreference,
     AIAgentType,
     AIContextType,
     AIMessageRole,
     AITaskStatus,
+    AntiDilutionType,
     AssetType,
+    BoardAdvisorApplicationStatus,
     BudgetItemStatus,
     BusinessPlanStatus,
     CarbonVerificationStatus,
     DocumentAccessAction,
     DocumentClassification,
     DocumentStatus,
+    EquitySecurityType,
     ExtractionType,
     FundType,
     HoldingStatus,
+    InsurancePolicyStatus,
+    InsurancePremiumFrequency,
+    InsuranceSide,
+    InvestorPersonaStrategy,
     LegalDocumentStatus,
     LegalDocumentType,
     ListingStatus,
@@ -24,6 +33,9 @@ from app.models.enums import (
     MatchInitiator,
     MatchStatus,
     MilestoneStatus,
+    MonitoringAlertDomain,
+    MonitoringAlertSeverity,
+    MonitoringAlertType,
     NotificationType,
     OrgType,
     PortfolioStatus,
@@ -96,6 +108,19 @@ from app.models.marketplace import Listing, RFQ, Transaction
 # Reporting
 from app.models.reporting import GeneratedReport, ReportTemplate, ScheduledReport
 
+# Advisory / Board / Insurance
+from app.models.advisory import (
+    BoardAdvisorApplication,
+    BoardAdvisorProfile,
+    CapitalEfficiencyMetrics,
+    EquityScenario,
+    InsurancePolicy,
+    InsuranceQuote,
+    InvestorPersona,
+    InvestorSignalScore,
+    MonitoringAlert,
+)
+
 __all__ = [
     # Base
     "BaseModel",
@@ -150,4 +175,14 @@ __all__ = [
     "ReportTemplate",
     "GeneratedReport",
     "ScheduledReport",
+    # Advisory / Board / Insurance
+    "BoardAdvisorProfile",
+    "BoardAdvisorApplication",
+    "InvestorPersona",
+    "EquityScenario",
+    "CapitalEfficiencyMetrics",
+    "MonitoringAlert",
+    "InvestorSignalScore",
+    "InsuranceQuote",
+    "InsurancePolicy",
 ]
