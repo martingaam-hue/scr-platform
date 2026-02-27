@@ -36,6 +36,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   badge?: number;
   roles?: string[];
+  tourId?: string;
 }
 
 interface NavSection {
@@ -47,9 +48,9 @@ const investorNav: NavSection[] = [
   {
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Portfolio", href: "/dashboard/portfolio", icon: Briefcase },
-      { label: "Deals", href: "/dashboard/deals", icon: FolderKanban },
-      { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock },
+      { label: "Portfolio", href: "/dashboard/portfolio", icon: Briefcase, tourId: "nav-portfolio" },
+      { label: "Deals", href: "/dashboard/deals", icon: FolderKanban, tourId: "nav-deals" },
+      { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock, tourId: "nav-data-room" },
       { label: "Risk", href: "/dashboard/risk", icon: ShieldAlert },
       { label: "Marketplace", href: "/dashboard/marketplace", icon: Store },
       { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
@@ -57,7 +58,7 @@ const investorNav: NavSection[] = [
   },
   {
     title: "AI",
-    items: [{ label: "Ralph AI", href: "/dashboard/ralph", icon: Bot }],
+    items: [{ label: "Ralph AI", href: "/dashboard/ralph", icon: Bot, tourId: "nav-ralph" }],
   },
 ];
 
@@ -65,9 +66,9 @@ const allyNav: NavSection[] = [
   {
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Projects", href: "/dashboard/projects", icon: FolderKanban },
-      { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock },
-      { label: "Funding", href: "/dashboard/funding", icon: Wallet },
+      { label: "Projects", href: "/dashboard/projects", icon: FolderKanban, tourId: "nav-projects" },
+      { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock, tourId: "nav-data-room" },
+      { label: "Funding", href: "/dashboard/funding", icon: Wallet, tourId: "nav-funding" },
       { label: "Documents", href: "/dashboard/documents", icon: FileCheck },
       { label: "Legal", href: "/dashboard/legal", icon: Scale },
       { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
@@ -75,7 +76,7 @@ const allyNav: NavSection[] = [
   },
   {
     title: "AI",
-    items: [{ label: "Ralph AI", href: "/dashboard/ralph", icon: Bot }],
+    items: [{ label: "Ralph AI", href: "/dashboard/ralph", icon: Bot, tourId: "nav-ralph" }],
   },
 ];
 
@@ -182,6 +183,7 @@ export function Sidebar() {
                     <Link
                       href={item.href}
                       title={!isOpen ? item.label : undefined}
+                      data-tour={item.tourId}
                       className={cn(
                         "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                         isActive
