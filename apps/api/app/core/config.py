@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     API_URL: str = "http://localhost:8000"
     FRONTEND_URL: str = "http://localhost:3000"
     AI_GATEWAY_URL: str = "http://localhost:8001"
+    AI_GATEWAY_API_KEY: str = ""
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://scr_user:scr_password@localhost:5432/scr_platform"

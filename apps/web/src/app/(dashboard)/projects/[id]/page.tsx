@@ -19,12 +19,15 @@ import {
   Card,
   CardContent,
   EmptyState,
+  ScoreGauge,
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-  cn,
 } from "@scr/ui";
+import {
+  useCalculateScore,
+} from "@/lib/signal-score";
 import { usePermission } from "@/lib/auth";
 import {
   useProject,
@@ -54,29 +57,6 @@ function MilestoneStatusBadge({ status }: { status: string }) {
   return <Badge variant={color}>{status.replace("_", " ")}</Badge>;
 }
 
-function ScoreCard({
-  label,
-  score,
-}: {
-  label: string;
-  score: number;
-}) {
-  const color =
-    score >= 80
-      ? "text-green-600 bg-green-50"
-      : score >= 60
-        ? "text-amber-600 bg-amber-50"
-        : "text-red-600 bg-red-50";
-  return (
-    <div className="flex items-center justify-between rounded-lg border p-3">
-      <span className="text-sm text-neutral-600">{label}</span>
-      <span className={cn("rounded-full px-3 py-1 text-sm font-semibold", color)}>
-        {score}
-      </span>
-    </div>
-  );
-}
-
 // ── Page ────────────────────────────────────────────────────────────────────
 
 export default function ProjectDetailPage() {
@@ -84,12 +64,14 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const canEdit = usePermission("edit", "project");
   const canDelete = usePermission("delete", "project");
+  const canAnalyze = usePermission("run_analysis", "analysis");
 
   const { data: project, isLoading } = useProject(id);
   const { data: milestones } = useMilestones(id);
   const { data: budgetItems } = useBudgetItems(id);
   const publishMutation = usePublishProject();
   const deleteMutation = useDeleteProject();
+  const calculateScore = useCalculateScore();
 
   if (isLoading) {
     return (
@@ -446,58 +428,86 @@ export default function ProjectDetailPage() {
               icon={<Target className="h-12 w-12 text-neutral-400" />}
               title="No Signal Score"
               description="Signal Score analysis hasn't been run for this project yet."
+              action={
+                canAnalyze ? (
+                  <Button
+                    onClick={() => calculateScore.mutate(id)}
+                    disabled={calculateScore.isPending}
+                  >
+                    Calculate Signal Score
+                  </Button>
+                ) : undefined
+              }
             />
           ) : (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              {/* Overall score */}
-              <Card className="lg:col-span-1">
-                <CardContent className="flex flex-col items-center p-6">
-                  <p className="text-sm text-neutral-500">Overall Score</p>
-                  <div
-                    className={cn(
-                      "mt-2 flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold",
-                      project.latest_signal.overall_score >= 80
-                        ? "bg-green-100 text-green-700"
-                        : project.latest_signal.overall_score >= 60
-                          ? "bg-amber-100 text-amber-700"
-                          : "bg-red-100 text-red-700"
-                    )}
-                  >
-                    {project.latest_signal.overall_score}
-                  </div>
-                  <p className="mt-2 text-xs text-neutral-400">
-                    v{project.latest_signal.version} &middot;{" "}
-                    {project.latest_signal.model_used}
-                  </p>
-                </CardContent>
-              </Card>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* Overall score gauge */}
+                <Card className="lg:col-span-1">
+                  <CardContent className="flex flex-col items-center p-6">
+                    <ScoreGauge
+                      score={project.latest_signal.overall_score}
+                      size={120}
+                      strokeWidth={10}
+                    />
+                    <p className="mt-2 text-xs text-neutral-400">
+                      v{project.latest_signal.version} &middot;{" "}
+                      {project.latest_signal.model_used}
+                    </p>
+                  </CardContent>
+                </Card>
 
-              {/* Score breakdown */}
-              <Card className="lg:col-span-2">
-                <CardContent className="space-y-3 p-6">
-                  <h3 className="font-semibold text-neutral-900">Breakdown</h3>
-                  <ScoreCard
-                    label="Technical"
-                    score={project.latest_signal.technical_score}
-                  />
-                  <ScoreCard
-                    label="Financial"
-                    score={project.latest_signal.financial_score}
-                  />
-                  <ScoreCard
-                    label="ESG"
-                    score={project.latest_signal.esg_score}
-                  />
-                  <ScoreCard
-                    label="Regulatory"
-                    score={project.latest_signal.regulatory_score}
-                  />
-                  <ScoreCard
-                    label="Team"
-                    score={project.latest_signal.team_score}
-                  />
-                </CardContent>
-              </Card>
+                {/* Dimension gauges */}
+                <Card className="lg:col-span-2">
+                  <CardContent className="p-6">
+                    <h3 className="mb-4 font-semibold text-neutral-900">
+                      Breakdown
+                    </h3>
+                    <div className="grid grid-cols-5 gap-4">
+                      <ScoreGauge
+                        score={project.latest_signal.technical_score}
+                        size={72}
+                        strokeWidth={7}
+                        label="Technical"
+                      />
+                      <ScoreGauge
+                        score={project.latest_signal.financial_score}
+                        size={72}
+                        strokeWidth={7}
+                        label="Financial"
+                      />
+                      <ScoreGauge
+                        score={project.latest_signal.esg_score}
+                        size={72}
+                        strokeWidth={7}
+                        label="ESG"
+                      />
+                      <ScoreGauge
+                        score={project.latest_signal.regulatory_score}
+                        size={72}
+                        strokeWidth={7}
+                        label="Regulatory"
+                      />
+                      <ScoreGauge
+                        score={project.latest_signal.team_score}
+                        size={72}
+                        strokeWidth={7}
+                        label="Team"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/projects/${id}/signal-score`)}
+                >
+                  View Full Analysis
+                  <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
+                </Button>
+              </div>
             </div>
           )}
         </TabsContent>

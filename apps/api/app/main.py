@@ -19,6 +19,7 @@ from app.modules.projects.router import router as projects_router
 from app.modules.reporting.router import router as reporting_router
 from app.modules.collaboration.router import router as collaboration_router
 from app.modules.notifications.router import router as notifications_router
+from app.modules.signal_score.router import router as signal_score_router
 
 logger = structlog.get_logger()
 
@@ -58,6 +59,7 @@ app.include_router(onboarding_router)
 app.include_router(reporting_router)
 app.include_router(collaboration_router)
 app.include_router(notifications_router)
+app.include_router(signal_score_router)
 
 
 @app.get("/health")
