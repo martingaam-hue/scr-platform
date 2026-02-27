@@ -12,6 +12,7 @@ import app.models  # noqa: F401 — register all models at startup
 from app.auth.router import router as auth_router
 from app.middleware.audit import AuditMiddleware
 from app.middleware.tenant import TenantMiddleware
+from app.modules.dataroom.router import router as dataroom_router
 
 logger = structlog.get_logger()
 
@@ -44,6 +45,7 @@ app.add_middleware(TenantMiddleware)
 
 # Routers
 app.include_router(auth_router)
+app.include_router(dataroom_router)
 
 
 @app.get("/health")

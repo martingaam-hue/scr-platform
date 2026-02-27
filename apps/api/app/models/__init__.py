@@ -11,6 +11,7 @@ from app.models.enums import (
     BusinessPlanStatus,
     CarbonVerificationStatus,
     DocumentAccessAction,
+    DocumentClassification,
     DocumentStatus,
     ExtractionType,
     FundType,
@@ -59,6 +60,7 @@ from app.models.dataroom import (
     DocumentAccessLog,
     DocumentExtraction,
     DocumentFolder,
+    ShareLink,
 )
 
 # Projects
@@ -110,6 +112,7 @@ __all__ = [
     "DocumentFolder",
     "DocumentExtraction",
     "DocumentAccessLog",
+    "ShareLink",
     # Projects
     "Project",
     "ProjectMilestone",

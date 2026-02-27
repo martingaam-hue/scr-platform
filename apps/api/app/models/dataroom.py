@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.base import BaseModel, ModelMixin, TimestampedModel
-from app.models.enums import DocumentAccessAction, DocumentStatus, ExtractionType
+from app.models.enums import DocumentAccessAction, DocumentClassification, DocumentStatus, ExtractionType
 
 
 class Document(BaseModel):
@@ -62,6 +62,7 @@ class Document(BaseModel):
         nullable=False,
     )
     checksum_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    classification: Mapped[DocumentClassification | None] = mapped_column(nullable=True)
     watermark_enabled: Mapped[bool] = mapped_column(
         default=False, server_default="false", nullable=False
     )
@@ -173,3 +174,49 @@ class DocumentAccessLog(Base, ModelMixin):
         server_default=func.now(),
         nullable=False,
     )
+
+
+class ShareLink(BaseModel):
+    """Shareable link for document access with optional restrictions."""
+
+    __tablename__ = "share_links"
+    __table_args__ = (
+        Index("ix_share_links_token", "share_token", unique=True),
+        Index("ix_share_links_document_id", "document_id"),
+        Index("ix_share_links_org_id", "org_id"),
+    )
+
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("documents.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    org_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=False,
+    )
+    share_token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    watermark_enabled: Mapped[bool] = mapped_column(
+        default=False, server_default="false", nullable=False
+    )
+    allow_download: Mapped[bool] = mapped_column(
+        default=True, server_default="true", nullable=False
+    )
+    max_views: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    view_count: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+
+    # Relationships
+    document: Mapped["Document"] = relationship()
+
+    def __repr__(self) -> str:
+        return f"<ShareLink(id={self.id}, token={self.share_token[:8]}...)>"

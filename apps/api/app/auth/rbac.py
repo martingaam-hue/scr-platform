@@ -71,6 +71,7 @@ _VIEWER_PERMS: set[tuple[str, str]] = {
 _ANALYST_EXTRA: set[tuple[str, str]] = {
     (Action.EDIT, Resource.PROJECT),
     (Action.EDIT, Resource.PORTFOLIO),
+    (Action.EDIT, Resource.DOCUMENT),
     (Action.UPLOAD, Resource.DOCUMENT),
     (Action.CREATE, Resource.REPORT),
     (Action.RUN_ANALYSIS, Resource.ANALYSIS),

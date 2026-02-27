@@ -67,6 +67,20 @@ class DocumentAccessAction(str, enum.Enum):
     PRINT = "print"
 
 
+class DocumentClassification(str, enum.Enum):
+    FINANCIAL_STATEMENT = "financial_statement"
+    LEGAL_AGREEMENT = "legal_agreement"
+    TECHNICAL_STUDY = "technical_study"
+    ENVIRONMENTAL_REPORT = "environmental_report"
+    PERMIT = "permit"
+    INSURANCE = "insurance"
+    VALUATION = "valuation"
+    BUSINESS_PLAN = "business_plan"
+    PRESENTATION = "presentation"
+    CORRESPONDENCE = "correspondence"
+    OTHER = "other"
+
+
 # ── Projects ─────────────────────────────────────────────────────────────────
 
 
