@@ -20,6 +20,8 @@ const labelMap: Record<string, string> = {
   legal: "Legal",
   settings: "Settings",
   admin: "Admin",
+  new: "New",
+  stats: "Stats",
 };
 
 export function Breadcrumbs() {
