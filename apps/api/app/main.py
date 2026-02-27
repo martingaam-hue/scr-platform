@@ -26,6 +26,8 @@ from app.modules.matching.router import router as matching_router
 from app.modules.settings.router import router as settings_router
 from app.modules.impact.router import router as impact_router
 from app.modules.valuation.router import router as valuation_router
+from app.modules.marketplace.router import router as marketplace_router
+from app.modules.tax_credits.router import router as tax_credits_router
 
 logger = structlog.get_logger()
 
@@ -72,6 +74,8 @@ app.include_router(matching_router)
 app.include_router(settings_router)
 app.include_router(impact_router)
 app.include_router(valuation_router)
+app.include_router(marketplace_router)
+app.include_router(tax_credits_router)
 
 
 @app.get("/health")
