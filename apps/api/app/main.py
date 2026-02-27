@@ -28,6 +28,7 @@ from app.modules.impact.router import router as impact_router
 from app.modules.valuation.router import router as valuation_router
 from app.modules.marketplace.router import router as marketplace_router
 from app.modules.tax_credits.router import router as tax_credits_router
+from app.modules.legal.router import router as legal_router
 
 logger = structlog.get_logger()
 
@@ -76,6 +77,7 @@ app.include_router(impact_router)
 app.include_router(valuation_router)
 app.include_router(marketplace_router)
 app.include_router(tax_credits_router)
+app.include_router(legal_router)
 
 
 @app.get("/health")
