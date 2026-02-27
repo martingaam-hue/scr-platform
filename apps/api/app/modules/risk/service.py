@@ -97,7 +97,7 @@ _PAI_INDICATORS = [
     (4,  "Carbon footprint",                  "Climate",      "tCO2e/€M invested"),
     (5,  "GHG intensity of investee companies","Climate",     "tCO2e/€M revenue"),
     (6,  "Fossil fuel exposure",              "Climate",      "%"),
-    (7,  "Non-renewable energy consumption",  "Climate",      "%"),
+    (7,  "Carbon-intensive energy consumption",  "Climate",    "%"),
     (8,  "Energy consumption intensity",      "Climate",      "MWh/€M revenue"),
     (9,  "Biodiversity-sensitive areas",      "Biodiversity", "Yes/No"),
     (10, "Water emissions",                   "Water",        "m³/year"),

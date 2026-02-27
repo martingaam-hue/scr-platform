@@ -176,7 +176,7 @@ export const INVESTOR_TOUR_STEPS: TourStep[] = [
     target: "nav-deals",
     title: "Browse investment opportunities",
     description:
-      "Discover curated renewable energy projects that match your investment mandate.",
+      "Discover curated alternative investment assets that match your investment mandate.",
     placement: "right",
   },
   {
@@ -200,7 +200,7 @@ export const ALLY_TOUR_STEPS: TourStep[] = [
     target: "nav-projects",
     title: "Manage your projects",
     description:
-      "Track milestones, budgets, and signal scores for all your renewable energy projects.",
+      "Track milestones, budgets, and signal scores for all your alternative investment assets.",
     placement: "right",
   },
   {

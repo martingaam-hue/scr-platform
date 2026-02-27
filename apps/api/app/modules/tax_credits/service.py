@@ -156,7 +156,7 @@ async def identify_credits(
     capacity = float(project.capacity_mw) if project.capacity_mw else None
     investment = float(project.total_investment_required)
 
-    prompt = f"""You are a US tax credit specialist for renewable energy and infrastructure projects.
+    prompt = f"""You are a US tax credit specialist for infrastructure and alternative investment projects.
 
 Identify applicable US federal (and relevant state) tax credits for this project:
 - Project name: {project.name}
@@ -279,9 +279,9 @@ def _fallback_credits(
                 program_name="Investment Tax Credit (IRA §48)",
                 estimated_value=round(investment * 0.30, 2),
                 qualification="qualified",
-                criteria_met=["Qualifying clean energy technology", "US-based project"],
+                criteria_met=["Qualifying investment tax credit technology", "US-based project"],
                 criteria_missing=[],
-                notes="30% base ITC for qualified clean energy facilities.",
+                notes="30% base ITC for qualified investment tax credit facilities.",
                 expiry_year=2032,
             )
         )

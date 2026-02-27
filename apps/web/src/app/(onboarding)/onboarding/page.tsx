@@ -101,12 +101,12 @@ const initialState: FormState = {
   ticketSizeMin: "",
   ticketSizeMax: "",
   riskTolerance: "moderate",
-  primaryTechnology: "solar",
+  primaryTechnology: "infrastructure",
   targetMarkets: [],
   developmentStage: "concept",
   fundingNeeds: "",
   firstActionName: "",
-  firstActionType: "solar",
+  firstActionType: "infrastructure",
   firstActionGeography: "",
   firstActionInvestment: "",
   skipFirstAction: false,
@@ -133,14 +133,14 @@ const GEOGRAPHY_OPTIONS = [
 ];
 
 const SECTOR_CHIPS = [
-  "Solar",
-  "Wind",
-  "Hydro",
-  "Storage",
-  "Hydrogen",
-  "Biomass",
-  "Geothermal",
-  "Efficiency",
+  "Infrastructure",
+  "Real Estate",
+  "Private Equity",
+  "Natural Resources",
+  "Private Credit",
+  "Digital Assets",
+  "Impact Investments",
+  "Specialty",
   "Other",
 ];
 
@@ -152,13 +152,14 @@ const STAGE_CHIPS = [
 ];
 
 const TECHNOLOGY_OPTIONS = [
-  { label: "Solar", value: "solar" },
-  { label: "Wind", value: "wind" },
-  { label: "Hydro", value: "hydro" },
-  { label: "Storage", value: "storage" },
-  { label: "Hydrogen", value: "hydrogen" },
-  { label: "Biomass", value: "biomass" },
-  { label: "Geothermal", value: "geothermal" },
+  { label: "Infrastructure", value: "infrastructure" },
+  { label: "Real Estate", value: "real_estate" },
+  { label: "Private Equity", value: "private_equity" },
+  { label: "Natural Resources", value: "natural_resources" },
+  { label: "Private Credit", value: "private_credit" },
+  { label: "Digital Assets", value: "digital_assets" },
+  { label: "Impact Investments", value: "impact" },
+  { label: "Specialty", value: "specialty" },
   { label: "Other", value: "other" },
 ];
 
@@ -294,7 +295,7 @@ export default function OnboardingPage() {
               </h3>
               <p className="mt-1 text-sm text-neutral-500">
                 Manage portfolios, discover deals, and track investments in
-                sustainable energy projects.
+                alternative investment assets.
               </p>
             </button>
             <button
@@ -313,7 +314,7 @@ export default function OnboardingPage() {
                 I&apos;m a Project Developer
               </h3>
               <p className="mt-1 text-sm text-neutral-500">
-                Showcase your renewable energy projects, manage documents, and
+                Showcase your alternative investment assets, manage documents, and
                 connect with investors.
               </p>
             </button>
@@ -564,7 +565,7 @@ export default function OnboardingPage() {
                 {/* Primary technology */}
                 <div>
                   <label className="mb-1 block text-sm font-medium text-neutral-700">
-                    Primary technology
+                    Primary asset class
                   </label>
                   <select
                     className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
@@ -670,7 +671,7 @@ export default function OnboardingPage() {
                   <input
                     type="text"
                     className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-                    placeholder="e.g. Clean Energy Fund I"
+                    placeholder="e.g. Alternative Assets Fund I"
                     value={form.firstActionName}
                     onChange={(e) =>
                       update({ firstActionName: e.target.value })
@@ -719,7 +720,7 @@ export default function OnboardingPage() {
                   <input
                     type="text"
                     className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-                    placeholder="e.g. Solar Farm Alpha"
+                    placeholder="e.g. Infrastructure Asset Alpha"
                     value={form.firstActionName}
                     onChange={(e) =>
                       update({ firstActionName: e.target.value })

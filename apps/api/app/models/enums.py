@@ -85,6 +85,7 @@ class DocumentClassification(str, enum.Enum):
 
 
 class ProjectType(str, enum.Enum):
+    # Legacy renewable energy asset types (retained for backward compatibility)
     SOLAR = "solar"
     WIND = "wind"
     HYDRO = "hydro"
@@ -93,6 +94,15 @@ class ProjectType(str, enum.Enum):
     ENERGY_EFFICIENCY = "energy_efficiency"
     GREEN_BUILDING = "green_building"
     SUSTAINABLE_AGRICULTURE = "sustainable_agriculture"
+    # Broader alternative investment asset classes
+    INFRASTRUCTURE = "infrastructure"          # Energy, transport, telecom, water, social
+    REAL_ESTATE = "real_estate"                # Commercial, residential, development
+    PRIVATE_EQUITY = "private_equity"          # Growth, buyout, venture
+    NATURAL_RESOURCES = "natural_resources"    # Agriculture, forestry, mining, water rights
+    PRIVATE_CREDIT = "private_credit"          # Direct lending, mezzanine, distressed
+    DIGITAL_ASSETS = "digital_assets"          # Tokenized securities, blockchain-based
+    IMPACT = "impact"                          # SDG-aligned, community development
+    SPECIALTY = "specialty"                    # Litigation finance, royalties, collectibles
     OTHER = "other"
 
 

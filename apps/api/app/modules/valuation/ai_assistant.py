@@ -36,7 +36,7 @@ class ValuationAIAssistant:
         Returns structured discount rate, growth rate, terminal method,
         projection years, and comparable multiples with reasoning.
         """
-        prompt = f"""You are a specialist in infrastructure and renewable energy project finance.
+        prompt = f"""You are a specialist in infrastructure and alternative investment project finance.
 
 Suggest reasonable DCF valuation assumptions for:
 - Project type: {project_type}
@@ -199,7 +199,7 @@ Do NOT use bullet points. Output plain prose only."""
         Suggest representative comparable transactions for the given project context.
         Returns a list of comparable company dicts with multiple estimates.
         """
-        prompt = f"""You are a renewable energy M&A advisor.
+        prompt = f"""You are a private markets M&A advisor specializing in alternative investments.
 
 List 4-5 representative comparable transactions or publicly traded companies for:
 - Project type: {project_type}

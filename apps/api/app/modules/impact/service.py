@@ -338,7 +338,7 @@ async def update_carbon_credit(
 
 # ── Additionality ─────────────────────────────────────────────────────────────
 
-# High-need geographies for clean energy
+# High-need geographies for private market investment
 _HIGH_NEED_COUNTRIES = {
     "Nigeria", "Kenya", "Ethiopia", "Tanzania", "Uganda", "Ghana", "Senegal",
     "Rwanda", "Mozambique", "Zimbabwe", "Bangladesh", "Pakistan", "Nepal",
@@ -358,7 +358,7 @@ def _calc_additionality(proj: Project, raw_kpis: dict[str, Any]) -> dict:
     # 1. Geographic need (25 pts): high-need developing country = 25, others = 15
     if proj.geography_country in _HIGH_NEED_COUNTRIES:
         geo_score = 25
-        geo_rationale = "Project in high-need geography with limited clean energy access."
+        geo_rationale = "Project in high-need geography with strong private market investment potential."
     else:
         geo_score = 15
         geo_rationale = "Project in moderate-need geography."

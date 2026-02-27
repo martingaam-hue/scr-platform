@@ -11,11 +11,15 @@ import { api } from "@/lib/api";
 // ── Enums ──────────────────────────────────────────────────────────────────
 
 export type ProjectType =
+  // Legacy renewable energy types (retained for backward compatibility)
   | "solar"
   | "wind"
   | "hydro"
   | "biomass"
   | "geothermal"
+  | "energy_efficiency"
+  | "green_building"
+  | "sustainable_agriculture"
   | "storage"
   | "hydrogen"
   | "nuclear"
@@ -23,6 +27,15 @@ export type ProjectType =
   | "efficiency"
   | "carbon_capture"
   | "nature_based"
+  // Broader alternative investment asset classes
+  | "infrastructure"
+  | "real_estate"
+  | "private_equity"
+  | "natural_resources"
+  | "private_credit"
+  | "digital_assets"
+  | "impact"
+  | "specialty"
   | "other";
 
 export type ProjectStatus =
@@ -498,12 +511,16 @@ export function useDeleteBudgetItem() {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-const PROJECT_TYPE_ICONS: Record<ProjectType, string> = {
+const PROJECT_TYPE_ICONS: Record<string, string> = {
+  // Legacy renewable types
   solar: "Sun",
   wind: "Wind",
   hydro: "Droplets",
   biomass: "Leaf",
   geothermal: "Flame",
+  energy_efficiency: "Gauge",
+  green_building: "Building2",
+  sustainable_agriculture: "Wheat",
   storage: "Battery",
   hydrogen: "Atom",
   nuclear: "Radiation",
@@ -511,6 +528,15 @@ const PROJECT_TYPE_ICONS: Record<ProjectType, string> = {
   efficiency: "Gauge",
   carbon_capture: "CloudOff",
   nature_based: "TreePine",
+  // Alternative investment asset classes
+  infrastructure: "Building",
+  real_estate: "Home",
+  private_equity: "TrendingUp",
+  natural_resources: "Mountain",
+  private_credit: "CreditCard",
+  digital_assets: "Cpu",
+  impact: "Heart",
+  specialty: "Star",
   other: "Boxes",
 };
 
@@ -518,19 +544,32 @@ export function projectTypeIcon(type: ProjectType): string {
   return PROJECT_TYPE_ICONS[type] ?? "Boxes";
 }
 
-const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
+const PROJECT_TYPE_LABELS: Record<string, string> = {
+  // Legacy renewable types
   solar: "Solar",
   wind: "Wind",
   hydro: "Hydropower",
   biomass: "Biomass",
   geothermal: "Geothermal",
+  energy_efficiency: "Energy Efficiency",
+  green_building: "Green Building",
+  sustainable_agriculture: "Sustainable Agriculture",
   storage: "Energy Storage",
   hydrogen: "Hydrogen",
   nuclear: "Nuclear",
   grid: "Grid Infrastructure",
-  efficiency: "Energy Efficiency",
+  efficiency: "Efficiency",
   carbon_capture: "Carbon Capture",
   nature_based: "Nature-Based",
+  // Alternative investment asset classes
+  infrastructure: "Infrastructure",
+  real_estate: "Real Estate",
+  private_equity: "Private Equity",
+  natural_resources: "Natural Resources",
+  private_credit: "Private Credit",
+  digital_assets: "Digital Assets",
+  impact: "Impact Investments",
+  specialty: "Specialty",
   other: "Other",
 };
 

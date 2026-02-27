@@ -22,6 +22,15 @@ import {
   DollarSign,
   FolderKanban,
   Target,
+  Building,
+  Building2,
+  Home,
+  Mountain,
+  CreditCard,
+  Cpu,
+  Heart,
+  Star,
+  Wheat,
 } from "lucide-react";
 import {
   Button,
@@ -51,12 +60,16 @@ import {
 
 // ── Icon map ────────────────────────────────────────────────────────────────
 
-const TYPE_ICONS: Record<ProjectType, React.ElementType> = {
+const TYPE_ICONS: Record<string, React.ElementType> = {
+  // Legacy renewable types
   solar: Sun,
   wind: Wind,
   hydro: Droplets,
   biomass: Leaf,
   geothermal: Flame,
+  energy_efficiency: Gauge,
+  green_building: Building2,
+  sustainable_agriculture: Wheat,
   storage: Battery,
   hydrogen: Atom,
   nuclear: Atom,
@@ -64,6 +77,15 @@ const TYPE_ICONS: Record<ProjectType, React.ElementType> = {
   efficiency: Gauge,
   carbon_capture: Network,
   nature_based: TreePine,
+  // Alternative investment asset classes
+  infrastructure: Building,
+  real_estate: Home,
+  private_equity: TrendingUp,
+  natural_resources: Mountain,
+  private_credit: CreditCard,
+  digital_assets: Cpu,
+  impact: Heart,
+  specialty: Star,
   other: Boxes,
 };
 
@@ -242,7 +264,7 @@ export default function ProjectsPage() {
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">Projects</h1>
           <p className="text-sm text-neutral-500 mt-1">
-            Manage your renewable energy project pipeline
+            Manage your alternative investment asset pipeline
           </p>
         </div>
         {canCreate && (

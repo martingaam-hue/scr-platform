@@ -291,7 +291,7 @@ TEAM = Dimension(
         Criterion(
             id="team_core",
             name="Core Team Bios & Experience",
-            description="Detailed bios of key team members with relevant experience in renewable energy and project development.",
+            description="Detailed bios of key team members with relevant experience in alternative investments and asset development.",
             max_points=20,
             relevant_classifications=("business_plan", "presentation"),
         ),

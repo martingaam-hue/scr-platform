@@ -86,11 +86,11 @@ class AIScorer:
         criterion_description: str,
         project_context: dict,
     ) -> str:
-        project_type = project_context.get("project_type", "renewable energy")
+        project_type = project_context.get("project_type", "alternative investment")
         stage = project_context.get("stage", "development")
         country = project_context.get("country", "unknown")
 
-        return f"""You are evaluating documentation for a {project_type} project in {country} (stage: {stage}).
+        return f"""You are evaluating documentation for a {project_type} asset in {country} (stage: {stage}).
 
 Criterion: {criterion_name}
 Expected: {criterion_description}

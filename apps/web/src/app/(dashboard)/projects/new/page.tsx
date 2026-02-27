@@ -17,6 +17,16 @@ import {
   Gauge,
   TreePine,
   Boxes,
+  Building,
+  Building2,
+  Home,
+  TrendingUp,
+  Mountain,
+  CreditCard,
+  Cpu,
+  Heart,
+  Star,
+  Wheat,
 } from "lucide-react";
 import { Button, Card, CardContent, cn } from "@scr/ui";
 import {
@@ -67,12 +77,16 @@ const STEPS = [
   { label: "Review", number: 5 },
 ];
 
-const TYPE_ICONS: Record<ProjectType, React.ElementType> = {
+const TYPE_ICONS: Record<string, React.ElementType> = {
+  // Legacy renewable types
   solar: Sun,
   wind: Wind,
   hydro: Droplets,
   biomass: Leaf,
   geothermal: Flame,
+  energy_efficiency: Gauge,
+  green_building: Building2,
+  sustainable_agriculture: Wheat,
   storage: Battery,
   hydrogen: Atom,
   nuclear: Atom,
@@ -80,10 +94,29 @@ const TYPE_ICONS: Record<ProjectType, React.ElementType> = {
   efficiency: Gauge,
   carbon_capture: Network,
   nature_based: TreePine,
+  // Alternative investment asset classes
+  infrastructure: Building,
+  real_estate: Home,
+  private_equity: TrendingUp,
+  natural_resources: Mountain,
+  private_credit: CreditCard,
+  digital_assets: Cpu,
+  impact: Heart,
+  specialty: Star,
   other: Boxes,
 };
 
 const PROJECT_TYPES: ProjectType[] = [
+  // Alternative investment asset classes (primary)
+  "infrastructure",
+  "real_estate",
+  "private_equity",
+  "natural_resources",
+  "private_credit",
+  "digital_assets",
+  "impact",
+  "specialty",
+  // Legacy renewable types
   "solar",
   "wind",
   "hydro",
