@@ -100,6 +100,17 @@ async def update_item_status(
     )
     if not result:
         raise HTTPException(status_code=404, detail="Checklist item not found")
+
+    # Award gamification badges when a DD item is satisfied
+    if body.status == "satisfied":
+        try:
+            from app.modules.gamification import service as _gami
+            await _gami.evaluate_badges(
+                db, current_user.user_id, None, "dd_item_complete"
+            )
+        except Exception:
+            pass
+
     return result.to_dict()
 
 

@@ -210,6 +210,15 @@ async def confirm_upload(
         from app.modules.dataroom.tasks import process_document
         process_document.delay(str(doc.id))
 
+        # Award gamification badges for document upload
+        try:
+            from app.modules.gamification import service as _gami
+            await _gami.evaluate_badges(
+                db, current_user.user_id, doc.project_id, "document_upload"
+            )
+        except Exception:
+            pass
+
         return UploadConfirmResponse(
             document_id=doc.id,
             status=doc.status,

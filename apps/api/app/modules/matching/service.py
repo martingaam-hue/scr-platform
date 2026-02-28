@@ -472,6 +472,25 @@ async def update_match_status(
         except Exception:
             logger.warning("deal_room_auto_create_failed", match_id=str(match_id))
 
+    # Award investor_match badge to the ally (project owner) when investor expresses interest
+    if new_status == MatchStatus.INTERESTED and old_status != status:
+        try:
+            from app.models.core import User
+            from app.modules.gamification import service as _gami
+            ally_user_result = await db.execute(
+                select(User).where(
+                    User.org_id == match.ally_org_id,
+                    User.is_active.is_(True),
+                ).limit(1)
+            )
+            ally_user = ally_user_result.scalar_one_or_none()
+            if ally_user:
+                await _gami.evaluate_badges(
+                    db, ally_user.id, match.project_id, "investor_match"
+                )
+        except Exception:
+            logger.debug("gamification_investor_match_failed", match_id=str(match_id))
+
     await db.flush()
     response = MatchStatusResponse(
         match_id=match.id,

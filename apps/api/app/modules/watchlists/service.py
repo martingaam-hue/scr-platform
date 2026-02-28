@@ -16,12 +16,24 @@ logger = structlog.get_logger()
 
 
 async def create_watchlist(db: AsyncSession, user_id: uuid.UUID, org_id: uuid.UUID, body: Any) -> Watchlist:
+    criteria = body.criteria or {}
+
+    # If the user supplied a natural language query but no structured filters, parse it
+    nl_query: str | None = getattr(body, "nl_query", None)
+    if nl_query and not criteria:
+        try:
+            from app.modules.smart_screener.service import parse_query
+            parsed = await parse_query(nl_query)
+            criteria = parsed.model_dump(exclude_none=True)
+        except Exception as exc:
+            logger.warning("watchlist_nl_parse_failed", error=str(exc))
+
     wl = Watchlist(
         user_id=user_id,
         org_id=org_id,
         name=body.name,
         watch_type=body.watch_type,
-        criteria=body.criteria,
+        criteria=criteria,
         alert_channels=body.alert_channels,
         alert_frequency=body.alert_frequency,
     )

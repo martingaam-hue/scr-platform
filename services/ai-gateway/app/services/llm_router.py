@@ -27,12 +27,14 @@ async def route_completion(
     tools: list[dict[str, Any]] | None = None,
     tool_choice: str | dict[str, Any] | None = None,
     task_type: str | None = None,
+    fallback_model: str | None = None,
 ) -> dict[str, Any]:
     """Route a completion request to the appropriate LLM provider via litellm.
 
     When task_type is provided, the response is validated and repaired.
     On a clean JSON parse failure, a single retry is attempted with corrective
     instructions before the result is returned to the caller.
+    The fallback_model overrides settings.AI_FALLBACK_MODEL on primary failure.
     """
     try:
         kwargs: dict[str, Any] = {
@@ -135,13 +137,14 @@ async def route_completion(
         }
 
     except Exception:
-        logger.warning("primary_model_failed", model=model, fallback=settings.AI_FALLBACK_MODEL)
+        _fallback = fallback_model or settings.AI_FALLBACK_MODEL
+        logger.warning("primary_model_failed", model=model, fallback=_fallback)
         fallback_kwargs: dict[str, Any] = {
-            "model": settings.AI_FALLBACK_MODEL,
+            "model": _fallback,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
-            "api_key": settings.OPENAI_API_KEY,
+            "api_key": _get_api_key(_fallback),
         }
         response = await litellm.acompletion(**fallback_kwargs)
 
@@ -198,7 +201,7 @@ async def route_completion_stream(
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
-            api_key=settings.OPENAI_API_KEY,
+            api_key=_get_api_key(settings.AI_FALLBACK_MODEL),
             stream=True,
         )
         async for chunk in response:
@@ -208,8 +211,15 @@ async def route_completion_stream(
 
 
 def _get_api_key(model: str) -> str:
-    if "claude" in model or "anthropic" in model:
+    """Return the API key for the given model/provider string."""
+    m = model.lower()
+    if "claude" in m or "anthropic" in m:
         return settings.ANTHROPIC_API_KEY
-    if "gpt" in model or "o1" in model:
-        return settings.OPENAI_API_KEY
+    if "gemini" in m or "google" in m:
+        return settings.GOOGLE_API_KEY
+    if "grok" in m or "xai" in m:
+        return settings.XAI_API_KEY
+    if "deepseek" in m:
+        return settings.DEEPSEEK_API_KEY
+    # OpenAI (gpt, o1, whisper, text-embedding, etc.)
     return settings.OPENAI_API_KEY

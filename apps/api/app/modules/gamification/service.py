@@ -48,6 +48,12 @@ _BADGE_CATALOG = [
     {"slug": "certified", "name": "Certified", "icon": "✅", "category": "certification",
      "criteria": {"event": "certification_earned"}, "points": 75, "rarity": "rare",
      "description": "Earned Investor Readiness Certification."},
+    {"slug": "dd_starter", "name": "DD Starter", "icon": "🔍", "category": "due_diligence",
+     "criteria": {"event": "dd_item_complete", "count": 1}, "points": 10, "rarity": "common",
+     "description": "Completed first due diligence checklist item."},
+    {"slug": "dd_master", "name": "DD Master", "icon": "📋", "category": "due_diligence",
+     "criteria": {"event": "dd_item_complete", "count": 10}, "points": 50, "rarity": "uncommon",
+     "description": "Completed 10 due diligence checklist items."},
 ]
 
 
@@ -90,6 +96,17 @@ async def _check_criteria(
                 from app.models.matching import MatchResult
                 result = await db.execute(
                     select(func.count(MatchResult.id)).where(MatchResult.project_id == project_id)
+                )
+                count = result.scalar_one() or 0
+                return count >= criteria["count"]
+            if criteria["event"] == "dd_item_complete":
+                from app.models.due_diligence import DDItemStatus as DDItemStatusModel
+                result = await db.execute(
+                    select(func.count(DDItemStatusModel.id)).where(
+                        DDItemStatusModel.reviewer_id == user_id,
+                        DDItemStatusModel.status == "satisfied",
+                        DDItemStatusModel.is_deleted.is_(False),
+                    )
                 )
                 count = result.scalar_one() or 0
                 return count >= criteria["count"]

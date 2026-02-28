@@ -16,13 +16,16 @@ class Settings(BaseSettings):
     # Auth
     AI_GATEWAY_API_KEY: str = "internal-dev-key-change-in-production"
 
-    # LLM Providers
+    # LLM Providers — 5-provider routing (Anthropic, Google, xAI, DeepSeek, OpenAI)
     ANTHROPIC_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
+    GOOGLE_API_KEY: str = ""      # Gemini (google/gemini-*) — also accepts GEMINI_API_KEY
+    XAI_API_KEY: str = ""         # xAI Grok (xai/grok-*) — from console.x.ai
+    DEEPSEEK_API_KEY: str = ""    # DeepSeek (deepseek/deepseek-chat) — NON-SENSITIVE tasks only
 
     # Model defaults
-    AI_DEFAULT_MODEL: str = "claude-sonnet-4-20250514"
-    AI_FALLBACK_MODEL: str = "gpt-4o"
+    AI_DEFAULT_MODEL: str = "anthropic/claude-sonnet-4-5-20250929"
+    AI_FALLBACK_MODEL: str = "openai/gpt-4o"
     AI_EMBEDDING_MODEL: str = "text-embedding-3-large"
 
     # Rate limiting (requests/hour per org tier)

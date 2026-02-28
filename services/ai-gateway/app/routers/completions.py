@@ -18,55 +18,246 @@ logger = structlog.get_logger()
 router = APIRouter()
 
 # ── Model routing ─────────────────────────────────────────────────────────────
+# 5-provider routing: Anthropic, Google, xAI, DeepSeek, OpenAI
+# Selected per task type based on Feb 2026 benchmark data, pricing, and strengths.
+#
+# TIER 1 — Claude Opus 4.6: highest quality, financial/legal stakes, client-facing
+# TIER 2 — Gemini 3.1 Pro / Claude Sonnet 4.5: strong reasoning, professional writing
+# TIER 3 — Grok 4.1 Fast / DeepSeek V3.2 / Gemini Flash: high-volume extraction
+#
+# ⚠️ GDPR: DeepSeek (deepseek/deepseek-chat) must NOT receive PII or document content.
+#    Only route internal, template-driven, non-sensitive tasks to DeepSeek.
+#    For EU-only processing, swap xai/grok-4.1-fast to eu-west-1 endpoint.
 
-MODEL_ROUTING: dict[str, str] = {
-    # Document intelligence
-    "extract_kpis": "claude-sonnet-4-20250514",
-    "extract_clauses": "claude-sonnet-4-20250514",
-    "classify_document": "claude-haiku-4-5-20251001",
-    "ocr_extract": "gpt-4o",
-    "summarize_document": "claude-haiku-4-5-20251001",
-    # Scoring
-    "score_quality": "claude-sonnet-4-20250514",
-    "score_deal_readiness": "claude-sonnet-4-20250514",
-    "assess_risk": "claude-sonnet-4-20250514",
-    "investor_signal_score": "claude-sonnet-4-20250514",
-    "investor_score_improvement": "claude-sonnet-4-20250514",
-    "live_score_enrichment": "claude-haiku-4-5-20251001",
-    # Financial
-    "suggest_assumptions": "claude-sonnet-4-20250514",
-    "generate_valuation_narrative": "claude-sonnet-4-20250514",
-    "find_comparables": "claude-sonnet-4-20250514",
-    "capital_efficiency_report": "claude-sonnet-4-20250514",
-    "market_opportunity_analysis": "claude-sonnet-4-20250514",
-    # Matching
-    "explain_match": "claude-haiku-4-5-20251001",
-    "board_advisor_matching": "claude-haiku-4-5-20251001",
-    # Reports & memos
-    "generate_memo": "claude-sonnet-4-20250514",
-    "generate_section": "claude-sonnet-4-20250514",
-    "generate_narrative": "claude-sonnet-4-20250514",
-    "business_plan_section": "claude-sonnet-4-20250514",
-    # Conversational
-    "chat": "claude-sonnet-4-20250514",
-    "chat_with_tools": "claude-sonnet-4-20250514",
-    # Compliance & ESG
-    "classify_sfdr": "claude-sonnet-4-20250514",
-    "check_taxonomy": "claude-sonnet-4-20250514",
-    "extract_esg": "claude-haiku-4-5-20251001",
-    # Legal
-    "review_legal_doc": "claude-sonnet-4-20250514",
-    "suggest_terms": "claude-sonnet-4-20250514",
-    "legal_document_generation": "claude-sonnet-4-20250514",
-    "legal_document_review": "claude-sonnet-4-20250514",
-    # Advisory
-    "persona_extraction": "claude-sonnet-4-20250514",
-    "risk_mitigation_generation": "claude-sonnet-4-20250514",
-    "risk_monitoring_analysis": "claude-haiku-4-5-20251001",
-    "insurance_risk_impact": "claude-haiku-4-5-20251001",
-    # Analysis
-    "analysis": "claude-sonnet-4-20250514",
-    "general": "claude-sonnet-4-20250514",
+MODEL_ROUTING: dict[str, dict[str, str] | str] = {
+    # ── TIER 1 — Claude Opus 4.6 (financial decisions, legal, client-facing) ──
+    "score_quality": {
+        "model": "anthropic/claude-opus-4-6",
+        "fallback": "anthropic/claude-sonnet-4-5-20250929",
+    },
+    "assess_risk": {
+        "model": "anthropic/claude-opus-4-6",
+        "fallback": "anthropic/claude-sonnet-4-5-20250929",
+    },
+    "generate_memo": {
+        "model": "anthropic/claude-opus-4-6",
+        "fallback": "anthropic/claude-sonnet-4-5-20250929",
+    },
+    "chat_with_tools": {
+        "model": "anthropic/claude-opus-4-6",
+        "fallback": "anthropic/claude-sonnet-4-5-20250929",
+    },
+    "investor_signal_score": {
+        "model": "anthropic/claude-opus-4-6",
+        "fallback": "anthropic/claude-sonnet-4-5-20250929",
+    },
+
+    # ── TIER 2 — Gemini 3.1 Pro (legal/financial deep analysis, 1M context) ──
+    "review_legal_doc": {
+        "model": "google/gemini-3.1-pro",
+        "fallback": "anthropic/claude-sonnet-4-5-20250929",
+    },
+    "review_contract": {
+        "model": "google/gemini-3.1-pro",
+        "fallback": "anthropic/claude-sonnet-4-5-20250929",
+    },
+    "analyze_transaction": {
+        "model": "google/gemini-3.1-pro",
+        "fallback": "openai/gpt-4o",
+    },
+    "find_comparables": {
+        "model": "google/gemini-3.1-pro",
+        "fallback": "openai/gpt-4o",
+    },
+    "legal_document_review": {
+        "model": "google/gemini-3.1-pro",
+        "fallback": "anthropic/claude-sonnet-4-5-20250929",
+    },
+
+    # ── TIER 2 — Claude Sonnet 4.5 (professional writing, LP reports) ──
+    "generate_lp_narrative": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "generate_narrative": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "generate_section": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "business_plan_section": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "suggest_terms": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "legal_document_generation": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "score_deal_readiness": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "suggest_assumptions": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "generate_valuation_narrative": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "capital_efficiency_report": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "market_opportunity_analysis": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "generate_compliance_narrative": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "investor_score_improvement": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "risk_mitigation_generation": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "chat": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+
+    # ── TIER 3 — Grok 4.1 Fast (high-volume extraction, 2M context, $/quality) ──
+    "classify_document": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "google/gemini-2.5-flash-lite",
+    },
+    "extract_kpis": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "google/gemini-2.0-flash",
+    },
+    "extract_clauses": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "google/gemini-2.0-flash",
+    },
+    "parse_screener_query": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "openai/gpt-4o-mini",
+    },
+    "parse_nl_query": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "openai/gpt-4o-mini",
+    },
+    "auto_fill_checklist": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "deepseek/deepseek-chat",
+    },
+    "detect_redactable": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "openai/gpt-4o-mini",
+    },
+    "summarize_doc_changes": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "deepseek/deepseek-chat",
+    },
+    "board_advisor_matching": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "google/gemini-2.0-flash",
+    },
+    "explain_match": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "deepseek/deepseek-chat",
+    },
+    "insurance_risk_impact": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "deepseek/deepseek-chat",
+    },
+    "risk_monitoring_analysis": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "deepseek/deepseek-chat",
+    },
+    "live_score_enrichment": {
+        "model": "xai/grok-4.1-fast",
+        "fallback": "google/gemini-2.0-flash",
+    },
+
+    # ── TIER 3 — Gemini Flash (long-doc comparison, ESG, 1M context) ──
+    "generate_esg_narrative": {
+        "model": "google/gemini-2.0-flash",
+        "fallback": "deepseek/deepseek-chat",
+    },
+    "extract_esg": {
+        "model": "google/gemini-2.0-flash",
+        "fallback": "xai/grok-4.1-fast",
+    },
+    "compare_documents": {
+        "model": "google/gemini-2.0-flash",
+        "fallback": "xai/grok-4.1-fast",
+    },
+    "summarize_document": {
+        "model": "google/gemini-2.0-flash",
+        "fallback": "xai/grok-4.1-fast",
+    },
+    "classify_sfdr": {
+        "model": "google/gemini-2.0-flash",
+        "fallback": "anthropic/claude-sonnet-4-5-20250929",
+    },
+    "check_taxonomy": {
+        "model": "google/gemini-2.0-flash",
+        "fallback": "anthropic/claude-sonnet-4-5-20250929",
+    },
+
+    # ── TIER 3 — DeepSeek V3.2 (non-sensitive internal tasks only) ──
+    # ⚠️ DO NOT route tasks with PII or document content to DeepSeek.
+    "generate_briefing": {
+        "model": "deepseek/deepseek-chat",
+        "fallback": "xai/grok-4.1-fast",
+    },
+    "generate_digest": {
+        "model": "deepseek/deepseek-chat",
+        "fallback": "xai/grok-4.1-fast",
+    },
+    "generate_digest_summary": {
+        "model": "deepseek/deepseek-chat",
+        "fallback": "xai/grok-4.1-fast",
+    },
+    "enrich_expert_note": {
+        "model": "deepseek/deepseek-chat",
+        "fallback": "xai/grok-4.1-fast",
+    },
+    "persona_extraction": {
+        "model": "deepseek/deepseek-chat",
+        "fallback": "xai/grok-4.1-fast",
+    },
+    "generate_persona_summary": {
+        "model": "deepseek/deepseek-chat",
+        "fallback": "xai/grok-4.1-fast",
+    },
+
+    # ── Special purpose ───────────────────────────────────────────────────────
+    "ocr_extract": {
+        "model": "openai/gpt-4o",
+        "fallback": "anthropic/claude-sonnet-4-5-20250929",
+    },
+
+    # ── Legacy / catch-all ────────────────────────────────────────────────────
+    "analysis": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
+    "general": {
+        "model": "anthropic/claude-sonnet-4-5-20250929",
+        "fallback": "google/gemini-3.1-pro",
+    },
 }
 
 # Max tokens per task type
@@ -226,6 +417,7 @@ async def create_completion(
             tools=request.tools,
             tool_choice=request.tool_choice,
             task_type=request.task_type,
+            fallback_model=_get_fallback_model(request.task_type),
         )
     except Exception as e:
         logger.error("completion_failed", model=model, error=str(e))
@@ -322,7 +514,18 @@ async def stream_completion(
 def _resolve_model(task_type: str, explicit_model: str | None) -> str:
     if explicit_model:
         return explicit_model
-    return MODEL_ROUTING.get(task_type, settings.AI_DEFAULT_MODEL)
+    routing = MODEL_ROUTING.get(task_type, settings.AI_DEFAULT_MODEL)
+    if isinstance(routing, dict):
+        return routing["model"]
+    return routing  # type: ignore[return-value]
+
+
+def _get_fallback_model(task_type: str) -> str:
+    """Return the task-specific fallback model, or the global fallback."""
+    routing = MODEL_ROUTING.get(task_type)
+    if isinstance(routing, dict):
+        return routing.get("fallback", settings.AI_FALLBACK_MODEL)
+    return settings.AI_FALLBACK_MODEL
 
 
 # ── Batch completions ─────────────────────────────────────────────────────────
