@@ -1,4 +1,9 @@
+import sys
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEFAULT_SECRET = "change-this-to-a-random-string-in-production"  # noqa: S105
 
 
 class Settings(BaseSettings):
@@ -11,11 +16,32 @@ class Settings(BaseSettings):
     # Application
     APP_ENV: str = "development"
     APP_DEBUG: bool = True
-    SECRET_KEY: str = "change-this-to-a-random-string-in-production"
+    SECRET_KEY: str = _DEFAULT_SECRET
     API_URL: str = "http://localhost:8000"
     FRONTEND_URL: str = "http://localhost:3000"
     AI_GATEWAY_URL: str = "http://localhost:8001"
     AI_GATEWAY_API_KEY: str = ""
+
+    # Security
+    RATE_LIMIT_ENABLED: bool = True
+    MAX_REQUEST_BODY_BYTES: int = 52_428_800  # 50 MB
+
+    @model_validator(mode="after")
+    def _validate_production_secrets(self) -> "Settings":
+        if self.APP_ENV == "production":
+            if self.SECRET_KEY == _DEFAULT_SECRET:
+                print(  # noqa: T201
+                    "FATAL: SECRET_KEY must be changed before running in production.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            if not self.CLERK_SECRET_KEY:
+                print(  # noqa: T201
+                    "FATAL: CLERK_SECRET_KEY is required in production.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+        return self
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://scr_user:scr_password@localhost:5432/scr_platform"

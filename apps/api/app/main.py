@@ -6,6 +6,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.middleware.security import (
+    RateLimitMiddleware,
+    RequestBodySizeLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
 
 import app.models  # noqa: F401 — register all models at startup
 
@@ -52,12 +57,16 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     logger.info("Shutting down SCR API")
 
 
+_is_prod = settings.APP_ENV == "production"
+
 app = FastAPI(
     title="SCR Platform API",
     description="Investment intelligence platform connecting impact project developers with investors.",
     version="0.1.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    # Disable interactive docs in production — use /openapi.json directly if needed
+    docs_url=None if _is_prod else "/docs",
+    redoc_url=None if _is_prod else "/redoc",
+    openapi_url=None if _is_prod else "/openapi.json",
     lifespan=lifespan,
 )
 
@@ -65,11 +74,26 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.FRONTEND_URL],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
+    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Window"],
 )
 app.add_middleware(AuditMiddleware)
 app.add_middleware(TenantMiddleware)
+# Security middleware (added last = outermost = first to see requests, last to touch responses)
+app.add_middleware(
+    RequestBodySizeLimitMiddleware,  # type: ignore[arg-type]
+    max_bytes=settings.MAX_REQUEST_BODY_BYTES,
+)
+app.add_middleware(
+    RateLimitMiddleware,  # type: ignore[arg-type]
+    redis_url=settings.REDIS_URL,
+    enabled=settings.RATE_LIMIT_ENABLED,
+)
+app.add_middleware(
+    SecurityHeadersMiddleware,  # type: ignore[arg-type]
+    is_production=_is_prod,
+)
 
 # Routers
 app.include_router(auth_router)
