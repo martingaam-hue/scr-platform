@@ -249,6 +249,7 @@ async def get_review_result(
 
     return ReviewResultResponse(
         review_id=task_log.id,
+        task_log_id=task_log.id,
         document_id=task_log.entity_id,
         mode=input_data.get("mode", "risk_focused"),
         jurisdiction=input_data.get("jurisdiction", ""),

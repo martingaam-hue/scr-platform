@@ -39,6 +39,7 @@ class SignalScoreDetailResponse(BaseModel):
     version: int
     is_live: bool = False
     calculated_at: datetime
+    task_log_id: uuid.UUID | None = None
 
 
 # ── Gaps ─────────────────────────────────────────────────────────────────────

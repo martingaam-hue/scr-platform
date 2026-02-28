@@ -82,6 +82,7 @@ class GeneratedReportResponse(BaseModel):
     completed_at: datetime | None
     download_url: str | None = None
     template_name: str | None = None
+    task_log_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
 

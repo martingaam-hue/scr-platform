@@ -327,3 +327,79 @@ export function formatTokens(n: number): string {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);
 }
+
+// ── AI Quality types ────────────────────────────────────────────────────────
+
+export interface QualityMetric {
+  task_type: string;
+  total_feedback: number;
+  positive_count: number;
+  negative_count: number;
+  positive_rate: number;
+  edit_rate: number;
+  accept_rate: number;
+  avg_edit_distance_pct: number | null;
+}
+
+export interface QualityReport {
+  period_days: number;
+  total_feedback: number;
+  overall_positive_rate: number;
+  metrics_by_task_type: QualityMetric[];
+  generated_at: string;
+}
+
+export interface CorrectionItem {
+  id: string;
+  task_type: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  original_content: string;
+  edited_content: string;
+  edit_distance_pct: number | null;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface CorrectionsResponse {
+  items: CorrectionItem[];
+  total: number;
+}
+
+// ── AI Quality hooks ────────────────────────────────────────────────────────
+
+export function useAIQualityReport(periodDays: number = 30) {
+  return useQuery<QualityReport>({
+    queryKey: ["admin", "ai-quality", periodDays],
+    queryFn: async () => {
+      const { data } = await api.get("/ai-feedback/admin/quality-report", {
+        params: { period_days: periodDays },
+      });
+      return data;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useAICorrections(params: {
+  task_type?: string;
+  min_edit_pct?: number;
+  limit?: number;
+  offset?: number;
+}) {
+  return useQuery<CorrectionsResponse>({
+    queryKey: ["admin", "ai-corrections", params],
+    queryFn: async () => {
+      const { data } = await api.get("/ai-feedback/admin/corrections", {
+        params: {
+          task_type: params.task_type,
+          min_edit_pct: params.min_edit_pct ?? 0.1,
+          limit: params.limit ?? 50,
+          offset: params.offset ?? 0,
+        },
+      });
+      return data;
+    },
+    staleTime: 30_000,
+  });
+}

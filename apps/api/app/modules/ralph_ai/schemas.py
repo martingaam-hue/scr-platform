@@ -24,6 +24,7 @@ class MessageResponse(BaseModel):
     tool_calls: dict[str, Any] | None = None
     tool_results: dict[str, Any] | None = None
     model_used: str | None = None
+    task_log_id: uuid.UUID | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

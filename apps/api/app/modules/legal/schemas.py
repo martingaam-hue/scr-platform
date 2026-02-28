@@ -136,6 +136,8 @@ class ReviewResultResponse(BaseModel):
     recommendations: list[str]
     model_used: str | None
     created_at: datetime
+    # review_id is the AITaskLog ID — alias exposed for the feedback component
+    task_log_id: uuid.UUID | None = None
 
 
 class CompareRequest(BaseModel):

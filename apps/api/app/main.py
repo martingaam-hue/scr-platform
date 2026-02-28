@@ -46,7 +46,9 @@ from app.modules.development_os.router import router as development_os_router
 from app.modules.ecosystem.router import router as ecosystem_router
 from app.modules.ralph_ai.router import router as ralph_ai_router
 from app.modules.admin.router import router as admin_router
+from app.modules.admin.prompts.router import router as admin_prompts_router
 from app.modules.search.router import router as search_router
+from app.modules.ai_feedback.router import router as ai_feedback_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -130,7 +132,9 @@ app.include_router(development_os_router)
 app.include_router(ecosystem_router)
 app.include_router(ralph_ai_router)
 app.include_router(admin_router)
+app.include_router(admin_prompts_router)
 app.include_router(search_router)
+app.include_router(ai_feedback_router)
 
 
 @app.get("/health")
