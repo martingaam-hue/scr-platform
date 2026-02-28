@@ -131,6 +131,12 @@ class CompletionResponse(BaseModel):
     estimated_cost_usd: float
     tool_calls: list[dict[str, Any]] | None = None
     stop_reason: str = "end_turn"
+    # Validation metadata (populated when task_type has a validation schema)
+    validated_data: dict | None = None
+    confidence: float | None = None
+    confidence_level: str | None = None  # "high" | "medium" | "low" | "failed"
+    validation_repairs: list[str] = []
+    validation_warnings: list[str] = []
 
 
 class StreamCompletionRequest(BaseModel):
@@ -219,6 +225,7 @@ async def create_completion(
             max_tokens=max_tokens,
             tools=request.tools,
             tool_choice=request.tool_choice,
+            task_type=request.task_type,
         )
     except Exception as e:
         logger.error("completion_failed", model=model, error=str(e))
@@ -250,6 +257,11 @@ async def create_completion(
         estimated_cost_usd=cost,
         tool_calls=result.get("tool_calls"),
         stop_reason=result.get("stop_reason", "end_turn"),
+        validated_data=result.get("validated_data"),
+        confidence=result.get("confidence"),
+        confidence_level=result.get("confidence_level"),
+        validation_repairs=result.get("validation_repairs", []),
+        validation_warnings=result.get("validation_warnings", []),
     )
 
 

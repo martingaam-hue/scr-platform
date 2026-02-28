@@ -6,11 +6,13 @@ import structlog
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
+from app.validation import AIOutputValidator, ConfidenceLevel
 
 logger = structlog.get_logger()
 
-# Configure litellm
 litellm.set_verbose = False
+
+_validator = AIOutputValidator()
 
 
 @retry(
@@ -24,8 +26,14 @@ async def route_completion(
     max_tokens: int = 4096,
     tools: list[dict[str, Any]] | None = None,
     tool_choice: str | dict[str, Any] | None = None,
+    task_type: str | None = None,
 ) -> dict[str, Any]:
-    """Route a completion request to the appropriate LLM provider via litellm."""
+    """Route a completion request to the appropriate LLM provider via litellm.
+
+    When task_type is provided, the response is validated and repaired.
+    On a clean JSON parse failure, a single retry is attempted with corrective
+    instructions before the result is returned to the caller.
+    """
     try:
         kwargs: dict[str, Any] = {
             "model": model,
@@ -45,7 +53,6 @@ async def route_completion(
         content = message.content or ""
         stop_reason = response.choices[0].finish_reason or "end_turn"
 
-        # Extract tool calls if present
         tool_calls_raw = getattr(message, "tool_calls", None)
         tool_calls = None
         if tool_calls_raw:
@@ -67,12 +74,50 @@ async def route_completion(
             "total_tokens": response.usage.total_tokens,
         }
 
+        # ── Validation + optional retry ───────────────────────────────────────
+        validation = None
+        if task_type:
+            validation = _validator.validate(task_type, content)
+
+            # Auto-retry once if JSON parse completely failed (and no tools involved)
+            if (
+                validation.confidence_level == ConfidenceLevel.FAILED
+                and validation.error
+                and "parse JSON" in validation.error
+                and not tools
+            ):
+                retry_messages = messages + [
+                    {"role": "assistant", "content": content},
+                    {
+                        "role": "user",
+                        "content": (
+                            "Your response could not be parsed as JSON. "
+                            "Please respond with ONLY a valid JSON object, "
+                            "no markdown fences, no explanation."
+                        ),
+                    },
+                ]
+                retry_response = await litellm.acompletion(
+                    model=model,
+                    messages=retry_messages,
+                    temperature=0.1,
+                    max_tokens=max_tokens,
+                    api_key=_get_api_key(model),
+                )
+                content = retry_response.choices[0].message.content or ""
+                validation = _validator.validate(task_type, content)
+                # Accumulate token counts
+                usage["prompt_tokens"] += retry_response.usage.prompt_tokens
+                usage["completion_tokens"] += retry_response.usage.completion_tokens
+                usage["total_tokens"] += retry_response.usage.total_tokens
+
         logger.info(
             "completion_success",
             model=model,
             prompt_tokens=usage["prompt_tokens"],
             completion_tokens=usage["completion_tokens"],
             stop_reason=stop_reason,
+            confidence=validation.confidence if validation else None,
         )
 
         return {
@@ -81,11 +126,16 @@ async def route_completion(
             "stop_reason": stop_reason,
             "model_used": response.model or model,
             "usage": usage,
+            # Validation fields (None when task_type not provided)
+            "validated_data": validation.data if validation else None,
+            "confidence": validation.confidence if validation else None,
+            "confidence_level": validation.confidence_level.value if validation else None,
+            "validation_repairs": validation.repairs_applied if validation else [],
+            "validation_warnings": validation.warnings if validation else [],
         }
 
     except Exception:
         logger.warning("primary_model_failed", model=model, fallback=settings.AI_FALLBACK_MODEL)
-        # Fallback to secondary model (no tools on fallback)
         fallback_kwargs: dict[str, Any] = {
             "model": settings.AI_FALLBACK_MODEL,
             "messages": messages,
@@ -103,12 +153,21 @@ async def route_completion(
             "total_tokens": response.usage.total_tokens,
         }
 
+        validation = None
+        if task_type:
+            validation = _validator.validate(task_type, content)
+
         return {
             "content": content,
             "tool_calls": None,
             "stop_reason": stop_reason,
             "model_used": response.model or settings.AI_FALLBACK_MODEL,
             "usage": usage,
+            "validated_data": validation.data if validation else None,
+            "confidence": validation.confidence if validation else None,
+            "confidence_level": validation.confidence_level.value if validation else None,
+            "validation_repairs": validation.repairs_applied if validation else [],
+            "validation_warnings": validation.warnings if validation else [],
         }
 
 
@@ -149,10 +208,8 @@ async def route_completion_stream(
 
 
 def _get_api_key(model: str) -> str:
-    """Resolve the API key for a given model."""
     if "claude" in model or "anthropic" in model:
         return settings.ANTHROPIC_API_KEY
     if "gpt" in model or "o1" in model:
         return settings.OPENAI_API_KEY
-    # Default to OpenAI for unknown models
     return settings.OPENAI_API_KEY
