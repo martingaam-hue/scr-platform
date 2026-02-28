@@ -214,6 +214,7 @@ class RalphAgent:
                 gateway_url=self._gateway_url,
                 gateway_key=self._gateway_key,
                 messages=messages,
+                tools=RALPH_TOOL_DEFINITIONS,
             )
 
             model_used = result.get("model_used", model_used)
