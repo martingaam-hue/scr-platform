@@ -283,6 +283,170 @@ SEED_PROMPTS: list[dict] = [
         "is_active": True,
     },
     {
+        "task_type": "generate_esg_narrative",
+        "version": 1,
+        "name": "ESG performance narrative v1",
+        "system_prompt": (
+            "You are an expert ESG analyst specialising in impact investment. "
+            "Write clear, factual, professional ESG performance narratives. "
+            "Focus on measurable outcomes and regulatory alignment. "
+            "Never fabricate or extrapolate beyond the data provided."
+        ),
+        "user_prompt_template": (
+            "Generate an ESG performance narrative for period {period}.\n\n"
+            "Environmental metrics:\n{environmental_metrics}\n\n"
+            "Social metrics:\n{social_metrics}\n\n"
+            "Governance metrics:\n{governance_metrics}\n\n"
+            "Regulatory alignment: EU Taxonomy aligned={taxonomy_aligned}, "
+            "SFDR Article={sfdr_article}, SDG contributions={sdg_contributions}"
+        ),
+        "output_format_instruction": (
+            'Respond with ONLY a JSON object:\n'
+            '{"narrative": "<3-4 paragraph ESG narrative>", '
+            '"key_achievements": ["<achievement1>", "<achievement2>"], '
+            '"areas_for_improvement": ["<area1>", "<area2>"]}'
+        ),
+        "variables_schema": {
+            "period": "str",
+            "environmental_metrics": "dict",
+            "social_metrics": "dict",
+            "governance_metrics": "dict",
+            "taxonomy_aligned": "bool",
+            "sfdr_article": "int",
+            "sdg_contributions": "dict",
+        },
+        "traffic_percentage": 100,
+        "is_active": True,
+    },
+    {
+        "task_type": "generate_lp_report_narrative",
+        "version": 1,
+        "name": "LP report narrative v1",
+        "system_prompt": (
+            "You are a senior fund reporting analyst writing an ILPA-standard quarterly LP report. "
+            "Write clear, professional narrative for each section. Be factual and concise. "
+            "Use plain prose — no bullet points in the narrative sections."
+        ),
+        "user_prompt_template": (
+            "Generate the narrative sections for an LP quarterly report.\n\n"
+            "Period: {report_period}\n"
+            "Fund metrics: {fund_metrics}\n"
+            "Portfolio summary: {portfolio_summary}\n"
+            "Market context: {market_context}\n\n"
+            "Return ONLY a JSON object with keys: executive_summary, portfolio_commentary, "
+            "market_outlook, esg_highlights"
+        ),
+        "output_format_instruction": (
+            'Respond with ONLY a JSON object:\n'
+            '{"executive_summary": "<2-3 para summary>", '
+            '"portfolio_commentary": "<detailed commentary>", '
+            '"market_outlook": "<market context and outlook>", '
+            '"esg_highlights": "<ESG performance notes>"}'
+        ),
+        "variables_schema": {
+            "report_period": "str",
+            "fund_metrics": "dict",
+            "portfolio_summary": "dict",
+            "market_context": "str",
+        },
+        "traffic_percentage": 100,
+        "is_active": True,
+    },
+    {
+        "task_type": "rank_comparable_transactions",
+        "version": 1,
+        "name": "Rank comparable transactions v1",
+        "system_prompt": (
+            "You are an M&A analyst specializing in renewable energy and infrastructure transactions. "
+            "Score the similarity of comparable transactions against a target project. "
+            "Consider asset type, geography, size, stage, and market timing."
+        ),
+        "user_prompt_template": (
+            "Rank these comparable transactions by similarity to the target project.\n\n"
+            "Target project:\n{project}\n\n"
+            "Comparable transactions:\n{comps}\n\n"
+            "Return ONLY a JSON object with a ranked_comps array."
+        ),
+        "output_format_instruction": (
+            'Respond with ONLY a JSON object:\n'
+            '{"ranked_comps": [{"comp_id": "<id>", "similarity_score": <0-100>, "rationale": "<why similar/different>"}]}'
+        ),
+        "variables_schema": {"project": "dict", "comps": "list"},
+        "traffic_percentage": 100,
+        "is_active": True,
+    },
+    {
+        "task_type": "summarize_doc_changes",
+        "version": 1,
+        "name": "Summarize document changes v1",
+        "system_prompt": (
+            "You are a legal and financial document analyst. "
+            "Review document changes and provide a concise summary of what changed, "
+            "how significant the changes are, and any key items to flag for review."
+        ),
+        "user_prompt_template": (
+            "Summarize the changes in this {doc_type} document.\n\n"
+            "Change statistics: {diff_stats}\n"
+            "Sample changes (first 100 lines of diff):\n{sample_changes}\n\n"
+            "Return ONLY a JSON object with summary, significance, and key_changes."
+        ),
+        "output_format_instruction": (
+            'Respond with ONLY a JSON object:\n'
+            '{"summary": "<plain text summary>", '
+            '"significance": "minor|moderate|major|critical", '
+            '"key_changes": ["<change1>", "<change2>"]}'
+        ),
+        "variables_schema": {
+            "doc_type": "str",
+            "diff_stats": "dict",
+            "sample_changes": "list",
+        },
+        "traffic_percentage": 100,
+        "is_active": True,
+    },
+    {
+        "task_type": "generate_meeting_briefing",
+        "version": 1,
+        "name": "Meeting briefing generator v1",
+        "system_prompt": (
+            "You are a senior investment analyst preparing a concise briefing document for an investor meeting. "
+            "Generate structured, actionable content tailored to the meeting type. "
+            "Be specific and data-driven where data is available."
+        ),
+        "user_prompt_template": (
+            "Generate a {meeting_type} meeting briefing.\n\n"
+            "Project: {project}\n"
+            "Signal score: {signal_score}\n"
+            "Risk assessment: {risks}\n"
+            "DD checklist status: {dd_status}\n"
+            "Documents on file: {document_count}\n"
+            "Has previous meeting: {has_previous_meeting}\n\n"
+            "Tailor talking_points and questions_to_ask for a {meeting_type} meeting:\n"
+            "- screening: investment thesis fit, initial concerns\n"
+            "- dd_review: outstanding DD items, document gaps\n"
+            "- follow_up: progress since last meeting, action items\n"
+            "- ic_presentation: IC decision factors, investment recommendation\n\n"
+            "Return ONLY a JSON object."
+        ),
+        "output_format_instruction": (
+            'Respond with ONLY a JSON object:\n'
+            '{"executive_summary": "...", "key_metrics": {}, "risk_flags": [], '
+            '"dd_progress": {}, "talking_points": [], "questions_to_ask": [], '
+            '"changes_since_last": []}'
+        ),
+        "variables_schema": {
+            "meeting_type": "str",
+            "project": "dict",
+            "signal_score": "dict",
+            "risks": "dict",
+            "dd_status": "dict",
+            "document_count": "int",
+            "has_previous_meeting": "bool",
+        },
+        "traffic_percentage": 100,
+        "is_active": True,
+    },
+    {
         "task_type": "generate_digest_summary",
         "version": 1,
         "name": "Weekly digest summary v1",

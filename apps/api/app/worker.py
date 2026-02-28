@@ -24,6 +24,7 @@ celery_app = Celery(
         "app.modules.due_diligence.tasks",
         "app.worker_tasks",
         "app.tasks.weekly_digest",
+        "app.tasks.fx_rates",
     ],
 )
 
@@ -80,5 +81,10 @@ celery_app.conf.beat_schedule = {
     "weekly-digest": {
         "task": "tasks.send_weekly_digests",
         "schedule": crontab(hour=20, minute=0, day_of_week=0),  # Sunday 8pm UTC
+    },
+    # ── FX rates (ECB reference rates) ──────────────────────────────────────
+    "fetch-daily-fx-rates": {
+        "task": "tasks.fetch_daily_fx_rates",
+        "schedule": crontab(hour=15, minute=0),  # 3pm UTC = 4pm CET
     },
 }

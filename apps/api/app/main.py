@@ -54,6 +54,13 @@ from app.modules.risk_profile.router import router as risk_profile_router
 from app.modules.certification.router import router as certification_router
 from app.modules.deal_flow.router import router as deal_flow_router
 from app.modules.due_diligence.router import router as due_diligence_router
+from app.modules.esg.router import router as esg_router
+from app.modules.lp_reporting.router import router as lp_reporting_router
+from app.modules.comps.router import router as comps_router
+from app.modules.warm_intros.router import router as warm_intros_router
+from app.modules.doc_versions.router import router as doc_versions_router
+from app.modules.fx.router import router as fx_router
+from app.modules.meeting_prep.router import router as meeting_prep_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -145,6 +152,13 @@ app.include_router(risk_profile_router)
 app.include_router(certification_router)
 app.include_router(deal_flow_router)
 app.include_router(due_diligence_router)
+app.include_router(esg_router)
+app.include_router(lp_reporting_router)
+app.include_router(comps_router)
+app.include_router(warm_intros_router)
+app.include_router(doc_versions_router)
+app.include_router(fx_router)
+app.include_router(meeting_prep_router)
 
 
 @app.get("/health")

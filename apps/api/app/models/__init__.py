@@ -141,6 +141,27 @@ from app.models.due_diligence import (
     DDItemStatus,
 )
 
+# ESG Impact
+from app.models.esg import ESGMetrics
+
+# LP Reporting
+from app.models.lp_report import LPReport
+
+# Comparable Transactions
+from app.models.comps import ComparableTransaction
+
+# Professional Connections & Warm Intros
+from app.models.connections import IntroductionRequest, ProfessionalConnection
+
+# Document Version Control
+from app.models.doc_versions import DocumentVersion
+
+# FX Rates
+from app.models.fx import FXRate
+
+# Meeting Prep
+from app.models.meeting_prep import MeetingBriefing
+
 __all__ = [
     # Base
     "BaseModel",
@@ -218,4 +239,19 @@ __all__ = [
     "DDChecklistItem",
     "DDProjectChecklist",
     "DDItemStatus",
+    # ESG Impact
+    "ESGMetrics",
+    # LP Reporting
+    "LPReport",
+    # Comparable Transactions
+    "ComparableTransaction",
+    # Warm Introductions
+    "ProfessionalConnection",
+    "IntroductionRequest",
+    # Document Version Control
+    "DocumentVersion",
+    # FX Rates
+    "FXRate",
+    # Meeting Prep
+    "MeetingBriefing",
 ]

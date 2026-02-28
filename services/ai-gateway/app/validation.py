@@ -342,6 +342,64 @@ VALIDATION_SCHEMAS: dict[str, dict] = {
         },
     },
 
+    # ── ESG Impact Dashboard ──────────────────────────────────────────────────
+
+    "generate_esg_narrative": {
+        "required": ["narrative", "key_achievements", "areas_for_improvement"],
+        "fields": {
+            "narrative": {"type": "str", "min_length": 50, "max_length": 4000},
+            "key_achievements": {"type": "list", "min_items": 0},
+            "areas_for_improvement": {"type": "list", "min_items": 0},
+        },
+    },
+
+    # ── LP Reporting ──────────────────────────────────────────────────────────
+
+    "generate_lp_report_narrative": {
+        "required": ["executive_summary", "portfolio_commentary", "market_outlook"],
+        "fields": {
+            "executive_summary": {"type": "str", "min_length": 100, "max_length": 3000},
+            "portfolio_commentary": {"type": "str", "min_length": 100, "max_length": 5000},
+            "market_outlook": {"type": "str", "min_length": 50, "max_length": 3000},
+            "esg_highlights": {"type": "str", "max_length": 2000},
+        },
+    },
+
+    # ── Comparable Transactions ───────────────────────────────────────────────
+
+    "rank_comparable_transactions": {
+        "required": ["ranked_comps"],
+        "fields": {
+            "ranked_comps": {"type": "list", "min_items": 0},
+        },
+    },
+
+    # ── Document Version Control ──────────────────────────────────────────────
+
+    "summarize_doc_changes": {
+        "required": ["summary", "significance"],
+        "fields": {
+            "summary": {"type": "str", "min_length": 20, "max_length": 2000},
+            "significance": {"type": "str", "enum": ["minor", "moderate", "major", "critical"]},
+            "key_changes": {"type": "list", "min_items": 0},
+        },
+    },
+
+    # ── Meeting Prep ──────────────────────────────────────────────────────────
+
+    "generate_meeting_briefing": {
+        "required": ["executive_summary", "talking_points", "questions_to_ask"],
+        "fields": {
+            "executive_summary": {"type": "str", "min_length": 50, "max_length": 2000},
+            "key_metrics": {"type": "dict"},
+            "risk_flags": {"type": "list"},
+            "dd_progress": {"type": "dict"},
+            "talking_points": {"type": "list", "min_items": 1},
+            "questions_to_ask": {"type": "list", "min_items": 1},
+            "changes_since_last": {"type": "list"},
+        },
+    },
+
     # ── Smart Screener ────────────────────────────────────────────────────────
 
     "parse_screener_query": {

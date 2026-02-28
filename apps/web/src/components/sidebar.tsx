@@ -23,6 +23,11 @@ import {
   FolderLock,
   ScanSearch,
   TrendingUp,
+  GitCompare,
+  Users,
+  Globe,
+  Calendar,
+  Leaf,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -63,6 +68,15 @@ const investorNav: NavSection[] = [
     title: "Analytics",
     items: [
       { label: "Deal Flow", href: "/analytics/deal-flow", icon: TrendingUp },
+      { label: "LP Reports", href: "/reports/lp", icon: FileText },
+      { label: "Comps DB", href: "/comps", icon: GitCompare },
+      { label: "FX Exposure", href: "/portfolio/fx", icon: Globe },
+    ],
+  },
+  {
+    title: "Network",
+    items: [
+      { label: "Warm Intros", href: "/warm-intros", icon: Users },
     ],
   },
   {
@@ -107,6 +121,15 @@ const adminNav: NavSection[] = [
     title: "Analytics",
     items: [
       { label: "Deal Flow", href: "/analytics/deal-flow", icon: TrendingUp },
+      { label: "LP Reports", href: "/reports/lp", icon: FileText },
+      { label: "Comps DB", href: "/comps", icon: GitCompare },
+      { label: "FX Exposure", href: "/portfolio/fx", icon: Globe },
+    ],
+  },
+  {
+    title: "Network",
+    items: [
+      { label: "Warm Intros", href: "/warm-intros", icon: Users },
     ],
   },
   {
