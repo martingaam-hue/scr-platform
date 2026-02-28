@@ -49,6 +49,8 @@ import {
   Umbrella,
   Layers,
   PieChart,
+  Rss,
+  Construction,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -137,6 +139,7 @@ const investorNav: NavSection[] = [
       { label: "Equity Calculator", href: "/equity-calculator", icon: Calculator },
       { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },
       { label: "Deal Flow Analytics", href: "/analytics/deal-flow", icon: TrendingUp },
+      { label: "Portfolio Analytics", href: "/analytics/portfolio", icon: BarChart3 },
     ],
   },
   {
@@ -151,6 +154,7 @@ const investorNav: NavSection[] = [
       { label: "Connectors", href: "/connectors", icon: Plug },
       { label: "Investor Personas", href: "/investor-personas", icon: Users },
       { label: "Ecosystem", href: "/ecosystem", icon: Network },
+      { label: "Activity Digest", href: "/digest", icon: Rss },
     ],
   },
 ];
@@ -194,6 +198,7 @@ const allyNav: NavSection[] = [
       { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },
       { label: "Tokenization", href: "/tokenization", icon: Layers },
       { label: "Dev OS", href: "/development-os", icon: Monitor },
+      { label: "Activity Feed", href: "/collaboration", icon: Activity },
     ],
   },
   {
@@ -221,6 +226,7 @@ const allyNav: NavSection[] = [
     items: [
       { label: "Settings", href: "/settings", icon: Settings },
       { label: "Gamification", href: "/gamification", icon: Trophy },
+      { label: "Activity Digest", href: "/digest", icon: Rss },
     ],
   },
 ];
@@ -289,6 +295,7 @@ const adminNav: NavSection[] = [
       { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },
       { label: "Impact", href: "/impact", icon: Target },
       { label: "Deal Flow Analytics", href: "/analytics/deal-flow", icon: TrendingUp },
+      { label: "Portfolio Analytics", href: "/analytics/portfolio", icon: BarChart3 },
     ],
   },
   {
