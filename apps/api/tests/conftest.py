@@ -125,3 +125,56 @@ async def authenticated_client(
     """AsyncClient with a mock auth token that bypasses Clerk verification."""
     client.headers["Authorization"] = "Bearer mock-test-token"
     return client
+
+
+# ── Investor org fixtures ─────────────────────────────────────────────────
+
+INVESTOR_ORG_ID = uuid.UUID("00000000-0000-0000-0000-000000000010")
+INVESTOR_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000011")
+INVESTOR_CLERK_ID = "user_test_investor_456"
+
+PROJECT_ORG_ID = uuid.UUID("00000000-0000-0000-0000-000000000020")
+PROJECT_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000021")
+
+
+@pytest.fixture
+async def investor_org(db: AsyncSession) -> Organization:
+    """Create a test investor organisation."""
+    org = Organization(
+        id=INVESTOR_ORG_ID,
+        name="Test Investor Fund",
+        slug="test-investor-fund",
+        type=OrgType.INVESTOR,
+    )
+    db.add(org)
+    await db.flush()
+    return org
+
+
+@pytest.fixture
+async def investor_user(db: AsyncSession, investor_org: Organization) -> User:
+    """Create an admin user in the investor org."""
+    user = User(
+        id=INVESTOR_USER_ID,
+        org_id=investor_org.id,
+        email="investor@example.com",
+        full_name="Investor Admin",
+        role=UserRole.ADMIN,
+        external_auth_id=INVESTOR_CLERK_ID,
+        is_active=True,
+    )
+    db.add(user)
+    await db.flush()
+    return user
+
+
+@pytest.fixture
+def investor_current_user(investor_org: Organization) -> CurrentUser:
+    """CurrentUser pydantic model for the investor admin."""
+    return CurrentUser(
+        user_id=INVESTOR_USER_ID,
+        org_id=INVESTOR_ORG_ID,
+        role=UserRole.ADMIN,
+        email="investor@example.com",
+        external_auth_id=INVESTOR_CLERK_ID,
+    )
