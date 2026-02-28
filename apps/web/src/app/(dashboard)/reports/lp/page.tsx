@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { formatDate, formatCurrency, formatPct } from "@/lib/format"
 import { CheckCircle, Clock, FileText, Plus, Download, ChevronRight } from "lucide-react"
+import { AIFeedback } from "@/components/ai-feedback"
 
 interface LPReport {
   id: string
@@ -276,6 +277,15 @@ export default function LPReportsPage() {
                 )}
               </section>
             )}
+
+            {/* AI Feedback */}
+            <AIFeedback
+              taskType="lp_report"
+              entityType="report"
+              entityId={report.id}
+              compact
+              className="mt-2"
+            />
 
             {/* Investments table */}
             {report.investments_data && report.investments_data.length > 0 && (

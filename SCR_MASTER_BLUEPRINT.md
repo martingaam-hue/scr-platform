@@ -225,8 +225,8 @@
 | S33 | AI Output Validation | ✅ COMPLETE (gateway) | `services/ai-gateway/app/validation.py`, `app/routers/completions.py` | Auto-validates all gateway responses by `task_type`. Returns `validation_repairs` / `validation_warnings`. **Already wired into route_completion()** — zero changes needed in modules |
 | S34 | Prompt Registry & Versioning | 🔧 BUILT BUT NOT WIRED | `app/services/prompt_registry.py`, `models/ai.py:PromptTemplate`, migration `d5e6f7a8b9c0_add_prompt_templates.py` | Admin UI for templates exists. **No AI-calling module uses `PromptRegistry.render()`** — all use hardcoded prompt strings |
 | S35 | Document Analysis Cache | 🔧 BUILT BUT NOT WIRED | `app/services/analysis_cache.py` | `DocumentAnalysisCache` class complete. **Not imported by any module** — all call AI gateway directly |
-| S36 | RAG Pipeline Upgrade | 🔧 BUILT BUT NOT WIRED | `services/ai-gateway/app/services/rag.py`, `app/services/vector_store.py` | RAG pipeline complete in gateway. Ralph AI's `agent.py` passes `rag_context=""` (empty string) — **RAG never actually invoked** |
-| S37 | AI Feedback & Quality | 🔧 BUILT BUT NOT WIRED | `modules/ai_feedback/router.py`, `models/ai.py:AIOutputFeedback`, `components/ai-feedback.tsx` | Backend + component exist. **`<AIFeedback>` component not used in any module page** |
+| S36 | RAG Pipeline Upgrade | ✅ COMPLETE | `services/ai-gateway/app/services/rag.py`, `app/services/vector_store.py`, `modules/ralph_ai/agent.py` | RAG pipeline complete in gateway. `_fetch_rag_context()` added to `agent.py` — both `process_message` and `stream` pass doc context via `prepare_context(rag_context=...)` |
+| S37 | AI Feedback & Quality | ✅ COMPLETE | `modules/ai_feedback/router.py`, `models/ai.py:AIOutputFeedback`, `components/ai-feedback.tsx` | Backend + component exist. `<AIFeedback>` wired into 12 pages: signal-score, valuations, risk, legal, meeting-prep, investor-signal-score, carbon, due-diligence, matching, comps, lp-report, deal-screening |
 | S38 | Context Window Manager | ✅ COMPLETE | `modules/ralph_ai/context_manager.py` | 16K budget, 4 buckets, Haiku summarization fallback. **Used only in Ralph AI** — other AI modules do not use it |
 | S39 | Task Batching | 🔧 BUILT BUT NOT WIRED | `services/ai-gateway/app/task_batcher.py` | Batcher complete with 9 batchable task types. **Not called by any module** |
 | S40 | Smart Screener | ✅ COMPLETE | `modules/smart_screener/` (4 files, **3 endpoints**), `app/(dashboard)/screener/page.tsx` | NL query → parsed filters → project search. Saved searches. Works standalone |
@@ -241,7 +241,7 @@
 | Session | Name | Status | Key Files | Notes |
 |---------|------|--------|-----------|-------|
 | F01 | Smart DD Checklist | ✅ COMPLETE | `modules/due_diligence/` (5 files, **8 endpoints**), `app/(dashboard)/projects/[id]/due-diligence/page.tsx` | Templates, checklist instances, Celery auto-generation from doc extractions ✅ |
-| F02 | Investor Readiness Certification | 🟡 PARTIAL | `modules/certification/` (4 files, **5 endpoints**), `models/certification.py`, `components/certification-badge.tsx` | Backend integrates with SignalScore ✅. **No dedicated `/certification` page** — badge component exists but not surfaced in nav |
+| F02 | Investor Readiness Certification | ✅ COMPLETE | `modules/certification/` (4 files, **5 endpoints**), `models/certification.py`, `components/certification-badge.tsx`, `app/(dashboard)/projects/[id]/certification/page.tsx` | Backend integrates with SignalScore ✅. Dedicated `/projects/[id]/certification` page ✅ |
 | F03 | Deal Flow Analytics | ✅ COMPLETE | `modules/deal_flow/` (4 files, **7 endpoints**), `models/deal_flow.py:DealStageTransition`, `app/(dashboard)/analytics/deal-flow/page.tsx` | Stage transitions tracked ✅, funnel analytics ✅ |
 | F04 | Automated LP Reporting | ✅ COMPLETE | `modules/lp_reporting/` (4 files, **7 endpoints**), `app/(dashboard)/reports/lp/page.tsx` | LP report generation, portfolio metrics ✅ |
 
@@ -251,7 +251,7 @@
 
 | Session | Name | Status | Key Files | Notes |
 |---------|------|--------|-----------|-------|
-| F05 | ESG Impact Dashboard | 🟡 PARTIAL | `modules/esg/` (4 files, **9 endpoints**), `models/esg.py:ESGMetrics`, `lib/esg.ts` | Backend ✅. **No dedicated `/esg` page** — `lib/esg.ts` helper exists but no route |
+| F05 | ESG Impact Dashboard | ✅ COMPLETE | `modules/esg/` (4 files, **9 endpoints**), `models/esg.py:ESGMetrics`, `lib/esg.ts`, `app/(dashboard)/esg/page.tsx` | Backend ✅. Dedicated `/esg` page ✅ using `useESGPortfolioSummary` |
 | F06 | Comparable Transaction Database | ✅ COMPLETE | `modules/comps/` (4 files, **8 endpoints**), `models/comps.py:ComparableTransaction`, `app/(dashboard)/comps/page.tsx` | Backend ✅, frontend ✅; valuation `ai_assistant.py` has `find_comparables()` method (uses AI suggestions, not the comps table directly) |
 | F09 | Multi-Currency Tracking | ✅ COMPLETE | `modules/fx/` (4 files, **4 endpoints**), `models/fx.py:FXRate`, `app/(dashboard)/portfolio/fx/page.tsx`, `app/tasks/fx_rates.py` | FX rates, Celery auto-refresh ✅ |
 | F12 | Portfolio Stress Testing | ✅ COMPLETE | `modules/stress_test/` (4 files, **4 endpoints**), `models/stress_test.py:StressTestRun`, `app/(dashboard)/portfolio/stress-test/page.tsx` | Monte Carlo / scenario engine ✅ |
@@ -588,8 +588,8 @@ The following pages exist but are **not in any sidebar nav section** (discoverab
 | S33 Validation | ✅ | ✅ auto in `route_completion()` | ✅ transparent |
 | S34 Prompt Registry | ✅ | N/A | ❌ 0/15 AI modules |
 | S35 Analysis Cache | ✅ | N/A | ❌ 0/15 AI modules |
-| S36 RAG Pipeline | ✅ | ✅ `/search` endpoint | ❌ Ralph passes `rag_context=""` |
-| S37 Feedback UI | ✅ | ✅ `/ai-feedback` endpoint | ❌ 0 page uses `<AIFeedback>` |
+| S36 RAG Pipeline | ✅ | ✅ `/search` endpoint | ✅ Ralph `agent.py` calls `_fetch_rag_context()` |
+| S37 Feedback UI | ✅ | ✅ `/ai-feedback` endpoint | ✅ 12 pages use `<AIFeedback>` |
 | S38 Context Window | ✅ | N/A | ✅ Ralph only (1/15) |
 | S39 Task Batcher | ✅ | ✅ in gateway | ❌ 0 modules call batcher |
 
@@ -893,7 +893,7 @@ When a document is uploaded and extracted, automatically embed and index it in t
 ║  ─────────────────────────────────────────────────────────────────── ║
 ║  ✅ Sessions COMPLETE:        41  (66%)                              ║
 ║  🟡 Sessions PARTIAL:          9  (15%)                              ║
-║  🔧 Built But Not Wired:       4  (S34, S35, S36, S39)              ║
+║  🔧 Built But Not Wired:       2  (S34, S35, S39)                   ║
 ║  ❌ NOT BUILT:                 2  (S30, S32)                         ║
 ║  Sessions with issues:        17  (26% need attention)               ║
 ║                                                                      ║
@@ -926,20 +926,20 @@ When a document is uploaded and extracted, automatically embed and index it in t
 ║  API Test Files:              17 (436 passed, 0 failed, 7 skipped)   ║
 ║  Gateway Test Files:          5                                      ║
 ║  Frontend Test Files:         0 (Vitest installed, not used)         ║
-║  Estimated Coverage:          ~25% (advisory + financial + AI added) ║
+║  Estimated Coverage:          ~30% (advisory + financial + AI added) ║
 ║                                                                      ║
 ║  AI INFRASTRUCTURE ADOPTION                                          ║
 ║  S33 Validation wired:        ✅ 15/15 (transparent in gateway)      ║
 ║  S34 Prompt Registry used:    ❌ 0/15 AI modules                     ║
 ║  S35 Analysis Cache used:     ❌ 0/15 AI modules                     ║
-║  S36 RAG actually invoked:    ❌ 0/1 (Ralph passes empty context)    ║
-║  S37 Feedback buttons live:   ❌ 0/10 key AI output pages            ║
+║  S36 RAG actually invoked:    ✅ 1/1 (Ralph `_fetch_rag_context()`)  ║
+║  S37 Feedback buttons live:   ✅ 12/12 AI output pages               ║
 ║  S38 Context Manager used:    ✅ 1/1 (Ralph only — correct scope)    ║
 ║  S39 Task Batcher used:       ❌ 0 modules                           ║
 ║                                                                      ║
 ║  F-SERIES INTEGRATION                                                ║
-║  F01–F18 with frontend pages: 14/18 (78%)                           ║
-║  Missing pages:               4 (F02, F05, F08, F16)                ║
+║  F01–F18 with frontend pages: 16/18 (89%)                           ║
+║  Missing pages:               2 (F08, F16)                          ║
 ║  F-series backend→backend     10/18 cross-wired (56%)               ║
 ║                                                                      ║
 ║  PLATFORM COMPLETENESS (by session):  ~66% fully complete            ║
@@ -968,11 +968,11 @@ When a document is uploaded and extracted, automatically embed and index it in t
 
 | # | Action | Est. | Impact |
 |---|--------|------|--------|
-| 1 | Wire `<AIFeedback>` to 10 AI output pages | 4–6h | S37 fully live |
-| 2 | Fix Ralph RAG (`rag_context` → actual search call) | 2–3h | S36 + Ralph quality |
-| 3 | Wire gamification triggers (signal_score, onboarding) | 3–4h | F18 actually awards badges |
-| 4 | Build ESG Dashboard page (`/esg`) | 2–3h | F05 visible to users |
-| 5 | Build Certification page (`/projects/[id]/certification`) | 2–3h | F02 visible to users |
+| 1 | ✅ Wire `<AIFeedback>` to 12 AI output pages | done | S37 fully live |
+| 2 | ✅ Fix Ralph RAG (`_fetch_rag_context()` wired in agent.py) | done | S36 + Ralph quality |
+| 3 | ✅ Wire gamification triggers (signal_score, onboarding) | done | F18 actually awards badges |
+| 4 | ✅ Build ESG Dashboard page (`/esg`) | done | F05 visible to users |
+| 5 | ✅ Build Certification page (`/projects/[id]/certification`) | done | F02 visible to users |
 
 ### Short-term (next sprint)
 

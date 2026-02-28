@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { formatCurrency, formatPct } from "@/lib/format"
 import { Search, Plus, Upload, Calculator, TrendingUp, X } from "lucide-react"
+import { AIFeedback } from "@/components/ai-feedback"
 
 interface Comp {
   id: string
@@ -175,6 +176,16 @@ export default function CompsPage() {
             <button onClick={() => setSelectedIds(new Set())} className="text-primary-600 text-sm hover:underline">Clear</button>
           </div>
         </div>
+      )}
+
+      {/* AI Feedback */}
+      {valuationResult && (
+        <AIFeedback
+          taskType="comps_analysis"
+          entityType="project"
+          compact
+          className="mt-2"
+        />
       )}
 
       {/* Table */}

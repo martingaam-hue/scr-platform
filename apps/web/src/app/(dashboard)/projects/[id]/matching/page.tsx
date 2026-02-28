@@ -27,6 +27,7 @@ import {
   type MatchingInvestor,
 } from "@/lib/matching";
 import { useProject } from "@/lib/projects";
+import { AIFeedback } from "@/components/ai-feedback";
 
 // ── Alignment breakdown ───────────────────────────────────────────────────
 
@@ -328,6 +329,15 @@ export default function ProjectMatchingPage() {
           </p>
         )}
       </div>
+
+      {/* AI Feedback */}
+      <AIFeedback
+        taskType="matching"
+        entityType="project"
+        entityId={id}
+        compact
+        className="mt-2"
+      />
 
       {/* Summary stats */}
       {data && (

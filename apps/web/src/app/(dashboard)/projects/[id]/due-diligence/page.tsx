@@ -35,6 +35,7 @@ import {
   type DDItemStatus,
 } from "@/lib/due-diligence";
 import { useDocuments } from "@/lib/dataroom";
+import { AIFeedback } from "@/components/ai-feedback";
 
 // ── Status icon ───────────────────────────────────────────────────────────────
 
@@ -509,6 +510,13 @@ export default function DueDiligencePage() {
             <p className="mt-1 text-sm text-neutral-500">
               Track and manage due diligence requirements for this project.
             </p>
+            <AIFeedback
+              taskType="due_diligence"
+              entityType="project"
+              entityId={id}
+              compact
+              className="mt-2"
+            />
           </div>
           {checklist && (
             <div className="flex gap-2">

@@ -28,6 +28,7 @@ import {
   type ScreeningReport,
   type MemoAcceptedResponse,
 } from "@/lib/deals";
+import { AIFeedback } from "@/components/ai-feedback";
 
 // ── Recommendation badge ──────────────────────────────────────────────────
 
@@ -374,7 +375,17 @@ export default function DealScreeningPage() {
       )}
 
       {!isLoading && report && report.status === "completed" && (
-        <ScreeningReportView report={report} projectId={projectId} />
+        <>
+          <AIFeedback
+            taskType="screening"
+            entityType="deal"
+            entityId={projectId}
+            taskLogId={report.task_log_id}
+            compact
+            className="mt-2"
+          />
+          <ScreeningReportView report={report} projectId={projectId} />
+        </>
       )}
     </div>
   );
