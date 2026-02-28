@@ -51,6 +51,22 @@ interface NotificationState {
   decrement: () => void;
 }
 
+// ── Search / command palette store ──────────────────────────────────────────
+
+interface SearchState {
+  isOpen: boolean;
+  open: () => void;
+  close: () => void;
+  toggle: () => void;
+}
+
+export const useSearchStore = create<SearchState>((set) => ({
+  isOpen: false,
+  open: () => set({ isOpen: true }),
+  close: () => set({ isOpen: false }),
+  toggle: () => set((s) => ({ isOpen: !s.isOpen })),
+}));
+
 export const useNotificationStore = create<NotificationState>((set) => ({
   unreadCount: 0,
   setUnreadCount: (count) => set({ unreadCount: count }),

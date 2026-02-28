@@ -5,7 +5,7 @@ import { Moon, Sun, PanelRightOpen } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@scr/ui";
 import { SearchInput } from "@scr/ui";
-import { useSidebarStore, useGlobalFilterStore, useRalphStore } from "@/lib/store";
+import { useSidebarStore, useGlobalFilterStore, useRalphStore, useSearchStore } from "@/lib/store";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { NotificationBell } from "@/components/collaboration/notification-bell";
 
@@ -14,6 +14,7 @@ export function Topbar() {
   const { search, setSearch } = useGlobalFilterStore();
   const { theme, setTheme } = useTheme();
   const { toggle: toggleRalph, isOpen: ralphOpen } = useRalphStore();
+  const { open: openSearch } = useSearchStore();
 
   return (
     <header
@@ -30,13 +31,15 @@ export function Topbar() {
         <Breadcrumbs />
       </div>
 
-      {/* Search */}
+      {/* Search — clicking opens the command palette */}
       <div className="hidden w-72 md:block">
         <SearchInput
           value={search}
           onValueChange={setSearch}
           placeholder="Search anything..."
           shortcutHint={"\u2318K"}
+          onFocus={openSearch}
+          readOnly
         />
       </div>
 

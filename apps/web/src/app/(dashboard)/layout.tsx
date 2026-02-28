@@ -12,6 +12,7 @@ import {
 } from "@/components/feature-tour";
 import { useSidebarStore } from "@/lib/store";
 import { RalphPanel } from "@/components/ralph-ai/ralph-panel";
+import { CommandPalette } from "@/components/search/command-palette";
 import { useAuthenticatedApi, useSCRUser } from "@/lib/auth";
 import { isOnboardingComplete } from "@/lib/onboarding";
 
@@ -64,6 +65,9 @@ export default function DashboardLayout({
 
       {/* Ralph AI panel */}
       <RalphPanel />
+
+      {/* Global search command palette (⌘K) */}
+      <CommandPalette />
 
       {/* Feature tour overlay */}
       {showTour && (
