@@ -156,7 +156,15 @@ function PipelineTab() {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <EmptyState
+        icon={<TrendingUp className="h-10 w-10 text-neutral-300" />}
+        title="No pipeline data"
+        description="Discover deals and add them to your pipeline to get started."
+      />
+    );
+  }
 
   const columnData: Record<string, DealCard[]> = {
     discovered: data.discovered,

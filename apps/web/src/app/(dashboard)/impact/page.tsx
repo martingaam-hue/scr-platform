@@ -222,7 +222,15 @@ function DashboardTab() {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <EmptyState
+        icon={<Leaf className="h-10 w-10 text-neutral-300" />}
+        title="No impact data yet"
+        description="Create projects and add impact KPIs to track your portfolio impact."
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -597,7 +605,15 @@ function SDGTrackerTab() {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <EmptyState
+        icon={<CheckCircle2 className="h-10 w-10 text-neutral-300" />}
+        title="No SDG data yet"
+        description="Add SDG goals to your projects to track coverage across all 17 goals."
+      />
+    );
+  }
 
   // Build SDG → projects mapping
   const sdgMap: Record<number, string[]> = {};

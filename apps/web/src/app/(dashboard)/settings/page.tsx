@@ -80,7 +80,15 @@ function OrgTab() {
     );
   }
 
-  if (!org) return null;
+  if (!org) {
+    return (
+      <EmptyState
+        icon={<Building2 className="h-10 w-10 text-neutral-300" />}
+        title="Organisation data unavailable"
+        description="Your organisation details could not be loaded. Please try refreshing the page."
+      />
+    );
+  }
 
   return (
     <div className="max-w-2xl space-y-6">
