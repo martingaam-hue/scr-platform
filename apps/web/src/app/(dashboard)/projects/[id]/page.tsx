@@ -310,6 +310,7 @@ export default function ProjectDetailPage() {
             Financials ({project.budget_item_count})
           </TabsTrigger>
           <TabsTrigger value="signal">Signal Score</TabsTrigger>
+          <TabsTrigger value="due-diligence">Due Diligence</TabsTrigger>
           {canAnalyze && (
             <TabsTrigger value="ai-tools">AI Tools</TabsTrigger>
           )}
@@ -535,6 +536,19 @@ export default function ProjectDetailPage() {
               </div>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Due Diligence Tab */}
+        <TabsContent value="due-diligence" className="mt-6">
+          <div className="text-center py-4">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/projects/${id}/due-diligence`)}
+            >
+              Open Due Diligence Checklist
+              <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
+            </Button>
+          </div>
         </TabsContent>
 
         {/* AI Tools Tab */}

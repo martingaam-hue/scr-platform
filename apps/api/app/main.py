@@ -51,6 +51,9 @@ from app.modules.search.router import router as search_router
 from app.modules.ai_feedback.router import router as ai_feedback_router
 from app.modules.smart_screener.router import router as smart_screener_router
 from app.modules.risk_profile.router import router as risk_profile_router
+from app.modules.certification.router import router as certification_router
+from app.modules.deal_flow.router import router as deal_flow_router
+from app.modules.due_diligence.router import router as due_diligence_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -139,6 +142,9 @@ app.include_router(search_router)
 app.include_router(ai_feedback_router)
 app.include_router(smart_screener_router)
 app.include_router(risk_profile_router)
+app.include_router(certification_router)
+app.include_router(deal_flow_router)
+app.include_router(due_diligence_router)
 
 
 @app.get("/health")

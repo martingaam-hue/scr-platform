@@ -262,6 +262,27 @@ SEED_PROMPTS: list[dict] = [
         "is_active": True,
     },
     {
+        "task_type": "dd_review_item",
+        "version": 1,
+        "name": "DD checklist item review v1",
+        "system_prompt": "You are a due diligence analyst reviewing documents for investment readiness. Be precise and identify specific gaps.",
+        "user_prompt_template": (
+            "Review this document against the following due diligence requirement:\n\n"
+            "REQUIREMENT: {item_criteria}\n\n"
+            "DOCUMENT ({document_name}):\n{document_text}"
+        ),
+        "output_format_instruction": (
+            'Respond with ONLY a JSON object:\n'
+            '{"satisfied": true/false, "confidence": 0.0-1.0, '
+            '"summary": "<what the document covers>", '
+            '"gaps": ["<missing element 1>", ...], '
+            '"recommendation": "<what to do next>"}'
+        ),
+        "variables_schema": {"item_criteria": "str", "document_name": "str", "document_text": "str"},
+        "traffic_percentage": 100,
+        "is_active": True,
+    },
+    {
         "task_type": "generate_digest_summary",
         "version": 1,
         "name": "Weekly digest summary v1",

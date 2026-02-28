@@ -329,6 +329,19 @@ VALIDATION_SCHEMAS: dict[str, dict] = {
         },
     },
 
+    # ── Due Diligence ─────────────────────────────────────────────────────────
+
+    "dd_review_item": {
+        "required": ["satisfied", "confidence", "summary"],
+        "fields": {
+            "satisfied": {"type": "bool"},
+            "confidence": {"type": "float", "min": 0.0, "max": 1.0},
+            "summary": {"type": "str", "min_length": 10, "max_length": 2000},
+            "gaps": {"type": "list"},
+            "recommendation": {"type": "str", "max_length": 500},
+        },
+    },
+
     # ── Smart Screener ────────────────────────────────────────────────────────
 
     "parse_screener_query": {

@@ -127,6 +127,20 @@ from app.models.screener import SavedSearch
 # Risk Profiling
 from app.models.investor_risk import InvestorRiskProfile
 
+# Certification
+from app.models.certification import InvestorReadinessCertification
+
+# Deal Flow Analytics
+from app.models.deal_flow import DealStageTransition
+
+# Due Diligence
+from app.models.due_diligence import (
+    DDChecklistTemplate,
+    DDChecklistItem,
+    DDProjectChecklist,
+    DDItemStatus,
+)
+
 __all__ = [
     # Base
     "BaseModel",
@@ -195,4 +209,13 @@ __all__ = [
     "SavedSearch",
     # Risk Profiling
     "InvestorRiskProfile",
+    # Certification
+    "InvestorReadinessCertification",
+    # Deal Flow Analytics
+    "DealStageTransition",
+    # Due Diligence
+    "DDChecklistTemplate",
+    "DDChecklistItem",
+    "DDProjectChecklist",
+    "DDItemStatus",
 ]

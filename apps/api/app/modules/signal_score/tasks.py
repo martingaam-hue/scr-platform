@@ -80,6 +80,24 @@ def calculate_signal_score_task(
             task_log.processing_time_ms = elapsed_ms
             session.commit()
 
+            # Evaluate certification after score update
+            try:
+                from app.modules.certification import service as cert_service
+                from app.core.database import async_session_factory
+                import asyncio
+
+                async def _run_cert_eval() -> None:
+                    async with async_session_factory() as async_db:
+                        await cert_service.evaluate_certification(
+                            async_db,
+                            uuid.UUID(project_id),
+                            uuid.UUID(org_id),
+                        )
+
+                asyncio.run(_run_cert_eval())
+            except Exception as e:
+                logger.warning("certification_evaluation_failed", error=str(e))
+
             logger.info(
                 "signal_score_task_completed",
                 project_id=project_id,

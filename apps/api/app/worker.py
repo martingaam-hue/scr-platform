@@ -21,6 +21,7 @@ celery_app = Celery(
         "app.modules.matching.tasks",
         "app.modules.projects.tasks",
         "app.modules.risk.tasks",
+        "app.modules.due_diligence.tasks",
         "app.worker_tasks",
         "app.tasks.weekly_digest",
     ],

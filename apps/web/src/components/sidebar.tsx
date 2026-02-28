@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   FolderLock,
   ScanSearch,
+  TrendingUp,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -56,6 +57,12 @@ const investorNav: NavSection[] = [
       { label: "Risk", href: "/dashboard/risk", icon: ShieldAlert },
       { label: "Marketplace", href: "/dashboard/marketplace", icon: Store },
       { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Analytics",
+    items: [
+      { label: "Deal Flow", href: "/analytics/deal-flow", icon: TrendingUp },
     ],
   },
   {
@@ -94,6 +101,12 @@ const adminNav: NavSection[] = [
       { label: "Risk", href: "/dashboard/risk", icon: ShieldAlert },
       { label: "Marketplace", href: "/dashboard/marketplace", icon: Store },
       { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Analytics",
+    items: [
+      { label: "Deal Flow", href: "/analytics/deal-flow", icon: TrendingUp },
     ],
   },
   {
