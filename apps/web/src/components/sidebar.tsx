@@ -86,10 +86,10 @@ const investorNav: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Overview", href: "/dashboard/portfolio", icon: Briefcase, tourId: "nav-portfolio" },
-      { label: "FX Exposure", href: "/portfolio/fx", icon: Globe },
-      { label: "Stress Testing", href: "/portfolio/stress-test", icon: Activity },
+      { label: "FX Exposure", href: "/fx", icon: Globe },
+      { label: "Stress Testing", href: "/stress-test", icon: Activity },
       { label: "ESG Dashboard", href: "/esg", icon: Leaf },
-      { label: "LP Reports", href: "/reports/lp", icon: FileText },
+      { label: "LP Reports", href: "/lp-reports", icon: FileText },
       { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
     ],
   },
@@ -132,6 +132,7 @@ const investorNav: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Signal Score", href: "/investor-signal-score", icon: Sparkles },
+      { label: "Risk Profile", href: "/risk-profile", icon: ShieldCheck },
       { label: "Board Advisor", href: "/board-advisor", icon: UserCheck },
       { label: "Equity Calculator", href: "/equity-calculator", icon: Calculator },
       { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },
@@ -238,10 +239,10 @@ const adminNav: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Overview", href: "/dashboard/portfolio", icon: Briefcase },
-      { label: "FX Exposure", href: "/portfolio/fx", icon: Globe },
-      { label: "Stress Testing", href: "/portfolio/stress-test", icon: Activity },
+      { label: "FX Exposure", href: "/fx", icon: Globe },
+      { label: "Stress Testing", href: "/stress-test", icon: Activity },
       { label: "ESG Dashboard", href: "/esg", icon: Leaf },
-      { label: "LP Reports", href: "/reports/lp", icon: FileText },
+      { label: "LP Reports", href: "/lp-reports", icon: FileText },
       { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
     ],
   },
@@ -282,6 +283,7 @@ const adminNav: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Signal Score", href: "/investor-signal-score", icon: Sparkles },
+      { label: "Risk Profile", href: "/risk-profile", icon: ShieldCheck },
       { label: "Board Advisor", href: "/board-advisor", icon: UserCheck },
       { label: "Equity Calculator", href: "/equity-calculator", icon: Calculator },
       { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },

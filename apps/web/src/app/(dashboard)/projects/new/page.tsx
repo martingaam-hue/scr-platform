@@ -36,6 +36,8 @@ import {
   type ProjectStatus,
   projectTypeLabel,
 } from "@/lib/projects";
+import { VoiceInput } from "@/components/voice-input";
+import { type ExtractedProjectData } from "@/lib/voice-input";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -152,9 +154,24 @@ export default function NewProjectPage() {
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const [showVoice, setShowVoice] = useState(false);
+
   const update = (field: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const handleVoiceExtracted = (data: ExtractedProjectData) => {
+    setForm((prev) => ({
+      ...prev,
+      ...(data.name ? { name: data.name } : {}),
+      ...(data.description ? { description: data.description } : {}),
+      ...(data.project_type ? { project_type: data.project_type as ProjectType } : {}),
+      ...(data.location ? { geography_country: data.location } : {}),
+      ...(data.capacity_mw != null ? { capacity_mw: String(data.capacity_mw) } : {}),
+      ...(data.budget_total != null ? { total_investment_required: String(data.budget_total) } : {}),
+    }));
+    setShowVoice(false);
   };
 
   const validateStep = (): boolean => {
@@ -270,6 +287,32 @@ export default function NewProjectPage() {
           {/* Step 1: Basic Info */}
           {step === 1 && (
             <div className="space-y-6">
+              {/* Voice input shortcut */}
+              <div className="border border-dashed border-indigo-200 rounded-lg p-4 bg-indigo-50/40">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-indigo-700">
+                    Fill via Voice Recording
+                  </p>
+                  <button
+                    onClick={() => setShowVoice((v) => !v)}
+                    className="text-xs text-indigo-500 hover:text-indigo-700 underline"
+                  >
+                    {showVoice ? "Hide" : "Show"}
+                  </button>
+                </div>
+                {showVoice && (
+                  <VoiceInput
+                    onExtracted={handleVoiceExtracted}
+                    className="mt-2"
+                  />
+                )}
+                {!showVoice && (
+                  <p className="text-xs text-indigo-400">
+                    Upload an audio file describing your project — we'll auto-fill the form.
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="mb-1 block text-sm font-medium text-neutral-700">
                   Project Name *
