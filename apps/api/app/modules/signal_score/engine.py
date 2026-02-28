@@ -193,12 +193,17 @@ class SignalScoreEngine:
             if has_document:
                 doc_text = self._get_document_text(matching_docs, extraction_map)
                 if doc_text:
-                    ai_assessment = self.ai_scorer.evaluate_document_quality(
-                        doc_text,
-                        criterion.name,
-                        criterion.description,
-                        project_context,
+                    # Try sync cache lookup before calling AI
+                    ai_assessment = self._get_cached_quality(
+                        matching_docs, criterion.name, project_context
                     )
+                    if ai_assessment is None:
+                        ai_assessment = self.ai_scorer.evaluate_document_quality(
+                            doc_text,
+                            criterion.name,
+                            criterion.description,
+                            project_context,
+                        )
                     quality_points = round(
                         criterion.max_points * ai_assessment["score"] / 100
                     )
@@ -242,6 +247,42 @@ class SignalScoreEngine:
             "tokens_used": tokens_used,
             "model_used": model_used,
         }
+
+    def _get_cached_quality(
+        self,
+        documents: list[Document],
+        criterion_name: str,
+        project_context: dict,
+    ) -> dict | None:
+        """Check document_extractions for a cached quality_assessment result.
+
+        Returns the cached ai_assessment dict if found, otherwise None.
+        The caller falls back to live AI evaluation on None.
+        """
+        try:
+            from app.models.enums import ExtractionType
+            doc_ids = [d.id for d in documents]
+            ext = self.session.execute(
+                select(DocumentExtraction).where(
+                    DocumentExtraction.document_id.in_(doc_ids),
+                    DocumentExtraction.extraction_type
+                    == ExtractionType.QUALITY_ASSESSMENT,
+                    DocumentExtraction.confidence_score > 0,
+                )
+                .order_by(DocumentExtraction.created_at.desc())
+                .limit(1)
+            ).scalar_one_or_none()
+
+            if ext and isinstance(ext.result, dict) and "score" in ext.result:
+                logger.debug(
+                    "signal_score.quality_cache_hit",
+                    document_ids=[str(d.id) for d in documents],
+                    criterion=criterion_name,
+                )
+                return ext.result
+        except Exception:
+            pass
+        return None
 
     def _find_matching_documents(
         self, criterion: Criterion, documents: list[Document]

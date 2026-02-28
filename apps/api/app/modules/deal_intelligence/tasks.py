@@ -152,6 +152,7 @@ def screen_deal_task(
             ).scalars().all()
 
             extraction_parts: list[str] = []
+            cached_deal_relevance: dict | None = None
             if doc_ids:
                 extractions = session.execute(
                     select(DocumentExtraction).where(
@@ -163,6 +164,28 @@ def screen_deal_task(
                         extraction_parts.append(
                             f"[{ext.extraction_type.value}] {json.dumps(ext.extraction_data)[:500]}"
                         )
+
+                # Pre-load cached deal_relevance analysis to skip AI if available
+                try:
+                    from app.models.enums import ExtractionType
+                    cached_ext = session.execute(
+                        select(DocumentExtraction).where(
+                            DocumentExtraction.document_id.in_(doc_ids),
+                            DocumentExtraction.extraction_type
+                            == ExtractionType.DEAL_RELEVANCE,
+                            DocumentExtraction.confidence_score > 0,
+                        )
+                        .order_by(DocumentExtraction.created_at.desc())
+                        .limit(1)
+                    ).scalar_one_or_none()
+                    if cached_ext and isinstance(cached_ext.result, dict):
+                        cached_deal_relevance = cached_ext.result
+                        logger.debug(
+                            "deal_screening.deal_relevance_cache_hit",
+                            project_id=project_id,
+                        )
+                except Exception:
+                    pass
 
             extraction_text = "\n".join(extraction_parts)[:6000] if extraction_parts else "No documents available."
 
@@ -201,33 +224,105 @@ def screen_deal_task(
                 '"questions_to_ask": [...]}'
             )
 
-            # Call AI Gateway
-            response = httpx.post(
-                f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json={
-                    "prompt": prompt,
-                    "task_type": "analysis",
+            # Try PromptRegistry for deal_screening prompt
+            _screening_messages: list[dict] = []
+            _screening_template_id: str | None = None
+            try:
+                import asyncio as _asyncio
+                from app.services.prompt_registry import PromptRegistry as _PR
+                from app.core.database import async_session_factory as _asf
+
+                async def _render_screening() -> tuple:
+                    async with _asf() as _adb:
+                        return await _PR(_adb).render(
+                            "deal_screening",
+                            {
+                                "project_name": project.name,
+                                "project_type": project.project_type.value,
+                                "country": project.geography_country,
+                                "stage": project.stage.value,
+                                "investment": str(project.total_investment_required),
+                                "currency": project.currency,
+                                "description": project.description[:1000],
+                                "signal_score": str(ss_overall),
+                                "mandate": mandate_text,
+                                "extractions": extraction_text[:4000],
+                            },
+                        )
+
+                _loop = _asyncio.new_event_loop()
+                try:
+                    _screening_messages, _screening_template_id, _ = (
+                        _loop.run_until_complete(_render_screening())
+                    )
+                finally:
+                    _loop.close()
+            except Exception:
+                pass  # fall back to hardcoded prompt
+
+            # Use cached deal_relevance if available; otherwise call AI Gateway
+            if cached_deal_relevance and cached_deal_relevance.get("fit_score") is not None:
+                parsed = cached_deal_relevance
+                parsed["project_id"] = str(project_id)
+                parsed.setdefault("recommendation", "need_more_info")
+                elapsed_ms = int((time.time() - start_time) * 1000)
+                task_log.status = AITaskStatus.COMPLETED
+                task_log.output_data = parsed
+                task_log.model_used = "cache"
+                task_log.processing_time_ms = elapsed_ms
+                session.commit()
+            else:
+                _screening_payload: dict = {
+                    "task_type": "deal_screening" if _screening_messages else "analysis",
                     "max_tokens": 2048,
                     "temperature": 0.3,
-                },
-                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-                timeout=120.0,
-            )
-            response.raise_for_status()
-            resp_data = response.json()
-            content = resp_data.get("content") or resp_data.get("choices", [{}])[0].get("text", "")
+                }
+                if _screening_messages:
+                    _screening_payload["messages"] = _screening_messages
+                else:
+                    _screening_payload["prompt"] = prompt
+                response = httpx.post(
+                    f"{settings.AI_GATEWAY_URL}/v1/completions",
+                    json=_screening_payload,
+                    headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                    timeout=120.0,
+                )
+                response.raise_for_status()
+                resp_data = response.json()
+                content = resp_data.get("content") or resp_data.get("choices", [{}])[0].get("text", "")
 
-            parsed = _parse_json_from_content(content)
-            parsed["project_id"] = str(project_id)
-            parsed.setdefault("fit_score", 0)
-            parsed.setdefault("recommendation", "need_more_info")
+                parsed = _parse_json_from_content(content)
+                parsed["project_id"] = str(project_id)
+                parsed.setdefault("fit_score", 0)
+                parsed.setdefault("recommendation", "need_more_info")
 
-            elapsed_ms = int((time.time() - start_time) * 1000)
-            task_log.status = AITaskStatus.COMPLETED
-            task_log.output_data = parsed
-            task_log.model_used = resp_data.get("model", "claude-sonnet-4-6")
-            task_log.processing_time_ms = elapsed_ms
-            session.commit()
+                elapsed_ms = int((time.time() - start_time) * 1000)
+                task_log.status = AITaskStatus.COMPLETED
+                task_log.output_data = parsed
+                task_log.model_used = resp_data.get("model", "claude-sonnet-4-6")
+                task_log.processing_time_ms = elapsed_ms
+                session.commit()
+
+                # Update registry quality metrics
+                if _screening_template_id:
+                    try:
+                        import asyncio as _asyncio
+                        from app.services.prompt_registry import PromptRegistry as _PR
+                        from app.core.database import async_session_factory as _asf
+
+                        async def _upd_screening() -> None:
+                            async with _asf() as _adb:
+                                await _PR(_adb).update_quality_metrics(
+                                    _screening_template_id, 1.0
+                                )
+
+                        _upd_loop = _asyncio.new_event_loop()
+                        try:
+                            _upd_loop.run_until_complete(_upd_screening())
+                        finally:
+                            _upd_loop.close()
+                    except Exception:
+                        pass
 
             logger.info(
                 "screen_deal_task_completed",
@@ -383,14 +478,54 @@ def generate_memo_task(
                 f"table for financial data). Do NOT include html/head/body tags."
             )
 
+            # Try PromptRegistry for investment_memo prompt
+            _memo_messages: list[dict] = []
+            _memo_template_id: str | None = None
+            try:
+                import asyncio as _asyncio
+                from app.services.prompt_registry import PromptRegistry as _PR
+                from app.core.database import async_session_factory as _asf
+
+                async def _render_memo() -> tuple:
+                    async with _asf() as _adb:
+                        return await _PR(_adb).render(
+                            "investment_memo",
+                            {
+                                "project_name": project.name,
+                                "project_type": project.project_type.value,
+                                "country": project.geography_country,
+                                "stage": project.stage.value,
+                                "investment": str(project.total_investment_required),
+                                "currency": project.currency,
+                                "description": project.description[:1500],
+                                "signal_score": str(ss_overall),
+                                "mandate": mandate_text,
+                                "extractions": extraction_text[:6000],
+                            },
+                        )
+
+                _memo_loop = _asyncio.new_event_loop()
+                try:
+                    _memo_messages, _memo_template_id, _ = (
+                        _memo_loop.run_until_complete(_render_memo())
+                    )
+                finally:
+                    _memo_loop.close()
+            except Exception:
+                pass  # fall back to hardcoded prompt
+
+            _memo_payload: dict = {
+                "task_type": "investment_memo" if _memo_messages else "analysis",
+                "max_tokens": 4096,
+                "temperature": 0.5,
+            }
+            if _memo_messages:
+                _memo_payload["messages"] = _memo_messages
+            else:
+                _memo_payload["prompt"] = prompt
             response = httpx.post(
                 f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json={
-                    "prompt": prompt,
-                    "task_type": "analysis",
-                    "max_tokens": 4096,
-                    "temperature": 0.5,
-                },
+                json=_memo_payload,
                 headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
                 timeout=180.0,
             )

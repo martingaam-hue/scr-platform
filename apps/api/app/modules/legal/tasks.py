@@ -84,15 +84,46 @@ def generate_legal_doc_task(
                 f"Output the complete, professional legal document."
             )
 
+            # Try PromptRegistry for legal_document_completion prompt
+            _legal_gen_messages: list[dict] = []
+            try:
+                import asyncio as _asyncio
+                from app.services.prompt_registry import PromptRegistry as _PR
+                from app.core.database import async_session_factory as _asf
+
+                async def _render_legal_gen() -> tuple:
+                    async with _asf() as _adb:
+                        return await _PR(_adb).render(
+                            "legal_document_completion",
+                            {
+                                "template_name": template_name,
+                                "document": filled_template[:6000],
+                            },
+                        )
+
+                _lg_loop = _asyncio.new_event_loop()
+                try:
+                    _legal_gen_messages, _, _ = (
+                        _lg_loop.run_until_complete(_render_legal_gen())
+                    )
+                finally:
+                    _lg_loop.close()
+            except Exception:
+                pass  # fall back to hardcoded prompts
+
+            _legal_gen_payload: dict = {
+                "task_type": "legal_document_completion" if _legal_gen_messages else "analysis",
+                "max_tokens": 4096,
+                "temperature": 0.2,
+            }
+            if _legal_gen_messages:
+                _legal_gen_payload["messages"] = _legal_gen_messages
+            else:
+                _legal_gen_payload["system"] = system_prompt
+                _legal_gen_payload["prompt"] = user_prompt
             response = httpx.post(
                 f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json={
-                    "task_type": "analysis",
-                    "system": system_prompt,
-                    "prompt": user_prompt,
-                    "max_tokens": 4096,
-                    "temperature": 0.2,
-                },
+                json=_legal_gen_payload,
                 headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
                 timeout=120.0,
             )
@@ -224,15 +255,48 @@ def review_legal_doc_task(
                 f'"missing_clauses": ["..."], "jurisdiction_issues": ["..."], "recommendations": ["..."]}}'
             )
 
+            # Try PromptRegistry for legal_document_review prompt
+            _legal_rev_messages: list[dict] = []
+            try:
+                import asyncio as _asyncio
+                from app.services.prompt_registry import PromptRegistry as _PR
+                from app.core.database import async_session_factory as _asf
+
+                async def _render_legal_rev() -> tuple:
+                    async with _asf() as _adb:
+                        return await _PR(_adb).render(
+                            "legal_document_review",
+                            {
+                                "document": doc_text[:8000],
+                                "mode": mode,
+                                "mode_description": mode_desc,
+                                "jurisdiction": jurisdiction,
+                            },
+                        )
+
+                _lr_loop = _asyncio.new_event_loop()
+                try:
+                    _legal_rev_messages, _, _ = (
+                        _lr_loop.run_until_complete(_render_legal_rev())
+                    )
+                finally:
+                    _lr_loop.close()
+            except Exception:
+                pass  # fall back to hardcoded prompts
+
+            _legal_rev_payload: dict = {
+                "task_type": "legal_document_review" if _legal_rev_messages else "analysis",
+                "max_tokens": 3000,
+                "temperature": 0.1,
+            }
+            if _legal_rev_messages:
+                _legal_rev_payload["messages"] = _legal_rev_messages
+            else:
+                _legal_rev_payload["system"] = system_prompt
+                _legal_rev_payload["prompt"] = user_prompt
             response = httpx.post(
                 f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json={
-                    "task_type": "analysis",
-                    "system": system_prompt,
-                    "prompt": user_prompt,
-                    "max_tokens": 3000,
-                    "temperature": 0.1,
-                },
+                json=_legal_rev_payload,
                 headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
                 timeout=120.0,
             )

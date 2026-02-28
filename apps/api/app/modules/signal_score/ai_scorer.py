@@ -33,6 +33,7 @@ class AIScorer:
         criterion_name: str,
         criterion_description: str,
         project_context: dict,
+        db=None,
     ) -> dict:
         """Evaluate document quality against a criterion via AI Gateway.
 
@@ -41,6 +42,7 @@ class AIScorer:
             criterion_name: Name of the criterion being evaluated.
             criterion_description: Description of what a good score looks like.
             project_context: Dict with project_type, stage, country.
+            db: Optional async DB session for prompt registry lookup.
 
         Returns:
             Dict with score (0-100), reasoning, strengths, weaknesses, recommendation.
@@ -52,7 +54,37 @@ class AIScorer:
             logger.warning("ai_gateway_key_not_set", criterion=criterion_name)
             return DEFAULT_ASSESSMENT.copy()
 
-        prompt = self._build_prompt(
+        # Try registry first; fall back to hardcoded prompt on any failure
+        registry_messages: list[dict] = []
+        template_id: str | None = None
+        if db is not None:
+            try:
+                import asyncio
+                from app.services.prompt_registry import PromptRegistry
+
+                async def _render() -> tuple:
+                    reg = PromptRegistry(db)
+                    return await reg.render(
+                        "score_quality",
+                        {
+                            "document_text": document_text[:8000],
+                            "criterion_name": criterion_name,
+                            "criterion_description": criterion_description,
+                            "project_type": project_context.get("project_type", ""),
+                            "stage": project_context.get("stage", ""),
+                            "country": project_context.get("country", ""),
+                        },
+                    )
+
+                loop = asyncio.new_event_loop()
+                try:
+                    registry_messages, template_id, _ = loop.run_until_complete(_render())
+                finally:
+                    loop.close()
+            except Exception:
+                pass  # fall back to hardcoded prompt
+
+        hardcoded_prompt = self._build_prompt(
             document_text[:8000],
             criterion_name,
             criterion_description,
@@ -61,7 +93,13 @@ class AIScorer:
 
         for attempt in range(2):
             try:
-                return self._call_gateway(prompt, project_context)
+                return self._call_gateway(
+                    hardcoded_prompt,
+                    project_context,
+                    registry_messages=registry_messages,
+                    template_id=template_id,
+                    db=db,
+                )
             except Exception as e:
                 logger.warning(
                     "ai_scorer_attempt_failed",
@@ -113,19 +151,31 @@ Respond ONLY with valid JSON (no markdown, no extra text):
     "recommendation": "<specific action to improve this criterion>"
 }}"""
 
-    def _call_gateway(self, prompt: str, project_context: dict) -> dict:
+    def _call_gateway(
+        self,
+        prompt: str,
+        project_context: dict,
+        registry_messages: list[dict] | None = None,
+        template_id: str | None = None,
+        db=None,
+    ) -> dict:
         """Make sync HTTP call to AI Gateway."""
         start = time.time()
+        payload: dict = {
+            "task_type": "score_quality" if registry_messages else "analysis",
+            "temperature": 0.3,
+            "max_tokens": 1024,
+            "org_id": project_context.get("org_id", "system"),
+            "user_id": project_context.get("user_id", "system"),
+        }
+        if registry_messages:
+            payload["messages"] = registry_messages
+        else:
+            payload["messages"] = [{"role": "user", "content": prompt}]
+
         response = httpx.post(
             f"{self.gateway_url}/v1/completions",
-            json={
-                "messages": [{"role": "user", "content": prompt}],
-                "task_type": "analysis",
-                "temperature": 0.3,
-                "max_tokens": 1024,
-                "org_id": project_context.get("org_id", "system"),
-                "user_id": project_context.get("user_id", "system"),
-            },
+            json=payload,
             headers={
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
@@ -150,6 +200,23 @@ Respond ONLY with valid JSON (no markdown, no extra text):
                 result = json.loads(json_str.strip())
             else:
                 raise
+
+        # Update registry quality metrics on success
+        if template_id and db is not None:
+            try:
+                import asyncio
+                from app.services.prompt_registry import PromptRegistry
+
+                async def _update() -> None:
+                    await PromptRegistry(db).update_quality_metrics(template_id, 1.0)
+
+                loop = asyncio.new_event_loop()
+                try:
+                    loop.run_until_complete(_update())
+                finally:
+                    loop.close()
+            except Exception:
+                pass
 
         # Validate and normalize
         return {

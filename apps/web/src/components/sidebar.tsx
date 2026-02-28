@@ -46,6 +46,7 @@ import {
   Sparkles,
   Zap,
   Network,
+  Umbrella,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -125,6 +126,10 @@ const investorNav: NavSection[] = [
     title: "AI",
     items: [{ label: "Ralph AI", href: "/dashboard/ralph", icon: Bot, tourId: "nav-ralph" }],
   },
+  {
+    title: "Account",
+    items: [{ label: "Settings", href: "/settings", icon: Settings }],
+  },
 ];
 
 const allyNav: NavSection[] = [
@@ -132,6 +137,7 @@ const allyNav: NavSection[] = [
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Projects", href: "/dashboard/projects", icon: FolderKanban, tourId: "nav-projects" },
+      { label: "Business Plan", href: "/business-plan", icon: FileText },
       { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock, tourId: "nav-data-room" },
       { label: "Funding", href: "/dashboard/funding", icon: Wallet, tourId: "nav-funding" },
       { label: "Documents", href: "/dashboard/documents", icon: FileCheck },
@@ -144,6 +150,7 @@ const allyNav: NavSection[] = [
     items: [
       { label: "Deal Rooms", href: "/deal-rooms", icon: MessageSquare },
       { label: "Compliance", href: "/compliance", icon: Shield },
+      { label: "Insurance", href: "/insurance", icon: Umbrella },
       { label: "Tax Credits", href: "/tax-credits", icon: CreditCard },
       { label: "Board Advisor", href: "/board-advisor", icon: UserCheck },
       { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
@@ -163,6 +170,10 @@ const allyNav: NavSection[] = [
   {
     title: "AI",
     items: [{ label: "Ralph AI", href: "/dashboard/ralph", icon: Bot, tourId: "nav-ralph" }],
+  },
+  {
+    title: "Account",
+    items: [{ label: "Settings", href: "/settings", icon: Settings }],
   },
 ];
 
@@ -231,6 +242,7 @@ const adminNav: NavSection[] = [
     items: [
       { label: "Admin Panel", href: "/dashboard/admin", icon: ShieldCheck },
       { label: "Blockchain Audit", href: "/blockchain-audit", icon: Link2 },
+      { label: "Settings", href: "/settings", icon: Settings },
     ],
   },
 ];
@@ -248,6 +260,59 @@ function getNavForRole(orgType?: string): NavSection[] {
   }
 }
 
+// ── Project sub-nav ─────────────────────────────────────────────────────
+
+const PROJECT_SUB_ITEMS = [
+  { label: "Signal Score", segment: "signal-score", icon: Sparkles },
+  { label: "Due Diligence", segment: "due-diligence", icon: ScanSearch },
+  { label: "Matching", segment: "matching", icon: Zap },
+  { label: "Meeting Prep", segment: "meeting-prep", icon: Calendar },
+  { label: "Certification", segment: "certification", icon: FileCheck },
+  { label: "Carbon", segment: "carbon", icon: Leaf },
+] as const;
+
+function ProjectSubNav({
+  projectId,
+  pathname,
+  isOpen,
+}: {
+  projectId: string;
+  pathname: string;
+  isOpen: boolean;
+}) {
+  return (
+    <div className="mt-1 ml-3 border-l border-white/20 pl-3">
+      {isOpen && (
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-white/30">
+          Project
+        </p>
+      )}
+      <ul className="space-y-0.5">
+        {PROJECT_SUB_ITEMS.map(({ label, segment, icon: Icon }) => {
+          const href = `/projects/${projectId}/${segment}`;
+          const isActive = pathname.startsWith(href);
+          return (
+            <li key={segment}>
+              <Link
+                href={href}
+                title={!isOpen ? label : undefined}
+                className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                  isActive
+                    ? "bg-white/15 text-white"
+                    : "text-white/60 hover:bg-white/10 hover:text-white"
+                } ${!isOpen ? "justify-center" : ""}`}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                {isOpen && <span>{label}</span>}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 // ── Sidebar component ───────────────────────────────────────────────────
 
 export function Sidebar() {
@@ -257,6 +322,10 @@ export function Sidebar() {
   const { user } = useSCRUser();
 
   const navSections = getNavForRole(user?.org_type);
+
+  // Extract project ID for context-aware sub-nav
+  const projectMatch = pathname.match(/\/projects\/([^/]+)/);
+  const activeProjectId = projectMatch ? projectMatch[1] : null;
 
   return (
     <aside
@@ -308,29 +377,42 @@ export function Sidebar() {
                   item.href === "/dashboard"
                     ? pathname === "/dashboard"
                     : pathname.startsWith(item.href);
+                const isProjectsLink =
+                  item.href === "/dashboard/projects" && activeProjectId;
                 return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      title={!isOpen ? item.label : undefined}
-                      data-tour={item.tourId}
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                        isActive
-                          ? "bg-white/15 text-white"
-                          : "text-white/70 hover:bg-white/10 hover:text-white",
-                        !isOpen && "justify-center px-2"
-                      )}
-                    >
-                      <item.icon className="h-5 w-5 shrink-0" />
-                      {isOpen && <span>{item.label}</span>}
-                      {isOpen && item.badge !== undefined && item.badge > 0 && (
-                        <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary-500 px-1.5 text-[10px] font-bold text-white">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
+                  <React.Fragment key={item.href}>
+                    <li>
+                      <Link
+                        href={item.href}
+                        title={!isOpen ? item.label : undefined}
+                        data-tour={item.tourId}
+                        className={cn(
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          isActive
+                            ? "bg-white/15 text-white"
+                            : "text-white/70 hover:bg-white/10 hover:text-white",
+                          !isOpen && "justify-center px-2"
+                        )}
+                      >
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        {isOpen && <span>{item.label}</span>}
+                        {isOpen && item.badge !== undefined && item.badge > 0 && (
+                          <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary-500 px-1.5 text-[10px] font-bold text-white">
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                    {isProjectsLink && (
+                      <li>
+                        <ProjectSubNav
+                          projectId={activeProjectId}
+                          pathname={pathname}
+                          isOpen={isOpen}
+                        />
+                      </li>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </ul>

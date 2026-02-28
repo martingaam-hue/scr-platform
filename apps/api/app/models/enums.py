@@ -58,6 +58,13 @@ class ExtractionType(str, enum.Enum):
     FINANCIAL = "financial"
     CLASSIFICATION = "classification"
     SUMMARY = "summary"
+    # Cross-module analysis cache types (added by migration f1a2b3c4d5e6)
+    QUALITY_ASSESSMENT = "quality_assessment"
+    RISK_FLAGS = "risk_flags"
+    DEAL_RELEVANCE = "deal_relevance"
+    COMPLETENESS_CHECK = "completeness_check"
+    KEY_FIGURES = "key_figures"
+    ENTITY_EXTRACTION = "entity_extraction"
 
 
 class DocumentAccessAction(str, enum.Enum):

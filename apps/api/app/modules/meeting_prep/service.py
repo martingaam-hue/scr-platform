@@ -101,6 +101,7 @@ async def _ai_generate_briefing(
     dd_status: Any,
     doc_count: int,
     previous_meeting_date: date | None,
+    db: AsyncSession | None = None,
 ) -> dict[str, Any]:
     context = {
         "meeting_type": meeting_type,
@@ -112,15 +113,51 @@ async def _ai_generate_briefing(
         "has_previous_meeting": previous_meeting_date is not None,
         "previous_meeting_date": str(previous_meeting_date) if previous_meeting_date else None,
     }
+
+    # Try PromptRegistry for meeting_preparation prompt
+    _registry_messages: list[dict[str, Any]] = []
+    _template_id: str | None = None
+    if db is not None:
+        try:
+            from app.services.prompt_registry import PromptRegistry
+            _reg = PromptRegistry(db)
+            _registry_messages, _template_id, _ = await _reg.render(
+                "meeting_preparation",
+                {
+                    "meeting_type": meeting_type,
+                    "project_name": getattr(project, "name", "") if project else "",
+                    "project_type": getattr(project, "project_type", {}).value if project and hasattr(getattr(project, "project_type", None), "value") else "",
+                    "signal_score": str(getattr(signal_score, "overall_score", "N/A")) if signal_score else "N/A",
+                    "document_count": str(doc_count),
+                    "has_previous_meeting": str(previous_meeting_date is not None),
+                },
+            )
+        except Exception:
+            pass  # fall back to hardcoded context payload
+
     try:
+        payload: dict[str, Any]
+        if _registry_messages:
+            payload = {
+                "task_type": "meeting_preparation",
+                "messages": _registry_messages,
+            }
+        else:
+            payload = {"task_type": "generate_meeting_briefing", "context": context}
         async with httpx.AsyncClient(timeout=_AI_TIMEOUT) as client:
             resp = await client.post(
                 f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json={"task_type": "generate_meeting_briefing", "context": context},
+                json=payload,
                 headers={"X-API-Key": settings.AI_GATEWAY_API_KEY},
             )
             resp.raise_for_status()
             data = resp.json()
+        if _template_id and db is not None:
+            try:
+                from app.services.prompt_registry import PromptRegistry
+                await PromptRegistry(db).update_quality_metrics(_template_id, 1.0)
+            except Exception:
+                pass
         return data.get("validated_data") or {}
     except Exception as exc:
         logger.warning("meeting_prep.ai_failed", error=str(exc))
@@ -185,6 +222,7 @@ async def generate_briefing(
         dd_status=dd_status,
         doc_count=int(doc_count),
         previous_meeting_date=previous_meeting_date,
+        db=db,
     )
 
     briefing = MeetingBriefing(
