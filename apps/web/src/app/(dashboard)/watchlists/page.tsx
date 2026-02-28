@@ -1,37 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/lib/api"
 import { formatDate } from "@/lib/format"
+import {
+  useWatchlists, useWatchlistAlerts, useCreateWatchlist,
+  useDeleteWatchlist, useToggleWatchlist, useMarkAlertRead, useParseCriteria,
+} from "@/lib/watchlists"
 import {
   Bell, BellOff, Plus, X, Trash2, CheckCircle, TrendingUp,
   AlertTriangle, Activity, Zap, Circle, ToggleLeft, ToggleRight, Sparkles, Loader2,
 } from "lucide-react"
-
-interface Watchlist {
-  id: string
-  name: string
-  watch_type: string
-  criteria: Record<string, unknown>
-  alert_channels: string[]
-  alert_frequency: string
-  is_active: boolean
-  total_alerts_sent: number
-  unread_alerts: number
-}
-
-interface WatchlistAlert {
-  id: string
-  watchlist_id: string
-  watchlist_name: string
-  alert_type: string
-  entity_type: string
-  entity_id: string
-  data: Record<string, unknown>
-  is_read: boolean
-  created_at: string
-}
 
 const WATCH_TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   new_projects: Zap,
@@ -49,7 +27,6 @@ const ALERT_TYPE_COLOR: Record<string, string> = {
 }
 
 export default function WatchlistsPage() {
-  const queryClient = useQueryClient()
   const [showCreate, setShowCreate] = useState(false)
   const [nlQuery, setNlQuery] = useState("")
   const [newWatchlist, setNewWatchlist] = useState({
@@ -60,50 +37,13 @@ export default function WatchlistsPage() {
     alert_frequency: "immediate",
   })
 
-  const parseCriteriaMutation = useMutation({
-    mutationFn: (query: string) =>
-      api.post("/watchlists/parse-criteria", { query }).then(r => r.data),
-    onSuccess: (data) => {
-      setNewWatchlist(d => ({
-        ...d,
-        criteria: JSON.stringify(data.criteria, null, 2),
-        watch_type: data.watch_type ?? d.watch_type,
-      }))
-    },
-  })
-
-  const { data: watchlists = [] } = useQuery<Watchlist[]>({
-    queryKey: ["watchlists"],
-    queryFn: () => api.get("/watchlists/").then(r => r.data),
-  })
-
-  const { data: alerts = [] } = useQuery<WatchlistAlert[]>({
-    queryKey: ["watchlist-alerts"],
-    queryFn: () => api.get("/watchlists/alerts").then(r => r.data),
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post("/watchlists/", body).then(r => r.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["watchlists"] })
-      setShowCreate(false)
-    },
-  })
-
-  const toggleMutation = useMutation({
-    mutationFn: (id: string) => api.put(`/watchlists/${id}/toggle`).then(r => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["watchlists"] }),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/watchlists/${id}`).then(r => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["watchlists"] }),
-  })
-
-  const markReadMutation = useMutation({
-    mutationFn: (id: string) => api.put(`/watchlists/alerts/${id}/read`).then(r => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["watchlist-alerts"] }),
-  })
+  const { data: watchlists = [] } = useWatchlists()
+  const { data: alerts = [] } = useWatchlistAlerts()
+  const createMutation = useCreateWatchlist()
+  const toggleMutation = useToggleWatchlist()
+  const deleteMutation = useDeleteWatchlist()
+  const markReadMutation = useMarkAlertRead()
+  const parseCriteriaMutation = useParseCriteria()
 
   const unreadCount = alerts.filter(a => !a.is_read).length
   const activeCount = watchlists.filter(w => w.is_active).length
@@ -289,7 +229,13 @@ export default function WatchlistsPage() {
                   onChange={e => setNlQuery(e.target.value)}
                 />
                 <button
-                  onClick={() => parseCriteriaMutation.mutate(nlQuery)}
+                  onClick={() => parseCriteriaMutation.mutate(nlQuery, { onSuccess: (data) => {
+                    setNewWatchlist(d => ({
+                      ...d,
+                      criteria: JSON.stringify(data.criteria, null, 2),
+                      watch_type: data.watch_type ?? d.watch_type,
+                    }))
+                  } })}
                   disabled={!nlQuery.trim() || parseCriteriaMutation.isPending}
                   className="px-3 py-2 bg-primary-600 text-white rounded-lg text-xs hover:bg-primary-700 disabled:opacity-50 flex-shrink-0"
                 >
@@ -348,7 +294,7 @@ export default function WatchlistsPage() {
                 onClick={() => {
                   let criteria = {}
                   try { criteria = JSON.parse(newWatchlist.criteria) } catch {}
-                  createMutation.mutate({ ...newWatchlist, criteria })
+                  createMutation.mutate({ ...newWatchlist, criteria }, { onSuccess: () => setShowCreate(false) })
                 }}
                 disabled={!newWatchlist.name || createMutation.isPending}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:opacity-50"

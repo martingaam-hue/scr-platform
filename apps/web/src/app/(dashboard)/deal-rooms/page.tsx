@@ -1,46 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/lib/api"
 import { formatDate } from "@/lib/format"
 import {
+  useDealRooms, useRoomMessages, useRoomActivity,
+  useCreateRoom, useInviteMember, useSendMessage,
+} from "@/lib/deal-rooms"
+import {
   Users, MessageSquare, FileText, Shield, Plus, X, Send,
-  Lock, Unlock, Clock, ChevronRight, Eye, Activity
+  Lock, Eye, Activity
 } from "lucide-react"
-
-interface DealRoom {
-  id: string
-  title: string
-  project_id: string
-  project_name: string
-  status: string
-  member_count: number
-  document_count: number
-  message_count: number
-  created_at: string
-  settings: {
-    nda_required: boolean
-    download_restricted: boolean
-    expires_at: string | null
-  }
-}
-
-interface DealRoomMessage {
-  id: string
-  sender_name: string
-  content: string
-  created_at: string
-  parent_id: string | null
-}
-
-interface DealRoomActivity {
-  id: string
-  activity_type: string
-  actor_name: string
-  entity_type: string
-  created_at: string
-}
 
 const STATUS_BADGE: Record<string, string> = {
   active: "bg-green-100 text-green-700",
@@ -49,56 +18,20 @@ const STATUS_BADGE: Record<string, string> = {
 }
 
 export default function DealRoomsPage() {
-  const queryClient = useQueryClient()
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
   const [newMessage, setNewMessage] = useState("")
-  const [newRoom, setNewRoom] = useState({ title: "", project_id: "", nda_required: true, download_restricted: false })
+  const [newRoom, setNewRoom] = useState({ name: "", project_id: "", nda_required: true, download_restricted: false })
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteRole, setInviteRole] = useState("viewer")
 
-  const { data: rooms = [] } = useQuery<DealRoom[]>({
-    queryKey: ["deal-rooms"],
-    queryFn: () => api.get("/deal-rooms/").then(r => r.data),
-  })
-
-  const { data: messages = [], refetch: refetchMessages } = useQuery<DealRoomMessage[]>({
-    queryKey: ["deal-room-messages", selectedRoom],
-    queryFn: () => api.get(`/deal-rooms/${selectedRoom}/messages`).then(r => r.data),
-    enabled: !!selectedRoom,
-  })
-
-  const { data: activities = [] } = useQuery<DealRoomActivity[]>({
-    queryKey: ["deal-room-activity", selectedRoom],
-    queryFn: () => api.get(`/deal-rooms/${selectedRoom}/activity`).then(r => r.data),
-    enabled: !!selectedRoom,
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post("/deal-rooms/", body).then(r => r.data),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["deal-rooms"] })
-      setShowCreate(false)
-      setSelectedRoom(data.id)
-    },
-  })
-
-  const inviteMutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post(`/deal-rooms/${selectedRoom}/invite`, body).then(r => r.data),
-    onSuccess: () => {
-      setShowInvite(false)
-      setInviteEmail("")
-    },
-  })
-
-  const messageMutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post(`/deal-rooms/${selectedRoom}/messages`, body).then(r => r.data),
-    onSuccess: () => {
-      refetchMessages()
-      setNewMessage("")
-    },
-  })
+  const { data: rooms = [] } = useDealRooms()
+  const { data: messages = [], refetch: refetchMessages } = useRoomMessages(selectedRoom)
+  const { data: activities = [] } = useRoomActivity(selectedRoom)
+  const createMutation = useCreateRoom()
+  const inviteMutation = useInviteMember(selectedRoom ?? "")
+  const messageMutation = useSendMessage(selectedRoom ?? "")
 
   const activeRoom = rooms.find(r => r.id === selectedRoom)
 
@@ -129,16 +62,14 @@ export default function DealRoomsPage() {
               className={`w-full text-left rounded-xl border p-4 transition-colors ${selectedRoom === room.id ? "border-primary-300 bg-primary-50" : "border-gray-200 bg-white hover:bg-gray-50"}`}
             >
               <div className="flex items-start justify-between">
-                <p className="font-semibold text-gray-900 text-sm truncate pr-2">{room.title}</p>
+                <p className="font-semibold text-gray-900 text-sm truncate pr-2">{room.name}</p>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${STATUS_BADGE[room.status] ?? "bg-gray-100 text-gray-600"}`}>
                   {room.status}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-1 truncate">{room.project_name}</p>
+              <p className="text-xs text-gray-500 mt-1 truncate font-mono">{String(room.project_id).slice(0, 8)}…</p>
               <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{room.member_count}</span>
-                <span className="flex items-center gap-1"><FileText className="h-3.5 w-3.5" />{room.document_count}</span>
-                <span className="flex items-center gap-1"><MessageSquare className="h-3.5 w-3.5" />{room.message_count}</span>
+                <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{room.members.length}</span>
                 {room.settings.nda_required && <Lock className="h-3.5 w-3.5 text-orange-500" />}
               </div>
             </button>
@@ -158,8 +89,8 @@ export default function DealRoomsPage() {
             <div className="rounded-xl border border-gray-200 bg-white p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">{activeRoom.title}</h2>
-                  <p className="text-sm text-gray-500">{activeRoom.project_name}</p>
+                  <h2 className="text-lg font-bold text-gray-900">{activeRoom.name}</h2>
+                  <p className="text-sm text-gray-500 font-mono">{String(activeRoom.project_id).slice(0, 8)}…</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {activeRoom.settings.nda_required && (
@@ -193,11 +124,11 @@ export default function DealRoomsPage() {
                   {messages.map((msg) => (
                     <div key={msg.id} className="flex gap-3">
                       <div className="h-7 w-7 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-700 flex-shrink-0">
-                        {msg.sender_name?.[0]?.toUpperCase() ?? "?"}
+                        {String(msg.user_id).slice(0, 2).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2">
-                          <span className="text-sm font-medium text-gray-900">{msg.sender_name}</span>
+                          <span className="text-sm font-medium text-gray-900 font-mono">{String(msg.user_id).slice(0, 8)}…</span>
                           <span className="text-xs text-gray-400">{formatDate(msg.created_at)}</span>
                         </div>
                         <p className="text-sm text-gray-700 mt-0.5">{msg.content}</p>
@@ -219,12 +150,12 @@ export default function DealRoomsPage() {
                       onKeyDown={e => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault()
-                          if (newMessage.trim()) messageMutation.mutate({ content: newMessage.trim() })
+                          if (newMessage.trim()) messageMutation.mutate(newMessage.trim(), { onSuccess: () => { refetchMessages(); setNewMessage("") } })
                         }
                       }}
                     />
                     <button
-                      onClick={() => { if (newMessage.trim()) messageMutation.mutate({ content: newMessage.trim() }) }}
+                      onClick={() => { if (newMessage.trim()) messageMutation.mutate(newMessage.trim(), { onSuccess: () => { refetchMessages(); setNewMessage("") } }) }}
                       disabled={!newMessage.trim() || messageMutation.isPending}
                       className="flex-shrink-0 flex items-center justify-center h-10 w-10 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
                     >
@@ -247,7 +178,7 @@ export default function DealRoomsPage() {
                         <Activity className="h-3 w-3 text-gray-400" />
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700">{act.actor_name}</span>
+                        <span className="font-medium text-gray-700 font-mono">{String(act.user_id).slice(0, 8)}…</span>
                         <span className="text-gray-500"> {act.activity_type.replace(/_/g, " ")}</span>
                         <p className="text-gray-400 mt-0.5">{formatDate(act.created_at)}</p>
                       </div>
@@ -280,11 +211,11 @@ export default function DealRoomsPage() {
               <button onClick={() => setShowCreate(false)}><X className="h-5 w-5 text-gray-400" /></button>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Room Title *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Room Name *</label>
               <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                 placeholder="e.g. Solar Farm A — Series A"
-                value={newRoom.title}
-                onChange={e => setNewRoom(d => ({ ...d, title: e.target.value }))} />
+                value={newRoom.name}
+                onChange={e => setNewRoom(d => ({ ...d, name: e.target.value }))} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Project ID</label>
@@ -312,8 +243,8 @@ export default function DealRoomsPage() {
             <div className="flex justify-end gap-3 pt-2">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm">Cancel</button>
               <button
-                onClick={() => createMutation.mutate({ ...newRoom, settings: { nda_required: newRoom.nda_required, download_restricted: newRoom.download_restricted } })}
-                disabled={!newRoom.title || createMutation.isPending}
+                onClick={() => createMutation.mutate({ name: newRoom.name, project_id: newRoom.project_id, settings: { nda_required: newRoom.nda_required, download_restricted: newRoom.download_restricted } }, { onSuccess: (data) => { setShowCreate(false); setSelectedRoom(data.id) } })}
+                disabled={!newRoom.name || createMutation.isPending}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:opacity-50"
               >
                 {createMutation.isPending ? "Creating…" : "Create Room"}
@@ -348,7 +279,7 @@ export default function DealRoomsPage() {
             <div className="flex justify-end gap-3 pt-2">
               <button onClick={() => setShowInvite(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm">Cancel</button>
               <button
-                onClick={() => inviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
+                onClick={() => inviteMutation.mutate({ email: inviteEmail, role: inviteRole }, { onSuccess: () => { setShowInvite(false); setInviteEmail("") } })}
                 disabled={!inviteEmail || inviteMutation.isPending}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:opacity-50"
               >

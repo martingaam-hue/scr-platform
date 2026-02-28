@@ -1,103 +1,31 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { formatPct } from "@/lib/format"
+import {
+  useMyBadges, useProjectBadges, useProjectQuests,
+  useGamificationProgress, useLeaderboard,
+  RARITY_STYLE, RARITY_TEXT,
+} from "@/lib/gamification"
 import {
   Trophy, Star, Zap, Target, ChevronRight, Award,
   TrendingUp, Users, CheckCircle, Lock, Flame
 } from "lucide-react"
-
-interface Badge {
-  id: string
-  slug: string
-  name: string
-  description: string
-  icon: string
-  category: string
-  points: number
-  rarity: string
-  earned_at: string | null
-  is_earned: boolean
-}
-
-interface Quest {
-  id: string
-  title: string
-  description: string
-  action_type: string
-  target_dimension: string
-  estimated_score_impact: number
-  status: string
-  reward_badge_name: string | null
-}
-
-interface Progress {
-  score: number | null
-  badge_count: number
-  total_points: number
-  active_quests: number
-  next_milestone: number | null
-  progress_to_next: number
-  level: string
-  rank: number | null
-}
-
-interface LeaderboardEntry {
-  rank: number
-  project_name: string
-  org_name: string
-  score: number
-  badge_count: number
-  total_points: number
-}
-
-const RARITY_STYLE: Record<string, string> = {
-  common: "border-gray-200 bg-gray-50",
-  uncommon: "border-green-200 bg-green-50",
-  rare: "border-blue-200 bg-blue-50",
-  epic: "border-purple-200 bg-purple-50",
-  legendary: "border-amber-200 bg-amber-50",
-}
-
-const RARITY_TEXT: Record<string, string> = {
-  common: "text-gray-500",
-  uncommon: "text-green-600",
-  rare: "text-blue-600",
-  epic: "text-purple-600",
-  legendary: "text-amber-600",
-}
 
 export default function GamificationPage() {
   const queryClient = useQueryClient()
   const [projectId, setProjectId] = useState("")
   const [activeTab, setActiveTab] = useState<"badges" | "quests" | "leaderboard">("badges")
 
-  const { data: badges = [] } = useQuery<Badge[]>({
-    queryKey: ["badges", projectId],
-    queryFn: () =>
-      projectId
-        ? api.get(`/gamification/badges/project/${projectId}`).then(r => r.data)
-        : api.get("/gamification/badges/my").then(r => r.data),
-  })
+  const { data: myBadges = [] } = useMyBadges()
+  const { data: projectBadges = [] } = useProjectBadges(projectId)
+  const badges = projectId ? projectBadges : myBadges
 
-  const { data: quests = [] } = useQuery<Quest[]>({
-    queryKey: ["quests", projectId],
-    queryFn: () => api.get(`/gamification/quests/${projectId}`).then(r => r.data),
-    enabled: !!projectId,
-  })
-
-  const { data: progress } = useQuery<Progress>({
-    queryKey: ["gamification-progress", projectId],
-    queryFn: () => api.get(`/gamification/progress/${projectId}`).then(r => r.data),
-    enabled: !!projectId,
-  })
-
-  const { data: leaderboard = [] } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["gamification-leaderboard"],
-    queryFn: () => api.get("/gamification/leaderboard").then(r => r.data),
-  })
+  const { data: quests = [] } = useProjectQuests(projectId)
+  const { data: progress } = useGamificationProgress(projectId || undefined)
+  const { data: leaderboard = [] } = useLeaderboard()
 
   const completeQuestMutation = useMutation({
     mutationFn: (questId: string) => api.post(`/gamification/quests/${questId}/complete`).then(r => r.data),

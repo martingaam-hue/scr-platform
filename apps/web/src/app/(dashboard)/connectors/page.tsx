@@ -1,52 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import {
+  useConnectors, useConnectorConfigs, useConnectorUsage,
+  CATEGORY_COLORS, TIER_BADGE,
+} from "@/lib/connectors"
+import {
   Plug, CheckCircle, XCircle, AlertCircle, ToggleLeft, ToggleRight,
-  Zap, Activity, Clock, TrendingUp, Eye, EyeOff, RefreshCw
+  Activity, Clock, Eye, EyeOff, RefreshCw
 } from "lucide-react"
-
-interface Connector {
-  id: string
-  name: string
-  display_name: string
-  category: string
-  description: string
-  pricing_tier: string
-  rate_limit_per_minute: number
-  auth_type: string
-}
-
-interface ConnectorConfig {
-  connector_id: string
-  is_enabled: boolean
-  total_calls_this_month: number
-}
-
-interface UsageStats {
-  connector_id: string
-  total_calls: number
-  success_calls: number
-  error_calls: number
-  avg_response_ms: number
-  calls_today: number
-}
-
-const CATEGORY_COLORS: Record<string, string> = {
-  energy_market: "bg-yellow-100 text-yellow-700",
-  corporate_registry: "bg-blue-100 text-blue-700",
-  weather: "bg-sky-100 text-sky-700",
-  fx_rates: "bg-green-100 text-green-700",
-  financial: "bg-purple-100 text-purple-700",
-}
-
-const TIER_BADGE: Record<string, string> = {
-  free: "bg-gray-100 text-gray-600",
-  standard: "bg-blue-100 text-blue-600",
-  premium: "bg-amber-100 text-amber-700",
-}
 
 export default function ConnectorsPage() {
   const queryClient = useQueryClient()
@@ -54,20 +18,9 @@ export default function ConnectorsPage() {
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({})
   const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message: string } | null>>({})
 
-  const { data: connectors = [] } = useQuery<Connector[]>({
-    queryKey: ["connectors"],
-    queryFn: () => api.get("/connectors/").then(r => r.data),
-  })
-
-  const { data: configs = [] } = useQuery<ConnectorConfig[]>({
-    queryKey: ["connector-configs"],
-    queryFn: () => api.get("/connectors/configs").then(r => r.data),
-  })
-
-  const { data: usageData = [] } = useQuery<UsageStats[]>({
-    queryKey: ["connector-usage"],
-    queryFn: () => api.get("/connectors/usage").then(r => r.data),
-  })
+  const { data: connectors = [] } = useConnectors()
+  const { data: configs = [] } = useConnectorConfigs()
+  const { data: usageData = [] } = useConnectorUsage()
 
   const enableMutation = useMutation({
     mutationFn: ({ id, apiKey }: { id: string; apiKey: string }) =>
@@ -85,7 +38,7 @@ export default function ConnectorsPage() {
     onSuccess: (data, id) => {
       setTestResults(prev => ({ ...prev, [id]: { ok: data.success, message: data.message ?? (data.success ? "Connected" : "Failed") } }))
     },
-    onError: (_, id) => {
+    onError: (_: unknown, id: string) => {
       setTestResults(prev => ({ ...prev, [id]: { ok: false, message: "Connection failed" } }))
     },
   })

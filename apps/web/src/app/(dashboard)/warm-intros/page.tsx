@@ -1,53 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/lib/api"
 import { formatDate } from "@/lib/format"
+import {
+  useConnections, useAddConnection, useDeleteConnection, useIntroPath,
+  STRENGTH_BADGE, warmthColor, warmthBg, CONNECTION_TYPES,
+  type IntroPath,
+} from "@/lib/warm-intros"
 import { Users, Plus, Flame, X, Send, CheckCircle } from "lucide-react"
 
-interface Connection {
-  id: string
-  connection_type: string
-  connected_org_name: string
-  connected_person_name: string | null
-  connected_person_email: string | null
-  relationship_strength: string
-  last_interaction_date: string | null
-  notes: string | null
-  created_at: string
-}
-
-interface IntroPath {
-  type: string
-  connector_org: string
-  connector_person: string | null
-  connection_type: string
-  warmth: number
-}
-
-const STRENGTH_BADGE: Record<string, string> = {
-  strong: "bg-green-100 text-green-700",
-  moderate: "bg-yellow-100 text-yellow-700",
-  weak: "bg-gray-100 text-gray-600",
-}
-
-const WARMTH_COLOR = (score: number) => {
-  if (score >= 70) return "text-green-600"
-  if (score >= 40) return "text-yellow-600"
-  return "text-gray-500"
-}
-
-const WARMTH_BG = (score: number) => {
-  if (score >= 70) return "bg-green-500"
-  if (score >= 40) return "bg-yellow-500"
-  return "bg-gray-400"
-}
-
-const CONNECTION_TYPES = ["advisor", "co_investor", "service_provider", "board_member", "lp_relationship"]
-
 export default function WarmIntrosPage() {
-  const queryClient = useQueryClient()
   const [showAddForm, setShowAddForm] = useState(false)
   const [newConn, setNewConn] = useState({
     connection_type: "advisor",
@@ -62,31 +24,12 @@ export default function WarmIntrosPage() {
   const [investorId, setInvestorId] = useState("")
   const [paths, setPaths] = useState<IntroPath[]>([])
 
-  const { data: connectionsData, isLoading } = useQuery({
-    queryKey: ["warm-intros-connections"],
-    queryFn: () => api.get("/warm-intros/connections").then((r) => r.data),
-  })
+  const { data: connectionsData, isLoading } = useConnections()
+  const addMutation = useAddConnection()
+  const deleteMutation = useDeleteConnection()
+  const pathsMutation = useIntroPath()
 
-  const addMutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post("/warm-intros/connections", body).then((r) => r.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["warm-intros-connections"] })
-      setShowAddForm(false)
-      setNewConn({ connection_type: "advisor", connected_org_name: "", connected_person_name: "", connected_person_email: "", relationship_strength: "moderate", last_interaction_date: "", notes: "" })
-    },
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/warm-intros/connections/${id}`).then((r) => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["warm-intros-connections"] }),
-  })
-
-  const pathsMutation = useMutation({
-    mutationFn: (id: string) => api.get(`/warm-intros/paths/${id}`).then((r) => r.data),
-    onSuccess: (data) => setPaths(data.paths ?? []),
-  })
-
-  const connections: Connection[] = connectionsData?.items ?? []
+  const connections = connectionsData?.connections ?? []
 
   return (
     <div className="p-8 space-y-8">
@@ -178,7 +121,7 @@ export default function WarmIntrosPage() {
                 />
               </div>
               <button
-                onClick={() => investorId && pathsMutation.mutate(investorId)}
+                onClick={() => investorId && pathsMutation.mutate(investorId, { onSuccess: (d) => setPaths(d.paths ?? []) })}
                 disabled={!investorId || pathsMutation.isPending}
                 className="w-full bg-orange-500 text-white text-sm py-2 rounded-lg hover:bg-orange-600 disabled:opacity-50"
               >
@@ -195,9 +138,9 @@ export default function WarmIntrosPage() {
                       <span className="text-sm font-medium text-gray-900">{path.connector_org}</span>
                       <div className="flex items-center gap-1.5">
                         <div className="h-2 w-12 bg-gray-100 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${WARMTH_BG(path.warmth)}`} style={{ width: `${path.warmth}%` }} />
+                          <div className={`h-full rounded-full ${warmthBg(path.warmth)}`} style={{ width: `${path.warmth}%` }} />
                         </div>
-                        <span className={`text-xs font-semibold ${WARMTH_COLOR(path.warmth)}`}>{path.warmth.toFixed(0)}</span>
+                        <span className={`text-xs font-semibold ${warmthColor(path.warmth)}`}>{path.warmth.toFixed(0)}</span>
                       </div>
                     </div>
                     {path.connector_person && <p className="text-xs text-gray-500">via {path.connector_person}</p>}
@@ -268,7 +211,10 @@ export default function WarmIntrosPage() {
                 onClick={() => addMutation.mutate({
                   ...newConn,
                   last_interaction_date: newConn.last_interaction_date || null,
-                })}
+                }, { onSuccess: () => {
+                  setShowAddForm(false)
+                  setNewConn({ connection_type: "advisor", connected_org_name: "", connected_person_name: "", connected_person_email: "", relationship_strength: "moderate", last_interaction_date: "", notes: "" })
+                } })}
                 disabled={!newConn.connected_org_name || addMutation.isPending}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:opacity-50"
               >
