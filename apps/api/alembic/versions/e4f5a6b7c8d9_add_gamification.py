@@ -62,7 +62,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("is_deleted", sa.Boolean, server_default="false", nullable=False),
-        sa.ForeignKeyConstraint(["badge_id"], ["badges.id"], ondelete="SET NULL", source_columns=["reward_badge_id"]),
+        sa.ForeignKeyConstraint(["reward_badge_id"], ["badges.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )

@@ -146,7 +146,7 @@ async def seed_data(db: AsyncSession) -> dict:
         parameters={"output_format": "pdf"},
         s3_key="test-org/reports/test.html",
         generated_by=USER_ID,
-        completed_at=datetime.now(timezone.utc),
+        completed_at=datetime.utcnow(),
     )
     db.add(report)
 

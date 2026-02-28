@@ -677,27 +677,29 @@ async def test_get_latest_signal_score(db: AsyncSession, seed_data, sample_proje
     score_v1 = SignalScore(
         project_id=sample_project.id,
         overall_score=72,
-        technical_score=80,
-        financial_score=65,
+        project_viability_score=80,
+        financial_planning_score=65,
         esg_score=75,
-        regulatory_score=70,
-        team_score=68,
+        risk_assessment_score=70,
+        team_strength_score=68,
+        market_opportunity_score=60,
         model_used="claude-sonnet-4",
         version=1,
-        calculated_at=datetime.now(timezone.utc),
+        calculated_at=datetime.utcnow(),
     )
     db.add(score_v1)
     score_v2 = SignalScore(
         project_id=sample_project.id,
         overall_score=78,
-        technical_score=85,
-        financial_score=70,
+        project_viability_score=85,
+        financial_planning_score=70,
         esg_score=80,
-        regulatory_score=75,
-        team_score=72,
+        risk_assessment_score=75,
+        team_strength_score=72,
+        market_opportunity_score=65,
         model_used="claude-sonnet-4",
         version=2,
-        calculated_at=datetime.now(timezone.utc),
+        calculated_at=datetime.utcnow(),
     )
     db.add(score_v2)
     await db.flush()
@@ -715,14 +717,15 @@ async def test_project_detail_includes_signal_score(
     score = SignalScore(
         project_id=sample_project.id,
         overall_score=85,
-        technical_score=90,
-        financial_score=80,
+        project_viability_score=90,
+        financial_planning_score=80,
         esg_score=85,
-        regulatory_score=82,
-        team_score=88,
+        risk_assessment_score=82,
+        team_strength_score=88,
+        market_opportunity_score=75,
         model_used="claude-sonnet-4",
         version=1,
-        calculated_at=datetime.now(timezone.utc),
+        calculated_at=datetime.utcnow(),
     )
     db.add(score)
     await db.flush()

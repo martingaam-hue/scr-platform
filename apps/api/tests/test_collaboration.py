@@ -173,7 +173,7 @@ async def test_update_comment_after_edit_window_fails(db: AsyncSession, seed_dat
         db, ADMIN_USER, "project", ENTITY_ID, "Original"
     )
     # Manually set created_at to 20 minutes ago
-    comment.created_at = datetime.now(timezone.utc) - timedelta(minutes=20)
+    comment.created_at = datetime.utcnow() - timedelta(minutes=20)
     await db.flush()
 
     with pytest.raises(ValueError, match="within 15 minutes"):

@@ -222,6 +222,18 @@ async def update_schedule(
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
     await db.commit()
+    # Re-query after commit to get fresh data with eagerly loaded template
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+    from app.models.reporting import ScheduledReport as _ScheduledReport
+
+    stmt = (
+        select(_ScheduledReport)
+        .options(selectinload(_ScheduledReport.template))
+        .where(_ScheduledReport.id == schedule_id)
+    )
+    result = await db.execute(stmt)
+    schedule = result.scalar_one()
     return _schedule_to_response(schedule)
 
 

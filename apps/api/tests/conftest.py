@@ -120,11 +120,21 @@ def mock_clerk_jwt():
 
 @pytest.fixture
 async def authenticated_client(
-    client: AsyncClient, mock_clerk_jwt: AsyncMock
-) -> AsyncClient:
-    """AsyncClient with a mock auth token that bypasses Clerk verification."""
-    client.headers["Authorization"] = "Bearer mock-test-token"
-    return client
+    db: AsyncSession, sample_current_user: "CurrentUser"
+) -> AsyncGenerator[AsyncClient, None]:
+    """AsyncClient with dependency overrides that bypass Clerk JWT verification."""
+    from app.auth.dependencies import get_current_user
+    from app.core.database import get_db
+    from app.main import app as _app
+
+    _app.dependency_overrides[get_current_user] = lambda: sample_current_user
+    _app.dependency_overrides[get_db] = lambda: db
+    async with AsyncClient(
+        transport=ASGITransport(app=_app), base_url="http://test"
+    ) as ac:
+        yield ac
+    _app.dependency_overrides.pop(get_current_user, None)
+    _app.dependency_overrides.pop(get_db, None)
 
 
 # ── Investor org fixtures ─────────────────────────────────────────────────

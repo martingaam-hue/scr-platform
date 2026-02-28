@@ -51,7 +51,7 @@ HTML_TEMPLATE = Template("""\
     </table>
     {% elif section.type == 'kv' %}
     <table class="kv-table">
-      {% for key, val in section.items %}
+      {% for key, val in section['items'] %}
       <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
       {% endfor %}
     </table>

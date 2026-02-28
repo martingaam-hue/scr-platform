@@ -371,7 +371,7 @@ class TestOnboardingEndpoint:
         )
         assert response.status_code == 422
 
-    async def test_unauthenticated_returns_401(self, client):
+    async def test_unauthenticated_returns_403(self, client):
         response = await client.put(
             "/onboarding/complete",
             json={
@@ -380,7 +380,7 @@ class TestOnboardingEndpoint:
                 "preferences": {},
             },
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     async def test_empty_org_name_returns_422(
         self, authenticated_client, sample_user

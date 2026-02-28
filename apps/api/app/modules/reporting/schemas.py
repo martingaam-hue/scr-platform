@@ -56,7 +56,7 @@ class ReportTemplateResponse(BaseModel):
     category: ReportCategory
     description: str
     template_config: dict
-    sections: dict | None
+    sections: list | dict | None
     is_system: bool
     version: int
     created_at: datetime

@@ -110,11 +110,12 @@ async def seed_signal_score(db: AsyncSession, seed_data):
     score = SignalScore(
         project_id=PROJECT_ID,
         overall_score=65,
-        technical_score=70,
-        financial_score=75,
+        project_viability_score=70,
+        financial_planning_score=75,
         esg_score=55,
-        regulatory_score=60,
-        team_score=50,
+        risk_assessment_score=60,
+        team_strength_score=50,
+        market_opportunity_score=58,
         scoring_details={
             "dimensions": {
                 "technical": {
@@ -173,7 +174,7 @@ async def seed_signal_score(db: AsyncSession, seed_data):
         },
         model_used="claude-sonnet-4",
         version=1,
-        calculated_at=datetime.now(timezone.utc),
+        calculated_at=datetime.utcnow(),
     )
     db.add(score)
     await db.flush()
@@ -187,17 +188,18 @@ async def seed_multiple_scores(db: AsyncSession, seed_data):
         score = SignalScore(
             project_id=PROJECT_ID,
             overall_score=50 + i * 10,
-            technical_score=55 + i * 5,
-            financial_score=60 + i * 5,
+            project_viability_score=55 + i * 5,
+            financial_planning_score=60 + i * 5,
             esg_score=45 + i * 5,
-            regulatory_score=50 + i * 5,
-            team_score=40 + i * 5,
+            risk_assessment_score=50 + i * 5,
+            team_strength_score=40 + i * 5,
+            market_opportunity_score=45 + i * 5,
             scoring_details={"dimensions": {}},
             gaps={"items": []},
             strengths={"items": []},
             model_used="deterministic",
             version=i,
-            calculated_at=datetime.now(timezone.utc),
+            calculated_at=datetime.utcnow(),
         )
         db.add(score)
     await db.flush()
@@ -207,8 +209,8 @@ async def seed_multiple_scores(db: AsyncSession, seed_data):
 
 
 class TestCriteriaDefinitions:
-    def test_five_dimensions(self):
-        assert len(DIMENSIONS) == 5
+    def test_six_dimensions(self):
+        assert len(DIMENSIONS) == 6
 
     def test_dimension_weights_sum_to_one(self):
         total = sum(d.weight for d in DIMENSIONS)
@@ -419,8 +421,7 @@ class TestSignalScoreService:
         assert len(scores) == 0
 
     @pytest.mark.anyio
-    @patch("app.modules.signal_score.service.service")
-    async def test_trigger_calculation(self, mock_svc, db: AsyncSession, seed_data):
+    async def test_trigger_calculation(self, db: AsyncSession, seed_data):
         """trigger_calculation creates AITaskLog and dispatches Celery."""
         with patch(
             "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
@@ -472,7 +473,7 @@ class TestSignalScoreAPI:
             assert resp.status_code == 200
             data = resp.json()
             assert data["overall_score"] == 65
-            assert len(data["dimensions"]) == 5
+            assert len(data["dimensions"]) == 6
             assert data["version"] == 1
         finally:
             app.dependency_overrides.clear()
