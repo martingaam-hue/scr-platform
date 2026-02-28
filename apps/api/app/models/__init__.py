@@ -162,6 +162,27 @@ from app.models.fx import FXRate
 # Meeting Prep
 from app.models.meeting_prep import MeetingBriefing
 
+# Compliance Calendar
+from app.models.compliance import ComplianceDeadline
+
+# Portfolio Stress Testing
+from app.models.stress_test import StressTestRun
+
+# Data Connectors
+from app.models.connectors import DataConnector, DataFetchLog, OrgConnectorConfig
+
+# Deal Rooms
+from app.models.deal_rooms import DealRoom, DealRoomActivity, DealRoomDocument, DealRoomMember, DealRoomMessage
+
+# Watchlists & Alerts
+from app.models.watchlists import Watchlist, WatchlistAlert
+
+# Blockchain Audit Trail
+from app.models.blockchain import BlockchainAnchor
+
+# Gamification
+from app.models.gamification import Badge, ImprovementQuest, UserBadge
+
 __all__ = [
     # Base
     "BaseModel",
@@ -254,4 +275,27 @@ __all__ = [
     "FXRate",
     # Meeting Prep
     "MeetingBriefing",
+    # Compliance Calendar
+    "ComplianceDeadline",
+    # Portfolio Stress Testing
+    "StressTestRun",
+    # Data Connectors
+    "DataConnector",
+    "OrgConnectorConfig",
+    "DataFetchLog",
+    # Deal Rooms
+    "DealRoom",
+    "DealRoomMember",
+    "DealRoomDocument",
+    "DealRoomMessage",
+    "DealRoomActivity",
+    # Watchlists
+    "Watchlist",
+    "WatchlistAlert",
+    # Blockchain Audit Trail
+    "BlockchainAnchor",
+    # Gamification
+    "Badge",
+    "UserBadge",
+    "ImprovementQuest",
 ]

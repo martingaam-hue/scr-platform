@@ -61,6 +61,14 @@ from app.modules.warm_intros.router import router as warm_intros_router
 from app.modules.doc_versions.router import router as doc_versions_router
 from app.modules.fx.router import router as fx_router
 from app.modules.meeting_prep.router import router as meeting_prep_router
+from app.modules.compliance.router import router as compliance_router
+from app.modules.stress_test.router import router as stress_test_router
+from app.modules.connectors.router import router as connectors_router
+from app.modules.deal_rooms.router import router as deal_rooms_router
+from app.modules.watchlists.router import router as watchlists_router
+from app.modules.blockchain_audit.router import router as blockchain_audit_router
+from app.modules.voice_input.router import router as voice_input_router
+from app.modules.gamification.router import router as gamification_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -159,6 +167,14 @@ app.include_router(warm_intros_router)
 app.include_router(doc_versions_router)
 app.include_router(fx_router)
 app.include_router(meeting_prep_router)
+app.include_router(compliance_router)
+app.include_router(stress_test_router)
+app.include_router(connectors_router)
+app.include_router(deal_rooms_router)
+app.include_router(watchlists_router)
+app.include_router(blockchain_audit_router)
+app.include_router(voice_input_router)
+app.include_router(gamification_router)
 
 
 @app.get("/health")

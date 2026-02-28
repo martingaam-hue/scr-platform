@@ -25,6 +25,9 @@ celery_app = Celery(
         "app.worker_tasks",
         "app.tasks.weekly_digest",
         "app.tasks.fx_rates",
+        "app.tasks.compliance",
+        "app.tasks.watchlists",
+        "app.tasks.blockchain",
     ],
 )
 
@@ -86,5 +89,24 @@ celery_app.conf.beat_schedule = {
     "fetch-daily-fx-rates": {
         "task": "tasks.fetch_daily_fx_rates",
         "schedule": crontab(hour=15, minute=0),  # 3pm UTC = 4pm CET
+    },
+    # ── Compliance deadlines ─────────────────────────────────────────────────
+    "check-upcoming-deadlines": {
+        "task": "tasks.check_upcoming_deadlines",
+        "schedule": crontab(hour=8, minute=0),  # 8am UTC daily
+    },
+    "flag-overdue-deadlines": {
+        "task": "tasks.flag_overdue_deadlines",
+        "schedule": crontab(hour=9, minute=0),  # 9am UTC daily
+    },
+    # ── Watchlist monitoring ─────────────────────────────────────────────────
+    "check-watchlists": {
+        "task": "tasks.check_watchlists",
+        "schedule": crontab(minute="*/15"),  # every 15 minutes
+    },
+    # ── Blockchain anchor batching ────────────────────────────────────────────
+    "batch-blockchain-anchors": {
+        "task": "tasks.batch_blockchain_anchors",
+        "schedule": crontab(hour="*/6", minute=0),  # every 6 hours
     },
 }

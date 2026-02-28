@@ -28,6 +28,13 @@ import {
   Globe,
   Calendar,
   Leaf,
+  Shield,
+  Activity,
+  Plug,
+  MessageSquare,
+  Bell,
+  Trophy,
+  Mic,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -71,12 +78,22 @@ const investorNav: NavSection[] = [
       { label: "LP Reports", href: "/reports/lp", icon: FileText },
       { label: "Comps DB", href: "/comps", icon: GitCompare },
       { label: "FX Exposure", href: "/portfolio/fx", icon: Globe },
+      { label: "Stress Test", href: "/portfolio/stress-test", icon: Activity },
     ],
   },
   {
     title: "Network",
     items: [
       { label: "Warm Intros", href: "/warm-intros", icon: Users },
+      { label: "Deal Rooms", href: "/deal-rooms", icon: MessageSquare },
+    ],
+  },
+  {
+    title: "Operations",
+    items: [
+      { label: "Compliance", href: "/compliance", icon: Shield },
+      { label: "Watchlists", href: "/watchlists", icon: Bell },
+      { label: "Connectors", href: "/connectors", icon: Plug },
     ],
   },
   {
@@ -95,6 +112,15 @@ const allyNav: NavSection[] = [
       { label: "Documents", href: "/dashboard/documents", icon: FileCheck },
       { label: "Legal", href: "/dashboard/legal", icon: Scale },
       { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Tools",
+    items: [
+      { label: "Deal Rooms", href: "/deal-rooms", icon: MessageSquare },
+      { label: "Compliance", href: "/compliance", icon: Shield },
+      { label: "Score & Badges", href: "/gamification", icon: Trophy },
+      { label: "Voice Input", href: "/onboarding/voice", icon: Mic },
     ],
   },
   {
@@ -124,12 +150,23 @@ const adminNav: NavSection[] = [
       { label: "LP Reports", href: "/reports/lp", icon: FileText },
       { label: "Comps DB", href: "/comps", icon: GitCompare },
       { label: "FX Exposure", href: "/portfolio/fx", icon: Globe },
+      { label: "Stress Test", href: "/portfolio/stress-test", icon: Activity },
     ],
   },
   {
     title: "Network",
     items: [
       { label: "Warm Intros", href: "/warm-intros", icon: Users },
+      { label: "Deal Rooms", href: "/deal-rooms", icon: MessageSquare },
+    ],
+  },
+  {
+    title: "Operations",
+    items: [
+      { label: "Compliance", href: "/compliance", icon: Shield },
+      { label: "Watchlists", href: "/watchlists", icon: Bell },
+      { label: "Connectors", href: "/connectors", icon: Plug },
+      { label: "Score & Badges", href: "/gamification", icon: Trophy },
     ],
   },
   {
