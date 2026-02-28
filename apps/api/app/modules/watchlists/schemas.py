@@ -12,7 +12,8 @@ from pydantic import BaseModel, ConfigDict
 class WatchlistCreate(BaseModel):
     name: str
     watch_type: str  # new_projects, score_changes, risk_alerts, market_events, specific_project
-    criteria: dict[str, Any]
+    nl_query: str | None = None  # optional: auto-populate criteria via NL parser
+    criteria: dict[str, Any] = {}
     alert_channels: list[str] = ["in_app"]
     alert_frequency: str = "immediate"  # immediate, daily_digest, weekly
 

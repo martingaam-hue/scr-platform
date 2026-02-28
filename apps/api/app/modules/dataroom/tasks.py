@@ -69,13 +69,18 @@ def process_document(self, document_id: str) -> dict:
             # Step 2: Extract text
             text_content = _extract_text(doc)
 
-            # Step 3: Classify document
-            classification = _classify_document(doc, text_content)
+            # Step 3: Classify document (skip if pre-classified by bulk upload)
+            if doc.classification is not None:
+                classification = doc.classification.value
+                cls_model = "pre-classified"
+            else:
+                classification = _classify_document(doc, text_content)
+                cls_model = "ai-gateway"
             session.add(DocumentExtraction(
                 document_id=doc.id,
                 extraction_type=ExtractionType.CLASSIFICATION,
                 result={"classification": classification, "source_name": doc.name},
-                model_used="rule-based",
+                model_used=cls_model,
                 confidence_score=0.8,
                 tokens_used=0,
                 processing_time_ms=50,
@@ -215,14 +220,37 @@ def _extract_pdf_text(pdf_bytes: bytes) -> str:
 
 
 def _classify_document(doc, text_content: str) -> str:
-    """Classify document type based on name and content.
+    """Classify document type via AI Gateway batch endpoint, falling back to rule-based."""
+    import httpx
+    from app.models.enums import DocumentClassification
 
-    In production, this would call the AI Gateway for ML-based classification.
-    """
+    valid_values = {e.value for e in DocumentClassification}
+
+    # Try AI Gateway classification
+    try:
+        resp = httpx.post(
+            f"{settings.AI_GATEWAY_URL}/v1/completions/batch",
+            json={
+                "task_type": "classify_document",
+                "contexts": [{"filename": doc.name, "document_preview": (text_content or "")[:500]}],
+            },
+            headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+            timeout=15.0,
+        )
+        resp.raise_for_status()
+        results = resp.json().get("results", [])
+        if results and isinstance(results[0], dict):
+            ai_cls = results[0].get("classification", "")
+            if ai_cls in valid_values:
+                logger.info("ai_classification", document_id=str(doc.id), classification=ai_cls)
+                return ai_cls
+    except Exception as exc:
+        logger.debug("ai_classify_failed", doc=doc.name, error=str(exc))
+
+    # Rule-based fallback
     name_lower = doc.name.lower()
     text_lower = (text_content or "").lower()
 
-    # Rule-based classification as baseline
     if any(kw in name_lower for kw in ("financial", "income", "balance", "cashflow", "p&l")):
         return "financial_statement"
     elif any(kw in name_lower for kw in ("agreement", "contract", "nda", "mou", "terms")):
@@ -326,12 +354,55 @@ def _extract_structured_data(session, doc, text_content: str, classification: st
 
 @celery_app.task
 def process_bulk_upload(document_ids: list[str]) -> dict:
-    """Process multiple documents sequentially."""
-    results = []
+    """Batch-classify documents in one AI call, then queue individual processing tasks."""
+    import httpx
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session as SyncSession
+
+    from app.models.dataroom import Document
+    from app.models.enums import DocumentClassification
+
+    if not document_ids:
+        return {"queued": 0, "tasks": [], "pre_classified": 0}
+
+    pre_classified = 0
+    engine = create_engine(settings.DATABASE_URL_SYNC)
+
+    # Batch pre-classify by filename so process_document can skip the per-doc AI call
+    try:
+        with SyncSession(engine) as session:
+            docs = [session.get(Document, uuid.UUID(doc_id)) for doc_id in document_ids]
+            docs = [d for d in docs if d]
+            if docs:
+                contexts = [{"filename": d.name, "document_preview": ""} for d in docs]
+                resp = httpx.post(
+                    f"{settings.AI_GATEWAY_URL}/v1/completions/batch",
+                    json={"task_type": "classify_document", "contexts": contexts},
+                    headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                    timeout=60.0,
+                )
+                resp.raise_for_status()
+                valid_values = {e.value for e in DocumentClassification}
+                for doc, result in zip(docs, resp.json().get("results", [])):
+                    if isinstance(result, dict):
+                        cls = result.get("classification", "")
+                        if cls in valid_values:
+                            doc.classification = DocumentClassification(cls)
+                            pre_classified += 1
+                session.commit()
+                logger.info(
+                    "bulk_pre_classified",
+                    total=len(docs),
+                    pre_classified=pre_classified,
+                )
+    except Exception as exc:
+        logger.warning("bulk_pre_classify_failed", error=str(exc))
+
+    tasks = []
     for doc_id in document_ids:
         result = process_document.delay(doc_id)
-        results.append({"document_id": doc_id, "task_id": str(result.id)})
-    return {"queued": len(results), "tasks": results}
+        tasks.append({"document_id": doc_id, "task_id": str(result.id)})
+    return {"queued": len(tasks), "tasks": tasks, "pre_classified": pre_classified}
 
 
 # ── Cleanup ──────────────────────────────────────────────────────────────────

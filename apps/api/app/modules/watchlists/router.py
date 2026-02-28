@@ -74,6 +74,32 @@ async def create_watchlist(
     current_user: CurrentUser = Depends(require_permission("view", "project")),
     db: AsyncSession = Depends(get_db),
 ):
+    # Auto-populate criteria from natural language query when criteria is empty
+    if body.nl_query and not body.criteria:
+        from app.modules.smart_screener import service as screener_service
+        try:
+            parsed = await screener_service.parse_query(body.nl_query)
+            criteria: dict = {}
+            if parsed.project_types:
+                criteria["project_types"] = parsed.project_types
+            if parsed.geographies:
+                criteria["geographies"] = parsed.geographies
+            if parsed.stages:
+                criteria["stages"] = parsed.stages
+            if parsed.min_signal_score is not None:
+                criteria["min_signal_score"] = parsed.min_signal_score
+            if parsed.max_signal_score is not None:
+                criteria["max_signal_score"] = parsed.max_signal_score
+            if parsed.min_ticket_size is not None:
+                criteria["min_ticket_size"] = parsed.min_ticket_size
+            if parsed.max_ticket_size is not None:
+                criteria["max_ticket_size"] = parsed.max_ticket_size
+            if parsed.sector_keywords:
+                criteria["sector_keywords"] = parsed.sector_keywords
+            body = body.model_copy(update={"criteria": criteria})
+        except Exception:
+            pass  # proceed with empty criteria if NL parsing fails
+
     wl = await service.create_watchlist(db, current_user.user_id, current_user.org_id, body)
     return WatchlistResponse.model_validate(wl)
 

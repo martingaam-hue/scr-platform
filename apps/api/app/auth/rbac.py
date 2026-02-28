@@ -43,6 +43,7 @@ class Resource:
     LISTING = "listing"
     CONVERSATION = "conversation"
     COMMENT = "comment"
+    RISK = "risk"
 
 
 # ── Role hierarchy (higher = more privilege) ──────────────────────────────
@@ -66,6 +67,7 @@ _VIEWER_PERMS: set[tuple[str, str]] = {
     (Action.VIEW, Resource.LISTING),
     (Action.VIEW, Resource.CONVERSATION),
     (Action.VIEW, Resource.COMMENT),
+    (Action.VIEW, Resource.RISK),
     (Action.DOWNLOAD, Resource.DOCUMENT),
     (Action.DOWNLOAD, Resource.REPORT),
 }
@@ -81,6 +83,8 @@ _ANALYST_EXTRA: set[tuple[str, str]] = {
     (Action.CREATE, Resource.COMMENT),
     (Action.EDIT, Resource.COMMENT),
     (Action.EXPORT, Resource.REPORT),
+    (Action.CREATE, Resource.RISK),
+    (Action.EDIT, Resource.RISK),
 }
 
 _MANAGER_EXTRA: set[tuple[str, str]] = {
