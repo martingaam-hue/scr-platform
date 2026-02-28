@@ -215,3 +215,41 @@ async def get_system_health(
     db: AsyncSession = Depends(get_db),
 ) -> SystemHealthResponse:
     return await service.get_system_health(db)
+
+
+# ── Digest ─────────────────────────────────────────────────────────────────────
+
+
+@router.post("/digest/send-test")
+async def send_digest_test(
+    user_id: uuid.UUID = Query(..., description="User ID to send test digest to"),
+    _: CurrentUser = Depends(_require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Trigger a test digest email for a specific user (platform admin only)."""
+    from datetime import datetime, timedelta
+    from app.models.core import Organization, User
+    from app.modules.digest import service as digest_service
+    from sqlalchemy import select
+
+    stmt = (
+        select(User, Organization.name.label("org_name"))
+        .join(Organization, User.org_id == Organization.id)
+        .where(User.id == user_id)
+    )
+    result = await db.execute(stmt)
+    row = result.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user = row[0]
+    org_name = row[1]
+    since = datetime.utcnow() - timedelta(days=7)
+
+    activity = await digest_service.gather_digest_data(db, user.org_id, user.id, since)
+    summary = await digest_service.generate_digest_summary(activity, org_name)
+
+    from app.tasks.weekly_digest import _send_digest_email
+    await _send_digest_email(user.email, user.full_name, org_name, activity, summary)
+
+    return {"status": "sent", "email": user.email, "activity": activity}

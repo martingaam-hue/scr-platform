@@ -340,6 +340,69 @@ class RalphTools:
         except Exception as e:
             return {"error": str(e)}
 
+    # ── Workflow tools (concurrent chains) ────────────────────────────────────
+
+    async def _tool_deep_dive_project(self, project_id: str) -> dict[str, Any]:
+        """Comprehensive project analysis — chains 6 tools concurrently."""
+        import asyncio
+        results = await asyncio.gather(
+            self._tool_get_project_details(project_id),
+            self._tool_get_signal_score(project_id),
+            self._tool_get_risk_assessment(project_id, "project"),
+            self._tool_search_documents("business plan overview financials", project_id=project_id),
+            self._tool_run_valuation(project_id),
+            self._tool_find_matching_investors(project_id, limit=3),
+            return_exceptions=True,
+        )
+        keys = ["project", "signal_score", "risk", "documents", "valuation", "matching_investors"]
+        return {
+            k: (v if not isinstance(v, Exception) else {"error": str(v)})
+            for k, v in zip(keys, results)
+        }
+
+    async def _tool_portfolio_health_check(self, portfolio_id: str | None = None) -> dict[str, Any]:
+        """Portfolio-wide health check — chains 3 tools concurrently."""
+        import asyncio
+
+        portfolio_result = await self._tool_get_portfolio_metrics(portfolio_id)
+        pid = portfolio_result.get("portfolio_id") if "error" not in portfolio_result else None
+
+        async def _no_portfolio() -> dict[str, Any]:
+            return {"error": "No portfolio found"}
+
+        risk_coro = (
+            self._tool_get_risk_assessment(pid, "portfolio") if pid else _no_portfolio()
+        )
+        docs_coro = self._tool_search_documents("compliance regulatory reporting portfolio")
+
+        risk_result, docs_result = await asyncio.gather(risk_coro, docs_coro, return_exceptions=True)
+
+        return {
+            "portfolio": portfolio_result,
+            "risk": risk_result if not isinstance(risk_result, Exception) else {"error": str(risk_result)},
+            "compliance_documents": docs_result if not isinstance(docs_result, Exception) else {"error": str(docs_result)},
+        }
+
+    async def _tool_deal_readiness_check(self, project_id: str) -> dict[str, Any]:
+        """Deal readiness assessment — chains 4 tools concurrently."""
+        import asyncio
+
+        signal_coro = self._tool_get_signal_score(project_id)
+        docs_coro = self._tool_search_documents("term sheet subscription agreement legal document", project_id=project_id)
+        improvement_coro = self._tool_get_improvement_plan(project_id)
+        risk_coro = self._tool_get_risk_assessment(project_id, "project")
+
+        signal, docs, improvement, risk = await asyncio.gather(
+            signal_coro, docs_coro, improvement_coro, risk_coro, return_exceptions=True
+        )
+
+        return {
+            "signal_score": signal if not isinstance(signal, Exception) else {"error": str(signal)},
+            "documents": docs if not isinstance(docs, Exception) else {"error": str(docs)},
+            "improvement_plan": improvement if not isinstance(improvement, Exception) else {"error": str(improvement)},
+            "risk": risk if not isinstance(risk, Exception) else {"error": str(risk)},
+        }
+
 
 # ── Tool definitions for Claude API ──────────────────────────────────────────
 
@@ -611,6 +674,47 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "type": "object",
                 "properties": {
                     "project_id": {"type": "string", "description": "UUID of the project"},
+                },
+                "required": ["project_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "deep_dive_project",
+            "description": "Run a comprehensive deep-dive analysis on a project. Concurrently retrieves project details, signal score, risk assessment, document search, valuation, and matching investors. Use this when the user wants a full picture of a specific project.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "UUID of the project to analyze"},
+                },
+                "required": ["project_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "portfolio_health_check",
+            "description": "Run a portfolio-wide health check. Concurrently retrieves portfolio metrics, risk assessment, and compliance documents. Use this when the user asks about overall portfolio performance or health.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "portfolio_id": {"type": "string", "description": "UUID of the portfolio (optional, defaults to primary portfolio)"},
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "deal_readiness_check",
+            "description": "Assess deal readiness for a project. Concurrently checks signal score, legal documents, improvement plan, and risk profile to determine how investment-ready the project is.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "UUID of the project to assess"},
                 },
                 "required": ["project_id"],
             },

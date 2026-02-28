@@ -22,6 +22,7 @@ celery_app = Celery(
         "app.modules.projects.tasks",
         "app.modules.risk.tasks",
         "app.worker_tasks",
+        "app.tasks.weekly_digest",
     ],
 )
 
@@ -73,5 +74,10 @@ celery_app.conf.beat_schedule = {
     "update-live-scores": {
         "task": "app.worker_tasks.check_live_score_updates",
         "schedule": 3600.0,  # hourly
+    },
+    # ── Weekly email digest ─────────────────────────────────────────────────
+    "weekly-digest": {
+        "task": "tasks.send_weekly_digests",
+        "schedule": crontab(hour=20, minute=0, day_of_week=0),  # Sunday 8pm UTC
     },
 }

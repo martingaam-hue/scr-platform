@@ -261,6 +261,24 @@ SEED_PROMPTS: list[dict] = [
         "traffic_percentage": 100,
         "is_active": True,
     },
+    {
+        "task_type": "generate_digest_summary",
+        "version": 1,
+        "name": "Weekly digest summary v1",
+        "system_prompt": (
+            "You are a concise business analyst writing a weekly digest for an investment platform. "
+            "Write 2-3 sentences in a professional but friendly tone summarizing the week's AI activity. "
+            "Focus on business impact, not technical details. Use plain text, no markdown."
+        ),
+        "user_prompt_template": (
+            "Generate a brief weekly digest summary for {org_name}.\n\n"
+            "Activity data:\n{activity_summary}"
+        ),
+        "output_format_instruction": "Respond with 2-3 sentences of plain prose. No bullet points, no markdown.",
+        "variables_schema": {"org_name": "str", "activity_summary": "str"},
+        "traffic_percentage": 100,
+        "is_active": True,
+    },
 ]
 
 

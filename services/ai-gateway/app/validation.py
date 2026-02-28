@@ -292,6 +292,14 @@ VALIDATION_SCHEMAS: dict[str, dict] = {
         "flexible": True,
     },
 
+    # ── Digest ────────────────────────────────────────────────────────────────
+
+    "generate_digest_summary": {
+        "required": [],
+        "fields": {},
+        "flexible": True,  # plain prose output, no JSON validation
+    },
+
     # ── Additional task types ─────────────────────────────────────────────────
 
     "insurance_risk_impact": {
