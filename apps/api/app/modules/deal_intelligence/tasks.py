@@ -168,8 +168,8 @@ def screen_deal_task(
 
             # Build prompt
             ss_overall = signal_score.overall_score if signal_score else "N/A"
-            ss_tech = signal_score.technical_score if signal_score else "N/A"
-            ss_fin = signal_score.financial_score if signal_score else "N/A"
+            ss_tech = signal_score.project_viability_score if signal_score else "N/A"
+            ss_fin = signal_score.financial_planning_score if signal_score else "N/A"
             ss_esg = signal_score.esg_score if signal_score else "N/A"
 
             mandate_text = "No active mandate."

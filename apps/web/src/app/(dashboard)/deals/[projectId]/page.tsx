@@ -291,9 +291,6 @@ export default function DealScreeningPage() {
   const isPolling =
     report && (report.status === "pending" || report.status === "processing");
 
-  // Auto-refetch while pending/processing
-  useScreeningReport(isPolling ? projectId : undefined);
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-3">

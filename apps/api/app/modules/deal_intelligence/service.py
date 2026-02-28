@@ -427,11 +427,11 @@ async def compare_projects(
             higher_is_better=False,
         ),
         _row("Signal Score", [s.overall_score if s else None for s in scores]),
-        _row("Technical Score", [s.technical_score if s else None for s in scores]),
-        _row("Financial Score", [s.financial_score if s else None for s in scores]),
+        _row("Viability Score", [s.project_viability_score if s else None for s in scores]),
+        _row("Financial Score", [s.financial_planning_score if s else None for s in scores]),
         _row("ESG Score", [s.esg_score if s else None for s in scores]),
-        _row("Regulatory Score", [s.regulatory_score if s else None for s in scores]),
-        _row("Team Score", [s.team_score if s else None for s in scores]),
+        _row("Risk Score", [s.risk_assessment_score if s else None for s in scores]),
+        _row("Team Score", [s.team_strength_score if s else None for s in scores]),
         _row(
             "Capacity (MW)",
             [

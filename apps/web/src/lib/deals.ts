@@ -167,6 +167,13 @@ export function useScreeningReport(projectId: string | undefined) {
         .then((r) => r.data),
     enabled: !!projectId,
     retry: false,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (data && (data.status === "pending" || data.status === "processing")) {
+        return 5000;
+      }
+      return false;
+    },
   });
 }
 
