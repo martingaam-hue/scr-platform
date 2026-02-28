@@ -83,7 +83,7 @@ function CoverageCard({ rec }: { rec: CoverageRecommendation }) {
 
 export default function InsurancePage() {
   const [selectedProjectId, setSelectedProjectId] = useState("");
-  const { data: projects } = useProjects({ limit: 50 });
+  const { data: projects } = useProjects({ page_size: 50 });
   const { data: analysis, isLoading, error } = useInsuranceImpact(
     selectedProjectId || undefined
   );

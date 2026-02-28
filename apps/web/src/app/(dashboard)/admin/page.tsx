@@ -294,7 +294,7 @@ function OrganizationsTab() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant="default" className="capitalize">
+                      <Badge variant="neutral" className="capitalize">
                         {org.type}
                       </Badge>
                     </td>
@@ -444,7 +444,7 @@ function UsersTab() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant="default" className="capitalize">
+                      <Badge variant="neutral" className="capitalize">
                         {user.role}
                       </Badge>
                     </td>

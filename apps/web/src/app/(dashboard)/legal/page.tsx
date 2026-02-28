@@ -652,7 +652,7 @@ function ReviewResultDisplay({ result }: { result: ReviewResultResponse }) {
       <AIFeedback
         taskType="legal_review"
         entityType="document"
-        entityId={result.id}
+        entityId={result.review_id}
         compact
       />
     </div>

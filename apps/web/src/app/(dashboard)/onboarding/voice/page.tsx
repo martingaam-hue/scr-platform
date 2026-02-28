@@ -6,7 +6,7 @@ import { api } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import {
   Mic, MicOff, Upload, Loader2, CheckCircle, ChevronRight,
-  Volume2, Waveform, FileAudio, AlertCircle, ArrowRight
+  Volume2, AudioLines, FileAudio, AlertCircle, ArrowRight
 } from "lucide-react"
 
 interface ExtractedProject {
@@ -25,10 +25,13 @@ interface ExtractedProject {
 
 type RecordingState = "idle" | "recording" | "processing" | "done" | "error"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SpeechRecognitionType = any
+
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition
-    webkitSpeechRecognition: typeof SpeechRecognition
+    SpeechRecognition: SpeechRecognitionType
+    webkitSpeechRecognition: SpeechRecognitionType
   }
 }
 
@@ -43,7 +46,7 @@ export default function VoiceInputPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<SpeechRecognitionType | null>(null)
 
   const processMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -72,7 +75,7 @@ export default function VoiceInputPage() {
         const recognition = new SR()
         recognition.continuous = true
         recognition.interimResults = true
-        recognition.onresult = (e: SpeechRecognitionEvent) => {
+        recognition.onresult = (e: SpeechRecognitionType) => {
           let interim = ""
           for (let i = e.resultIndex; i < e.results.length; i++) {
             if (e.results[i].isFinal) setTranscript(t => t + e.results[i][0].transcript + " ")

@@ -122,7 +122,7 @@ function SectionCard({
 
 export default function BusinessPlanPage() {
   const [selectedProjectId, setSelectedProjectId] = useState("");
-  const { data: projects } = useProjects({ limit: 50 });
+  const { data: projects } = useProjects({ page_size: 50 });
 
   return (
     <div className="space-y-6">

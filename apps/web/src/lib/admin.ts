@@ -307,11 +307,11 @@ export function tierColor(
 
 export function statusColor(
   status: OrgSummary["subscription_status"]
-): "success" | "warning" | "error" | "default" {
+): "success" | "warning" | "error" | "neutral" {
   if (status === "active") return "success";
   if (status === "trial") return "warning";
   if (status === "suspended") return "error";
-  return "default";
+  return "neutral";
 }
 
 export function healthColor(

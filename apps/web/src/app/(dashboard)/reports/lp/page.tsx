@@ -303,7 +303,7 @@ export default function LPReportsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {report.investments_data.map((inv, i) => (
+                      {(report.investments_data as Record<string, unknown>[]).map((inv, i) => (
                         <tr key={i} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium text-gray-900">{String(inv.name ?? "—")}</td>
                           <td className="px-4 py-3 text-right text-gray-700">{inv.committed ? formatCurrency(Number(inv.committed)) : "—"}</td>

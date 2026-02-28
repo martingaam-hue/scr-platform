@@ -130,12 +130,12 @@ export default function FXDashboardPage() {
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" outerRadius={100} dataKey="value" nameKey="name" label={({ name, value }: { name: string; value: number }) => `${name} ${value.toFixed(1)}%`}>
+                <Pie data={pieData} cx="50%" cy="50%" outerRadius={100} dataKey="value" nameKey="name" label={({ name, value }: { name?: string; value?: number }) => `${name ?? ""} ${(value ?? 0).toFixed(1)}%`}>
                   {pieData.map((entry) => (
                     <Cell key={entry.name} fill={CURRENCY_COLORS[entry.name] ?? "#94A3B8"} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
+                <Tooltip />
               </PieChart>
             </ResponsiveContainer>
           )}

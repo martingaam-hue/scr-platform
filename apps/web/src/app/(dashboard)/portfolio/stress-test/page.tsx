@@ -182,7 +182,7 @@ export default function StressTestPage() {
                 <BarChart data={histogramData} barCategoryGap="1%">
                   <XAxis dataKey="nav" hide />
                   <YAxis hide />
-                  <Tooltip formatter={(v: number) => [v.toLocaleString(), "simulations"]} labelFormatter={(l: number) => `NAV: ${formatCurrency(l)}`} />
+                  <Tooltip />
                   <ReferenceLine x={result.base_nav} stroke="#6B7280" strokeDasharray="4 2" label={{ value: "Base", position: "top", fontSize: 10 }} />
                   <Bar dataKey="count">
                     {histogramData.map((entry, i) => (

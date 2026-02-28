@@ -135,7 +135,6 @@ function FunnelChart({ stageCounts }: { stageCounts: StageCount[] }) {
         <Tooltip
           cursor={{ fill: "rgba(79,70,229,0.07)" }}
           contentStyle={{ borderRadius: 8, fontSize: 13 }}
-          formatter={(value: number) => [value, "Deals"]}
         />
         <Bar dataKey="count" fill={BAR_COLOUR} radius={[0, 4, 4, 0]}>
           <LabelList
@@ -186,7 +185,6 @@ function PipelineValueChart({ byStage }: { byStage: Record<string, number> }) {
         <Tooltip
           cursor={{ fill: "rgba(79,70,229,0.07)" }}
           contentStyle={{ borderRadius: 8, fontSize: 13 }}
-          formatter={(v: number) => [formatCurrency(v), "Pipeline value"]}
         />
         <Bar dataKey="value" fill="#7c3aed" radius={[4, 4, 0, 0]} />
       </BarChart>
@@ -231,7 +229,6 @@ function TimeInStageChart({ stages }: { stages: AvgTimeInStage[] }) {
         <Tooltip
           cursor={{ fill: "rgba(79,70,229,0.07)" }}
           contentStyle={{ borderRadius: 8, fontSize: 13 }}
-          formatter={(v: number) => [`${v.toFixed(1)} days`, "Avg time"]}
         />
         <Bar dataKey="avg_days" fill="#0891b2" radius={[4, 4, 0, 0]} />
       </BarChart>
@@ -260,7 +257,7 @@ function DropOffPieChart({ reasons }: { reasons: Record<string, number> }) {
             outerRadius={90}
             dataKey="value"
             label={({ name, percent }) =>
-              `${name} (${(percent * 100).toFixed(0)}%)`
+              `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
             }
             labelLine={false}
           >
@@ -274,8 +271,7 @@ function DropOffPieChart({ reasons }: { reasons: Record<string, number> }) {
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Tooltip
             contentStyle={{ borderRadius: 8, fontSize: 13 }}
-            formatter={(v: number) => [v, "Deals"]}
-          />
+            />
         </PieChart>
       </ResponsiveContainer>
     </ChartCard>

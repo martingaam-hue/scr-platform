@@ -238,7 +238,7 @@ export default function WatchlistsPage() {
                       </p>
                     </div>
                     <p className="text-xs text-gray-600 mt-0.5">{alert.watchlist_name}</p>
-                    {alert.data?.title && (
+                    {alert.data?.title != null && (
                       <p className="text-xs text-gray-500 mt-1">{String(alert.data.title)}</p>
                     )}
                     <p className="text-xs text-gray-400 mt-1">{formatDate(alert.created_at)}</p>

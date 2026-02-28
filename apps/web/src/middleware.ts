@@ -23,10 +23,10 @@ export default clerkMiddleware(async (auth, request) => {
     const orgType = claims?.org_type as string | undefined;
 
     if (orgType === "investor") {
-      return NextResponse.redirect(new URL("/dashboard/portfolio", request.url));
+      return NextResponse.redirect(new URL("/portfolio", request.url));
     }
     if (orgType === "ally") {
-      return NextResponse.redirect(new URL("/dashboard/projects", request.url));
+      return NextResponse.redirect(new URL("/projects", request.url));
     }
     // Default: stay on /dashboard
   }

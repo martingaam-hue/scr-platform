@@ -87,7 +87,7 @@ const investorNav: NavSection[] = [
     title: "Portfolio",
     collapsible: true,
     items: [
-      { label: "Overview", href: "/dashboard/portfolio", icon: Briefcase, tourId: "nav-portfolio" },
+      { label: "Overview", href: "/portfolio", icon: Briefcase, tourId: "nav-portfolio" },
       { label: "FX Exposure", href: "/fx", icon: Globe },
       { label: "Stress Testing", href: "/stress-test", icon: Activity },
       { label: "ESG Dashboard", href: "/esg", icon: Leaf },
@@ -99,32 +99,32 @@ const investorNav: NavSection[] = [
     title: "Deal Pipeline",
     collapsible: true,
     items: [
-      { label: "Deals", href: "/dashboard/deals", icon: FolderKanban, tourId: "nav-deals" },
-      { label: "Smart Screener", href: "/dashboard/screener", icon: ScanSearch, tourId: "nav-screener" },
+      { label: "Deals", href: "/deals", icon: FolderKanban, tourId: "nav-deals" },
+      { label: "Smart Screener", href: "/screener", icon: ScanSearch, tourId: "nav-screener" },
       { label: "Deal Rooms", href: "/deal-rooms", icon: MessageSquare },
       { label: "Comparable Transactions", href: "/comps", icon: GitCompare },
     ],
   },
   {
     items: [
-      { label: "Matching", href: "/dashboard/matching", icon: Zap },
-      { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock, tourId: "nav-data-room" },
+      { label: "Matching", href: "/matching", icon: Zap },
+      { label: "Data Room", href: "/data-room", icon: FolderLock, tourId: "nav-data-room" },
     ],
   },
   {
     title: "Risk & Compliance",
     collapsible: true,
     items: [
-      { label: "Risk Dashboard", href: "/dashboard/risk", icon: ShieldAlert },
+      { label: "Risk Dashboard", href: "/risk", icon: ShieldAlert },
       { label: "Compliance Calendar", href: "/compliance", icon: Calendar },
       { label: "Blockchain Audit", href: "/blockchain-audit", icon: Link2 },
     ],
   },
   {
     items: [
-      { label: "Marketplace", href: "/dashboard/marketplace", icon: Store },
+      { label: "Marketplace", href: "/marketplace", icon: Store },
       { label: "Watchlists", href: "/watchlists", icon: Bell },
-      { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+      { label: "Reports", href: "/reports", icon: BarChart3 },
       { label: "Impact", href: "/impact", icon: Target },
       { label: "Notifications", href: "/notifications", icon: Bell },
     ],
@@ -144,7 +144,7 @@ const investorNav: NavSection[] = [
   },
   {
     title: "AI",
-    items: [{ label: "Ralph AI", href: "/dashboard/ralph", icon: Bot, tourId: "nav-ralph" }],
+    items: [{ label: "Ralph AI", href: "/dashboard", icon: Bot, tourId: "nav-ralph" }],
   },
   {
     title: "Settings",
@@ -165,23 +165,23 @@ const allyNav: NavSection[] = [
   {
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Projects", href: "/dashboard/projects", icon: FolderKanban, tourId: "nav-projects" },
+      { label: "Projects", href: "/projects", icon: FolderKanban, tourId: "nav-projects" },
     ],
   },
   {
     title: "Deal Pipeline",
     collapsible: true,
     items: [
-      { label: "Deals", href: "/dashboard/deals", icon: FolderKanban },
-      { label: "Investor Matching", href: "/dashboard/matching", icon: Zap },
+      { label: "Deals", href: "/deals", icon: FolderKanban },
+      { label: "Investor Matching", href: "/matching", icon: Zap },
       { label: "Warm Introductions", href: "/warm-intros", icon: Users },
     ],
   },
   {
     items: [
-      { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock, tourId: "nav-data-room" },
-      { label: "Funding", href: "/dashboard/funding", icon: Wallet, tourId: "nav-funding" },
-      { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+      { label: "Data Room", href: "/data-room", icon: FolderLock, tourId: "nav-data-room" },
+      { label: "Funding", href: "/funding", icon: Wallet, tourId: "nav-funding" },
+      { label: "Reports", href: "/reports", icon: BarChart3 },
     ],
   },
   {
@@ -189,8 +189,8 @@ const allyNav: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Business Plan", href: "/business-plan", icon: FileText },
-      { label: "Legal", href: "/dashboard/legal", icon: Scale },
-      { label: "Valuation", href: "/valuation", icon: PieChart },
+      { label: "Legal", href: "/legal", icon: Scale },
+      { label: "Valuation", href: "/valuations", icon: PieChart },
       { label: "Tax Credits", href: "/tax-credits", icon: CreditCard },
       { label: "Insurance", href: "/insurance", icon: Umbrella },
       { label: "Board Advisor", href: "/board-advisor", icon: UserCheck },
@@ -218,7 +218,7 @@ const allyNav: NavSection[] = [
   },
   {
     title: "AI",
-    items: [{ label: "Ralph AI", href: "/dashboard/ralph", icon: Bot, tourId: "nav-ralph" }],
+    items: [{ label: "Ralph AI", href: "/dashboard", icon: Bot, tourId: "nav-ralph" }],
   },
   {
     title: "Settings",
@@ -237,14 +237,14 @@ const adminNav: NavSection[] = [
   {
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Projects", href: "/dashboard/projects", icon: FolderKanban },
+      { label: "Projects", href: "/projects", icon: FolderKanban },
     ],
   },
   {
     title: "Portfolio",
     collapsible: true,
     items: [
-      { label: "Overview", href: "/dashboard/portfolio", icon: Briefcase },
+      { label: "Overview", href: "/portfolio", icon: Briefcase },
       { label: "FX Exposure", href: "/fx", icon: Globe },
       { label: "Stress Testing", href: "/stress-test", icon: Activity },
       { label: "ESG Dashboard", href: "/esg", icon: Leaf },
@@ -256,31 +256,31 @@ const adminNav: NavSection[] = [
     title: "Deal Pipeline",
     collapsible: true,
     items: [
-      { label: "Deals", href: "/dashboard/deals", icon: FolderKanban },
-      { label: "Smart Screener", href: "/dashboard/screener", icon: ScanSearch },
+      { label: "Deals", href: "/deals", icon: FolderKanban },
+      { label: "Smart Screener", href: "/screener", icon: ScanSearch },
       { label: "Deal Rooms", href: "/deal-rooms", icon: MessageSquare },
       { label: "Comparable Transactions", href: "/comps", icon: GitCompare },
     ],
   },
   {
     items: [
-      { label: "Matching", href: "/dashboard/matching", icon: Zap },
-      { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock },
+      { label: "Matching", href: "/matching", icon: Zap },
+      { label: "Data Room", href: "/data-room", icon: FolderLock },
     ],
   },
   {
     title: "Risk & Compliance",
     collapsible: true,
     items: [
-      { label: "Risk Dashboard", href: "/dashboard/risk", icon: ShieldAlert },
+      { label: "Risk Dashboard", href: "/risk", icon: ShieldAlert },
       { label: "Compliance Calendar", href: "/compliance", icon: Calendar },
     ],
   },
   {
     items: [
-      { label: "Marketplace", href: "/dashboard/marketplace", icon: Store },
+      { label: "Marketplace", href: "/marketplace", icon: Store },
       { label: "Watchlists", href: "/watchlists", icon: Bell },
-      { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+      { label: "Reports", href: "/reports", icon: BarChart3 },
       { label: "Notifications", href: "/notifications", icon: Bell },
     ],
   },
@@ -300,14 +300,14 @@ const adminNav: NavSection[] = [
   },
   {
     title: "AI",
-    items: [{ label: "Ralph AI", href: "/dashboard/ralph", icon: Bot }],
+    items: [{ label: "Ralph AI", href: "/dashboard", icon: Bot }],
   },
   {
     title: "Admin",
     collapsible: true,
     items: [
-      { label: "Admin Panel", href: "/dashboard/admin", icon: ShieldCheck },
-      { label: "Prompt Templates", href: "/dashboard/admin/prompts", icon: FileText },
+      { label: "Admin Panel", href: "/admin", icon: ShieldCheck },
+      { label: "Prompt Templates", href: "/admin/prompts", icon: FileText },
       { label: "Blockchain Audit", href: "/blockchain-audit", icon: Link2 },
       { label: "Gamification", href: "/gamification", icon: Trophy },
     ],
