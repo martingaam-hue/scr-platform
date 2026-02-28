@@ -40,6 +40,7 @@ from app.modules.tokenization.router import router as tokenization_router
 from app.modules.development_os.router import router as development_os_router
 from app.modules.ecosystem.router import router as ecosystem_router
 from app.modules.ralph_ai.router import router as ralph_ai_router
+from app.modules.admin.router import router as admin_router
 
 logger = structlog.get_logger()
 
@@ -100,6 +101,7 @@ app.include_router(tokenization_router)
 app.include_router(development_os_router)
 app.include_router(ecosystem_router)
 app.include_router(ralph_ai_router)
+app.include_router(admin_router)
 
 
 @app.get("/health")
