@@ -26,3 +26,25 @@ variable "redis_node_type" {
   type        = string
   default     = "cache.t4g.micro"
 }
+
+# ── ECS ───────────────────────────────────────────────────────────────────────
+
+variable "api_cpu" {
+  description = "ECS task CPU units for the API service (256 = 0.25 vCPU)"
+  type        = number
+  default     = 512
+}
+
+variable "api_memory" {
+  description = "ECS task memory (MiB) for the API service"
+  type        = number
+  default     = 1024
+}
+
+# ── TLS ───────────────────────────────────────────────────────────────────────
+
+variable "acm_certificate_arn" {
+  description = "ARN of the ACM certificate for the ALB HTTPS listener"
+  type        = string
+  # No default — must be supplied per environment
+}

@@ -79,6 +79,8 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Standalone output bundles the minimal server for Docker production images
+  output: "standalone",
   transpilePackages: ["@scr/ui", "@scr/types"],
   images: {
     remotePatterns: [

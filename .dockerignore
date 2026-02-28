@@ -1,0 +1,51 @@
+# Root-level .dockerignore — applies when build context is the repo root
+# (used by Dockerfile.api and Dockerfile.web in infrastructure/docker/)
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Node (frontend)
+**/node_modules/
+**/.next/
+**/out/
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/.mypy_cache/
+**/.ruff_cache/
+**/.pytest_cache/
+**/*.egg-info/
+
+# Virtual environments
+**/.venv/
+**/venv/
+
+# Test artifacts
+**/coverage.xml
+**/.coverage
+**/htmlcov/
+
+# Secrets & local config
+**/.env
+**/.env.*
+!**/.env.example
+
+# Docker files
+**/Dockerfile*
+**/.dockerignore
+
+# Infrastructure & docs (not needed in app images)
+infrastructure/
+docs/
+*.md
+*.txt
+
+# Editor & OS
+**/.idea/
+**/.vscode/
+**/*.DS_Store
+**/*.swp
+**/.turbo/

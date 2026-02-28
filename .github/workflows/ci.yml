@@ -1,0 +1,290 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9.15.4"
+
+jobs:
+  # ── Backend ──────────────────────────────────────────────────────────────────
+  api-lint:
+    name: API — Lint & Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        run: pip install poetry==1.8.4
+
+      - name: Cache Poetry deps
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: api-poetry-${{ hashFiles('apps/api/poetry.lock') }}
+          restore-keys: api-poetry-
+
+      - name: Install dependencies
+        run: poetry install --with dev
+
+      - name: Ruff lint
+        run: poetry run ruff check .
+
+      - name: Ruff format check
+        run: poetry run ruff format --check .
+
+      - name: Mypy type check
+        run: poetry run mypy app/ --ignore-missing-imports
+
+  api-test:
+    name: API — Tests
+    runs-on: ubuntu-latest
+    needs: api-lint
+    defaults:
+      run:
+        working-directory: apps/api
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: scr_platform_test
+          POSTGRES_USER: scr_user
+          POSTGRES_PASSWORD: scr_password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U scr_user -d scr_platform_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://scr_user:scr_password@localhost:5432/scr_platform_test
+      DATABASE_URL_SYNC: postgresql://scr_user:scr_password@localhost:5432/scr_platform_test
+      REDIS_URL: redis://localhost:6379/0
+      APP_ENV: test
+      APP_DEBUG: "false"
+      SECRET_KEY: ci-test-secret-key-not-for-production
+      CLERK_SECRET_KEY: test_clerk_key
+      CLERK_WEBHOOK_SECRET: test_webhook_secret
+      AI_GATEWAY_API_KEY: test-gateway-key
+      ANTHROPIC_API_KEY: sk-test-not-real
+      OPENAI_API_KEY: sk-test-not-real
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_S3_BUCKET: test-bucket
+      AWS_S3_ENDPOINT_URL: http://localhost:9000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        run: pip install poetry==1.8.4
+
+      - name: Cache Poetry deps
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: api-poetry-${{ hashFiles('apps/api/poetry.lock') }}
+          restore-keys: api-poetry-
+
+      - name: Install dependencies
+        run: poetry install --with dev
+
+      - name: Apply DB migrations
+        run: poetry run alembic upgrade head
+
+      - name: Run tests with coverage
+        run: |
+          poetry run pytest \
+            --cov=app \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            -v \
+            --tb=short
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: apps/api/coverage.xml
+          flags: api
+
+  api-security:
+    name: API — Dependency Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry + pip-audit
+        run: |
+          pip install poetry==1.8.4 pip-audit
+
+      - name: Export requirements for audit
+        run: poetry export -f requirements.txt --without-hashes -o requirements.txt
+
+      - name: Run pip-audit
+        run: pip-audit -r requirements.txt --ignore-vuln PYSEC-2022-42969
+
+  # ── AI Gateway ────────────────────────────────────────────────────────────────
+  gateway-lint:
+    name: AI Gateway — Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ai-gateway
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        run: pip install poetry==1.8.4
+
+      - name: Cache Poetry deps
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: gateway-poetry-${{ hashFiles('services/ai-gateway/poetry.lock') }}
+          restore-keys: gateway-poetry-
+
+      - name: Install dependencies
+        run: poetry install --with dev
+
+      - name: Ruff lint
+        run: poetry run ruff check .
+
+  # ── Frontend ──────────────────────────────────────────────────────────────────
+  web-lint:
+    name: Web — Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm --filter @scr/web exec tsc --noEmit
+
+      - name: ESLint
+        run: pnpm --filter @scr/web lint
+
+  web-build:
+    name: Web — Build
+    runs-on: ubuntu-latest
+    needs: web-lint
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: |
+          pnpm --filter @scr/types build
+          pnpm --filter @scr/ui build
+
+      - name: Build Next.js app
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+          # Dummy Clerk keys for build (no actual auth during build)
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+          CLERK_SECRET_KEY: sk_test_placeholder
+        run: pnpm --filter @scr/web build
+
+  web-security:
+    name: Web — Dependency Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level moderate
+
+  # ── Summary gate ──────────────────────────────────────────────────────────────
+  ci-passed:
+    name: CI Passed
+    runs-on: ubuntu-latest
+    needs:
+      - api-test
+      - api-security
+      - gateway-lint
+      - web-build
+      - web-security
+    steps:
+      - run: echo "All CI checks passed ✓"

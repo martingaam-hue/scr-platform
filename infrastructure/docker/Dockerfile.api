@@ -1,22 +1,58 @@
+# SCR Platform — FastAPI API
+# Build context: repo root (required for monorepo paths)
+# docker build -f infrastructure/docker/Dockerfile.api -t scr-api .
+
 FROM python:3.12-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    POETRY_VERSION=1.8.4 \
     POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_CREATE=false
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
 
-RUN pip install --no-cache-dir poetry==1.8.4
-ENV PATH="$POETRY_HOME/bin:$PATH"
+# curl for HEALTHCHECK
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
+
+# ── Dependencies (separate layer → better cache hit rate) ────────────────────
+FROM base AS deps
+
+WORKDIR /build
+
+COPY apps/api/pyproject.toml apps/api/poetry.lock ./
+
+RUN poetry install --only main --no-root
+
+# ── Final image ───────────────────────────────────────────────────────────────
+FROM base AS final
+
+# Drop privileges: never run as root in production
+RUN groupadd -r scr && useradd -r -g scr -d /app -s /sbin/nologin scr
 
 WORKDIR /app
 
-# Install dependencies first (cache layer)
-COPY apps/api/pyproject.toml apps/api/poetry.lock* ./
-RUN poetry install --no-interaction --no-ansi --only main
+# Copy installed Python packages from deps stage
+COPY --from=deps /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=deps /usr/local/bin /usr/local/bin
 
-# Copy application code
-COPY apps/api/ ./
+# Copy application code (after deps so code changes don't bust the package cache)
+COPY --chown=scr:scr apps/api/ .
+
+USER scr
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# --proxy-headers + --forwarded-allow-ips so X-Forwarded-For from ALB is trusted
+CMD ["uvicorn", "app.main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--workers", "4", \
+     "--proxy-headers", \
+     "--forwarded-allow-ips", "*"]
