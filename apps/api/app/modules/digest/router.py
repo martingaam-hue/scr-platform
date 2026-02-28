@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 
 import structlog
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_permission
@@ -16,6 +18,11 @@ from app.schemas.auth import CurrentUser
 logger = structlog.get_logger()
 
 router = APIRouter(prefix="/digest", tags=["digest"])
+
+
+class DigestPreferences(BaseModel):
+    is_subscribed: bool = True
+    frequency: Literal["daily", "weekly", "monthly"] = "weekly"
 
 
 @router.get("/preview")
@@ -70,3 +77,32 @@ async def trigger_digest(
         "narrative": narrative,
         "data": data,
     }
+
+
+# ── Digest preferences ─────────────────────────────────────────────────────────
+
+
+@router.get("/preferences", response_model=DigestPreferences)
+async def get_digest_preferences(
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the current user's digest subscription preferences."""
+    prefs = await service.get_preferences(db, current_user.user_id)
+    return DigestPreferences(**prefs)
+
+
+@router.put("/preferences", response_model=DigestPreferences)
+async def update_digest_preferences(
+    body: DigestPreferences,
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update digest subscription preferences (opt-in/out, frequency)."""
+    try:
+        updated = await service.update_preferences(
+            db, current_user.user_id, body.is_subscribed, body.frequency
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return DigestPreferences(**updated)

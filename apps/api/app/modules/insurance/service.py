@@ -411,3 +411,143 @@ async def get_insurance_impact_analysis(
 ) -> InsuranceImpactResponse:
     """Alias used by ralph_ai/tools.py via risk service."""
     return await get_insurance_impact(db, org_id, project_id)
+
+
+# ── Quote CRUD ─────────────────────────────────────────────────────────────────
+
+async def create_quote(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    body: "QuoteCreate",
+) -> "InsuranceQuote":
+    from app.models.advisory import InsuranceQuote
+    from app.models.enums import InsuranceSide
+    from app.modules.insurance.schemas import QuoteCreate
+
+    quote = InsuranceQuote(
+        org_id=org_id,
+        project_id=body.project_id,
+        provider_name=body.provider_name,
+        coverage_type=body.coverage_type,
+        coverage_amount=body.coverage_amount,
+        quoted_premium=body.quoted_premium,
+        currency=body.currency,
+        valid_until=body.valid_until,
+        terms=body.terms or {},
+        side=InsuranceSide(body.side),
+    )
+    db.add(quote)
+    await db.commit()
+    await db.refresh(quote)
+    return quote
+
+
+async def list_quotes(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    project_id: uuid.UUID | None = None,
+) -> list["InsuranceQuote"]:
+    from app.models.advisory import InsuranceQuote
+
+    stmt = select(InsuranceQuote).where(
+        InsuranceQuote.org_id == org_id,
+        InsuranceQuote.is_deleted.is_(False),
+    )
+    if project_id is not None:
+        stmt = stmt.where(InsuranceQuote.project_id == project_id)
+    result = await db.execute(stmt.order_by(InsuranceQuote.created_at.desc()))
+    return list(result.scalars().all())
+
+
+async def delete_quote(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    quote_id: uuid.UUID,
+) -> None:
+    from app.models.advisory import InsuranceQuote
+
+    result = await db.execute(
+        select(InsuranceQuote).where(
+            InsuranceQuote.id == quote_id,
+            InsuranceQuote.org_id == org_id,
+            InsuranceQuote.is_deleted.is_(False),
+        )
+    )
+    quote = result.scalar_one_or_none()
+    if not quote:
+        raise LookupError(f"Quote {quote_id} not found")
+    quote.is_deleted = True
+    await db.commit()
+
+
+# ── Policy CRUD ────────────────────────────────────────────────────────────────
+
+async def create_policy(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    body: "PolicyCreate",
+) -> "InsurancePolicy":
+    from app.models.advisory import InsurancePolicy
+    from app.models.enums import InsurancePolicyStatus, InsurancePremiumFrequency, InsuranceSide
+    from app.modules.insurance.schemas import PolicyCreate
+
+    policy = InsurancePolicy(
+        org_id=org_id,
+        quote_id=body.quote_id,
+        project_id=body.project_id,
+        portfolio_id=body.portfolio_id,
+        policy_number=body.policy_number,
+        provider_name=body.provider_name,
+        coverage_type=body.coverage_type,
+        coverage_amount=body.coverage_amount,
+        premium_amount=body.premium_amount,
+        premium_frequency=InsurancePremiumFrequency(body.premium_frequency),
+        start_date=body.start_date,
+        end_date=body.end_date,
+        status=InsurancePolicyStatus.ACTIVE,
+        risk_score_impact=0,
+        terms=body.terms or {},
+        side=InsuranceSide(body.side),
+    )
+    db.add(policy)
+    await db.commit()
+    await db.refresh(policy)
+    return policy
+
+
+async def list_policies(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    project_id: uuid.UUID | None = None,
+) -> list["InsurancePolicy"]:
+    from app.models.advisory import InsurancePolicy
+
+    stmt = select(InsurancePolicy).where(
+        InsurancePolicy.org_id == org_id,
+        InsurancePolicy.is_deleted.is_(False),
+    )
+    if project_id is not None:
+        stmt = stmt.where(InsurancePolicy.project_id == project_id)
+    result = await db.execute(stmt.order_by(InsurancePolicy.created_at.desc()))
+    return list(result.scalars().all())
+
+
+async def delete_policy(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    policy_id: uuid.UUID,
+) -> None:
+    from app.models.advisory import InsurancePolicy
+
+    result = await db.execute(
+        select(InsurancePolicy).where(
+            InsurancePolicy.id == policy_id,
+            InsurancePolicy.org_id == org_id,
+            InsurancePolicy.is_deleted.is_(False),
+        )
+    )
+    policy = result.scalar_one_or_none()
+    if not policy:
+        raise LookupError(f"Policy {policy_id} not found")
+    policy.is_deleted = True
+    await db.commit()

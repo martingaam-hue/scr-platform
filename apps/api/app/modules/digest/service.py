@@ -132,3 +132,52 @@ def _fallback_summary(data: dict[str, Any]) -> str:
     if docs:
         parts.append(f"uploaded {docs} document{'s' if docs != 1 else ''}")
     return ", ".join(parts) + "."
+
+
+# ── Digest preferences ─────────────────────────────────────────────────────────
+
+_DEFAULT_PREFS: dict[str, Any] = {
+    "is_subscribed": True,
+    "frequency": "weekly",
+}
+
+
+async def get_preferences(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+) -> dict[str, Any]:
+    """Return digest preferences stored in user.preferences['digest']."""
+    from app.models.core import User
+
+    user = await db.get(User, user_id)
+    if not user:
+        return dict(_DEFAULT_PREFS)
+    prefs = user.preferences or {}
+    return prefs.get("digest", dict(_DEFAULT_PREFS))
+
+
+async def update_preferences(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    is_subscribed: bool,
+    frequency: str,
+) -> dict[str, Any]:
+    """Persist digest preferences in user.preferences['digest'].
+
+    Also updates the legacy ``email_digest_enabled`` top-level key so that
+    the ``tasks.send_weekly_digests`` Celery beat task continues to honour
+    the opt-in/out setting.
+    """
+    from app.models.core import User
+
+    user = await db.get(User, user_id)
+    if not user:
+        raise LookupError(f"User {user_id} not found")
+
+    prefs = dict(user.preferences or {})
+    prefs["digest"] = {"is_subscribed": is_subscribed, "frequency": frequency}
+    # Legacy key used by weekly_digest.py Celery task
+    prefs["email_digest_enabled"] = is_subscribed
+    user.preferences = prefs
+    await db.commit()
+    return prefs["digest"]

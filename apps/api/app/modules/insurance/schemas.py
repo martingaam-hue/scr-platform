@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ── Coverage Types ─────────────────────────────────────────────────────────────
@@ -81,3 +82,74 @@ class InsuranceSummaryResponse(BaseModel):
     currency: str
     coverage_gaps: list[str]
     top_recommendation: str | None
+
+
+# ── Quote CRUD ─────────────────────────────────────────────────────────────────
+
+
+class QuoteCreate(BaseModel):
+    project_id: uuid.UUID | None = None
+    provider_name: str
+    coverage_type: str
+    coverage_amount: Decimal
+    quoted_premium: Decimal
+    currency: str = "USD"
+    valid_until: date | None = None
+    terms: dict[str, Any] = {}
+    side: str = "investor"  # ally | investor
+
+
+class QuoteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    org_id: uuid.UUID
+    project_id: uuid.UUID | None
+    provider_name: str
+    coverage_type: str
+    coverage_amount: Decimal
+    quoted_premium: Decimal
+    currency: str
+    valid_until: date | None
+    terms: dict[str, Any] | None
+    side: str
+    created_at: datetime
+
+
+# ── Policy CRUD ────────────────────────────────────────────────────────────────
+
+
+class PolicyCreate(BaseModel):
+    quote_id: uuid.UUID
+    project_id: uuid.UUID | None = None
+    portfolio_id: uuid.UUID | None = None
+    policy_number: str
+    provider_name: str
+    coverage_type: str
+    coverage_amount: Decimal
+    premium_amount: Decimal
+    premium_frequency: str = "annual"  # monthly | quarterly | annual
+    start_date: date
+    end_date: date
+    side: str = "investor"  # ally | investor
+    terms: dict[str, Any] = {}
+
+
+class PolicyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    org_id: uuid.UUID
+    quote_id: uuid.UUID
+    project_id: uuid.UUID | None
+    portfolio_id: uuid.UUID | None
+    policy_number: str
+    provider_name: str
+    coverage_type: str
+    coverage_amount: Decimal
+    premium_amount: Decimal
+    premium_frequency: str
+    start_date: date
+    end_date: date
+    status: str
+    risk_score_impact: Decimal
+    side: str
+    created_at: datetime

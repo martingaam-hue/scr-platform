@@ -269,6 +269,7 @@ const PROJECT_SUB_ITEMS = [
   { label: "Meeting Prep", segment: "meeting-prep", icon: Calendar },
   { label: "Certification", segment: "certification", icon: FileCheck },
   { label: "Carbon", segment: "carbon", icon: Leaf },
+  { label: "Insurance", segment: "insurance", icon: Umbrella },
 ] as const;
 
 function ProjectSubNav({
