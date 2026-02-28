@@ -69,6 +69,8 @@ from app.modules.watchlists.router import router as watchlists_router
 from app.modules.blockchain_audit.router import router as blockchain_audit_router
 from app.modules.voice_input.router import router as voice_input_router
 from app.modules.gamification.router import router as gamification_router
+from app.modules.insurance.router import router as insurance_router
+from app.modules.digest.router import router as digest_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -175,6 +177,8 @@ app.include_router(watchlists_router)
 app.include_router(blockchain_audit_router)
 app.include_router(voice_input_router)
 app.include_router(gamification_router)
+app.include_router(insurance_router)
+app.include_router(digest_router)
 
 
 @app.get("/health")

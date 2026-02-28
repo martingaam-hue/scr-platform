@@ -323,3 +323,112 @@ def _resolve_model(task_type: str, explicit_model: str | None) -> str:
     if explicit_model:
         return explicit_model
     return MODEL_ROUTING.get(task_type, settings.AI_DEFAULT_MODEL)
+
+
+# ── Batch completions ─────────────────────────────────────────────────────────
+
+
+class BatchCompletionRequest(BaseModel):
+    task_type: str = Field(default="classify_document")
+    contexts: list[dict[str, Any]]  # one context dict per item
+    max_batch_size: int | None = None
+    org_id: str = ""
+    org_tier: str = Field(default="professional", pattern="^(foundation|professional|enterprise)$")
+
+
+class BatchCompletionResponse(BaseModel):
+    results: list[dict[str, Any]]
+    task_type: str
+    total: int
+    batched: bool
+
+
+class _LLMClientAdapter:
+    """Adapts route_completion to the TaskBatcher.llm.complete() interface."""
+
+    async def complete(
+        self,
+        model: str,
+        messages: list[dict[str, Any]],
+        temperature: float = 0.1,
+        max_tokens: int = 4096,
+        task_type: str | None = None,
+    ) -> "_CompletionResult":
+        result = await route_completion(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            task_type=task_type,
+        )
+        return _CompletionResult(
+            content=result["content"],
+            validated_data=result.get("validated_data"),
+        )
+
+
+class _CompletionResult:
+    def __init__(self, content: str, validated_data: dict[str, Any] | None = None) -> None:
+        self.content = content
+        self.validated_data = validated_data
+
+
+@router.post("/completions/batch", response_model=BatchCompletionResponse)
+async def batch_completions(
+    request: BatchCompletionRequest,
+    _api_key: str = Depends(verify_gateway_key),
+) -> BatchCompletionResponse:
+    """Batch multiple same-type tasks into efficient grouped LLM calls.
+
+    Batchable task types: classify_document, extract_kpis, summarize_document,
+    explain_match, insurance_risk_impact, risk_monitoring_analysis.
+    Non-batchable tasks are processed individually.
+    """
+    from app.task_batcher import BATCHABLE_TASKS, TaskBatcher
+
+    if not request.contexts:
+        return BatchCompletionResponse(
+            results=[], task_type=request.task_type, total=0, batched=False
+        )
+
+    if request.org_id:
+        limiter = get_rate_limiter()
+        try:
+            await limiter.check_and_increment(request.org_id, request.org_tier)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e)) from e
+        except Exception:
+            pass
+
+    llm_adapter = _LLMClientAdapter()
+    batcher = TaskBatcher(llm_client=llm_adapter)
+
+    is_batched = request.task_type in BATCHABLE_TASKS and len(request.contexts) > 1
+
+    logger.info(
+        "batch_completion_request",
+        task_type=request.task_type,
+        count=len(request.contexts),
+        batched=is_batched,
+        org_id=request.org_id,
+    )
+
+    try:
+        results = await batcher.batch_complete(
+            task_type=request.task_type,
+            contexts=request.contexts,
+            max_batch_size=request.max_batch_size,
+        )
+    except Exception as e:
+        logger.error("batch_completion_failed", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Batch processing error: {e}",
+        ) from e
+
+    return BatchCompletionResponse(
+        results=results,
+        task_type=request.task_type,
+        total=len(results),
+        batched=is_batched,
+    )

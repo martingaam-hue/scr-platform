@@ -240,6 +240,7 @@ class MatchStatus(str, enum.Enum):
     INTERESTED = "interested"
     INTRO_REQUESTED = "intro_requested"
     ENGAGED = "engaged"
+    MEETING_SCHEDULED = "meeting_scheduled"
     PASSED = "passed"
     DECLINED = "declined"
 

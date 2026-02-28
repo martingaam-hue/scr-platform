@@ -97,6 +97,42 @@ async def test_connector(
         raise HTTPException(status_code=502, detail=str(exc))
 
 
+class IngestRequest(BaseModel):
+    project_id: uuid.UUID
+    endpoint: str
+    params: dict[str, Any] | None = None
+    folder_id: uuid.UUID | None = None
+
+
+@router.post("/{connector_id}/ingest", status_code=status.HTTP_201_CREATED)
+async def ingest_to_dataroom(
+    connector_id: uuid.UUID,
+    body: IngestRequest,
+    current_user: CurrentUser = Depends(require_permission("upload", "document")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Fetch data from a connector and save it as a JSON document in the dataroom.
+
+    Returns the created document ID so you can navigate to it in the data room.
+    """
+    try:
+        result = await service.ingest_to_dataroom(
+            db,
+            current_user.org_id,
+            current_user.user_id,
+            connector_id,
+            body.project_id,
+            body.endpoint,
+            body.params,
+            body.folder_id,
+        )
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
 @router.get("/usage")
 async def get_usage(
     current_user: CurrentUser = Depends(require_permission("view", "admin")),

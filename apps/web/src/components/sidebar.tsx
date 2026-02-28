@@ -35,6 +35,17 @@ import {
   Bell,
   Trophy,
   Mic,
+  Calculator,
+  DollarSign,
+  Target,
+  Monitor,
+  Link2,
+  CreditCard,
+  Coins,
+  UserCheck,
+  Sparkles,
+  Zap,
+  Network,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -77,8 +88,21 @@ const investorNav: NavSection[] = [
       { label: "Deal Flow", href: "/analytics/deal-flow", icon: TrendingUp },
       { label: "LP Reports", href: "/reports/lp", icon: FileText },
       { label: "Comps DB", href: "/comps", icon: GitCompare },
+      { label: "ESG Dashboard", href: "/esg", icon: Leaf },
+      { label: "Impact", href: "/impact", icon: Target },
       { label: "FX Exposure", href: "/portfolio/fx", icon: Globe },
       { label: "Stress Test", href: "/portfolio/stress-test", icon: Activity },
+    ],
+  },
+  {
+    title: "Investor Tools",
+    items: [
+      { label: "Signal Score", href: "/investor-signal-score", icon: Sparkles },
+      { label: "Board Advisor", href: "/board-advisor", icon: UserCheck },
+      { label: "Investor Personas", href: "/investor-personas", icon: Users },
+      { label: "Equity Calculator", href: "/equity-calculator", icon: Calculator },
+      { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },
+      { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
     ],
   },
   {
@@ -86,6 +110,7 @@ const investorNav: NavSection[] = [
     items: [
       { label: "Warm Intros", href: "/warm-intros", icon: Users },
       { label: "Deal Rooms", href: "/deal-rooms", icon: MessageSquare },
+      { label: "Ecosystem", href: "/ecosystem", icon: Network },
     ],
   },
   {
@@ -119,8 +144,20 @@ const allyNav: NavSection[] = [
     items: [
       { label: "Deal Rooms", href: "/deal-rooms", icon: MessageSquare },
       { label: "Compliance", href: "/compliance", icon: Shield },
+      { label: "Tax Credits", href: "/tax-credits", icon: CreditCard },
+      { label: "Board Advisor", href: "/board-advisor", icon: UserCheck },
+      { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
+      { label: "Dev OS", href: "/development-os", icon: Monitor },
       { label: "Score & Badges", href: "/gamification", icon: Trophy },
       { label: "Voice Input", href: "/onboarding/voice", icon: Mic },
+    ],
+  },
+  {
+    title: "Impact",
+    items: [
+      { label: "ESG Dashboard", href: "/esg", icon: Leaf },
+      { label: "Impact", href: "/impact", icon: Target },
+      { label: "Ecosystem", href: "/ecosystem", icon: Network },
     ],
   },
   {
@@ -149,8 +186,22 @@ const adminNav: NavSection[] = [
       { label: "Deal Flow", href: "/analytics/deal-flow", icon: TrendingUp },
       { label: "LP Reports", href: "/reports/lp", icon: FileText },
       { label: "Comps DB", href: "/comps", icon: GitCompare },
+      { label: "ESG Dashboard", href: "/esg", icon: Leaf },
+      { label: "Impact", href: "/impact", icon: Target },
       { label: "FX Exposure", href: "/portfolio/fx", icon: Globe },
       { label: "Stress Test", href: "/portfolio/stress-test", icon: Activity },
+    ],
+  },
+  {
+    title: "Investor Tools",
+    items: [
+      { label: "Signal Score", href: "/investor-signal-score", icon: Sparkles },
+      { label: "Board Advisor", href: "/board-advisor", icon: UserCheck },
+      { label: "Investor Personas", href: "/investor-personas", icon: Users },
+      { label: "Equity Calculator", href: "/equity-calculator", icon: Calculator },
+      { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },
+      { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
+      { label: "Tax Credits", href: "/tax-credits", icon: CreditCard },
     ],
   },
   {
@@ -158,6 +209,7 @@ const adminNav: NavSection[] = [
     items: [
       { label: "Warm Intros", href: "/warm-intros", icon: Users },
       { label: "Deal Rooms", href: "/deal-rooms", icon: MessageSquare },
+      { label: "Ecosystem", href: "/ecosystem", icon: Network },
     ],
   },
   {
@@ -167,6 +219,7 @@ const adminNav: NavSection[] = [
       { label: "Watchlists", href: "/watchlists", icon: Bell },
       { label: "Connectors", href: "/connectors", icon: Plug },
       { label: "Score & Badges", href: "/gamification", icon: Trophy },
+      { label: "Dev OS", href: "/development-os", icon: Monitor },
     ],
   },
   {
@@ -177,6 +230,7 @@ const adminNav: NavSection[] = [
     title: "Admin",
     items: [
       { label: "Admin Panel", href: "/dashboard/admin", icon: ShieldCheck },
+      { label: "Blockchain Audit", href: "/blockchain-audit", icon: Link2 },
     ],
   },
 ];

@@ -517,6 +517,68 @@ async def bulk_upload(
 
 
 @router.post(
+    "/bulk/analyze",
+    dependencies=[Depends(require_permission("view", "document"))],
+)
+async def bulk_analyze(
+    body: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Run batched AI analysis on multiple documents using the Task Batcher.
+
+    Body: {"document_ids": ["uuid", ...], "task_type": "classify_document"}
+    Sends all documents to the AI Gateway /completions/batch endpoint in one call.
+    """
+    import httpx
+    from app.core.config import settings
+
+    document_ids: list[str] = body.get("document_ids", [])
+    task_type: str = body.get("task_type", "classify_document")
+
+    if not document_ids:
+        return {"results": [], "task_type": task_type, "total": 0}
+
+    # Verify all docs belong to this org and gather text snippets
+    contexts: list[dict] = []
+    for doc_id_str in document_ids[:20]:  # cap at 20
+        try:
+            doc = await service.get_document_detail(
+                db, uuid.UUID(doc_id_str), current_user.org_id
+            )
+            contexts.append({
+                "document_id": doc_id_str,
+                "filename": doc.name,
+                "document_preview": (doc.metadata_ or {}).get("extracted_text", "")[:2000],
+                "file_type": doc.file_type or "unknown",
+            })
+        except (LookupError, ValueError):
+            pass
+
+    if not contexts:
+        return {"results": [], "task_type": task_type, "total": 0}
+
+    if not settings.AI_GATEWAY_URL or not settings.AI_GATEWAY_API_KEY:
+        return {"results": [], "task_type": task_type, "total": 0, "error": "AI gateway not configured"}
+
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                f"{settings.AI_GATEWAY_URL}/v1/completions/batch",
+                json={
+                    "task_type": task_type,
+                    "contexts": contexts,
+                    "org_id": str(current_user.org_id),
+                },
+                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Batch analysis failed: {exc}")
+
+
+@router.post(
     "/bulk/move",
     response_model=BulkOperationResponse,
     dependencies=[Depends(require_permission("edit", "document"))],
@@ -620,6 +682,58 @@ async def get_extractions(
                 for e in extractions
             ]
         )
+    except LookupError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get(
+    "/documents/{document_id}/analyses",
+    dependencies=[Depends(require_permission("view", "document"))],
+)
+async def get_cached_analyses(
+    document_id: uuid.UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return all cached cross-module AI analyses for a document."""
+    try:
+        await service.get_document_detail(db, document_id, current_user.org_id)
+        from app.services.analysis_cache import make_analysis_cache
+        cache = make_analysis_cache(db)
+        analyses = await cache.get_all_analyses(document_id)
+        return {"document_id": str(document_id), "analyses": analyses}
+    except LookupError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post(
+    "/documents/{document_id}/analyses",
+    dependencies=[Depends(require_permission("view", "document"))],
+)
+async def run_cached_analysis(
+    document_id: uuid.UUID,
+    body: dict,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Run (or retrieve cached) AI analysis for a specific type.
+
+    Body: {"analysis_type": "quality_assessment", "context": {}, "force_refresh": false}
+    """
+    analysis_type = body.get("analysis_type", "quality_assessment")
+    context = body.get("context", {})
+    force_refresh = body.get("force_refresh", False)
+    try:
+        await service.get_document_detail(db, document_id, current_user.org_id)
+        from app.services.analysis_cache import make_analysis_cache
+        cache = make_analysis_cache(db)
+        result = await cache.get_or_analyze(
+            document_id=document_id,
+            analysis_type=analysis_type,
+            context=context,
+            force_refresh=force_refresh,
+        )
+        return {"document_id": str(document_id), "analysis_type": analysis_type, **result}
     except LookupError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 

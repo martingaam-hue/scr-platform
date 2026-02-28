@@ -11,6 +11,7 @@ from typing import Any
 
 import httpx
 import structlog
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.modules.valuation.schemas import AssumptionSuggestion
@@ -30,6 +31,7 @@ class ValuationAIAssistant:
         project_type: str,
         geography: str,
         stage: str,
+        db: AsyncSession | None = None,
     ) -> AssumptionSuggestion:
         """
         Ask Claude for reasonable DCF assumptions given project context.
@@ -67,16 +69,31 @@ Respond ONLY with valid JSON in this exact structure:
   }}
 }}"""
 
+        # Try PromptRegistry when db is available
+        _registry_messages: list[dict] = []
+        _template_id: str | None = None
+        if db is not None:
+            try:
+                from app.services.prompt_registry import PromptRegistry
+                _reg = PromptRegistry(db)
+                _registry_messages, _template_id, _ = await _reg.render(
+                    "suggest_assumptions",
+                    {"project_type": project_type, "geography": geography, "stage": stage},
+                )
+            except Exception:
+                pass
+
+        _payload: dict = {"task_type": "analysis", "max_tokens": 600, "temperature": 0.2}
+        if _registry_messages:
+            _payload["messages"] = _registry_messages
+        else:
+            _payload["prompt"] = prompt
+
         try:
             async with httpx.AsyncClient(timeout=self._TIMEOUT) as client:
                 resp = await client.post(
                     f"{settings.AI_GATEWAY_URL}/v1/completions",
-                    json={
-                        "prompt": prompt,
-                        "task_type": "analysis",
-                        "max_tokens": 600,
-                        "temperature": 0.2,
-                    },
+                    json=_payload,
                     headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
                 )
                 resp.raise_for_status()
@@ -193,12 +210,56 @@ Do NOT use bullet points. Output plain prose only."""
     # ── Comparable suggestions ────────────────────────────────────────────────
 
     async def find_comparables(
-        self, project_type: str, geography: str, stage: str
+        self,
+        project_type: str,
+        geography: str,
+        stage: str,
+        db: AsyncSession | None = None,
     ) -> list[dict[str, Any]]:
         """
         Suggest representative comparable transactions for the given project context.
         Returns a list of comparable company dicts with multiple estimates.
         """
+        # ── Step 1: Query comparable_transactions DB first ────────────────────
+        if db is not None:
+            try:
+                from sqlalchemy import or_, select
+                from app.models.comps import ComparableTransaction
+
+                stmt = (
+                    select(ComparableTransaction)
+                    .where(
+                        ComparableTransaction.is_deleted.is_(False),
+                        ComparableTransaction.org_id.is_(None),  # global comps
+                        or_(
+                            ComparableTransaction.asset_type == project_type,
+                            ComparableTransaction.asset_type.ilike(f"%{project_type}%"),
+                        ),
+                    )
+                    .order_by(ComparableTransaction.close_year.desc().nullslast())
+                    .limit(8)
+                )
+                result = await db.execute(stmt)
+                db_comps = result.scalars().all()
+                if db_comps:
+                    return [
+                        {
+                            "name": c.deal_name,
+                            "ev_ebitda": c.ebitda_multiple,
+                            "ev_mw": c.ev_per_mw,
+                            "ev_revenue": None,
+                            "geography": c.geography,
+                            "transaction_date": str(c.close_year) if c.close_year else None,
+                            "notes": c.description or f"{c.stage_at_close or ''} {c.offtake_type or ''}".strip(),
+                            "source": c.source,
+                            "data_quality": c.data_quality,
+                        }
+                        for c in db_comps
+                    ]
+            except Exception as exc:
+                logger.warning("find_comparables_db_failed", error=str(exc))
+
+        # ── Step 2: Fall back to AI ────────────────────────────────────────────
         prompt = f"""You are a private markets M&A advisor specializing in alternative investments.
 
 List 4-5 representative comparable transactions or publicly traded companies for:

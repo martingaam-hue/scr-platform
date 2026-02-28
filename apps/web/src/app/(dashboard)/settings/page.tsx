@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import {
   Building2,
   Copy,
   Key,
+  Loader2,
+  Mail,
   Plus,
   Shield,
   Trash2,
@@ -12,6 +15,7 @@ import {
   Users,
   Check,
 } from "lucide-react";
+import { api } from "@/lib/api";
 import {
   Badge,
   Button,
@@ -829,7 +833,84 @@ function PreferencesTab() {
           </span>
         )}
       </div>
+
+      {/* Digest Preview */}
+      <DigestPreviewCard />
     </div>
+  );
+}
+
+// ── Digest Preview ─────────────────────────────────────────────────────────
+
+interface DigestResult {
+  status: string;
+  days: number;
+  narrative: string;
+  data: Record<string, unknown>;
+}
+
+function DigestPreviewCard() {
+  const [result, setResult] = useState<DigestResult | null>(null);
+
+  const trigger = useMutation({
+    mutationFn: () =>
+      api.post<DigestResult>("/digest/trigger?days=7").then((r) => r.data),
+    onSuccess: (data) => setResult(data),
+  });
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-neutral-900 flex items-center gap-2">
+              <Mail className="h-4 w-4 text-neutral-500" />
+              Digest Preview
+            </h2>
+            <p className="text-xs text-neutral-500 mt-1">
+              Generate a preview of your weekly activity digest.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => trigger.mutate()}
+            disabled={trigger.isPending}
+            className="h-8 text-xs"
+          >
+            {trigger.isPending ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                Generating…
+              </>
+            ) : (
+              "Generate Preview"
+            )}
+          </Button>
+        </div>
+
+        {result && (
+          <div className="rounded-lg bg-neutral-50 border border-neutral-200 p-4 space-y-3">
+            <p className="text-sm text-neutral-800 leading-relaxed italic">
+              "{result.narrative}"
+            </p>
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-neutral-200">
+              <div className="text-center">
+                <p className="text-xl font-bold text-primary-600">
+                  {(result.data as { ai_tasks_completed?: number }).ai_tasks_completed ?? 0}
+                </p>
+                <p className="text-xs text-neutral-500">AI tasks completed</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold text-primary-600">
+                  {(result.data as { new_projects?: number }).new_projects ?? 0}
+                </p>
+                <p className="text-xs text-neutral-500">New projects</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

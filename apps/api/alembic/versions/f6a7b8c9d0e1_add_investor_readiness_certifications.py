@@ -8,6 +8,11 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+revision = "f6a7b8c9d0e1"
+down_revision = "f3a9d1e72b08"
+branch_labels = None
+depends_on = None
+
 
 def upgrade():
     op.create_table(

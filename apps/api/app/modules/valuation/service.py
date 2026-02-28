@@ -337,9 +337,19 @@ async def trigger_report(
 # ── AI helpers ────────────────────────────────────────────────────────────────
 
 
-async def suggest_assumptions(project_type: str, geography: str, stage: str):
-    return await _ai.suggest_assumptions(project_type, geography, stage)
+async def suggest_assumptions(
+    project_type: str,
+    geography: str,
+    stage: str,
+    db: "AsyncSession | None" = None,
+):
+    return await _ai.suggest_assumptions(project_type, geography, stage, db=db)
 
 
-async def find_comparables(project_type: str, geography: str, stage: str):
-    return await _ai.find_comparables(project_type, geography, stage)
+async def find_comparables(
+    project_type: str,
+    geography: str,
+    stage: str,
+    db: "AsyncSession | None" = None,
+):
+    return await _ai.find_comparables(project_type, geography, stage, db=db)

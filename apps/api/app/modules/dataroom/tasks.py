@@ -99,7 +99,10 @@ def process_document(self, document_id: str) -> dict:
                 processing_time_ms=30,
             ))
 
-            # Step 6: Mark as ready
+            # Step 6: Index in vector store for RAG search
+            _index_in_vector_store(doc, text_content, classification)
+
+            # Step 7: Mark as ready
             doc.status = DocumentStatus.READY
             doc.classification = classification
             session.commit()
@@ -469,3 +472,60 @@ def trigger_extraction(self, document_id: str, extraction_types: list[str] | Non
             session.rollback()
             logger.error("extraction_failed", document_id=document_id, error=str(exc))
             raise self.retry(exc=exc)
+
+
+# ── Vector Store Indexing ────────────────────────────────────────────────────
+
+
+def _index_in_vector_store(doc, text_content: str, classification: str) -> None:
+    """Send document text to AI Gateway for vector indexing (RAG support).
+
+    This call is non-blocking — a failure here does NOT fail document processing.
+    Documents without extracted text are silently skipped.
+    """
+    import httpx
+
+    if not text_content or text_content.startswith("["):
+        # No real text content (placeholder, image OCR, etc.) — skip indexing
+        logger.info(
+            "rag_index_skipped",
+            document_id=str(doc.id),
+            reason="no_extractable_text",
+        )
+        return
+
+    payload = {
+        "document_id": str(doc.id),
+        "text": text_content[:50_000],  # Truncate to avoid gateway limits
+        "org_id": str(doc.org_id),
+        "index_type": "document_chunks",
+        "metadata": {
+            "document_name": doc.name,
+            "file_type": doc.file_type,
+            "classification": classification,
+            "project_id": str(doc.project_id) if doc.project_id else None,
+            "s3_key": doc.s3_key,
+        },
+    }
+
+    try:
+        with httpx.Client(timeout=30) as client:
+            resp = client.post(
+                f"{settings.AI_GATEWAY_URL}/v1/ingest",
+                json=payload,
+                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            logger.info(
+                "rag_index_success",
+                document_id=str(doc.id),
+                chunks_stored=data.get("chunks_stored", 0),
+            )
+    except Exception as exc:
+        # Non-fatal — document still becomes READY; RAG search just won't include it
+        logger.warning(
+            "rag_index_failed",
+            document_id=str(doc.id),
+            error=str(exc),
+        )

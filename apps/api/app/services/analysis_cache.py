@@ -19,10 +19,13 @@ Usage from any module:
 from __future__ import annotations
 
 import asyncio
+import json
+import re
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+import httpx
 import structlog
 from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +34,69 @@ from app.models.dataroom import Document, DocumentExtraction
 from app.models.enums import DocumentStatus
 
 logger = structlog.get_logger()
+
+
+class AsyncGatewayClient:
+    """Async AI Gateway adapter satisfying DocumentAnalysisCache._ai interface."""
+
+    def __init__(self, gateway_url: str, gateway_key: str) -> None:
+        self._url = gateway_url
+        self._key = gateway_key
+
+    async def complete(self, task_type: str, context: dict[str, Any]) -> dict[str, Any]:
+        """Call gateway and return normalised result dict."""
+        doc_text = context.get("document_text", "")
+        doc_name = context.get("document_name", "document")
+        prompt = (
+            f"Analyse the following document ({doc_name}) for task '{task_type}'.\n\n"
+            f"Document content:\n{doc_text[:12_000]}\n\n"
+            f"Additional context: {json.dumps({k: v for k, v in context.items() if k not in ('document_text', 'document_name', 'document_type')})}\n\n"
+            f"Respond with a JSON object summarising your findings."
+        )
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(
+                    f"{self._url}/v1/completions",
+                    json={"prompt": prompt, "task_type": task_type, "max_tokens": 800, "temperature": 0.3},
+                    headers={"Authorization": f"Bearer {self._key}"},
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                content = data.get("content", "")
+                # Try to parse JSON out of the response
+                validated: dict[str, Any] | None = None
+                match = re.search(r"\{.*\}", content, re.DOTALL)
+                if match:
+                    try:
+                        validated = json.loads(match.group())
+                    except Exception:
+                        pass
+                return {
+                    "content": content,
+                    "validated_data": validated,
+                    "confidence": 0.75,
+                    "model_used": data.get("model_used", "claude"),
+                    "usage": data.get("usage", {}),
+                }
+        except Exception as exc:
+            logger.warning("async_gateway_client_failed", task_type=task_type, error=str(exc))
+            return {
+                "content": "",
+                "validated_data": None,
+                "confidence": 0.0,
+                "model_used": "unavailable",
+                "usage": {},
+            }
+
+
+def make_analysis_cache(db: AsyncSession) -> "DocumentAnalysisCache":
+    """Factory: builds a ready-to-use cache with the async gateway client."""
+    from app.core.config import settings
+    client = AsyncGatewayClient(
+        gateway_url=settings.AI_GATEWAY_URL or "",
+        gateway_key=settings.AI_GATEWAY_API_KEY or "",
+    )
+    return DocumentAnalysisCache(db, client)
 
 # Maps cross-module analysis_type → AI Gateway task_type
 ANALYSIS_TASK_MAPPING: dict[str, str] = {

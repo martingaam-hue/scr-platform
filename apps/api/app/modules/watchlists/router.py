@@ -25,6 +25,49 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/watchlists", tags=["watchlists"])
 
 
+@router.post("/parse-criteria")
+async def parse_watchlist_criteria(
+    body: dict,
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+):
+    """Use the Smart Screener NL parser to generate watchlist criteria from plain text.
+
+    Body: {"query": "solar projects in East Africa with signal score above 70"}
+    Returns: {"criteria": {...parsed filters...}, "watch_type": "new_projects"}
+    """
+    query: str = body.get("query", "")
+    if not query:
+        raise HTTPException(status_code=400, detail="query is required")
+
+    from app.modules.smart_screener import service as screener_service
+
+    parsed = await screener_service.parse_query(query)
+    # Convert ParsedFilters → watchlist criteria format
+    criteria: dict = {}
+    if parsed.project_types:
+        criteria["project_types"] = parsed.project_types
+    if parsed.geographies:
+        criteria["geographies"] = parsed.geographies
+    if parsed.stages:
+        criteria["stages"] = parsed.stages
+    if parsed.min_signal_score is not None:
+        criteria["min_signal_score"] = parsed.min_signal_score
+    if parsed.max_signal_score is not None:
+        criteria["max_signal_score"] = parsed.max_signal_score
+    if parsed.min_ticket_size is not None:
+        criteria["min_ticket_size"] = parsed.min_ticket_size
+    if parsed.max_ticket_size is not None:
+        criteria["max_ticket_size"] = parsed.max_ticket_size
+    if parsed.sector_keywords:
+        criteria["sector_keywords"] = parsed.sector_keywords
+
+    return {
+        "criteria": criteria,
+        "watch_type": "new_projects",
+        "parsed_query": query,
+    }
+
+
 @router.post("/", response_model=WatchlistResponse, status_code=status.HTTP_201_CREATED)
 async def create_watchlist(
     body: WatchlistCreate,

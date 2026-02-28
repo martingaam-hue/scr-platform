@@ -33,11 +33,12 @@ router = APIRouter(prefix="/valuations", tags=["valuations"])
 @router.post("/suggest-assumptions", response_model=AssumptionSuggestion)
 async def suggest_assumptions(
     body: SuggestAssumptionsRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("view", "project")),
 ):
     """AI-assisted assumption suggestions for DCF valuation."""
     return await service.suggest_assumptions(
-        body.project_type, body.geography, body.stage
+        body.project_type, body.geography, body.stage, db=db
     )
 
 

@@ -381,6 +381,56 @@ async def request_intro(
     )
 
 
+async def _auto_create_deal_room(
+    db: AsyncSession,
+    match: "MatchResult",  # noqa: F821
+    user_id: uuid.UUID,
+    org_id: uuid.UUID,
+) -> uuid.UUID:
+    """Create a deal room (no intermediate commit) when match reaches meeting_scheduled."""
+    from datetime import datetime as _dt
+    from app.models.deal_rooms import DealRoom, DealRoomActivity, DealRoomMember
+    from app.models.projects import Project
+
+    proj = await db.get(Project, match.project_id)
+    project_name = proj.name if proj else "Project"
+
+    room = DealRoom(
+        org_id=org_id,
+        project_id=match.project_id,
+        name=f"Deal Room — {project_name}",
+        created_by=user_id,
+        settings={"auto_created": True, "match_id": str(match.id)},
+    )
+    db.add(room)
+    await db.flush()  # get room.id
+
+    db.add(DealRoomMember(
+        room_id=room.id,
+        user_id=user_id,
+        role="owner",
+        permissions={
+            "can_upload": True, "can_download": True, "can_comment": True,
+            "can_view_financials": True, "can_invite": True,
+        },
+        invited_at=_dt.utcnow(),
+        joined_at=_dt.utcnow(),
+    ))
+    db.add(DealRoomActivity(
+        room_id=room.id,
+        user_id=user_id,
+        activity_type="room_created",
+        description=f"Deal room auto-created from match (status: meeting_scheduled)",
+    ))
+    logger.info(
+        "deal_room_auto_created",
+        match_id=str(match.id),
+        deal_room_id=str(room.id),
+        project_id=str(match.project_id),
+    )
+    return room.id
+
+
 async def update_match_status(
     db: AsyncSession,
     match_id: uuid.UUID,
@@ -413,12 +463,23 @@ async def update_match_status(
         )
         db.add(msg)
 
+    # Auto-create deal room when match advances to meeting_scheduled
+    deal_room_id: uuid.UUID | None = None
+    if new_status == MatchStatus.MEETING_SCHEDULED and old_status != status:
+        try:
+            deal_room_id = await _auto_create_deal_room(db, match, user_id, org_id)
+        except Exception:
+            logger.warning("deal_room_auto_create_failed", match_id=str(match_id))
+
     await db.flush()
-    return MatchStatusResponse(
+    response = MatchStatusResponse(
         match_id=match.id,
         status=match.status.value,
         updated_at=match.updated_at,
     )
+    if deal_room_id:
+        response.deal_room_id = deal_room_id
+    return response
 
 
 # ── Messaging ─────────────────────────────────────────────────────────────────

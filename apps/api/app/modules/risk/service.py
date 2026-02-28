@@ -1284,6 +1284,24 @@ async def generate_domain_mitigation(
         f'"key_actions": ["action1", "action2", "action3", "action4", "action5"]}}'
     )
 
+    # Try PromptRegistry first; fall back to hardcoded prompt above
+    _registry_messages: list[dict] = []
+    _template_id: str | None = None
+    try:
+        from app.services.prompt_registry import PromptRegistry
+        _reg = PromptRegistry(db)
+        _registry_messages, _template_id, _ = await _reg.render(
+            "risk_mitigation",
+            {
+                "portfolio_name": portfolio.name,
+                "strategy": portfolio.strategy.value,
+                "aum": str(portfolio.target_aum),
+                "domain": domain,
+            },
+        )
+    except Exception:
+        pass
+
     model_used = "deterministic"
     mitigation_text = f"Implement a comprehensive {domain} risk management framework with regular monitoring and threshold-based alerts."
     key_actions = [
@@ -1296,15 +1314,19 @@ async def generate_domain_mitigation(
 
     if settings.AI_GATEWAY_URL and settings.AI_GATEWAY_API_KEY:
         try:
+            _payload: dict = {
+                "task_type": "analysis",
+                "max_tokens": 512,
+                "temperature": 0.4,
+            }
+            if _registry_messages:
+                _payload["messages"] = _registry_messages
+            else:
+                _payload["prompt"] = prompt
             async with httpx.AsyncClient(timeout=30.0) as client:
                 resp = await client.post(
                     f"{settings.AI_GATEWAY_URL}/v1/completions",
-                    json={
-                        "prompt": prompt,
-                        "task_type": "analysis",
-                        "max_tokens": 512,
-                        "temperature": 0.4,
-                    },
+                    json=_payload,
                     headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
                 )
             if resp.status_code == 200:
@@ -1319,6 +1341,12 @@ async def generate_domain_mitigation(
                 mitigation_text = parsed.get("mitigation_text", mitigation_text)
                 key_actions = parsed.get("key_actions", key_actions)
                 model_used = resp.json().get("model_used", "claude")
+                if _template_id:
+                    try:
+                        from app.services.prompt_registry import PromptRegistry
+                        await PromptRegistry(db).update_quality_metrics(_template_id, 1.0)
+                    except Exception:
+                        pass
         except Exception:
             pass  # fall back to deterministic response
 
@@ -1328,3 +1356,16 @@ async def generate_domain_mitigation(
         key_actions=key_actions,
         model_used=model_used,
     )
+
+
+# ── Insurance impact shim (called by ralph_ai/tools.py) ──────────────────────
+
+
+async def get_insurance_impact_analysis(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    project_id: uuid.UUID,
+):
+    """Delegate to insurance service — keeps tools.py import path stable."""
+    from app.modules.insurance import service as insurance_service
+    return await insurance_service.get_insurance_impact_analysis(db, org_id, project_id)

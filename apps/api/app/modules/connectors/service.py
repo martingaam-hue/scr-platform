@@ -125,11 +125,13 @@ async def list_org_configs(db: AsyncSession, org_id: uuid.UUID) -> list[OrgConne
 async def enable_connector(
     db: AsyncSession, org_id: uuid.UUID, connector_id: uuid.UUID, api_key: str | None, config: dict | None
 ) -> OrgConnectorConfig:
+    from app.services.encryption import encrypt_field
+
     existing = await get_org_config(db, org_id, connector_id)
     if existing:
         existing.is_enabled = True
         if api_key is not None:
-            existing.api_key_encrypted = api_key  # TODO: encrypt with AES-256-GCM
+            existing.api_key_encrypted = encrypt_field(api_key)
         if config is not None:
             existing.config = config
         await db.commit()
@@ -140,7 +142,7 @@ async def enable_connector(
         org_id=org_id,
         connector_id=connector_id,
         is_enabled=True,
-        api_key_encrypted=api_key,
+        api_key_encrypted=encrypt_field(api_key),
         config=config or {},
     )
     db.add(cfg)
@@ -163,7 +165,8 @@ async def test_connector(db: AsyncSession, org_id: uuid.UUID, connector_id: uuid
         raise ValueError("Connector not found")
 
     cfg = await get_org_config(db, org_id, connector_id)
-    api_key = cfg.api_key_encrypted if cfg else None
+    from app.services.encryption import decrypt_field
+    api_key = decrypt_field(cfg.api_key_encrypted) if cfg else None
 
     instance = _get_connector_instance(connector_row.name, api_key, cfg.config if cfg else {})
     try:
@@ -182,6 +185,138 @@ async def test_connector(db: AsyncSession, org_id: uuid.UUID, connector_id: uuid
         ))
         await db.commit()
         raise
+
+
+async def ingest_to_dataroom(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    connector_id: uuid.UUID,
+    project_id: uuid.UUID,
+    endpoint: str,
+    params: dict[str, Any] | None = None,
+    folder_id: uuid.UUID | None = None,
+) -> dict[str, Any]:
+    """Fetch data from a connector and store the result as a document in the dataroom.
+
+    Returns {"document_id": str, "document_name": str, "file_size_bytes": int}.
+    """
+    import hashlib
+    import json as _json
+    from datetime import datetime as _dt
+
+    import boto3
+    from botocore.config import Config as BotoConfig
+
+    from app.core.config import settings
+    from app.models.dataroom import Document
+    from app.models.enums import DocumentStatus
+
+    # 1. Get connector row and org config
+    result = await db.execute(select(DataConnector).where(DataConnector.id == connector_id))
+    connector_row = result.scalar_one_or_none()
+    if not connector_row:
+        raise ValueError("Connector not found")
+
+    cfg = await get_org_config(db, org_id, connector_id)
+    if not cfg or not cfg.is_enabled:
+        raise ValueError("Connector is not enabled for this organisation")
+
+    from app.services.encryption import decrypt_field
+    api_key = decrypt_field(cfg.api_key_encrypted) if cfg else None
+    instance = _get_connector_instance(connector_row.name, api_key, cfg.config if cfg else {})
+
+    # 2. Fetch data
+    start_ts = _dt.utcnow()
+    try:
+        data = await instance.fetch(endpoint, params)
+        elapsed_ms = int((_dt.utcnow() - start_ts).total_seconds() * 1000)
+        db.add(DataFetchLog(
+            org_id=org_id, connector_id=connector_id,
+            endpoint=endpoint, status_code=200, response_time_ms=elapsed_ms,
+        ))
+    except Exception as exc:
+        db.add(DataFetchLog(
+            org_id=org_id, connector_id=connector_id,
+            endpoint=endpoint, status_code=500, error_message=str(exc)[:500],
+        ))
+        await db.commit()
+        raise RuntimeError(f"Connector fetch failed: {exc}") from exc
+
+    # 3. Serialize to JSON bytes
+    json_bytes = _json.dumps(data, indent=2, default=str).encode("utf-8")
+    checksum = hashlib.sha256(json_bytes).hexdigest()
+    timestamp = start_ts.strftime("%Y%m%d_%H%M%S")
+    safe_endpoint = endpoint.strip("/").replace("/", "_")[:50]
+    file_name = f"{connector_row.name}_{safe_endpoint}_{timestamp}.json"
+    s3_key = f"connector-data/{org_id}/{connector_row.name}/{file_name}"
+
+    # 4. Upload to S3
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        region_name=settings.AWS_S3_REGION,
+        config=BotoConfig(signature_version="s3v4"),
+    )
+    bucket = settings.AWS_S3_BUCKET
+    try:
+        s3_client.put_object(
+            Bucket=bucket,
+            Key=s3_key,
+            Body=json_bytes,
+            ContentType="application/json",
+        )
+    except Exception as exc:
+        await db.commit()
+        raise RuntimeError(f"S3 upload failed: {exc}") from exc
+
+    # 5. Create document record
+    doc = Document(
+        org_id=org_id,
+        project_id=project_id,
+        folder_id=folder_id,
+        name=file_name,
+        file_type="json",
+        mime_type="application/json",
+        s3_key=s3_key,
+        s3_bucket=bucket,
+        file_size_bytes=len(json_bytes),
+        status=DocumentStatus.READY,
+        checksum_sha256=checksum,
+        uploaded_by=user_id,
+        metadata_={
+            "source": "connector",
+            "connector_id": str(connector_id),
+            "connector_name": connector_row.name,
+            "endpoint": endpoint,
+            "params": params or {},
+            "fetched_at": start_ts.isoformat(),
+        },
+    )
+    db.add(doc)
+
+    # 6. Update last_sync_at on config
+    if cfg:
+        cfg.last_sync_at = _dt.utcnow()
+        cfg.total_calls_this_month = (cfg.total_calls_this_month or 0) + 1
+
+    await db.commit()
+    await db.refresh(doc)
+
+    logger.info(
+        "connector_ingest_complete",
+        connector=connector_row.name,
+        document_id=str(doc.id),
+        file_size_bytes=len(json_bytes),
+    )
+    return {
+        "document_id": str(doc.id),
+        "document_name": file_name,
+        "file_size_bytes": len(json_bytes),
+        "s3_key": s3_key,
+    }
 
 
 async def get_usage_stats(db: AsyncSession, org_id: uuid.UUID) -> list[dict[str, Any]]:

@@ -6,7 +6,7 @@ import { api } from "@/lib/api"
 import { formatDate } from "@/lib/format"
 import {
   Bell, BellOff, Plus, X, Trash2, CheckCircle, TrendingUp,
-  AlertTriangle, Activity, Zap, Circle, ToggleLeft, ToggleRight
+  AlertTriangle, Activity, Zap, Circle, ToggleLeft, ToggleRight, Sparkles, Loader2,
 } from "lucide-react"
 
 interface Watchlist {
@@ -51,12 +51,25 @@ const ALERT_TYPE_COLOR: Record<string, string> = {
 export default function WatchlistsPage() {
   const queryClient = useQueryClient()
   const [showCreate, setShowCreate] = useState(false)
+  const [nlQuery, setNlQuery] = useState("")
   const [newWatchlist, setNewWatchlist] = useState({
     name: "",
     watch_type: "new_projects",
     criteria: "{}",
     alert_channels: ["in_app"],
     alert_frequency: "immediate",
+  })
+
+  const parseCriteriaMutation = useMutation({
+    mutationFn: (query: string) =>
+      api.post("/watchlists/parse-criteria", { query }).then(r => r.data),
+    onSuccess: (data) => {
+      setNewWatchlist(d => ({
+        ...d,
+        criteria: JSON.stringify(data.criteria, null, 2),
+        watch_type: data.watch_type ?? d.watch_type,
+      }))
+    },
   })
 
   const { data: watchlists = [] } = useQuery<Watchlist[]>({
@@ -261,6 +274,34 @@ export default function WatchlistsPage() {
               <h2 className="text-lg font-bold text-gray-900">New Watchlist</h2>
               <button onClick={() => setShowCreate(false)}><X className="h-5 w-5 text-gray-400" /></button>
             </div>
+            {/* NL Criteria Parser */}
+            <div className="rounded-lg bg-primary-50 border border-primary-100 p-3">
+              <label className="block text-xs font-semibold text-primary-700 mb-1.5 flex items-center gap-1">
+                <Sparkles className="h-3.5 w-3.5" />
+                Describe what to watch (AI will parse)
+              </label>
+              <div className="flex gap-2">
+                <textarea
+                  className="flex-1 border border-primary-200 rounded-lg px-3 py-2 text-sm bg-white resize-none"
+                  rows={2}
+                  placeholder="e.g. solar projects in East Africa with $5M+ investment and signal score above 70"
+                  value={nlQuery}
+                  onChange={e => setNlQuery(e.target.value)}
+                />
+                <button
+                  onClick={() => parseCriteriaMutation.mutate(nlQuery)}
+                  disabled={!nlQuery.trim() || parseCriteriaMutation.isPending}
+                  className="px-3 py-2 bg-primary-600 text-white rounded-lg text-xs hover:bg-primary-700 disabled:opacity-50 flex-shrink-0"
+                >
+                  {parseCriteriaMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Parse"
+                  )}
+                </button>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
               <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"

@@ -109,6 +109,7 @@ class MatchStatusResponse(BaseModel):
     match_id: uuid.UUID
     status: str
     updated_at: datetime
+    deal_room_id: uuid.UUID | None = None  # set when a deal room is auto-created
 
 
 # ── Mandate CRUD ──────────────────────────────────────────────────────────────
