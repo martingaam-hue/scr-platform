@@ -29,6 +29,11 @@ export interface CompsFilters {
   stage?: string;
 }
 
+export interface CompsListResponse {
+  items: Comp[];
+  total: number;
+}
+
 export interface ValuationResult {
   method: string;
   ev_eur: number;
@@ -48,7 +53,7 @@ export function useComps(filters: CompsFilters = {}) {
   if (filters.year_to) params.set("year_to", filters.year_to);
   if (filters.stage) params.set("stage", filters.stage);
 
-  return useQuery<Comp[]>({
+  return useQuery<CompsListResponse>({
     queryKey: ["comps", filters],
     queryFn: () => api.get(`/comps?${params}`).then((r) => r.data),
   });
@@ -75,11 +80,14 @@ export function useUploadComps() {
   });
 }
 
-export function useCompsValuation(ids: string[]) {
+export function useCompsValuation() {
   return useMutation({
-    mutationFn: () =>
+    mutationFn: ({ ids, capacityMw }: { ids: string[]; capacityMw?: number }) =>
       api
-        .post("/comps/valuation", { comp_ids: ids, capacity_mw: null })
+        .post("/comps/implied-valuation", {
+          comp_ids: ids,
+          project: { capacity_mw: capacityMw ?? 50 },
+        })
         .then((r) => r.data as ValuationResult),
   });
 }

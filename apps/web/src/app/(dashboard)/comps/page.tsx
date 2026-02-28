@@ -1,36 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery, useMutation } from "@tanstack/react-query"
-import { api } from "@/lib/api"
+import { useComps, useCreateComp, useCompsValuation, QUALITY_BADGE, ASSET_TYPES, STAGES, type Comp } from "@/lib/comps"
 import { formatCurrency, formatPct } from "@/lib/format"
-import { Search, Plus, Upload, Calculator, TrendingUp, X } from "lucide-react"
+import { Plus, Calculator, TrendingUp, X } from "lucide-react"
 import { AIFeedback } from "@/components/ai-feedback"
-
-interface Comp {
-  id: string
-  deal_name: string
-  asset_type: string
-  geography: string | null
-  country_code: string | null
-  close_year: number | null
-  deal_size_eur: number | null
-  capacity_mw: number | null
-  ev_per_mw: number | null
-  equity_irr: number | null
-  stage_at_close: string | null
-  data_quality: string
-  org_id: string | null
-}
-
-const QUALITY_BADGE: Record<string, string> = {
-  confirmed: "bg-green-100 text-green-700",
-  estimated: "bg-yellow-100 text-yellow-700",
-  rumored: "bg-gray-100 text-gray-600",
-}
-
-const ASSET_TYPES = ["solar", "wind", "hydro", "bess", "biomass", "infrastructure", "private_equity", "other"]
-const STAGES = ["development", "construction_ready", "operational"]
 
 export default function CompsPage() {
   const [filters, setFilters] = useState({
@@ -44,30 +18,9 @@ export default function CompsPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [newComp, setNewComp] = useState({ deal_name: "", asset_type: "solar", close_year: "", capacity_mw: "", ev_per_mw: "", equity_irr: "", data_quality: "estimated" })
 
-  const params = new URLSearchParams()
-  if (filters.asset_type) params.set("asset_type", filters.asset_type)
-  if (filters.geography) params.set("geography", filters.geography)
-  if (filters.year_from) params.set("year_from", filters.year_from)
-  if (filters.year_to) params.set("year_to", filters.year_to)
-  if (filters.stage) params.set("stage", filters.stage)
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["comps", filters],
-    queryFn: () => api.get(`/comps?${params}`).then((r) => r.data),
-  })
-
-  const { data: valuationResult, mutate: calcValuation, isPending: calcPending } = useMutation({
-    mutationFn: () =>
-      api.post("/comps/implied-valuation", {
-        comp_ids: Array.from(selectedIds),
-        project: { capacity_mw: 50 },
-      }).then((r) => r.data),
-  })
-
-  const addMutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post("/comps", body).then((r) => r.data),
-    onSuccess: () => setShowAddForm(false),
-  })
+  const { data, isLoading } = useComps(filters)
+  const { data: valuationResult, mutate: calcValuation, isPending: calcPending } = useCompsValuation()
+  const addMutation = useCreateComp()
 
   const comps: Comp[] = data?.items ?? []
   const total: number = data?.total ?? 0
@@ -159,14 +112,14 @@ export default function CompsPage() {
             {valuationResult && (
               <div className="text-sm text-primary-900">
                 <span className="font-semibold">Implied EV/MW:</span>{" "}
-                {valuationResult.ev_per_mw_median != null ? `€${(valuationResult.ev_per_mw_median / 1000).toFixed(0)}k/MW` : "—"}
-                {valuationResult.implied_ev_eur != null && (
-                  <span className="ml-3"><span className="font-semibold">Implied EV (50MW):</span> {formatCurrency(valuationResult.implied_ev_eur)}</span>
+                {valuationResult.ev_per_mw != null ? `€${(valuationResult.ev_per_mw / 1000).toFixed(0)}k/MW` : "—"}
+                {valuationResult.ev_eur != null && (
+                  <span className="ml-3"><span className="font-semibold">Implied EV (50MW):</span> {formatCurrency(valuationResult.ev_eur)}</span>
                 )}
               </div>
             )}
             <button
-              onClick={() => calcValuation()}
+              onClick={() => calcValuation({ ids: Array.from(selectedIds) })}
               disabled={calcPending}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 disabled:opacity-50"
             >
@@ -303,7 +256,7 @@ export default function CompsPage() {
                   capacity_mw: newComp.capacity_mw ? parseFloat(newComp.capacity_mw) : null,
                   ev_per_mw: newComp.ev_per_mw ? parseFloat(newComp.ev_per_mw) : null,
                   equity_irr: newComp.equity_irr ? parseFloat(newComp.equity_irr) : null,
-                })}
+                }, { onSuccess: () => setShowAddForm(false) })}
                 disabled={!newComp.deal_name || addMutation.isPending}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:opacity-50"
               >

@@ -1,54 +1,19 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bookmark, Search, X, SlidersHorizontal, Loader2 } from "lucide-react";
 import { Badge, Button, Card, CardContent, EmptyState } from "@scr/ui";
 import { cn } from "@scr/ui";
-import { api } from "@/lib/api";
-
-// ── Types ──────────────────────────────────────────────────────────────────
-
-interface ParsedFilters {
-  project_types?: string[];
-  geographies?: string[];
-  stages?: string[];
-  min_signal_score?: number;
-  max_signal_score?: number;
-  min_ticket_size?: number;
-  max_ticket_size?: number;
-  sector_keywords?: string[];
-  sort_by?: string;
-}
-
-interface ScreenerResult {
-  id: string;
-  name: string;
-  project_type: string | null;
-  geography_country: string | null;
-  stage: string | null;
-  total_investment_required: number | null;
-  currency: string | null;
-  signal_score: number | null;
-  status: string | null;
-}
-
-interface ScreenerResponse {
-  query: string;
-  parsed_filters: ParsedFilters;
-  results: ScreenerResult[];
-  total_results: number;
-  suggestions: string[];
-}
-
-interface SavedSearch {
-  id: string;
-  name: string;
-  query: string;
-  filters: ParsedFilters;
-  notify_new_matches: boolean;
-  last_used: string;
-}
+import {
+  useSavedSearches,
+  useScreenerSearch,
+  useSaveSearch,
+  type ParsedFilters,
+  type ScreenerResult,
+  type ScreenerResponse,
+  type SavedSearch,
+} from "@/lib/screener";
 
 // ── Signal score badge ────────────────────────────────────────────────────
 
@@ -157,21 +122,13 @@ function SaveSearchModal({
 }) {
   const [name, setName] = useState(query.slice(0, 60));
   const [notify, setNotify] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const saveSearch = useSaveSearch();
 
-  async function handleSave() {
-    setSaving(true);
-    try {
-      await api.post("/screener/save", {
-        name,
-        query,
-        filters,
-        notify_new_matches: notify,
-      });
-      onClose();
-    } finally {
-      setSaving(false);
-    }
+  function handleSave() {
+    saveSearch.mutate(
+      { name, query, filters, notify_new_matches: notify },
+      { onSuccess: () => onClose() },
+    );
   }
 
   return (
@@ -196,8 +153,8 @@ function SaveSearchModal({
           Notify me when new matching deals are added
         </label>
         <div className="mt-4 flex gap-2">
-          <Button onClick={handleSave} disabled={saving || !name.trim()}>
-            {saving ? "Saving..." : "Save"}
+          <Button onClick={handleSave} disabled={saveSearch.isPending || !name.trim()}>
+            {saveSearch.isPending ? "Saving..." : "Save"}
           </Button>
           <Button variant="outline" onClick={onClose}>
             Cancel
@@ -216,36 +173,24 @@ export default function SmartScreenerPage() {
 
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState<ScreenerResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [activeFilters, setActiveFilters] = useState<ParsedFilters>({});
 
-  // Load saved searches
-  useEffect(() => {
-    api
-      .get<{ searches?: SavedSearch[] } | SavedSearch[]>("/screener/saved")
-      .then((res) => {
-        const data = res.data;
-        if (Array.isArray(data)) setSavedSearches(data);
-      })
-      .catch(() => {});
-  }, []);
+  const { data: savedSearches = [] } = useSavedSearches();
+  const searchMutation = useScreenerSearch();
 
-  async function handleSearch(searchQuery?: string) {
+  function handleSearch(searchQuery?: string) {
     const q = searchQuery ?? query;
     if (!q.trim()) return;
-    setLoading(true);
-    try {
-      const { data } = await api.post<ScreenerResponse>("/screener/search", {
-        query: q,
-        existing_filters: Object.keys(activeFilters).length ? activeFilters : undefined,
-      });
-      setResponse(data);
-      setActiveFilters(data.parsed_filters);
-    } finally {
-      setLoading(false);
-    }
+    searchMutation.mutate(
+      { query: q, existingFilters: Object.keys(activeFilters).length ? activeFilters : undefined },
+      {
+        onSuccess: (data) => {
+          setResponse(data);
+          setActiveFilters(data.parsed_filters);
+        },
+      },
+    );
   }
 
   function removeFilter(key: keyof ParsedFilters, value?: string) {
@@ -320,8 +265,8 @@ export default function SmartScreenerPage() {
               <X className="h-4 w-4" />
             </button>
           )}
-          <Button onClick={() => handleSearch()} disabled={loading || !query.trim()}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+          <Button onClick={() => handleSearch()} disabled={searchMutation.isPending || !query.trim()}>
+            {searchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
           </Button>
         </div>
       </div>
@@ -397,7 +342,7 @@ export default function SmartScreenerPage() {
             </>
           )}
 
-          {!response && !loading && (
+          {!response && !searchMutation.isPending && (
             <div className="rounded-xl border border-dashed border-neutral-200 py-16 text-center dark:border-neutral-700">
               <Search className="mx-auto mb-3 h-8 w-8 text-neutral-300" />
               <p className="text-sm text-neutral-500">

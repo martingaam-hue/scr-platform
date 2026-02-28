@@ -2,44 +2,18 @@
 
 import { useState } from "react"
 import { useParams } from "next/navigation"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/lib/api"
 import { formatDate } from "@/lib/format"
-import { Bot, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, MessageSquare, HelpCircle, FileText, Printer } from "lucide-react"
+import {
+  useBriefings,
+  useBriefing,
+  useGenerateBriefing,
+  MEETING_TYPES,
+  RISK_SEVERITY_COLOR,
+  type BriefingContent,
+  type Briefing,
+} from "@/lib/meeting-prep"
+import { Bot, AlertTriangle, CheckCircle, MessageSquare, HelpCircle, FileText, Printer } from "lucide-react"
 import { AIFeedback } from "@/components/ai-feedback"
-
-interface BriefingContent {
-  executive_summary?: string
-  key_metrics?: Record<string, unknown>
-  risk_flags?: Array<{ flag: string; severity: string; mitigation?: string }>
-  dd_progress?: { total?: number; completed?: number; pct?: number; outstanding_items?: string[] }
-  talking_points?: string[]
-  questions_to_ask?: string[]
-  changes_since_last?: string[]
-}
-
-interface Briefing {
-  id: string
-  project_id: string
-  meeting_type: string
-  meeting_date: string | null
-  briefing_content: BriefingContent | null
-  custom_overrides: Record<string, unknown> | null
-  created_at: string
-}
-
-const MEETING_TYPES = [
-  { value: "screening", label: "Screening" },
-  { value: "dd_review", label: "DD Review" },
-  { value: "follow_up", label: "Follow-Up" },
-  { value: "ic_presentation", label: "IC Presentation" },
-]
-
-const RISK_SEVERITY_COLOR: Record<string, string> = {
-  high: "bg-red-100 text-red-700 border-red-200",
-  medium: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  low: "bg-green-100 text-green-700 border-green-200",
-}
 
 function CheckedList({ items, label, icon: Icon }: { items: string[]; label: string; icon: React.ComponentType<{ className?: string }> }) {
   const [checked, setChecked] = useState<Set<number>>(new Set())
@@ -68,38 +42,15 @@ function CheckedList({ items, label, icon: Icon }: { items: string[]; label: str
 export default function MeetingPrepPage() {
   const params = useParams()
   const projectId = params.id as string
-  const queryClient = useQueryClient()
 
   const [meetingType, setMeetingType] = useState("screening")
   const [meetingDate, setMeetingDate] = useState("")
   const [previousDate, setPreviousDate] = useState("")
-
-  const { data: briefingsData } = useQuery({
-    queryKey: ["meeting-briefings", projectId],
-    queryFn: () => api.get(`/meeting-prep/briefings?project_id=${projectId}`).then((r) => r.data),
-  })
-
   const [selectedBriefingId, setSelectedBriefingId] = useState<string | null>(null)
 
-  const { data: briefing, isLoading: loadingBriefing } = useQuery({
-    queryKey: ["meeting-briefing", selectedBriefingId],
-    queryFn: () => api.get(`/meeting-prep/briefings/${selectedBriefingId}`).then((r) => r.data),
-    enabled: !!selectedBriefingId,
-  })
-
-  const generateMutation = useMutation({
-    mutationFn: () =>
-      api.post("/meeting-prep/briefings", {
-        project_id: projectId,
-        meeting_type: meetingType,
-        meeting_date: meetingDate || null,
-        previous_meeting_date: previousDate || null,
-      }).then((r) => r.data),
-    onSuccess: (data: Briefing) => {
-      queryClient.invalidateQueries({ queryKey: ["meeting-briefings", projectId] })
-      setSelectedBriefingId(data.id)
-    },
-  })
+  const { data: briefingsData } = useBriefings(projectId)
+  const { data: briefing, isLoading: loadingBriefing } = useBriefing(selectedBriefingId)
+  const generateMutation = useGenerateBriefing(projectId)
 
   const briefings: Briefing[] = briefingsData?.items ?? []
   const content: BriefingContent = {
@@ -148,7 +99,10 @@ export default function MeetingPrepPage() {
           )}
 
           <button
-            onClick={() => generateMutation.mutate()}
+            onClick={() => generateMutation.mutate(
+              { meeting_type: meetingType, meeting_date: meetingDate || null, previous_meeting_date: previousDate || null },
+              { onSuccess: (data) => setSelectedBriefingId(data.id) },
+            )}
             disabled={generateMutation.isPending}
             className="w-full bg-primary-600 text-white text-sm py-2 rounded-lg hover:bg-primary-700 disabled:opacity-50"
           >
