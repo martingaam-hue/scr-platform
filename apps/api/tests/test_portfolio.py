@@ -95,7 +95,7 @@ async def seed_data(db: AsyncSession) -> None:
         description="A project linked to portfolio holdings",
         project_type=ProjectType.SOLAR,
         status=ProjectStatus.ACTIVE,
-        stage=ProjectStage.CONSTRUCTION,
+        stage=ProjectStage.UNDER_CONSTRUCTION,
         geography_country="Spain",
         total_investment_required=Decimal("10000000"),
     )
@@ -165,7 +165,7 @@ async def sample_holdings(
     h2 = PortfolioHolding(
         portfolio_id=sample_portfolio.id,
         asset_name="Wind Project Denmark",
-        asset_type=AssetType.PROJECT_FINANCE,
+        asset_type=AssetType.DEBT,
         investment_date=date(2023, 6, 1),
         investment_amount=Decimal("3000000"),
         current_value=Decimal("3200000"),
@@ -563,7 +563,7 @@ async def test_api_get_metrics(
     assert "moic" in data
     assert "tvpi" in data
     assert "total_invested" in data
-    assert data["total_invested"] == "10000000"
+    assert float(data["total_invested"]) == 10000000
 
 
 @pytest.mark.asyncio
@@ -575,7 +575,7 @@ async def test_api_list_holdings(
     data = resp.json()
     assert data["total"] == 3
     assert "totals" in data
-    assert data["totals"]["total_invested"] == "10000000"
+    assert float(data["totals"]["total_invested"]) == 10000000
 
 
 @pytest.mark.asyncio
@@ -616,7 +616,7 @@ async def test_api_update_holding(
         json={"current_value": "7500000"},
     )
     assert resp.status_code == 200
-    assert resp.json()["current_value"] == "7500000"
+    assert float(resp.json()["current_value"]) == 7500000
 
 
 @pytest.mark.asyncio

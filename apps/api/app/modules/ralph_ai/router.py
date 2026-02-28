@@ -86,7 +86,7 @@ async def delete_conversation(
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Soft-delete a conversation."""
-    deleted = await service.delete_conversation(db, conversation_id, current_user.org_id)
+    deleted = await service.delete_conversation(db, conversation_id, current_user.org_id, current_user.user_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 

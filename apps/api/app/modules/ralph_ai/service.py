@@ -74,6 +74,7 @@ async def get_conversation(
         .options(
             selectinload(AIConversation.messages)
         )
+        .execution_options(populate_existing=True)
     )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
@@ -83,9 +84,12 @@ async def delete_conversation(
     db: AsyncSession,
     conv_id: uuid.UUID,
     org_id: uuid.UUID,
+    user_id: uuid.UUID | None = None,
 ) -> bool:
     conversation = await get_conversation(db, conv_id, org_id)
     if conversation is None:
+        return False
+    if user_id is not None and conversation.user_id != user_id:
         return False
     conversation.is_deleted = True  # type: ignore[assignment]
     await db.flush()

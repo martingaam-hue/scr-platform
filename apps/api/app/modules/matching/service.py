@@ -348,6 +348,7 @@ async def express_interest(
     )
     db.add(msg)
     await db.flush()
+    await db.refresh(match)
 
     return MatchStatusResponse(
         match_id=match.id,

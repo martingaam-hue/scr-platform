@@ -187,7 +187,7 @@ async def trigger_report(
     """Queue a valuation report for async generation."""
     try:
         report = await service.trigger_report(
-            db, valuation_id, current_user.org_id
+            db, valuation_id, current_user.org_id, current_user.user_id
         )
         await db.commit()
         await db.refresh(report)

@@ -313,6 +313,7 @@ async def trigger_report(
     db: AsyncSession,
     valuation_id: uuid.UUID,
     org_id: uuid.UUID,
+    user_id: uuid.UUID | None = None,
 ) -> GeneratedReport:
     val = await get_valuation(db, valuation_id, org_id)
     proj = await db.get(Project, val.project_id)
@@ -320,6 +321,7 @@ async def trigger_report(
 
     report = GeneratedReport(
         org_id=org_id,
+        generated_by=user_id or val.prepared_by,
         title=f"Valuation Report — {project_name} ({val.method.value.upper()}) v{val.version}",
         status=ReportStatus.QUEUED,
         parameters={

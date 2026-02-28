@@ -2,7 +2,7 @@
 
 import dataclasses
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -106,7 +106,7 @@ async def calculate_score(
         score_change = Decimal(str(result.overall_score)) - previous_score
 
     dims = result.dimensions
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
 
     def _dim_details(key: str) -> dict:
         d = dims[key]

@@ -70,7 +70,8 @@ def calculate_scenario(
                 # Non-participating: choose better of liquidation pref or pro-rata conversion
                 conversion_proceeds = exit_val * equity_pct
                 if conversion_proceeds > liq:
-                    # Convert to common
+                    # Convert to common — treat as pure pro-rata
+                    investor_participation = conversion_proceeds - liq
                     investor_proceeds = conversion_proceeds
                 else:
                     investor_proceeds = liq

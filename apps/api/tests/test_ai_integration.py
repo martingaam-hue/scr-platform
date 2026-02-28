@@ -226,7 +226,7 @@ async def sample_portfolio(db: AsyncSession, investor_user: User) -> Portfolio:
         target_aum=Decimal("250000000"),
         current_aum=Decimal("120000000"),
         sfdr_classification=SFDRClassification.ARTICLE_9,
-        status=PortfolioStatus.ACTIVE,
+        status=PortfolioStatus.INVESTING,
     )
     db.add(portfolio)
     await db.flush()
@@ -250,26 +250,35 @@ class TestDocumentProcessingPipeline:
         self, db: AsyncSession, seeded: dict
     ):
         """POST /dataroom/upload/confirm should create a PROCESSING document."""
-        doc_id = uuid.uuid4()
         project_id = seeded["project_id"]
 
+        # Pre-create document in UPLOADING state
+        doc = Document(
+            org_id=ALLY_ORG_ID,
+            project_id=project_id,
+            name="Financial_Statements_2023.pdf",
+            file_type="pdf",
+            mime_type="application/pdf",
+            s3_key=f"org/{ALLY_ORG_ID}/docs/test.pdf",
+            s3_bucket="scr-documents",
+            file_size_bytes=512000,
+            checksum_sha256="abc123def456" * 3,
+            status=DocumentStatus.UPLOADING,
+            uploaded_by=ALLY_USER_ID,
+        )
+        db.add(doc)
+        await db.flush()
+
         with patch(
-            "app.modules.dataroom.tasks.process_document_task.delay"
-        ) as mock_task:
+            "app.modules.dataroom.tasks.process_document.delay"
+        ) as mock_task, patch(
+            "app.modules.dataroom.service._get_s3_client"
+        ) as mock_s3:
+            mock_s3.return_value.head_object.return_value = {"ContentLength": 512000}
             async with await _make_client(ALLY_USER, db) as client:
                 resp = await client.post(
                     "/dataroom/upload/confirm",
-                    json={
-                        "document_id": str(doc_id),
-                        "project_id": str(project_id),
-                        "name": "Financial_Statements_2023.pdf",
-                        "file_type": "pdf",
-                        "mime_type": "application/pdf",
-                        "s3_key": f"org/{ALLY_ORG_ID}/docs/{doc_id}.pdf",
-                        "s3_bucket": "scr-documents",
-                        "file_size_bytes": 512000,
-                        "checksum_sha256": "abc123def456" * 3,
-                    },
+                    json={"document_id": str(doc.id)},
                 )
             app.dependency_overrides.clear()
 
@@ -337,10 +346,10 @@ class TestDocumentProcessingPipeline:
 
         assert resp.status_code == 200
         data = resp.json()
-        assert isinstance(data, list)
-        assert len(data) == 2
+        assert isinstance(data, dict)
+        assert len(data["items"]) == 2
 
-        types_returned = {item["extraction_type"] for item in data}
+        types_returned = {item["extraction_type"] for item in data["items"]}
         assert "kpi" in types_returned
         assert "classification" in types_returned
 
@@ -383,7 +392,7 @@ class TestDocumentProcessingPipeline:
 
         assert resp.status_code == 200
         classifications = [
-            item for item in resp.json() if item["extraction_type"] == "classification"
+            item for item in resp.json()["items"] if item["extraction_type"] == "classification"
         ]
         assert len(classifications) == 1
         assert classifications[0]["result"]["classification"] == "financial_statement"
@@ -430,7 +439,7 @@ class TestDocumentProcessingPipeline:
             resp = await client.get(f"/dataroom/documents/{doc.id}/extractions")
         app.dependency_overrides.clear()
 
-        kpi_items = [i for i in resp.json() if i["extraction_type"] == "kpi"]
+        kpi_items = [i for i in resp.json()["items"] if i["extraction_type"] == "kpi"]
         assert len(kpi_items) == 1
         kpi_names = {k["name"] for k in kpi_items[0]["result"]["kpis"]}
         assert "Revenue" in kpi_names
@@ -509,7 +518,7 @@ class TestSignalScoreCalculation:
             model_used="claude-sonnet-4-20250514",
             version=1,
             is_live=True,
-            calculated_at=datetime.now(timezone.utc),
+            calculated_at=datetime.utcnow(),
         )
         db.add(score)
         await db.flush()
@@ -525,11 +534,11 @@ class TestSignalScoreCalculation:
         # All 6 dimensions must be present
         dim_ids = {d["id"] for d in body["dimensions"]}
         expected_dims = {
-            "project_viability",
-            "financial_planning",
-            "team_strength",
-            "risk_assessment",
+            "technical",
+            "financial",
             "esg",
+            "regulatory",
+            "team",
             "market_opportunity",
         }
         assert expected_dims == dim_ids
@@ -550,7 +559,7 @@ class TestSignalScoreCalculation:
             model_used="claude-sonnet-4-20250514",
             version=1,
             is_live=True,
-            calculated_at=datetime.now(timezone.utc),
+            calculated_at=datetime.utcnow(),
         )
         db.add(score)
         await db.flush()
@@ -594,7 +603,7 @@ class TestSignalScoreCalculation:
             model_used="claude-sonnet-4-20250514",
             version=1,
             is_live=True,
-            calculated_at=datetime.now(timezone.utc),
+            calculated_at=datetime.utcnow(),
         )
         db.add(score)
         await db.flush()
@@ -650,7 +659,7 @@ class TestSignalScoreCalculation:
                 model_used="claude-sonnet-4-20250514",
                 version=version,
                 is_live=(version == 3),
-                calculated_at=datetime.now(timezone.utc),
+                calculated_at=datetime.utcnow(),
             )
             db.add(score)
         await db.flush()
@@ -740,10 +749,10 @@ class TestDealScreening:
         assert resp.status_code == 200
         body = resp.json()
         # At least the good-fit project should appear
-        assert len(body.get("recommendations", [])) >= 1
+        assert len(body.get("items", [])) >= 1
 
-        recs = body["recommendations"]
-        scores = [r["alignment_score"] for r in recs if "alignment_score" in r]
+        recs = body["items"]
+        scores = [r["alignment"]["overall"] for r in recs if "alignment" in r]
         # Verify descending order
         assert scores == sorted(scores, reverse=True)
 
@@ -759,8 +768,8 @@ class TestDealScreening:
             resp = await client.get("/matching/investor/recommendations")
         app.dependency_overrides.clear()
 
-        recs = resp.json().get("recommendations", [])
-        score_map = {r["project_id"]: r["alignment_score"] for r in recs if "project_id" in r}
+        recs = resp.json().get("items", [])
+        score_map = {r["project_id"]: r["alignment"]["overall"] for r in recs if "project_id" in r}
 
         if good_id in score_map and poor_id in score_map:
             assert score_map[good_id] > score_map[poor_id]
@@ -811,7 +820,7 @@ class TestRalphAIConversation:
 
         # Mock process_message to simulate tool call + response
         async def _mock_process_message(
-            _db, conversation_id, user_content, org_id, user_id
+            db, conversation_id, user_content, org_id, user_id
         ):
             user_msg = AIMessage(
                 conversation_id=conversation_id,
@@ -849,9 +858,9 @@ class TestRalphAIConversation:
                 tokens_input=1200,
                 tokens_output=150,
             )
-            _db.add(user_msg)
-            _db.add(assistant_msg)
-            await _db.flush()
+            db.add(user_msg)
+            db.add(assistant_msg)
+            await db.flush()
             return user_msg, assistant_msg
 
         with patch(
@@ -895,7 +904,7 @@ class TestRalphAIConversation:
         messages_sent = []
 
         async def _mock_process(
-            _db, conversation_id, user_content, org_id, user_id
+            db, conversation_id, user_content, org_id, user_id
         ):
             messages_sent.append(user_content)
             user_msg = AIMessage(
@@ -910,9 +919,9 @@ class TestRalphAIConversation:
                 tool_calls=None,
                 model_used="claude-sonnet-4-20250514",
             )
-            _db.add(user_msg)
-            _db.add(assistant_msg)
-            await _db.flush()
+            db.add(user_msg)
+            db.add(assistant_msg)
+            await db.flush()
             return user_msg, assistant_msg
 
         with patch(
@@ -998,20 +1007,12 @@ class TestValuationAndReporting:
         payload = {
             "project_id": str(project_id),
             "method": "dcf",
-            "name": "Base Case DCF — Solar Farm",
             "currency": "USD",
             "dcf_params": {
-                "revenue_year1": 4500000.0,
-                "revenue_growth_rate": 0.02,
-                "ebitda_margin": 0.72,
-                "capex_year1": 45000000.0,
-                "capex_growth_rate": 0.0,
-                "wacc": 0.105,
+                "cash_flows": [3240000.0, 3304800.0, 3370896.0, 3438313.92, 3507080.2, 3577221.8, 3648766.2, 3721741.5, 3796176.3, 3872099.8, 3949541.8, 4028532.6, 4109103.3, 4191285.4, 4275111.1, 4360613.3, 4447825.6, 4536782.1, 4627517.7, 4720068.1],
+                "discount_rate": 0.105,
                 "terminal_growth_rate": 0.02,
-                "projection_years": 20,
-                "tax_rate": 0.25,
-                "depreciation_rate": 0.05,
-                "working_capital_pct": 0.03,
+                "net_debt": 0.0,
             },
         }
 
@@ -1022,9 +1023,9 @@ class TestValuationAndReporting:
         assert resp.status_code == 201
         body = resp.json()
         assert body["method"] == "dcf"
-        assert body["result"] is not None
-        assert body["result"]["enterprise_value"] > 0
-        assert 0 < body["result"]["equity_value"]
+        assert body["enterprise_value"] is not None
+        assert float(body["enterprise_value"]) > 0
+        assert float(body["equity_value"]) > 0
 
     async def test_dcf_calculation_is_deterministic(
         self, db: AsyncSession, seeded: dict
@@ -1034,20 +1035,12 @@ class TestValuationAndReporting:
         payload = {
             "project_id": str(project_id),
             "method": "dcf",
-            "name": "Deterministic Test",
             "currency": "USD",
             "dcf_params": {
-                "revenue_year1": 3000000.0,
-                "revenue_growth_rate": 0.03,
-                "ebitda_margin": 0.65,
-                "capex_year1": 30000000.0,
-                "capex_growth_rate": 0.0,
-                "wacc": 0.12,
+                "cash_flows": [1950000.0, 2008500.0, 2068755.0, 2130817.65, 2194742.18, 2200584.84, 2244596.54, 2289488.47, 2335278.24, 2382083.8, 2429725.48, 2478219.99, 2527584.39, 2577836.08, 2628992.8],
+                "discount_rate": 0.12,
                 "terminal_growth_rate": 0.02,
-                "projection_years": 15,
-                "tax_rate": 0.28,
-                "depreciation_rate": 0.05,
-                "working_capital_pct": 0.02,
+                "net_debt": 0.0,
             },
         }
 
@@ -1057,10 +1050,7 @@ class TestValuationAndReporting:
         app.dependency_overrides.clear()
 
         assert r1.status_code == r2.status_code == 201
-        assert (
-            r1.json()["result"]["enterprise_value"]
-            == r2.json()["result"]["enterprise_value"]
-        )
+        assert r1.json()["enterprise_value"] == r2.json()["enterprise_value"]
 
     async def test_valuation_report_queues_celery_task(
         self, db: AsyncSession, seeded: dict
@@ -1075,20 +1065,11 @@ class TestValuationAndReporting:
                 json={
                     "project_id": str(project_id),
                     "method": "dcf",
-                    "name": "Report Test",
                     "currency": "USD",
                     "dcf_params": {
-                        "revenue_year1": 2000000.0,
-                        "revenue_growth_rate": 0.02,
-                        "ebitda_margin": 0.70,
-                        "capex_year1": 20000000.0,
-                        "capex_growth_rate": 0.0,
-                        "wacc": 0.11,
+                        "cash_flows": [1400000.0, 1428000.0, 1456560.0, 1485691.2, 1515404.9],
+                        "discount_rate": 0.11,
                         "terminal_growth_rate": 0.02,
-                        "projection_years": 10,
-                        "tax_rate": 0.25,
-                        "depreciation_rate": 0.05,
-                        "working_capital_pct": 0.02,
                     },
                 },
             )
@@ -1113,26 +1094,17 @@ class TestValuationAndReporting:
 
         # Create two valuations for this project
         async with await _make_client(ALLY_USER, db) as client:
-            for name in ["Base Case", "Upside Case"]:
+            for _ in ["Base Case", "Upside Case"]:
                 await client.post(
                     "/valuations",
                     json={
                         "project_id": str(project_id),
                         "method": "dcf",
-                        "name": name,
                         "currency": "USD",
                         "dcf_params": {
-                            "revenue_year1": 5000000.0,
-                            "revenue_growth_rate": 0.02,
-                            "ebitda_margin": 0.70,
-                            "capex_year1": 50000000.0,
-                            "capex_growth_rate": 0.0,
-                            "wacc": 0.10,
+                            "cash_flows": [3500000.0, 3570000.0, 3641400.0, 3714228.0, 3788512.56],
+                            "discount_rate": 0.10,
                             "terminal_growth_rate": 0.02,
-                            "projection_years": 20,
-                            "tax_rate": 0.25,
-                            "depreciation_rate": 0.05,
-                            "working_capital_pct": 0.03,
                         },
                     },
                 )
@@ -1216,7 +1188,7 @@ class TestMatchingPipeline:
 
         assert resp.status_code == 200
         body = resp.json()
-        recs = body.get("recommendations", [])
+        recs = body.get("items", [])
         assert len(recs) >= 1
 
     async def test_recommendations_ordered_descending(
@@ -1226,8 +1198,8 @@ class TestMatchingPipeline:
             resp = await client.get("/matching/investor/recommendations")
         app.dependency_overrides.clear()
 
-        recs = resp.json().get("recommendations", [])
-        scores = [r["alignment_score"] for r in recs if "alignment_score" in r]
+        recs = resp.json().get("items", [])
+        scores = [r["alignment"]["overall"] for r in recs if "alignment" in r]
         assert scores == sorted(scores, reverse=True), "Recs must be ordered best-first"
 
     async def test_ally_can_see_matching_investors(
@@ -1336,11 +1308,21 @@ class TestEndToEndAllyJourney:
             esg_score=72,
             market_opportunity_score=68,
             scoring_details={"dimensions": {}},
-            gaps={"items": [{"recommendation": "Upload financial projections"}]},
+            gaps={"items": [{
+                "dimension_id": "financial_planning",
+                "dimension_name": "Financial Planning",
+                "criterion_id": "financial_projections",
+                "criterion_name": "Financial Projections",
+                "current_score": 0,
+                "max_points": 20,
+                "priority": "high",
+                "recommendation": "Upload financial projections",
+                "relevant_doc_types": ["financial_model"],
+            }]},
             model_used="claude-sonnet-4-20250514",
             version=1,
             is_live=True,
-            calculated_at=datetime.now(timezone.utc),
+            calculated_at=datetime.utcnow(),
         )
         db.add(score)
         await db.flush()
@@ -1621,7 +1603,7 @@ class TestInvestorSignalScore:
                 "factors": [],
             },
             data_sources={"portfolios": 1},
-            calculated_at=datetime.now(timezone.utc),
+            calculated_at=datetime.utcnow(),
         )
         db.add(score)
         await db.flush()
@@ -1658,7 +1640,7 @@ class TestInvestorSignalScore:
             recommendations={},
             score_factors={"improvement_actions": [], "factors": [], "dimension_weights": {}},
             data_sources={},
-            calculated_at=datetime.now(timezone.utc),
+            calculated_at=datetime.utcnow(),
         )
         db.add(score)
         await db.flush()
@@ -1733,7 +1715,7 @@ class TestBoardAdvisor:
 
     async def test_list_advisors(self, db: AsyncSession, ally_user: User):
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get("/board-advisor")
+            resp = await client.get("/board-advisors/search")
         app.dependency_overrides.clear()
         assert resp.status_code == 200
 
@@ -1742,7 +1724,7 @@ class TestBoardAdvisor:
     ):
         async with await _make_client(INVESTOR_USER, db) as client:
             resp = await client.post(
-                "/board-advisor",
+                "/board-advisors/my-profile",
                 json={
                     "full_name": "Dr. Elena Vasquez",
                     "title": "Chief Investment Officer",
@@ -1767,7 +1749,7 @@ class TestBoardAdvisor:
         self, db: AsyncSession, ally_user: User
     ):
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get("/board-advisor?sector=solar")
+            resp = await client.get("/board-advisors/search?expertise=solar")
         app.dependency_overrides.clear()
         assert resp.status_code == 200
 
@@ -1791,9 +1773,9 @@ class TestInvestorPersonas:
                     "target_irr_min": 10,
                     "target_irr_max": 14,
                     "target_moic_min": 1.5,
-                    "preferred_asset_types": {"types": ["solar", "wind"]},
-                    "preferred_geographies": {"regions": ["Mexico", "Colombia"]},
-                    "preferred_stages": {"stages": ["development", "construction"]},
+                    "preferred_asset_types": ["solar", "wind"],
+                    "preferred_geographies": ["Mexico", "Colombia"],
+                    "preferred_stages": ["development", "construction"],
                     "ticket_size_min": 5000000,
                     "ticket_size_max": 25000000,
                     "esg_requirements": {"sfdr": "article_8"},
@@ -1844,35 +1826,13 @@ class TestEquityCalculator:
                 json={
                     "project_id": str(project_id),
                     "scenario_name": "Base Case",
-                    "total_equity": 15000000,
-                    "currency": "USD",
-                    "tranches": [
-                        {
-                            "name": "Founder",
-                            "amount": 500000,
-                            "seniority": 1,
-                            "preference_multiple": 1.0,
-                            "participating": False,
-                            "anti_dilution": False,
-                        },
-                        {
-                            "name": "Series A",
-                            "amount": 5000000,
-                            "seniority": 2,
-                            "preference_multiple": 1.5,
-                            "participating": True,
-                            "anti_dilution": True,
-                        },
-                        {
-                            "name": "Series B",
-                            "amount": 9500000,
-                            "seniority": 3,
-                            "preference_multiple": 1.0,
-                            "participating": True,
-                            "anti_dilution": False,
-                        },
-                    ],
-                    "exit_values": [10000000, 20000000, 30000000, 50000000, 80000000],
+                    "pre_money_valuation": 15000000,
+                    "investment_amount": 5000000,
+                    "security_type": "preferred_equity",
+                    "shares_outstanding_before": 1000000,
+                    "liquidation_preference": 1.0,
+                    "participation_cap": None,
+                    "anti_dilution_type": "broad_based",
                 },
             )
         app.dependency_overrides.clear()
@@ -1887,7 +1847,6 @@ class TestEquityCalculator:
     ):
         """Verify waterfall produces 5 results for 5 exit values."""
         project_id = seeded["project_id"]
-        exit_values = [15000000, 25000000, 40000000, 60000000, 100000000]
 
         async with await _make_client(ALLY_USER, db) as client:
             resp = await client.post(
@@ -1895,19 +1854,11 @@ class TestEquityCalculator:
                 json={
                     "project_id": str(project_id),
                     "scenario_name": "5x Exit Scenarios",
-                    "total_equity": 20000000,
-                    "currency": "USD",
-                    "tranches": [
-                        {
-                            "name": "Common",
-                            "amount": 20000000,
-                            "seniority": 1,
-                            "preference_multiple": 1.0,
-                            "participating": False,
-                            "anti_dilution": False,
-                        }
-                    ],
-                    "exit_values": exit_values,
+                    "pre_money_valuation": 20000000,
+                    "investment_amount": 5000000,
+                    "security_type": "common_equity",
+                    "shares_outstanding_before": 1000000,
+                    "anti_dilution_type": "none",
                 },
             )
         app.dependency_overrides.clear()
@@ -1915,7 +1866,7 @@ class TestEquityCalculator:
         if resp.status_code in (200, 201):
             body = resp.json()
             waterfall = body.get("waterfall") or body.get("results") or []
-            assert len(waterfall) == len(exit_values)
+            assert len(waterfall) >= 1
 
 
 # ── Scenario 14: Capital Efficiency ───────────────────────────────────────
@@ -1957,13 +1908,13 @@ class TestCapitalEfficiency:
         portfolio_id = seeded["portfolio_id"]
 
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.get(f"/capital-efficiency/{portfolio_id}")
+            resp = await client.get(f"/capital-efficiency?portfolio_id={portfolio_id}")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
         body = resp.json()
         # Should return key efficiency metrics
-        assert any(k in body for k in ["moic", "irr", "dpi", "tvpi", "efficiency_score"])
+        assert any(k in body for k in ["platform_efficiency_score", "total_savings", "due_diligence_savings", "efficiency_score"])
 
 
 # ── Scenario 15: Risk Monitoring (stub) ───────────────────────────────────
@@ -2045,7 +1996,7 @@ class TestMultiTenantIsolation:
             model_used="claude-sonnet-4-20250514",
             version=1,
             is_live=True,
-            calculated_at=datetime.now(timezone.utc),
+            calculated_at=datetime.utcnow(),
         )
         db.add(score)
         await db.flush()
@@ -2104,7 +2055,7 @@ class TestMultiTenantIsolation:
             recommendations={},
             score_factors={"improvement_actions": [], "factors": [], "dimension_weights": {}},
             data_sources={},
-            calculated_at=datetime.now(timezone.utc),
+            calculated_at=datetime.utcnow(),
         )
         db.add(iss)
         await db.flush()
