@@ -98,6 +98,29 @@ def calculate_signal_score_task(
             except Exception as e:
                 logger.warning("certification_evaluation_failed", error=str(e))
 
+            # Award gamification badges after score update
+            try:
+                from app.modules.gamification import service as gamification_service
+                from app.core.database import async_session_factory
+                import asyncio
+
+                async def _run_badge_eval() -> None:
+                    async with async_session_factory() as async_db:
+                        await gamification_service.evaluate_badges(
+                            async_db,
+                            uuid.UUID(user_id),
+                            uuid.UUID(project_id),
+                            "signal_score_computed",
+                        )
+                        await gamification_service.generate_quests(
+                            async_db,
+                            uuid.UUID(project_id),
+                        )
+
+                asyncio.run(_run_badge_eval())
+            except Exception as e:
+                logger.warning("gamification_evaluation_failed", error=str(e))
+
             logger.info(
                 "signal_score_task_completed",
                 project_id=project_id,

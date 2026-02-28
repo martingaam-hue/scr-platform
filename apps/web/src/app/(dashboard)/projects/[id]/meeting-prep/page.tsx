@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { formatDate } from "@/lib/format"
 import { Bot, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, MessageSquare, HelpCircle, FileText, Printer } from "lucide-react"
+import { AIFeedback } from "@/components/ai-feedback"
 
 interface BriefingContent {
   executive_summary?: string
@@ -191,13 +192,21 @@ export default function MeetingPrepPage() {
                 <h1 className="text-xl font-bold text-gray-900 capitalize">{briefing.meeting_type.replace("_", " ")} Briefing</h1>
                 {briefing.meeting_date && <p className="text-sm text-gray-500">Meeting: {formatDate(briefing.meeting_date)}</p>}
               </div>
-              <button
-                onClick={() => window.print()}
-                className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
-              >
-                <Printer className="h-4 w-4" />
-                Print / Export PDF
-              </button>
+              <div className="flex items-center gap-3">
+                <AIFeedback
+                  taskType="meeting_briefing"
+                  entityType="project"
+                  entityId={projectId}
+                  compact
+                />
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print / Export PDF
+                </button>
+              </div>
             </div>
 
             {/* Executive Summary */}

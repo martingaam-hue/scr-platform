@@ -70,6 +70,7 @@ import {
   type MitigationResponse,
 } from "@/lib/risk";
 import { usePortfolios } from "@/lib/portfolio";
+import { AIFeedback } from "@/components/ai-feedback";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -243,6 +244,13 @@ function DashboardTab({ portfolioId }: { portfolioId: string }) {
                 {data.heatmap.total_risks} risks logged ·{" "}
                 {data.auto_identified.length} auto-identified
               </p>
+              <AIFeedback
+                taskType="risk_assessment"
+                entityType="portfolio"
+                entityId={portfolioId}
+                compact
+                className="mt-2"
+              />
             </div>
           </CardContent>
         </Card>

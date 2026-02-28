@@ -54,6 +54,7 @@ import {
   type TopMatchItem,
   type ScoreFactorItem,
 } from "@/lib/investor-signal-score";
+import { AIFeedback } from "@/components/ai-feedback";
 
 // ── Icon map ──────────────────────────────────────────────────────────────
 
@@ -649,6 +650,12 @@ export default function InvestorSignalScorePage() {
         <>
           {/* Score gauge header */}
           <ScoreHeader score={score} />
+          <AIFeedback
+            taskType="score_quality"
+            entityType="investor_signal_score"
+            entityId={score.id}
+            compact
+          />
 
           {/* Score history */}
           {history.length >= 2 && <ScoreHistorySection items={history} />}

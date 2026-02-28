@@ -25,6 +25,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@scr/ui";
+import { AIFeedback } from "@/components/ai-feedback";
 import {
   useTemplates,
   useTemplate,
@@ -648,6 +649,12 @@ function ReviewResultDisplay({ result }: { result: ReviewResultResponse }) {
           </CardContent>
         </Card>
       )}
+      <AIFeedback
+        taskType="legal_review"
+        entityType="document"
+        entityId={result.id}
+        compact
+      />
     </div>
   );
 }

@@ -56,6 +56,41 @@ You have access to tools that let you:
 """
 
 MAX_TOOL_ITERATIONS = 10
+RAG_MAX_CHARS = 3000  # ~750 tokens — fits within context budget
+
+
+async def _fetch_rag_context(
+    gateway_url: str,
+    gateway_key: str,
+    query: str,
+    org_id: uuid.UUID,
+) -> str:
+    """Search relevant documents via AI Gateway and return a condensed context string."""
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                f"{gateway_url}/v1/search",
+                json={"query": query, "org_id": str(org_id), "top_k": 5},
+                headers={"Authorization": f"Bearer {gateway_key}"},
+            )
+            if resp.status_code != 200:
+                return ""
+            data = resp.json()
+            chunks: list[dict] = data.get("results", data.get("chunks", []))
+            if not chunks:
+                return ""
+            parts: list[str] = []
+            for chunk in chunks:
+                text = chunk.get("text") or chunk.get("content") or ""
+                source = chunk.get("source") or chunk.get("document_name") or ""
+                if text:
+                    header = f"[{source}]" if source else ""
+                    parts.append(f"{header}\n{text}".strip())
+            combined = "\n\n---\n\n".join(parts)
+            return combined[:RAG_MAX_CHARS]
+    except Exception as e:
+        logger.debug("ralph_rag_fetch_failed", error=str(e))
+        return ""
 
 
 class RalphAgent:
@@ -88,10 +123,13 @@ class RalphAgent:
         # history includes the just-saved user message as last entry; exclude it for context manager
         full_history = await service.get_conversation_messages(db, conversation_id)
         prior_history = full_history[:-1] if full_history and full_history[-1].role == AIMessageRole.USER else full_history
+        rag_context = await _fetch_rag_context(
+            self._gateway_url, self._gateway_key, user_content, org_id
+        )
         messages = await self.context_manager.prepare_context(
             system_prompt=RALPH_SYSTEM_PROMPT,
             tool_definitions=RALPH_TOOL_DEFINITIONS,
-            rag_context="",  # RAG available via tools
+            rag_context=rag_context,
             conversation_history=_history_to_dicts(prior_history),
             new_message=user_content,
         )
@@ -193,10 +231,13 @@ class RalphAgent:
         # Build message history
         full_history = await service.get_conversation_messages(db, conversation_id)
         prior_history = full_history[:-1] if full_history and full_history[-1].role == AIMessageRole.USER else full_history
+        rag_context = await _fetch_rag_context(
+            self._gateway_url, self._gateway_key, user_content, org_id
+        )
         messages = await self.context_manager.prepare_context(
             system_prompt=RALPH_SYSTEM_PROMPT,
             tool_definitions=RALPH_TOOL_DEFINITIONS,
-            rag_context="",  # RAG available via tools
+            rag_context=rag_context,
             conversation_history=_history_to_dicts(prior_history),
             new_message=user_content,
         )

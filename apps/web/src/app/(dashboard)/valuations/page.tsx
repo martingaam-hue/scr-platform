@@ -49,6 +49,7 @@ import {
   type SensitivityMatrix,
   type AssumptionSuggestion,
 } from "@/lib/valuation";
+import { AIFeedback } from "@/components/ai-feedback";
 
 // ── Wizard steps ─────────────────────────────────────────────────────────────
 
@@ -789,6 +790,13 @@ function ValuationResultCard({
           Generate Report
         </Button>
       </div>
+      <AIFeedback
+        taskType="valuation"
+        entityType="valuation"
+        entityId={valuation.id}
+        compact
+        className="mt-2"
+      />
     </div>
   );
 }

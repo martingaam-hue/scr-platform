@@ -92,6 +92,16 @@ async def complete_onboarding(
         org_type=data.org_type,
     )
 
+    # Award onboarding badge
+    try:
+        from app.modules.gamification import service as gamification_service
+        project_id = uuid.UUID(created.get("project_id")) if created.get("project_id") else None
+        await gamification_service.evaluate_badges(
+            db, current_user.user_id, project_id, "onboarding_complete"
+        )
+    except Exception:
+        pass
+
     return {
         "success": True,
         "org_type": data.org_type,

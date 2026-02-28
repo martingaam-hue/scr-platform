@@ -31,6 +31,7 @@ import {
   SCENARIO_LABELS,
   type CarbonCreditResponse,
 } from "@/lib/carbon-credits";
+import { AIFeedback } from "@/components/ai-feedback";
 
 // ── Verification timeline ─────────────────────────────────────────────────────
 
@@ -261,6 +262,14 @@ export default function CarbonPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* AI Feedback */}
+          <AIFeedback
+            taskType="carbon_estimate"
+            entityType="project"
+            entityId={id}
+            compact
+          />
 
           {/* Verification timeline */}
           <Card>

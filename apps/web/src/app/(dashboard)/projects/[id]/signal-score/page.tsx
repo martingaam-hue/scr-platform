@@ -26,6 +26,7 @@ import {
 import { useState } from "react";
 import { useProject } from "@/lib/projects";
 import { usePermission } from "@/lib/auth";
+import { AIFeedback } from "@/components/ai-feedback";
 import {
   useSignalScoreDetails,
   useSignalScoreGaps,
@@ -273,6 +274,13 @@ export default function SignalScorePage() {
                   v{details.version} · {details.model_used} ·{" "}
                   {new Date(details.calculated_at).toLocaleDateString()}
                 </p>
+                <AIFeedback
+                  taskType="score_quality"
+                  entityType="project"
+                  entityId={id}
+                  compact
+                  className="mt-3"
+                />
               </CardContent>
             </Card>
 
