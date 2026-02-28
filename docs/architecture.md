@@ -262,3 +262,11 @@ Valuations, equity scenarios, tax credit calculations, and capital efficiency me
 ### Sync vs Async DB Connections
 
 SQLAlchemy uses two connection strings: `DATABASE_URL` (asyncpg, for all application queries) and `DATABASE_URL_SYNC` (psycopg2, for Alembic migrations only — Alembic does not support async). The two strings point to the same database.
+
+### PostgreSQL Native Enums — Two Binding Modes
+
+Core models (`Project`, `Portfolio`, etc.) were migrated with **uppercase** PostgreSQL enum labels matching Python `.name` (e.g. `SOLAR`, `ACTIVE`). Advisory module models (`BoardAdvisorProfile`, `EquityScenario`, etc.) were migrated with **lowercase** labels matching Python `.value` (e.g. `common_equity`, `available`).
+
+SQLAlchemy 2.0 with `Mapped[SomeEnum]` defaults to binding by `.name` (uppercase). For advisory tables, every enum column uses a `_lc_enum()` helper that sets `values_callable=lambda x: [e.value for e in x]` to force lowercase binding. Mixing up the two modes causes `asyncpg.exceptions.InvalidTextRepresentationError` at insert/update time.
+
+See `apps/api/app/models/advisory.py` for the pattern and `apps/api/app/models/enums.py` for the shared enum definitions.

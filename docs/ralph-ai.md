@@ -35,6 +35,11 @@ Loop (max 10 iterations):
 | `ralph service` | `modules/ralph_ai/service.py` | Conversation/message CRUD |
 | `ralph router` | `modules/ralph_ai/router.py` | 6 HTTP endpoints |
 
+### Implementation notes
+
+- `get_conversation()` uses `.execution_options(populate_existing=True)` so that `selectinload(messages)` always fetches fresh data even if the conversation object is already in the SQLAlchemy identity map. Without this, a second call in the same session returns the cached (possibly empty) messages collection.
+- `delete_conversation()` checks `conversation.user_id == user_id` to prevent one user from deleting another user's conversations within the same org.
+
 ---
 
 ## System Prompt

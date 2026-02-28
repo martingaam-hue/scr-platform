@@ -202,13 +202,17 @@ Generation: async Celery task, status polling via `GET /reports/{id}`
 
 ### Valuation
 
-**Route prefix:** `/valuation`
+**Route prefix:** `/valuations`
 **Users:** Both
 **Purpose:** Project valuation using multiple methods.
 
 Methods: DCF, Comparables, Replacement Cost, Book Value, Market Value, Blended
 
 Statuses: `draft → reviewed → approved → superseded`
+
+Key response fields: `enterprise_value`, `equity_value`, `method`, `status`, `version`, `valued_at` — all at top level (not nested under a `result` key).
+
+The `POST /valuations/{id}/report` endpoint sets `generated_by` from `current_user.user_id`; the field is non-nullable so the user must be authenticated.
 
 ---
 
@@ -228,6 +232,8 @@ Anti-dilution: `none`, `broad_based`, `narrow_based`, `full_ratchet`
 **Route prefix:** `/capital-efficiency`
 **Users:** Both
 **Purpose:** Burn rate, runway, and capital deployment efficiency metrics.
+
+Key response fields: `platform_efficiency_score`, `total_savings`, `due_diligence_savings`, `moic`, `irr`, `dpi`, `tvpi`
 
 ---
 
@@ -297,16 +303,23 @@ Visibility: `public`, `qualified_only`, `invite_only`
 
 Strategies: `conservative`, `moderate`, `growth`, `aggressive`, `impact_first`
 
+> **Note:** Fields like `preferred_asset_types`, `target_geographies`, `preferred_stages` expect plain `list[str]` — not `{"types": [...]}` dict wrappers.
+
 ---
 
 ### Board Advisor
 
-**Route prefix:** `/board-advisor`
+**Route prefix:** `/board-advisors`
 **Users:** Both
 **Purpose:** Board advisor discovery, matching, and engagement management.
 
 Compensation: `equity`, `cash`, `pro_bono`, `negotiable`
 Application flow: `pending → accepted | rejected → active → completed`
+
+Key endpoints:
+- `GET /board-advisors/search` — search advisors by expertise, sector, availability
+- `POST /board-advisors/profiles` — create advisor profile
+- `POST /board-advisors/applications` — apply to connect with an advisor
 
 ---
 

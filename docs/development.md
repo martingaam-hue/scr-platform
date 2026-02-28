@@ -147,6 +147,53 @@ await db.flush()  # assigns ID, writes to transaction — not yet committed
 return new_entity
 ```
 
+**Always `await db.refresh(obj)` after `flush()` before reading server-set columns** — accessing columns like `updated_at` (set by the DB trigger) after a flush without a refresh causes `MissingGreenlet` in asyncio SQLAlchemy:
+
+```python
+db.add(entity)
+await db.flush()
+await db.refresh(entity)  # required before accessing server-set fields
+return SomeResponse(updated_at=entity.updated_at)
+```
+
+**`datetime.utcnow()` for TIMESTAMP WITHOUT TIME ZONE columns** — asyncpg rejects timezone-aware datetimes for `TIMESTAMP WITHOUT TIME ZONE` columns. Use `datetime.utcnow()`, not `datetime.now(timezone.utc)`:
+
+```python
+# ✅ Correct
+from datetime import datetime
+last_updated = datetime.utcnow()
+
+# ❌ asyncpg will raise DataError
+from datetime import datetime, timezone
+last_updated = datetime.now(timezone.utc)
+```
+
+**PostgreSQL native enum columns and SQLAlchemy** — Core models (projects, portfolios) use uppercase PostgreSQL enum values matching Python `.name`. Advisory module models use lowercase PostgreSQL enum values matching Python `.value`. When a table was migrated with lowercase enum labels, use `values_callable` to force SQLAlchemy to bind by value:
+
+```python
+from sqlalchemy import Enum as SAEnum
+
+def _lc_enum(enum_cls, type_name: str, **kw):
+    """Create a mapped_column using lowercase enum values (matching the DB)."""
+    return mapped_column(
+        SAEnum(
+            enum_cls,
+            values_callable=lambda x: [e.value for e in x],
+            name=type_name,
+            create_type=False,
+        ),
+        **kw,
+    )
+
+# Usage:
+availability_status: Mapped[AdvisorAvailabilityStatus] = _lc_enum(
+    AdvisorAvailabilityStatus, "advisoravailabilitystatus",
+    nullable=False, default=AdvisorAvailabilityStatus.AVAILABLE,
+)
+```
+
+This pattern is used throughout `apps/api/app/models/advisory.py` for all advisory-specific enums.
+
 **Pydantic v2 models:**
 
 ```python
@@ -287,6 +334,29 @@ async def test_create_project(db: AsyncSession, sample_current_user: CurrentUser
 ```
 
 **Important:** Never use `db.commit()` in tests — the `db` fixture rolls back after each test automatically.
+
+**Decimal column comparison in tests** — `Numeric(19, 4)` columns serialize as `"10000000.0000"`, not `"10000000"`. Always use `float()` when asserting numeric values from API responses:
+
+```python
+# ✅ Correct
+assert float(data["total_invested"]) == 10_000_000
+
+# ❌ Will fail due to trailing zeros
+assert data["total_invested"] == "10000000"
+```
+
+**Relationship reload in tests** — SQLAlchemy's identity map caches object state within a session. If you load an object, then add related rows in the same session, the cached collection won't reflect the new rows. Add `.execution_options(populate_existing=True)` to force a fresh load:
+
+```python
+stmt = (
+    select(AIConversation)
+    .where(AIConversation.id == conv_id)
+    .options(selectinload(AIConversation.messages))
+    .execution_options(populate_existing=True)  # forces messages reload
+)
+```
+
+**Pydantic model completeness** — Pydantic v2 strict validation requires all non-optional fields when constructing models. When seeding test data that goes through Pydantic validation at the API layer, always provide the full schema — partial objects will cause 422 validation errors that can be hard to trace.
 
 ### Frontend
 
