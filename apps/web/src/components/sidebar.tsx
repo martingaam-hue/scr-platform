@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ShieldCheck,
   FolderLock,
+  ScanSearch,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -50,6 +51,7 @@ const investorNav: NavSection[] = [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Portfolio", href: "/dashboard/portfolio", icon: Briefcase, tourId: "nav-portfolio" },
       { label: "Deals", href: "/dashboard/deals", icon: FolderKanban, tourId: "nav-deals" },
+      { label: "Smart Screener", href: "/dashboard/screener", icon: ScanSearch, tourId: "nav-screener" },
       { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock, tourId: "nav-data-room" },
       { label: "Risk", href: "/dashboard/risk", icon: ShieldAlert },
       { label: "Marketplace", href: "/dashboard/marketplace", icon: Store },
@@ -88,6 +90,7 @@ const adminNav: NavSection[] = [
       { label: "Projects", href: "/dashboard/projects", icon: FolderKanban },
       { label: "Data Room", href: "/dashboard/data-room", icon: FolderLock },
       { label: "Deals", href: "/dashboard/deals", icon: FolderKanban },
+      { label: "Smart Screener", href: "/dashboard/screener", icon: ScanSearch },
       { label: "Risk", href: "/dashboard/risk", icon: ShieldAlert },
       { label: "Marketplace", href: "/dashboard/marketplace", icon: Store },
       { label: "Reports", href: "/dashboard/reports", icon: BarChart3 },

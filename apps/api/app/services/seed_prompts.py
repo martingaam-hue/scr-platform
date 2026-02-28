@@ -206,6 +206,35 @@ SEED_PROMPTS: list[dict] = [
         "is_active": True,
     },
     {
+        "task_type": "parse_screener_query",
+        "version": 1,
+        "name": "Smart Screener NL query parser v1",
+        "system_prompt": None,
+        "user_prompt_template": (
+            "Parse this investment deal search query into structured filters.\n\n"
+            "Query: {query}\n\n"
+            "Extract any of these filter types that are mentioned or clearly implied:\n"
+            "- project_types: solar, wind, hydro, biomass, real_estate, infrastructure, "
+            "private_equity, private_credit, natural_resources, digital_assets, impact\n"
+            "- geographies: country names, regions, continents\n"
+            "- stages: early_stage, development, construction, operational, brownfield\n"
+            "- min_signal_score / max_signal_score: integer 0-100\n"
+            "- min_ticket_size / max_ticket_size: number in millions EUR\n"
+            "- min_capacity_mw / max_capacity_mw: number for energy projects\n"
+            "- sector_keywords: any other relevant terms\n"
+            "- esg_requirements: article_6, article_8, article_9\n"
+            "- sort_by: signal_score (default), match_score, created_at"
+        ),
+        "output_format_instruction": (
+            "Respond with ONLY a JSON object. Only include fields explicitly mentioned or "
+            "clearly implied. Example: "
+            '{{"project_types": ["solar"], "geographies": ["Spain"], "min_capacity_mw": 50}}'
+        ),
+        "variables_schema": {"query": "str"},
+        "traffic_percentage": 100,
+        "is_active": True,
+    },
+    {
         "task_type": "generate_memo",
         "version": 1,
         "name": "Investment memo generator v1",

@@ -79,11 +79,13 @@ class RAGPipeline:
         elasticsearch_client: Any,
         ai_gateway_client: Any,
         embedding_client: Any,
+        task_batcher: Any | None = None,
     ) -> None:
         self.vectors = vector_store
         self.es = elasticsearch_client
         self.ai = ai_gateway_client
         self.embedder = embedding_client
+        self.batcher = task_batcher
 
     # ── Ingestion ─────────────────────────────────────────────────────────────
 
@@ -365,26 +367,49 @@ class RAGPipeline:
 
     async def _summarize_chunks(self, chunks: list[Chunk], doc_type: str) -> None:
         """Generate 1-2 sentence summaries per chunk via Haiku (cheap, fast)."""
+        # Separate short chunks (no summarization needed) from those to summarize
+        chunks_to_summarize = [c for c in chunks if len(c.text) >= 100]
         for chunk in chunks:
             if len(chunk.text) < 100:
                 chunk.summary = chunk.text
-                continue
-            try:
-                response = await self.ai.complete(
-                    model="claude-haiku-4-5-20251001",
-                    messages=[{
-                        "role": "user",
-                        "content": (
-                            f"Summarize this {doc_type} excerpt in 1-2 sentences. "
-                            f"Focus on key facts, figures, entities:\n\n{chunk.text[:2000]}"
-                        ),
-                    }],
-                    max_tokens=100,
-                    temperature=0.1,
-                )
-                chunk.summary = response.get("content", "").strip()
-            except Exception:
-                chunk.summary = chunk.text[:150]
+
+        if not chunks_to_summarize:
+            return
+
+        if self.batcher:
+            # Batch summarize all chunks at once
+            summaries = await self.batcher.batch_complete(
+                "summarize_document",
+                [
+                    {
+                        "document_type": doc_type,
+                        "document_text": chunk.text[:2000],
+                        "section_title": chunk.section_title,
+                    }
+                    for chunk in chunks_to_summarize
+                ],
+            )
+            for chunk, summary_result in zip(chunks_to_summarize, summaries):
+                chunk.summary = summary_result.get("summary", chunk.text[:150])
+        else:
+            # Fallback: individual calls (original behaviour)
+            for chunk in chunks_to_summarize:
+                try:
+                    response = await self.ai.complete(
+                        model="claude-haiku-4-5-20251001",
+                        messages=[{
+                            "role": "user",
+                            "content": (
+                                f"Summarize this {doc_type} excerpt in 1-2 sentences. "
+                                f"Focus on key facts, figures, entities:\n\n{chunk.text[:2000]}"
+                            ),
+                        }],
+                        max_tokens=100,
+                        temperature=0.1,
+                    )
+                    chunk.summary = response.get("content", "").strip()
+                except Exception:
+                    chunk.summary = chunk.text[:150]
 
     # ── Search helpers ────────────────────────────────────────────────────────
 

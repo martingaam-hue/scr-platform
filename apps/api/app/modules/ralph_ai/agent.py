@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.models.ai import AIMessage
 from app.models.enums import AIMessageRole
 from app.modules.ralph_ai import service
+from app.modules.ralph_ai.context_manager import ContextWindowManager, GatewayAIClient
 from app.modules.ralph_ai.tools import RALPH_TOOL_DEFINITIONS, RalphTools
 
 logger = structlog.get_logger()
@@ -63,6 +64,8 @@ class RalphAgent:
     def __init__(self) -> None:
         self._gateway_url = settings.AI_GATEWAY_URL
         self._gateway_key = settings.AI_GATEWAY_API_KEY
+        _ai_client = GatewayAIClient(self._gateway_url, self._gateway_key)
+        self.context_manager = ContextWindowManager(_ai_client)
 
     async def process_message(
         self,
@@ -81,9 +84,17 @@ class RalphAgent:
             db, conversation_id, AIMessageRole.USER, user_content
         )
 
-        # 2. Build message history
-        history = await service.get_conversation_messages(db, conversation_id)
-        messages = _build_messages_for_llm(history)
+        # 2. Build context-managed message history
+        # history includes the just-saved user message as last entry; exclude it for context manager
+        full_history = await service.get_conversation_messages(db, conversation_id)
+        prior_history = full_history[:-1] if full_history and full_history[-1].role == AIMessageRole.USER else full_history
+        messages = await self.context_manager.prepare_context(
+            system_prompt=RALPH_SYSTEM_PROMPT,
+            tool_definitions=RALPH_TOOL_DEFINITIONS,
+            rag_context="",  # RAG available via tools
+            conversation_history=_history_to_dicts(prior_history),
+            new_message=user_content,
+        )
 
         # 3. Agentic loop
         tools_instance = RalphTools(db=db, org_id=org_id)
@@ -180,8 +191,15 @@ class RalphAgent:
         yield {"type": "user_message", "message_id": str(user_msg.id)}
 
         # Build message history
-        history = await service.get_conversation_messages(db, conversation_id)
-        messages = _build_messages_for_llm(history)
+        full_history = await service.get_conversation_messages(db, conversation_id)
+        prior_history = full_history[:-1] if full_history and full_history[-1].role == AIMessageRole.USER else full_history
+        messages = await self.context_manager.prepare_context(
+            system_prompt=RALPH_SYSTEM_PROMPT,
+            tool_definitions=RALPH_TOOL_DEFINITIONS,
+            rag_context="",  # RAG available via tools
+            conversation_history=_history_to_dicts(prior_history),
+            new_message=user_content,
+        )
 
         tools_instance = RalphTools(db=db, org_id=org_id)
         all_tool_calls: list[dict[str, Any]] = []
@@ -305,6 +323,29 @@ class RalphAgent:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _history_to_dicts(history: list[AIMessage]) -> list[dict[str, Any]]:
+    """Convert DB AIMessage objects to plain dicts for the context manager."""
+    result: list[dict[str, Any]] = []
+    for msg in history:
+        role = msg.role.value
+        if role in ("user", "assistant"):
+            entry: dict[str, Any] = {"role": role, "content": msg.content or ""}
+            if msg.tool_calls and role == "assistant":
+                calls = msg.tool_calls.get("calls", [])
+                if calls:
+                    entry["tool_calls"] = calls
+            result.append(entry)
+        elif role == "tool_call":
+            if msg.tool_results:
+                for item in msg.tool_results.get("results", []):
+                    result.append({
+                        "role": "tool",
+                        "content": json.dumps(item.get("result", {})),
+                        "tool_call_id": item.get("id", "unknown"),
+                    })
+    return result
+
 
 def _build_messages_for_llm(history: list[AIMessage]) -> list[dict[str, Any]]:
     """Convert DB messages to the format expected by the LLM API."""

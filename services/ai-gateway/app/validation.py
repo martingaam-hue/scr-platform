@@ -320,6 +320,26 @@ VALIDATION_SCHEMAS: dict[str, dict] = {
             "enrichment": {"type": "dict"},
         },
     },
+
+    # ── Smart Screener ────────────────────────────────────────────────────────
+
+    "parse_screener_query": {
+        "required": [],
+        "fields": {
+            "project_types": {"type": "list"},
+            "geographies": {"type": "list"},
+            "stages": {"type": "list"},
+            "min_signal_score": {"type": "int", "min": 0, "max": 100},
+            "max_signal_score": {"type": "int", "min": 0, "max": 100},
+            "min_ticket_size": {"type": "float", "min": 0},
+            "max_ticket_size": {"type": "float", "min": 0},
+            "min_capacity_mw": {"type": "float", "min": 0},
+            "max_capacity_mw": {"type": "float", "min": 0},
+            "sector_keywords": {"type": "list"},
+            "esg_requirements": {"type": "list"},
+            "sort_by": {"type": "str", "enum": ["signal_score", "match_score", "created_at"]},
+        },
+    },
 }
 
 

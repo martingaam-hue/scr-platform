@@ -121,6 +121,12 @@ from app.models.advisory import (
     MonitoringAlert,
 )
 
+# Smart Screener
+from app.models.screener import SavedSearch
+
+# Risk Profiling
+from app.models.investor_risk import InvestorRiskProfile
+
 __all__ = [
     # Base
     "BaseModel",
@@ -185,4 +191,8 @@ __all__ = [
     "InvestorSignalScore",
     "InsuranceQuote",
     "InsurancePolicy",
+    # Smart Screener
+    "SavedSearch",
+    # Risk Profiling
+    "InvestorRiskProfile",
 ]
