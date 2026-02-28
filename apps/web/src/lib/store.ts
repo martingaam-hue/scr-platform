@@ -1,5 +1,25 @@
 import { create } from "zustand";
 
+// ── Ralph AI store ─────────────────────────────────────────────────────────
+
+interface RalphState {
+  isOpen: boolean;
+  toggle: () => void;
+  open: () => void;
+  close: () => void;
+  activeConversationId: string | null;
+  setActiveConversationId: (id: string | null) => void;
+}
+
+export const useRalphStore = create<RalphState>((set) => ({
+  isOpen: false,
+  toggle: () => set((s) => ({ isOpen: !s.isOpen })),
+  open: () => set({ isOpen: true }),
+  close: () => set({ isOpen: false }),
+  activeConversationId: null,
+  setActiveConversationId: (id) => set({ activeConversationId: id }),
+}));
+
 interface SidebarState {
   isOpen: boolean;
   toggle: () => void;

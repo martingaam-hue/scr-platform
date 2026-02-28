@@ -5,7 +5,7 @@ import { Moon, Sun, PanelRightOpen } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@scr/ui";
 import { SearchInput } from "@scr/ui";
-import { useSidebarStore, useGlobalFilterStore } from "@/lib/store";
+import { useSidebarStore, useGlobalFilterStore, useRalphStore } from "@/lib/store";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { NotificationBell } from "@/components/collaboration/notification-bell";
 
@@ -13,6 +13,7 @@ export function Topbar() {
   const { isOpen: sidebarOpen } = useSidebarStore();
   const { search, setSearch } = useGlobalFilterStore();
   const { theme, setTheme } = useTheme();
+  const { toggle: toggleRalph, isOpen: ralphOpen } = useRalphStore();
 
   return (
     <header
@@ -57,7 +58,14 @@ export function Topbar() {
         </button>
 
         {/* Ralph AI toggle */}
-        <button className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200">
+        <button
+          onClick={toggleRalph}
+          className={cn(
+            "rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200",
+            ralphOpen && "bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400",
+          )}
+          title="Toggle Ralph AI"
+        >
           <PanelRightOpen className="h-5 w-5" />
         </button>
       </div>

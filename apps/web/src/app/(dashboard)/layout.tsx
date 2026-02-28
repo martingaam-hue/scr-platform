@@ -11,6 +11,7 @@ import {
   ALLY_TOUR_STEPS,
 } from "@/components/feature-tour";
 import { useSidebarStore } from "@/lib/store";
+import { RalphPanel } from "@/components/ralph-ai/ralph-panel";
 import { useAuthenticatedApi, useSCRUser } from "@/lib/auth";
 import { isOnboardingComplete } from "@/lib/onboarding";
 
@@ -60,6 +61,9 @@ export default function DashboardLayout({
       >
         <div className="p-6">{children}</div>
       </main>
+
+      {/* Ralph AI panel */}
+      <RalphPanel />
 
       {/* Feature tour overlay */}
       {showTour && (
