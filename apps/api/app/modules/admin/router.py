@@ -5,12 +5,14 @@ These are cross-org queries with no multi-tenant scoping.
 """
 
 import uuid
+from datetime import UTC, datetime
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_role
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.core import Organization
 from app.models.enums import OrgType, SubscriptionStatus, SubscriptionTier, UserRole
@@ -21,6 +23,7 @@ from app.modules.admin import service
 from app.modules.admin.schemas import (
     AICostReport,
     AuditLogPage,
+    BackupStatus,
     OrgDetail,
     OrgSummary,
     SystemHealthResponse,
@@ -347,3 +350,83 @@ async def send_digest_test(
     await _send_digest_email(user.email, user.full_name, org_name, activity, summary)
 
     return {"status": "sent", "email": user.email, "activity": activity}
+
+
+# ── Backup Status ──────────────────────────────────────────────────────────────
+
+
+@router.get("/backup-status", response_model=BackupStatus, summary="Backup system health overview")
+async def get_backup_status(
+    _: CurrentUser = Depends(_require_platform_admin),
+) -> BackupStatus:
+    """Read the latest backup health report from S3 and return structured status."""
+    import json
+    import boto3
+    from botocore.exceptions import ClientError
+
+    backup_bucket = getattr(settings, "BACKUP_S3_BUCKET",
+                            f"scr-{settings.APP_ENV}-backups")
+
+    # Try to read latest health report from S3
+    try:
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=getattr(settings, "AWS_S3_ENDPOINT_URL", None),
+            aws_access_key_id=getattr(settings, "AWS_ACCESS_KEY_ID", None),
+            aws_secret_access_key=getattr(settings, "AWS_SECRET_ACCESS_KEY", None),
+            region_name=getattr(settings, "AWS_S3_REGION", "eu-west-1"),
+        )
+        obj = s3.get_object(Bucket=backup_bucket, Key="health/latest.json")
+        data = json.loads(obj["Body"].read())
+        steps = data.get("steps", {})
+
+        # Parse last_run timestamp
+        last_run = None
+        ts = data.get("timestamp")
+        if ts:
+            try:
+                last_run = datetime.strptime(ts, "%Y%m%d_%H%M%S").replace(tzinfo=UTC)
+            except Exception:
+                pass
+
+        # Parse restore test from a separate key (written by weekly_backup_test)
+        last_restore_test = None
+        restore_test_result = None
+        try:
+            rt_obj = s3.get_object(Bucket=backup_bucket, Key="health/restore_test_latest.json")
+            rt_data = json.loads(rt_obj["Body"].read())
+            restore_test_result = rt_data.get("overall")
+            rt_ts = rt_data.get("started_at")
+            if rt_ts:
+                last_restore_test = datetime.fromisoformat(rt_ts)
+        except ClientError:
+            pass
+
+        return BackupStatus(
+            overall=data.get("overall_status", "unknown"),
+            last_run=last_run,
+            postgresql=steps.get("postgresql"),
+            dr_copy=steps.get("dr_copy"),
+            opensearch=steps.get("opensearch"),
+            secrets_inventory=steps.get("secrets_inventory"),
+            rds_snapshots=steps.get("rds_snapshots"),
+            s3_replication=steps.get("s3_replication"),
+            table_audit=steps.get("table_audit"),
+            last_restore_test=last_restore_test,
+            restore_test_result=restore_test_result,
+        )
+
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "NoSuchKey":
+            # No backup has run yet
+            return BackupStatus(
+                overall="unknown",
+                last_run=None,
+                postgresql=None, dr_copy=None, opensearch=None,
+                secrets_inventory=None, rds_snapshots=None,
+                s3_replication=None, table_audit=None,
+                last_restore_test=None, restore_test_result=None,
+            )
+        raise HTTPException(status_code=503, detail="Backup status unavailable")
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Backup status error: {exc}")

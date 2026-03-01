@@ -28,6 +28,19 @@ provider "aws" {
   }
 }
 
+provider "aws" {
+  alias  = "eu_central_1"
+  region = "eu-central-1"
+
+  default_tags {
+    tags = {
+      Project     = "scr-platform"
+      Environment = var.environment
+      ManagedBy   = "terraform"
+    }
+  }
+}
+
 # --- VPC ---
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
@@ -333,4 +346,224 @@ resource "aws_iam_role_policy" "ecs_task_s3_extended" {
       }
     ]
   })
+}
+
+# ── KMS Keys for Backup Encryption ───────────────────────────────────────────
+resource "aws_kms_key" "scr_backup" {
+  description             = "SCR Platform ${var.environment} — backup encryption"
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+
+  tags = {
+    Name = "scr-${var.environment}-backup"
+  }
+}
+
+resource "aws_kms_alias" "scr_backup" {
+  name          = "alias/scr-${var.environment}-backup"
+  target_key_id = aws_kms_key.scr_backup.key_id
+}
+
+# DR region KMS key
+resource "aws_kms_key" "scr_backup_dr" {
+  provider                = aws.eu_central_1
+  description             = "SCR Platform ${var.environment} — DR backup encryption"
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+
+  tags = {
+    Name = "scr-${var.environment}-backup-dr"
+  }
+}
+
+resource "aws_kms_alias" "scr_backup_dr" {
+  provider      = aws.eu_central_1
+  name          = "alias/scr-${var.environment}-backup-dr"
+  target_key_id = aws_kms_key.scr_backup_dr.key_id
+}
+
+# ── Terraform State Locking (DynamoDB) ───────────────────────────────────────
+resource "aws_dynamodb_table" "terraform_locks" {
+  name         = "scr-terraform-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+
+  server_side_encryption {
+    enabled = true
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  tags = {
+    Name = "scr-terraform-state-locks"
+  }
+}
+
+# ── DR Region S3 Backup Bucket ────────────────────────────────────────────────
+resource "aws_s3_bucket" "backups_dr" {
+  provider = aws.eu_central_1
+  bucket   = "scr-${var.environment}-backups-dr"
+}
+
+resource "aws_s3_bucket_versioning" "backups_dr" {
+  provider = aws.eu_central_1
+  bucket   = aws_s3_bucket.backups_dr.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "backups_dr" {
+  provider = aws.eu_central_1
+  bucket   = aws_s3_bucket.backups_dr.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.scr_backup_dr.arn
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "backups_dr" {
+  provider                = aws.eu_central_1
+  bucket                  = aws_s3_bucket.backups_dr.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "backups_dr" {
+  provider = aws.eu_central_1
+  bucket   = aws_s3_bucket.backups_dr.id
+  rule {
+    id     = "glacier-transition"
+    status = "Enabled"
+    filter { prefix = "" }
+    transition {
+      days          = 90
+      storage_class = "GLACIER"
+    }
+    expiration { days = 365 }
+  }
+}
+
+# ── DR Region Documents Bucket ────────────────────────────────────────────────
+resource "aws_s3_bucket" "documents_dr" {
+  provider = aws.eu_central_1
+  bucket   = "scr-${var.environment}-documents-dr"
+}
+
+resource "aws_s3_bucket_versioning" "documents_dr" {
+  provider = aws.eu_central_1
+  bucket   = aws_s3_bucket.documents_dr.id
+  versioning_configuration { status = "Enabled" }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "documents_dr" {
+  provider = aws.eu_central_1
+  bucket   = aws_s3_bucket.documents_dr.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.scr_backup_dr.arn
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "documents_dr" {
+  provider                = aws.eu_central_1
+  bucket                  = aws_s3_bucket.documents_dr.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# ── S3 Replication IAM Role ───────────────────────────────────────────────────
+resource "aws_iam_role" "s3_replication" {
+  name = "scr-${var.environment}-s3-replication"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "s3.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "s3_replication" {
+  name = "scr-${var.environment}-s3-replication"
+  role = aws_iam_role.s3_replication.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetReplicationConfiguration", "s3:ListBucket"]
+        Resource = [aws_s3_bucket.documents.arn, aws_s3_bucket.redacted.arn]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObjectVersionForReplication", "s3:GetObjectVersionAcl", "s3:GetObjectVersionTagging"]
+        Resource = ["${aws_s3_bucket.documents.arn}/*", "${aws_s3_bucket.redacted.arn}/*"]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ReplicateObject", "s3:ReplicateDelete", "s3:ReplicateTags"]
+        Resource = [
+          "${aws_s3_bucket.documents_dr.arn}/*",
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
+        Resource = [aws_kms_key.scr_backup.arn]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Encrypt"]
+        Resource = [aws_kms_key.scr_backup_dr.arn]
+      }
+    ]
+  })
+}
+
+# ── S3 Cross-Region Replication: documents → documents-dr ─────────────────────
+resource "aws_s3_bucket_replication_configuration" "documents" {
+  count  = var.environment == "production" ? 1 : 0
+  bucket = aws_s3_bucket.documents.id
+  role   = aws_iam_role.s3_replication.arn
+
+  rule {
+    id     = "replicate-all-documents"
+    status = "Enabled"
+
+    filter { prefix = "" }
+
+    destination {
+      bucket        = aws_s3_bucket.documents_dr.arn
+      storage_class = "STANDARD_IA"
+
+      encryption_configuration {
+        replica_kms_key_id = aws_kms_key.scr_backup_dr.arn
+      }
+    }
+
+    delete_marker_replication {
+      status = "Enabled"
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.documents]
 }

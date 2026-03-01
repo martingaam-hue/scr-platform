@@ -5,6 +5,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+
+
 from app.models.enums import OrgType, SubscriptionStatus, SubscriptionTier, UserRole
 
 
@@ -149,3 +151,24 @@ class SystemHealthResponse(BaseModel):
     overall: str  # "ok" | "degraded" | "down"
     services: list[ServiceHealth]
     checked_at: datetime
+
+
+# ── Backup Status ─────────────────────────────────────────────────────────────
+
+class BackupStepStatus(BaseModel):
+    status: str  # "ok" | "success" | "failed" | "skipped" | "warning" | "partial"
+    detail: str | None = None
+
+
+class BackupStatus(BaseModel):
+    overall: str  # "success" | "partial_failure" | "unknown"
+    last_run: datetime | None
+    postgresql: dict | None
+    dr_copy: dict | None
+    opensearch: dict | None
+    secrets_inventory: dict | None
+    rds_snapshots: dict | None
+    s3_replication: dict | None
+    table_audit: dict | None
+    last_restore_test: datetime | None
+    restore_test_result: str | None  # "pass" | "fail" | None

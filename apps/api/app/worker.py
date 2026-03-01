@@ -172,14 +172,14 @@ celery_app.conf.beat_schedule = {
         "task": "tasks.fetch_market_data",
         "schedule": crontab(hour=6, minute=30),  # 6:30am UTC daily (after FRED updates)
     },
-    # ── Database backups ──────────────────────────────────────────────────────
-    "backup-database-daily": {
-        "task": "tasks.backup_database",
-        "schedule": crontab(hour=3, minute=30),  # 03:30 UTC daily (after benchmarks at 03:00)
+    # ── Backup orchestrator (replaces Gap Fix Block 10 tasks) ─────────────────
+    "nightly-backup": {
+        "task": "tasks.nightly_backup",
+        "schedule": crontab(hour=2, minute=0),  # 02:00 UTC daily
     },
-    "prune-old-backups-weekly": {
-        "task": "tasks.prune_old_backups",
-        "schedule": crontab(hour=4, minute=0, day_of_week=0),  # Sunday 04:00 UTC
+    "weekly-backup-test": {
+        "task": "tasks.weekly_backup_test",
+        "schedule": crontab(hour=5, minute=0, day_of_week=0),  # Sunday 05:00 UTC
     },
     # ── Data retention cleanup ────────────────────────────────────────────────
     "data-retention-cleanup": {
