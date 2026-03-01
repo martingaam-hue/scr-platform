@@ -221,6 +221,50 @@ async def get_pipeline_value(
     return PipelineValueResponse(by_stage=by_stage, total=sum(by_stage.values()))
 
 
+async def _calculate_monthly_trend(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    since: datetime,
+    investor_id: uuid.UUID | None,
+) -> list[dict]:
+    """Calculate monthly avg days to close for deals that reached 'closed' stage."""
+    filters = [
+        DealStageTransition.org_id == org_id,
+        DealStageTransition.created_at >= since,
+    ]
+    if investor_id:
+        filters.append(DealStageTransition.investor_id == investor_id)
+
+    result = await db.execute(
+        select(DealStageTransition)
+        .where(*filters)
+        .order_by(DealStageTransition.project_id, DealStageTransition.created_at)
+    )
+    transitions = result.scalars().all()
+
+    # Group by project
+    by_project: dict[str, list[DealStageTransition]] = {}
+    for t in transitions:
+        by_project.setdefault(str(t.project_id), []).append(t)
+
+    # For each project that reached 'closed', record (close_month, days_to_close)
+    monthly_data: dict[str, list[float]] = {}
+    for proj_transitions in by_project.values():
+        closed = [t for t in proj_transitions if t.to_stage == "closed"]
+        if not closed:
+            continue
+        close_t = closed[-1]
+        first_t = proj_transitions[0]
+        days = (close_t.created_at - first_t.created_at).total_seconds() / 86400
+        month_key = close_t.created_at.strftime("%Y-%m")
+        monthly_data.setdefault(month_key, []).append(days)
+
+    return [
+        {"month": month, "avg_days": round(sum(days) / len(days), 1)}
+        for month, days in sorted(monthly_data.items())
+    ]
+
+
 async def get_velocity(
     db: AsyncSession,
     org_id: uuid.UUID,
@@ -236,8 +280,7 @@ async def get_velocity(
     )
     avg_days_to_close = round(total_days, 1) if total_days > 0 else None
 
-    # Monthly trend placeholder — requires heavier aggregation; return empty list
-    trend: list[dict] = []
+    trend = await _calculate_monthly_trend(db, org_id, since, investor_id)
 
     return VelocityResponse(
         avg_days_to_close=avg_days_to_close,

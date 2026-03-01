@@ -222,13 +222,27 @@ async def search_advisors(
     return search_results
 
 
+def _calculate_advisor_impact(profile: BoardAdvisorProfile) -> Decimal:
+    """Estimate signal score impact (range 3–10) from advisor profile quality."""
+    score = 3.0
+    # Verified advisors get a significant boost
+    if profile.verified:
+        score += 2.0
+    # Board experience: up to +3.0 (0.5 per position, capped)
+    score += min(float(profile.board_positions_held) * 0.5, 3.0)
+    # Breadth of expertise areas: up to +1.5
+    expertise_count = len(profile.expertise_areas or {})
+    score += min(expertise_count * 0.3, 1.5)
+    return Decimal(str(round(min(score, 10.0), 1)))
+
+
 async def apply_to_project(
     db: AsyncSession,
     advisor_user_id: uuid.UUID,
     advisor_org_id: uuid.UUID,
     body: ApplicationCreate,
 ) -> BoardAdvisorApplication:
-    """Find advisor profile by user_id, create application with stub signal_score_impact."""
+    """Find advisor profile by user_id, create application with calculated signal_score_impact."""
     profile = await _get_profile_or_raise(db, advisor_user_id)
 
     equity = Decimal(str(body.equity_offered)) if body.equity_offered is not None else None
@@ -242,7 +256,7 @@ async def apply_to_project(
         role_offered=body.role_offered,
         equity_offered=equity,
         compensation_terms=body.compensation_terms,
-        signal_score_impact=Decimal("5.0"),  # stub
+        signal_score_impact=_calculate_advisor_impact(profile),
     )
     db.add(application)
     await db.flush()

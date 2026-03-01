@@ -1,5 +1,6 @@
 """Legal Document Manager service layer."""
 
+import difflib
 import uuid
 from typing import Any
 
@@ -263,6 +264,48 @@ async def get_review_result(
         model_used=task_log.model_used,
         created_at=task_log.created_at,
     )
+
+
+async def compare_documents(
+    db: AsyncSession,
+    doc_id_a: uuid.UUID,
+    doc_id_b: uuid.UUID,
+    org_id: uuid.UUID,
+) -> dict:
+    """Diff two legal documents using unified diff and return structured results."""
+    doc_a = await _get_doc_or_raise(db, doc_id_a, org_id)
+    doc_b = await _get_doc_or_raise(db, doc_id_b, org_id)
+
+    lines_a = (doc_a.content or "").splitlines(keepends=True)
+    lines_b = (doc_b.content or "").splitlines(keepends=True)
+
+    diff_lines = list(
+        difflib.unified_diff(
+            lines_a,
+            lines_b,
+            fromfile=doc_a.title,
+            tofile=doc_b.title,
+            lineterm="",
+        )
+    )
+
+    # Summary stats
+    added = sum(1 for l in diff_lines if l.startswith("+") and not l.startswith("+++"))
+    removed = sum(1 for l in diff_lines if l.startswith("-") and not l.startswith("---"))
+
+    # Similarity ratio
+    matcher = difflib.SequenceMatcher(None, doc_a.content or "", doc_b.content or "")
+    similarity = round(matcher.ratio() * 100, 1)
+
+    return {
+        "status": "completed",
+        "document_a": {"id": str(doc_id_a), "title": doc_a.title},
+        "document_b": {"id": str(doc_id_b), "title": doc_b.title},
+        "similarity_pct": similarity,
+        "lines_added": added,
+        "lines_removed": removed,
+        "diff": "\n".join(diff_lines),
+    }
 
 
 async def get_download_url(

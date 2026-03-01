@@ -207,6 +207,29 @@ async def update_verification_status(
     return _to_response(cc)
 
 
+async def list_on_marketplace(
+    db: AsyncSession,
+    project_id: uuid.UUID,
+    org_id: uuid.UUID,
+) -> CarbonCreditResponse:
+    """Mark carbon credits as listed on marketplace (transitions from issued/verified → listed)."""
+    cc = await _get_cc_or_raise(db, project_id, org_id)
+    # Only progress forward: don't downgrade from verified/issued/retired
+    if cc.verification_status not in (
+        CarbonVerificationStatus.VERIFIED,
+        CarbonVerificationStatus.ISSUED,
+    ):
+        raise ValueError(
+            f"Credits must be verified or issued before listing. "
+            f"Current status: {cc.verification_status.value}"
+        )
+    cc.verification_status = CarbonVerificationStatus.LISTED
+    await db.flush()
+    await db.commit()
+    await db.refresh(cc)
+    return _to_response(cc)
+
+
 def get_pricing_trends() -> list[dict]:
     """Return synthetic pricing trend data (replace with real API in production)."""
     import datetime

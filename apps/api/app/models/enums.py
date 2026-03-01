@@ -290,6 +290,7 @@ class CarbonVerificationStatus(str, enum.Enum):
     VERIFIED = "verified"
     ISSUED = "issued"
     RETIRED = "retired"
+    LISTED = "listed"
 
 
 class BusinessPlanStatus(str, enum.Enum):

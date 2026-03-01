@@ -263,16 +263,17 @@ async def get_review(
     return result
 
 
-@router.post("/compare", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/compare")
 async def compare_documents(
     body: CompareRequest,
     current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Compare two document versions (stub — returns task accepted)."""
-    return {
-        "status": "accepted",
-        "message": "Document comparison queued",
-        "document_a": str(body.document_id_a),
-        "document_b": str(body.document_id_b),
-    }
+    """Compare two document versions and return a unified diff with similarity score."""
+    try:
+        result = await service.compare_documents(
+            db, body.document_id_a, body.document_id_b, current_user.org_id
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return result

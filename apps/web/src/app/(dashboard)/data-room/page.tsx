@@ -74,6 +74,7 @@ import {
   type DocumentClassification,
   type DocumentStatus,
 } from "@/lib/dataroom";
+import { useProjects, type ProjectResponse } from "@/lib/projects";
 import { FolderTree } from "@/components/dataroom/folder-tree";
 import { UploadModal } from "@/components/dataroom/upload-modal";
 import { DocumentPreview } from "@/components/dataroom/document-preview";
@@ -538,9 +539,6 @@ function FolderTreeSkeleton() {
 
 // ── Main page ──────────────────────────────────────────────────────────────
 
-// TODO: Replace with a project selector or derive from URL params
-const DEMO_PROJECT_ID = ""; // Will be empty until a project is selected
-
 export default function DataRoomPage() {
   const { user } = useSCRUser();
   const canUpload = usePermission("upload", "document");
@@ -570,6 +568,11 @@ export default function DataRoomPage() {
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState<DocumentStatus | undefined>();
+
+  // ── Projects (for selector) ────────────────────────────────────────────
+  const { data: projectList } = useProjects({ page_size: 100 });
+  const projects: ProjectResponse[] = projectList?.items ?? [];
+  const activeProject = projects.find((p) => p.id === projectId);
 
   // ── Queries ────────────────────────────────────────────────────────────
   const params: DocumentListParams = {
@@ -694,16 +697,16 @@ export default function DataRoomPage() {
           title="Select a project"
           description="Choose a project to view its documents and folders."
           action={
-            <Button
-              variant="outline"
-              onClick={() => {
-                // For now, prompt the user - will be replaced with project selector
-                const id = window.prompt("Enter Project ID:");
-                if (id) setProjectId(id);
-              }}
+            <select
+              className="border border-neutral-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[260px]"
+              value=""
+              onChange={(e) => e.target.value && setProjectId(e.target.value)}
             >
-              Enter Project ID
-            </Button>
+              <option value="">— Select a project —</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
           }
         />
       </div>
@@ -724,14 +727,25 @@ export default function DataRoomPage() {
             {selectedFolderId ? " in folder" : " total"}
           </p>
         </div>
-        {canUpload && (
-          <Button
-            onClick={() => setUploadOpen(true)}
-            iconLeft={<Upload className="h-4 w-4" />}
+        <div className="flex items-center gap-3">
+          <select
+            className="border border-neutral-300 rounded-lg px-3 py-1.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            value={projectId}
+            onChange={(e) => { setProjectId(e.target.value); setSelectedFolderId(null); setPage(1); }}
           >
-            Upload
-          </Button>
-        )}
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          {canUpload && (
+            <Button
+              onClick={() => setUploadOpen(true)}
+              iconLeft={<Upload className="h-4 w-4" />}
+            >
+              Upload
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* 3-panel layout */}

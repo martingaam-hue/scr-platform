@@ -93,7 +93,7 @@ async def submit_verification(
     current_user: CurrentUser = Depends(require_permission("edit", "project")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Start verification process (stub — triggers workflow)."""
+    """Start verification process — sets status to 'submitted'."""
     try:
         cc = await service.update_verification_status(
             db, project_id, current_user.org_id, "submitted", None
@@ -107,21 +107,19 @@ async def submit_verification(
     }
 
 
-@router.post("/{project_id}/list-marketplace", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/{project_id}/list-marketplace", response_model=CarbonCreditResponse)
 async def list_on_marketplace(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("edit", "project")),
     db: AsyncSession = Depends(get_db),
 ):
-    """List carbon credits on the marketplace (stub)."""
+    """List carbon credits on the marketplace (transitions status to 'listed')."""
     try:
-        await service.get_carbon_credit(db, project_id, current_user.org_id)
+        return await service.list_on_marketplace(db, project_id, current_user.org_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
-    return {
-        "status": "accepted",
-        "message": "Carbon credits submitted for marketplace listing",
-    }
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 @router.get("/pricing-trends", response_model=list[PricingTrendPoint])
