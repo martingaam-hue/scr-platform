@@ -74,6 +74,11 @@ from app.modules.digest.router import router as digest_router
 from app.modules.metrics.router import router as metrics_router
 from app.modules.citations.router import router as citations_router
 from app.modules.lineage.router import router as lineage_router
+from app.modules.qa_workflow.router import router as qa_workflow_router
+from app.modules.engagement.router import router as engagement_router
+from app.modules.monitoring.router import router as monitoring_router
+from app.modules.excel_api.router import router as excel_api_router
+from app.modules.crm_sync.router import router as crm_sync_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -185,6 +190,11 @@ app.include_router(digest_router)
 app.include_router(metrics_router)
 app.include_router(citations_router)
 app.include_router(lineage_router)
+app.include_router(qa_workflow_router)
+app.include_router(engagement_router)
+app.include_router(monitoring_router)
+app.include_router(excel_api_router)
+app.include_router(crm_sync_router)
 
 
 @app.get("/health")

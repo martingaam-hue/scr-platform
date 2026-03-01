@@ -1,0 +1,19 @@
+{
+  "name": "@scr/excel-addin",
+  "version": "1.0.0",
+  "description": "SCR Platform Excel Add-in — pull live deal data into financial models",
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack serve --mode development",
+    "lint": "eslint src/**/*.ts"
+  },
+  "dependencies": {
+    "@microsoft/office-js": "^1.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^5.0.0",
+    "ts-loader": "^9.0.0"
+  }
+}

@@ -29,6 +29,9 @@ celery_app = Celery(
         "app.tasks.watchlists",
         "app.tasks.blockchain",
         "app.tasks.benchmarks",
+        "app.tasks.qa_sla",
+        "app.tasks.monitoring",
+        "app.tasks.crm_sync",
     ],
 )
 
@@ -119,5 +122,20 @@ celery_app.conf.beat_schedule = {
     "record-daily-snapshots": {
         "task": "tasks.record_daily_snapshots",
         "schedule": crontab(hour=2, minute=0),  # 2am UTC daily
+    },
+    # ── Q&A SLA breach monitoring ─────────────────────────────────────────────
+    "check-qa-sla": {
+        "task": "tasks.check_qa_sla",
+        "schedule": crontab(minute="*/30"),  # every 30 minutes
+    },
+    # ── Covenant & KPI compliance check ──────────────────────────────────────
+    "check-all-covenants": {
+        "task": "tasks.check_all_covenants",
+        "schedule": crontab(hour=6, minute=0),  # 6am UTC daily
+    },
+    # ── CRM sync ─────────────────────────────────────────────────────────────
+    "sync-crm-connections": {
+        "task": "tasks.sync_crm_connections",
+        "schedule": crontab(minute="*/15"),  # every 15 minutes
     },
 }

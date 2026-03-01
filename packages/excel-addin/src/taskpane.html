@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SCR Platform</title>
+  <style>
+    /* ── Reset & base ────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      color: #1a1a2e;
+      background: #f8f9fc;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+      padding: 16px 16px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 28px;
+      height: 28px;
+      background: #4f46e5;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .header-text h1 {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .header-text p {
+      font-size: 11px;
+      opacity: 0.7;
+      margin-top: 1px;
+    }
+
+    .content {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ── Card / section ──────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid #f0f4f8;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+    }
+
+    .card-body {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* ── Form controls ───────────────────────────────────────── */
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+
+    input[type="password"],
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #1a1a2e;
+      background: #fff;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    input[type="password"]:focus,
+    input[type="text"]:focus,
+    select:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.12);
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+
+    .btn-primary {
+      background: #4f46e5;
+      color: #fff;
+      flex: 1;
+    }
+
+    .btn-primary:hover { background: #4338ca; }
+    .btn-primary:active { background: #3730a3; }
+
+    .btn-secondary {
+      background: #fff;
+      color: #374151;
+      border-color: #d1d5db;
+      flex: 1;
+    }
+
+    .btn-secondary:hover { background: #f9fafb; }
+    .btn-secondary:active { background: #f3f4f6; }
+
+    .btn-insert {
+      background: #ecfdf5;
+      color: #065f46;
+      border-color: #a7f3d0;
+      flex: 1;
+      font-size: 11px;
+      padding: 6px 10px;
+    }
+
+    .btn-insert:hover { background: #d1fae5; }
+
+    /* ── Status ──────────────────────────────────────────────── */
+    #status {
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      line-height: 1.4;
+      min-height: 30px;
+      display: none;
+    }
+
+    #status.visible { display: block; }
+
+    #status.ok {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    #status.error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    #status.info {
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+
+    /* ── Connection indicator ────────────────────────────────── */
+    .connection-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .connection-pill .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #94a3b8;
+    }
+
+    .connection-pill.connected { background: #ecfdf5; color: #065f46; }
+    .connection-pill.connected .dot { background: #22c55e; }
+    .connection-pill.error { background: #fef2f2; color: #991b1b; }
+    .connection-pill.error .dot { background: #ef4444; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">S</div>
+    <div class="header-text">
+      <h1>SCR Platform</h1>
+      <p>Excel Add-in v1.0</p>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Connection status -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:11px;color:#64748b;">Connection</span>
+      <span id="connectionPill" class="connection-pill">
+        <span class="dot"></span>
+        <span id="connectionLabel">Not connected</span>
+      </span>
+    </div>
+
+    <!-- API Key card -->
+    <div class="card">
+      <div class="card-header">API Key</div>
+      <div class="card-body">
+        <div>
+          <label for="apiKey">Secret Key</label>
+          <input
+            type="password"
+            id="apiKey"
+            placeholder="scr_xxxxxxxxxxxxxxxxxxxx"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <div class="btn-row">
+          <button id="saveKey" class="btn-primary">Save Key</button>
+          <button id="testConnection" class="btn-secondary">Test Connection</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Insert formulas card -->
+    <div class="card">
+      <div class="card-header">Insert Formula</div>
+      <div class="card-body">
+        <div>
+          <label for="projectSelect">Project ID (UUID)</label>
+          <input
+            type="text"
+            id="projectSelect"
+            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            spellcheck="false"
+          />
+        </div>
+        <div class="btn-row">
+          <button id="insertSignalScore" class="btn-insert">Insert Signal Score</button>
+          <button id="insertValuation" class="btn-insert">Insert EV</button>
+        </div>
+        <div>
+          <label for="portfolioInput">Portfolio ID (UUID)</label>
+          <input
+            type="text"
+            id="portfolioInput"
+            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            spellcheck="false"
+          />
+        </div>
+        <div class="btn-row">
+          <button id="insertPortfolioNav" class="btn-insert">Insert Portfolio NAV</button>
+          <button id="insertPortfolioIrr" class="btn-insert">Insert Portfolio IRR</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status message -->
+    <div id="status"></div>
+
+    <!-- Help link -->
+    <div style="text-align:center;padding-bottom:4px;">
+      <a
+        href="https://docs.scrplatform.com/excel-addin"
+        target="_blank"
+        style="font-size:11px;color:#4f46e5;text-decoration:none;"
+      >Documentation &amp; supported formulas</a>
+    </div>
+
+  </div><!-- /content -->
+
+  <script src="taskpane.js"></script>
+</body>
+</html>

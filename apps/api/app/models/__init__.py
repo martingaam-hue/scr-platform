@@ -186,6 +186,21 @@ from app.models.gamification import Badge, ImprovementQuest, UserBadge
 # Metrics & Benchmarks
 from app.models.metrics import BenchmarkAggregate, MetricSnapshot
 
+# Q&A Workflow
+from app.models.qa import QAAnswer, QAQuestion
+
+# Document Engagement
+from app.models.engagement import DealEngagementSummary, DocumentEngagement
+
+# Covenant & KPI Monitoring
+from app.models.monitoring import Covenant, KPIActual, KPITarget
+
+# API Keys
+from app.models.api_keys import OrgApiKey
+
+# CRM Sync
+from app.models.crm import CRMConnection, CRMEntityMapping, CRMSyncLog
+
 __all__ = [
     # Base
     "BaseModel",
@@ -304,4 +319,20 @@ __all__ = [
     # Metrics & Benchmarks
     "MetricSnapshot",
     "BenchmarkAggregate",
+    # Q&A Workflow
+    "QAQuestion",
+    "QAAnswer",
+    # Document Engagement
+    "DocumentEngagement",
+    "DealEngagementSummary",
+    # Covenant & KPI Monitoring
+    "Covenant",
+    "KPIActual",
+    "KPITarget",
+    # API Keys
+    "OrgApiKey",
+    # CRM Sync
+    "CRMConnection",
+    "CRMSyncLog",
+    "CRMEntityMapping",
 ]
