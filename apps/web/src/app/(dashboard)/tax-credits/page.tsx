@@ -42,6 +42,8 @@ import {
   type OptimizationResult,
   type OptimizationAction,
 } from "@/lib/tax-credits";
+import { usePortfolios } from "@/lib/portfolio";
+import { useProjects } from "@/lib/projects";
 
 // ── Inventory tab ─────────────────────────────────────────────────────────────
 
@@ -53,6 +55,7 @@ function InventoryTab({
   onPortfolioChange: (id: string) => void;
 }) {
   const { data, isLoading } = useTaxCreditInventory(portfolioId || undefined);
+  const { data: portfolioList } = usePortfolios();
 
   const columns: ColumnDef<TaxCreditResponse>[] = [
     {
@@ -111,13 +114,17 @@ function InventoryTab({
     <div className="space-y-4">
       {/* Portfolio selector */}
       <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-neutral-700">Portfolio ID:</label>
-        <input
+        <label className="text-sm font-medium text-neutral-700">Portfolio:</label>
+        <select
           value={portfolioId}
           onChange={(e) => onPortfolioChange(e.target.value)}
-          placeholder="Paste portfolio UUID"
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm w-80 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-        />
+          className="rounded-md border border-neutral-300 px-3 py-2 text-sm w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Select a portfolio…</option>
+          {(portfolioList?.items ?? []).map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
       </div>
 
       {!portfolioId ? (
@@ -224,6 +231,7 @@ function IdentifyTab() {
   const identify = useIdentifyCredits();
   const [projectId, setProjectId] = useState("");
   const [result, setResult] = useState<IdentificationResponse | null>(null);
+  const { data: projectList } = useProjects({ page_size: 100 });
 
   async function handleIdentify() {
     if (!projectId.trim()) return;
@@ -241,12 +249,16 @@ function IdentifyTab() {
       </div>
 
       <div className="flex items-center gap-3">
-        <input
+        <select
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
-          placeholder="Paste project UUID"
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm w-80 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-        />
+          className="rounded-md border border-neutral-300 px-3 py-2 text-sm w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Select a project…</option>
+          {(projectList?.items ?? []).map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
         <Button onClick={handleIdentify} disabled={!projectId.trim() || identify.isPending}>
           {identify.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -364,16 +376,14 @@ function OptimizationTab({ portfolioId }: { portfolioId: string }) {
   const optimize = useRunOptimization();
   const generateDocs = useGenerateTransferDocs();
   const [result, setResult] = useState<OptimizationResult | null>(null);
-  const [docPortfolioId, setDocPortfolioId] = useState(portfolioId);
   const [transferForm, setTransferForm] = useState<{
     creditId: string;
     transfereeName: string;
   } | null>(null);
 
   async function handleOptimize() {
-    const id = docPortfolioId.trim() || portfolioId;
-    if (!id) return;
-    const res = await optimize.mutateAsync(id);
+    if (!portfolioId) return;
+    const res = await optimize.mutateAsync(portfolioId);
     setResult(res);
   }
 
@@ -386,16 +396,14 @@ function OptimizationTab({ portfolioId }: { portfolioId: string }) {
         </p>
       </div>
 
+      {!portfolioId && (
+        <p className="text-sm text-neutral-500">Select a portfolio in the Inventory tab to run optimization.</p>
+      )}
+
       <div className="flex items-center gap-3">
-        <input
-          value={docPortfolioId}
-          onChange={(e) => setDocPortfolioId(e.target.value)}
-          placeholder="Paste portfolio UUID"
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm w-80 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-        />
         <Button
           onClick={handleOptimize}
-          disabled={!docPortfolioId.trim() || optimize.isPending}
+          disabled={!portfolioId || optimize.isPending}
         >
           {optimize.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
