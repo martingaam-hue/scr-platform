@@ -37,6 +37,8 @@ class Organization(BaseModel):
     subscription_status: Mapped[SubscriptionStatus] = mapped_column(
         nullable=False, default=SubscriptionStatus.TRIAL
     )
+    # Per-org AI spend cap in USD/month (NULL = use tier default from settings)
+    ai_monthly_budget: Mapped[float | None] = mapped_column()
 
     # Relationships
     users: Mapped[list["User"]] = relationship(back_populates="organization")

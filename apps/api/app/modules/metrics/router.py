@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_db
 from app.modules.metrics.benchmark_service import BenchmarkService
 from app.modules.metrics.schemas import (
     BenchmarkAggregateResponse,
@@ -33,7 +33,7 @@ async def get_trend(
     from_date: Optional[datetime] = Query(None),
     to_date: Optional[datetime] = Query(None),
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     """Get time series of a metric for trend charts."""
     svc = MetricSnapshotService(db)
@@ -58,7 +58,7 @@ async def get_changes(
     from_date: Optional[datetime] = Query(None),
     to_date: Optional[datetime] = Query(None),
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     """Get change explanations for a metric with trigger events."""
     svc = MetricSnapshotService(db)
@@ -83,7 +83,7 @@ async def get_percentile_rank(
     entity_id: uuid.UUID,
     metric_name: str,
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     """Get percentile rank of this entity vs all others for this metric."""
     svc = MetricSnapshotService(db)
@@ -98,7 +98,7 @@ async def compare_to_benchmark(
     project_id: uuid.UUID,
     metrics: Optional[str] = Query(None, description="Comma-separated metric names"),
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     """Compare a project to its peer group benchmark."""
     svc = BenchmarkService(db)
@@ -112,7 +112,7 @@ async def compare_to_benchmark(
 @router.get("/benchmark/list", response_model=list[BenchmarkAggregateResponse])
 async def list_benchmarks(
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     """List all available benchmark aggregates."""
     svc = BenchmarkService(db)
@@ -148,7 +148,7 @@ async def get_cashflow_pacing(
     portfolio_id: uuid.UUID,
     scenario: str = Query("base", pattern="^(base|optimistic|pessimistic)$"),
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     """Get J-curve cashflow pacing projections for a portfolio."""
     svc = BenchmarkService(db)
@@ -159,7 +159,7 @@ async def get_cashflow_pacing(
 async def get_quartile_chart(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     """Get data for quartile position visualization across benchmark metrics."""
     svc = BenchmarkService(db)

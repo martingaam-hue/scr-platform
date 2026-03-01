@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
 from app.core.database import get_db
+from app.services.ai_budget import enforce_ai_budget
 from app.modules.signal_score import service
 from app.services.response_cache import cache_key, get_cached, set_cached
 from app.modules.signal_score.criteria import DIMENSIONS
@@ -137,6 +138,7 @@ async def calculate_score(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
     db: AsyncSession = Depends(get_db),
+    _budget: None = Depends(enforce_ai_budget),
 ):
     """Trigger a new signal score calculation."""
     try:

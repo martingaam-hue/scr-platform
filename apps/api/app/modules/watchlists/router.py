@@ -26,17 +26,17 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/watchlists", tags=["watchlists"])
 
 
+class _ParseCriteriaRequest(BaseModel):
+    query: str
+
+
 @router.post("/parse-criteria")
 async def parse_watchlist_criteria(
-    body: dict,
+    body: _ParseCriteriaRequest,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
 ):
-    """Use the Smart Screener NL parser to generate watchlist criteria from plain text.
-
-    Body: {"query": "solar projects in East Africa with signal score above 70"}
-    Returns: {"criteria": {...parsed filters...}, "watch_type": "new_projects"}
-    """
-    query: str = body.get("query", "")
+    """Use the Smart Screener NL parser to generate watchlist criteria from plain text."""
+    query: str = body.query
     if not query:
         raise HTTPException(status_code=400, detail="query is required")
 

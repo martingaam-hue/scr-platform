@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
 import structlog
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
@@ -94,6 +94,7 @@ from app.modules.launch.router import router as launch_router
 from app.modules.custom_domain.router import router as custom_domain_router
 from app.core.elasticsearch import setup_indices, close_es_client
 from app.core.sentry import init_sentry
+from app.core.errors import global_exception_handler, http_exception_handler
 
 # ── Sentry — must be initialised BEFORE FastAPI app is created ────────────────
 init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
@@ -133,6 +134,9 @@ app = FastAPI(
     openapi_url=None if _is_prod else "/openapi.json",
     lifespan=lifespan,
 )
+
+app.add_exception_handler(Exception, global_exception_handler)  # type: ignore[arg-type]
+app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore[arg-type]
 
 app.add_middleware(
     CORSMiddleware,

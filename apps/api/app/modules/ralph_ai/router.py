@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
 from app.core.database import get_db
+from app.services.ai_budget import enforce_ai_budget
 from app.schemas.auth import CurrentUser
 from app.modules.ralph_ai import service
 from app.modules.ralph_ai.agent import RalphAgent
@@ -99,6 +100,7 @@ async def send_message(
     body: MessageCreate,
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _budget: None = Depends(enforce_ai_budget),
 ) -> SendMessageResponse:
     """Send a message and receive the full agent response (sync)."""
     conversation = await service.get_conversation(db, conversation_id, current_user.org_id)
@@ -132,6 +134,7 @@ async def stream_message(
     body: MessageCreate,
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _budget: None = Depends(enforce_ai_budget),
 ) -> StreamingResponse:
     """Send a message and stream the response via SSE."""
     conversation = await service.get_conversation(db, conversation_id, current_user.org_id)

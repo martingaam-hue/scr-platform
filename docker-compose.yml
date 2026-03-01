@@ -86,7 +86,8 @@ services:
       mc alias set myminio http://minio:9000 minioadmin minioadmin;
       mc mb --ignore-existing myminio/scr-documents;
       mc anonymous set download myminio/scr-documents;
-      echo 'Bucket scr-documents created';
+      mc mb --ignore-existing myminio/scr-backups;
+      echo 'Buckets scr-documents and scr-backups created';
       exit 0;
       "
 

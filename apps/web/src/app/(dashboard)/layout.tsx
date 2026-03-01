@@ -10,8 +10,18 @@ import {
   INVESTOR_TOUR_STEPS,
   ALLY_TOUR_STEPS,
 } from "@/components/feature-tour";
-import { useSidebarStore } from "@/lib/store";
-import { RalphPanel } from "@/components/ralph-ai/ralph-panel";
+import dynamic from "next/dynamic";
+import { useSidebarStore, useRalphStore } from "@/lib/store";
+
+// Lazy-load Ralph — only mounts when the user opens it, preventing
+// unnecessary conversation-init API calls on every page load.
+const RalphPanel = dynamic(
+  () =>
+    import("@/components/ralph-ai/ralph-panel").then((m) => ({
+      default: m.RalphPanel,
+    })),
+  { ssr: false, loading: () => null }
+);
 import { CommandPalette } from "@/components/search/command-palette";
 import { useAuthenticatedApi, useSCRUser } from "@/lib/auth";
 import { isOnboardingComplete } from "@/lib/onboarding";
@@ -23,6 +33,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { isOpen } = useSidebarStore();
+  const { isOpen: isRalphOpen } = useRalphStore();
   const router = useRouter();
   const { user, isLoaded } = useSCRUser();
   const [tourDismissed, setTourDismissed] = useState(false);
@@ -68,8 +79,8 @@ export default function DashboardLayout({
         <div className="p-6">{children}</div>
       </main>
 
-      {/* Ralph AI panel */}
-      <RalphPanel />
+      {/* Ralph AI panel — lazy-mounted only when open */}
+      {isRalphOpen && <RalphPanel />}
 
       {/* Global search command palette (⌘K) */}
       <CommandPalette />

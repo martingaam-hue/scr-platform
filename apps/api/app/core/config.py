@@ -58,6 +58,8 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://scr_user:scr_password@localhost:5432/scr_platform"
     DATABASE_URL_SYNC: str = "postgresql://scr_user:scr_password@localhost:5432/scr_platform"
+    # Optional read replica — if unset, all reads go to the primary
+    DATABASE_URL_READ_REPLICA: str | None = None
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

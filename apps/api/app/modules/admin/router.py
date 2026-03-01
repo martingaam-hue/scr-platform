@@ -181,6 +181,74 @@ async def get_ai_costs(
     return await service.get_ai_cost_report(db, days=days)
 
 
+# ── AI Budget Overview ────────────────────────────────────────────────────────
+
+
+@router.get("/ai-budget-overview")
+async def get_ai_budget_overview(
+    _: CurrentUser = Depends(_require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return per-org AI spend vs. budget for the current calendar month."""
+    from datetime import datetime, timezone
+    from sqlalchemy import func, text
+
+    from app.models.ai import AITaskLog
+    from app.models.enums import SubscriptionTier
+    from app.services.ai_budget import _TIER_BUDGETS
+
+    now = datetime.now(timezone.utc)
+    first_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # Aggregate spend per org for current month
+    stmt = (
+        select(
+            AITaskLog.org_id,
+            func.coalesce(func.sum(AITaskLog.cost_usd), 0).label("spend_usd"),
+            func.count(AITaskLog.id).label("call_count"),
+        )
+        .where(AITaskLog.created_at >= first_of_month, AITaskLog.cost_usd.isnot(None))
+        .group_by(AITaskLog.org_id)
+    )
+    rows = (await db.execute(stmt)).all()
+
+    # Fetch org budgets + tiers in one query
+    from app.models.core import Organization as Org
+    org_ids = [r.org_id for r in rows]
+    if org_ids:
+        org_stmt = select(Org.id, Org.name, Org.subscription_tier, Org.ai_monthly_budget).where(
+            Org.id.in_(org_ids)
+        )
+        org_rows = {r.id: r for r in (await db.execute(org_stmt)).all()}
+    else:
+        org_rows = {}
+
+    items = []
+    for r in rows:
+        org = org_rows.get(r.org_id)
+        tier = org.subscription_tier if org else SubscriptionTier.FOUNDATION
+        budget = float(org.ai_monthly_budget) if org and org.ai_monthly_budget is not None else _TIER_BUDGETS.get(tier, 50.0)
+        items.append({
+            "org_id": str(r.org_id),
+            "org_name": org.name if org else "unknown",
+            "tier": tier.value if org else "foundation",
+            "spend_usd": float(r.spend_usd),
+            "budget_usd": budget,
+            "utilisation_pct": round(float(r.spend_usd) / budget * 100, 1) if budget else 0,
+            "call_count": r.call_count,
+        })
+
+    # Sort by utilisation desc
+    items.sort(key=lambda x: x["utilisation_pct"], reverse=True)
+
+    return {
+        "month": first_of_month.strftime("%Y-%m"),
+        "total_spend_usd": round(sum(i["spend_usd"] for i in items), 4),
+        "org_count": len(items),
+        "items": items,
+    }
+
+
 # ── Audit Logs ────────────────────────────────────────────────────────────────
 
 

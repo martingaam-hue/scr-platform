@@ -47,6 +47,7 @@ celery_app = Celery(
         "app.modules.market_data.tasks",
         "app.tasks.backup",
         "app.tasks.data_retention",
+        "app.tasks.partition_manager",
     ],
 )
 
@@ -184,5 +185,10 @@ celery_app.conf.beat_schedule = {
     "data-retention-cleanup": {
         "task": "data_retention_cleanup",
         "schedule": crontab(hour=4, minute=30),  # 04:30 UTC daily (after backups)
+    },
+    # ── Partition pre-creation ────────────────────────────────────────────────
+    "ensure-partitions": {
+        "task": "ensure_partitions_exist",
+        "schedule": crontab(hour=0, minute=30, day_of_month=28),  # 28th of each month
     },
 }

@@ -535,7 +535,8 @@ export function Sidebar() {
                         ? pathname === "/dashboard"
                         : pathname.startsWith(item.href);
                     const isProjectsLink =
-                      item.href === "/dashboard/projects" && activeProjectId;
+                      (item.href === "/projects" || item.href === "/dashboard/projects") &&
+                      activeProjectId;
                     return (
                       <React.Fragment key={item.href}>
                         <li>

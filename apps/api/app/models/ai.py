@@ -5,7 +5,8 @@ from datetime import datetime
 from typing import Any
 
 import sqlalchemy as sa
-from sqlalchemy import ForeignKey, Index, Integer, String, Text
+from sqlalchemy import ForeignKey, Index, Integer, Numeric, String, Text
+from decimal import Decimal
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -95,8 +96,10 @@ class AITaskLog(TimestampedModel):
     output_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     error_message: Mapped[str | None] = mapped_column(Text)
     model_used: Mapped[str | None] = mapped_column(String(100))
-    tokens_used: Mapped[int | None] = mapped_column(Integer)
-    processing_time_ms: Mapped[int | None] = mapped_column(Integer)
+    tokens_input: Mapped[int | None] = mapped_column(Integer)
+    tokens_output: Mapped[int | None] = mapped_column(Integer)
+    tokens_used: Mapped[int | None] = mapped_column(Integer)  # legacy total; prefer tokens_input+tokens_output
+    cost_usd: Mapped[Decimal | None] = mapped_column(Numeric(12, 6))
     triggered_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),

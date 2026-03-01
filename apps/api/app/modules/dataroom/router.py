@@ -44,6 +44,22 @@ from app.modules.dataroom.schemas import (
     UploadConfirmResponse,
 )
 from app.schemas.auth import CurrentUser
+from app.services.ai_budget import enforce_ai_budget as _enforce_ai_budget
+
+from pydantic import BaseModel, Field
+
+
+class BulkAnalyzeRequest(BaseModel):
+    document_ids: list[str] = Field(..., min_length=1, max_length=20)
+    analysis_types: list[str] = Field(default=["classify_document", "extract_kpis"])
+    force_refresh: bool = Field(default=False)
+
+
+class CachedAnalysisRequest(BaseModel):
+    analysis_type: str = Field(default="quality_assessment")
+    context: dict = Field(default_factory=dict)
+    force_refresh: bool = Field(default=False)
+    model_override: str | None = Field(default=None)
 
 logger = structlog.get_logger()
 
@@ -530,20 +546,17 @@ async def bulk_upload(
     dependencies=[Depends(require_permission("view", "document"))],
 )
 async def bulk_analyze(
-    body: dict,
+    body: BulkAnalyzeRequest,
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _budget: None = Depends(_enforce_ai_budget),
 ):
-    """Run batched AI analysis on multiple documents using the Task Batcher.
-
-    Body: {"document_ids": ["uuid", ...], "task_type": "classify_document"}
-    Sends all documents to the AI Gateway /completions/batch endpoint in one call.
-    """
+    """Run batched AI analysis on multiple documents using the Task Batcher."""
     import httpx
     from app.core.config import settings
 
-    document_ids: list[str] = body.get("document_ids", [])
-    task_type: str = body.get("task_type", "classify_document")
+    document_ids: list[str] = body.document_ids
+    task_type: str = body.analysis_types[0] if body.analysis_types else "classify_document"
 
     if not document_ids:
         return {"results": [], "task_type": task_type, "total": 0}
@@ -721,17 +734,14 @@ async def get_cached_analyses(
 )
 async def run_cached_analysis(
     document_id: uuid.UUID,
-    body: dict,
+    body: CachedAnalysisRequest,
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Run (or retrieve cached) AI analysis for a specific type.
-
-    Body: {"analysis_type": "quality_assessment", "context": {}, "force_refresh": false}
-    """
-    analysis_type = body.get("analysis_type", "quality_assessment")
-    context = body.get("context", {})
-    force_refresh = body.get("force_refresh", False)
+    """Run (or retrieve cached) AI analysis for a specific type."""
+    analysis_type = body.analysis_type
+    context = body.context
+    force_refresh = body.force_refresh
     try:
         await service.get_document_detail(db, document_id, current_user.org_id)
         from app.services.analysis_cache import make_analysis_cache
