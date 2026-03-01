@@ -403,9 +403,9 @@ resource "aws_lb" "main" {
   enable_deletion_protection = var.environment == "production"
 
   access_logs {
-    bucket  = aws_s3_bucket.documents.id
+    bucket  = aws_s3_bucket.exports.id
     prefix  = "alb-logs"
-    enabled = true
+    enabled = false # Disabled in staging; requires ELB service bucket policy for production
   }
 }
 
