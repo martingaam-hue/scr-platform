@@ -54,5 +54,13 @@ class Settings(BaseSettings):
     NOAA_TOKEN: str = ""
     REGULATIONS_GOV_API_KEY: str = ""
 
+    # New external data connectors
+    ALPHA_VANTAGE_API_KEY: str = ""     # https://www.alphavantage.co/support/#api-key
+    COMPANIES_HOUSE_API_KEY: str = ""   # https://developer.company-information.service.gov.uk/
+    ENTSOE_API_KEY: str = ""            # https://transparency.entsoe.eu/usrm/user/createPublicUser
+    OPENWEATHER_API_KEY: str = ""       # https://openweathermap.org/api
+    EMBER_API_KEY: str = ""             # https://ember-climate.org/data/apis/
+    EIA_API_KEY: str = ""               # https://www.eia.gov/opendata/
+
 
 settings = Settings()

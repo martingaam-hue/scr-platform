@@ -48,6 +48,7 @@ celery_app = Celery(
         "app.tasks.backup",
         "app.tasks.data_retention",
         "app.tasks.partition_manager",
+        "app.tasks.external_data",
     ],
 )
 
@@ -190,5 +191,68 @@ celery_app.conf.beat_schedule = {
     "ensure-partitions": {
         "task": "ensure_partitions_exist",
         "schedule": crontab(hour=0, minute=30, day_of_month=28),  # 28th of each month
+    },
+    # ── New external data connectors ──────────────────────────────────────────
+    # Hourly
+    "fetch-alpha-vantage-hourly": {
+        "task": "tasks.fetch_alpha_vantage_data",
+        "schedule": crontab(minute=15),  # :15 past each hour (offset from FRED)
+    },
+    # Every 6 hours
+    "fetch-eu-ets-6h": {
+        "task": "tasks.fetch_eu_ets_data",
+        "schedule": crontab(minute=30, hour="*/6"),
+    },
+    "fetch-entsoe-6h": {
+        "task": "tasks.fetch_entsoe_data",
+        "schedule": crontab(minute=45, hour="*/6"),
+    },
+    # Every 12 hours
+    "fetch-openweather-12h": {
+        "task": "tasks.fetch_openweather_data",
+        "schedule": crontab(minute=20, hour="1,13"),
+    },
+    # Daily
+    "fetch-irena-daily": {
+        "task": "tasks.fetch_irena_data",
+        "schedule": crontab(minute=0, hour=5),
+    },
+    "fetch-companies-house-daily": {
+        "task": "tasks.fetch_companies_house_data",
+        "schedule": crontab(minute=15, hour=5),
+    },
+    "fetch-sp-global-daily": {
+        "task": "tasks.fetch_sp_global_data",
+        "schedule": crontab(minute=30, hour=5),
+    },
+    "fetch-bnef-daily": {
+        "task": "tasks.fetch_bnef_data",
+        "schedule": crontab(minute=45, hour=5),
+    },
+    "fetch-msci-esg-daily": {
+        "task": "tasks.fetch_msci_esg_data",
+        "schedule": crontab(minute=0, hour=7),
+    },
+    "fetch-preqin-daily": {
+        "task": "tasks.fetch_preqin_data",
+        "schedule": crontab(minute=15, hour=7),
+    },
+    # Weekly
+    "fetch-eurostat-weekly": {
+        "task": "tasks.fetch_eurostat_data",
+        "schedule": crontab(minute=0, hour=4, day_of_week=1),
+    },
+    "fetch-iea-weekly": {
+        "task": "tasks.fetch_iea_data",
+        "schedule": crontab(minute=30, hour=4, day_of_week=1),
+    },
+    "fetch-eia-weekly": {
+        "task": "tasks.fetch_eia_data",
+        "schedule": crontab(minute=0, hour=4, day_of_week=3),
+    },
+    # Monthly
+    "fetch-un-sdg-monthly": {
+        "task": "tasks.fetch_un_sdg_data",
+        "schedule": crontab(minute=0, hour=3, day_of_month=1),
     },
 }

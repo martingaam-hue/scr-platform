@@ -88,8 +88,20 @@ class Settings(BaseSettings):
     SALESFORCE_REDIRECT_URI: str = ""
 
     # External Market Data
-    FRED_API_KEY: str = ""            # St. Louis Fed FRED — https://fred.stlouisfed.org/docs/api/api_key.html
-    ALPHA_VANTAGE_API_KEY: str = ""   # Alpha Vantage (optional)
+    FRED_API_KEY: str = ""                  # St. Louis Fed FRED — https://fred.stlouisfed.org/docs/api/api_key.html
+    ALPHA_VANTAGE_API_KEY: str = ""         # Alpha Vantage — https://www.alphavantage.co/support/#api-key
+    # New external data connectors (free / public — add key to activate live data)
+    COMPANIES_HOUSE_API_KEY: str = ""       # UK Companies House — https://developer.company-information.service.gov.uk/
+    ENTSOE_API_KEY: str = ""                # ENTSOE Transparency — https://transparency.entsoe.eu/usrm/user/createPublicUser
+    OPENWEATHER_API_KEY: str = ""           # OpenWeather — https://openweathermap.org/api
+    EMBER_API_KEY: str = ""                 # Ember EU ETS carbon data — https://ember-climate.org/data/apis/
+    EIA_API_KEY: str = ""                   # US Energy Information Administration — https://www.eia.gov/opendata/
+    # New external data connectors (subscription required — leave empty until keys are configured)
+    IEA_API_KEY: str = ""                   # International Energy Agency — subscription required
+    SP_GLOBAL_API_KEY: str = ""             # S&P Global Market Intelligence — subscription required
+    BNEF_API_KEY: str = ""                  # Bloomberg NEF — subscription required
+    MSCI_ESG_API_KEY: str = ""              # MSCI ESG Research — subscription required
+    PREQIN_API_KEY: str = ""                # Preqin Pro — subscription required
 
     # Custom Domain (E03)
     CUSTOM_DOMAIN_CNAME_TARGET: str = "custom.scr.io"

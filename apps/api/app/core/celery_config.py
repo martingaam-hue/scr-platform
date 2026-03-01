@@ -48,6 +48,22 @@ CELERY_TASK_ROUTES: dict[str, dict] = {
     "data_retention_cleanup":              {"queue": "retention"},
     "tasks.prune_old_backups":             {"queue": "retention"},
 
+    # bulk — new external data connectors
+    "tasks.fetch_irena_data":           {"queue": "bulk"},
+    "tasks.fetch_eu_ets_data":          {"queue": "bulk"},
+    "tasks.fetch_companies_house_data": {"queue": "bulk"},
+    "tasks.fetch_alpha_vantage_data":   {"queue": "bulk"},
+    "tasks.fetch_entsoe_data":          {"queue": "bulk"},
+    "tasks.fetch_openweather_data":     {"queue": "bulk"},
+    "tasks.fetch_eurostat_data":        {"queue": "bulk"},
+    "tasks.fetch_iea_data":             {"queue": "bulk"},
+    "tasks.fetch_sp_global_data":       {"queue": "bulk"},
+    "tasks.fetch_bnef_data":            {"queue": "bulk"},
+    "tasks.fetch_msci_esg_data":        {"queue": "bulk"},
+    "tasks.fetch_un_sdg_data":          {"queue": "bulk"},
+    "tasks.fetch_preqin_data":          {"queue": "bulk"},
+    "tasks.fetch_eia_data":             {"queue": "bulk"},
+
     # default — everything else
     "app.worker_tasks.risk_monitoring_cycle":       {"queue": "default"},
     "app.worker_tasks.check_live_score_updates":    {"queue": "default"},
