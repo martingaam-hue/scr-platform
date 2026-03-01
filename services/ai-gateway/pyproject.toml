@@ -17,6 +17,7 @@ httpx = "^0.28.1"
 structlog = "^24.4.0"
 tiktoken = "^0.8.0"
 tenacity = "^9.0.0"
+sentry-sdk = {extras = ["httpx"], version = "^2.0"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"

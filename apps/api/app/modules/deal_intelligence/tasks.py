@@ -95,21 +95,20 @@ def screen_deal_task(
     import time
 
     import httpx
-    from sqlalchemy import create_engine, select
-    from sqlalchemy.orm import Session as SyncSession
+    from sqlalchemy import select
 
+    from app.core.celery_db import get_celery_db_session
     from app.models.ai import AITaskLog
     from app.models.enums import AIAgentType, AITaskStatus
     from app.models.investors import InvestorMandate
     from app.models.projects import Project, SignalScore
 
-    engine = create_engine(settings.DATABASE_URL_SYNC)
     task_log_uuid = uuid.UUID(task_log_id)
     project_uuid = uuid.UUID(project_id)
     investor_uuid = uuid.UUID(investor_org_id)
     start_time = time.time()
 
-    with SyncSession(engine) as session:
+    with get_celery_db_session() as session:
         task_log = session.get(AITaskLog, task_log_uuid)
         if not task_log:
             logger.error("task_log_not_found", task_log_id=task_log_id)
@@ -334,7 +333,7 @@ def screen_deal_task(
 
         except Exception as exc:
             session.rollback()
-            with SyncSession(engine) as err_session:
+            with get_celery_db_session() as err_session:
                 err_log = err_session.get(AITaskLog, task_log_uuid)
                 if err_log:
                     err_log.status = AITaskStatus.FAILED
@@ -377,21 +376,20 @@ def generate_memo_task(
     import boto3
     import httpx
     from botocore.config import Config as BotoConfig
-    from sqlalchemy import create_engine, select
-    from sqlalchemy.orm import Session as SyncSession
+    from sqlalchemy import select
 
+    from app.core.celery_db import get_celery_db_session
     from app.models.enums import ReportStatus
     from app.models.investors import InvestorMandate
     from app.models.projects import Project, SignalScore
     from app.models.reporting import GeneratedReport
 
-    engine = create_engine(settings.DATABASE_URL_SYNC)
     report_uuid = uuid.UUID(report_id)
     project_uuid = uuid.UUID(project_id)
     investor_uuid = uuid.UUID(investor_org_id)
     start_time = time.time()
 
-    with SyncSession(engine) as session:
+    with get_celery_db_session() as session:
         report = session.get(GeneratedReport, report_uuid)
         if not report:
             logger.error("report_not_found", report_id=report_id)
@@ -576,7 +574,7 @@ def generate_memo_task(
 
         except Exception as exc:
             session.rollback()
-            with SyncSession(engine) as err_session:
+            with get_celery_db_session() as err_session:
                 err_report = err_session.get(GeneratedReport, report_uuid)
                 if err_report:
                     err_report.status = ReportStatus.ERROR

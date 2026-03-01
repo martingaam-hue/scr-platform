@@ -125,6 +125,39 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ── Celery Worker (development — all queues in one process) ─────────────────
+  # Handles: critical, default, bulk, webhooks, retention queues
+  #
+  # PRODUCTION multi-worker setup (run separately per queue for isolation):
+  #   celery -A app.worker worker -Q critical   --concurrency=4  --max-tasks-per-child=100
+  #   celery -A app.worker worker -Q default    --concurrency=8  --max-tasks-per-child=200
+  #   celery -A app.worker worker -Q bulk       --concurrency=2  --max-tasks-per-child=50
+  #   celery -A app.worker worker -Q webhooks   --concurrency=6  --max-tasks-per-child=500
+  #   celery -A app.worker worker -Q retention  --concurrency=1  --max-tasks-per-child=10
+  celery-worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: scr-celery-worker
+    command: celery -A app.worker worker --loglevel=info -Q critical,default,bulk,webhooks,retention --concurrency=4
+    environment:
+      DATABASE_URL: postgresql+asyncpg://scr_user:scr_password@db:5432/scr_platform
+      DATABASE_URL_SYNC: postgresql://scr_user:scr_password@db:5432/scr_platform
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      AI_GATEWAY_URL: http://ai-gateway:8001
+      AI_GATEWAY_API_KEY: internal-dev-key-change-in-production
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_S3_BUCKET: scr-documents
+      AWS_S3_ENDPOINT_URL: http://minio:9000
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

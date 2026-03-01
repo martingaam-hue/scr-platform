@@ -8,10 +8,16 @@ Start both:      celery -A app.worker worker --beat --loglevel=info
 from celery import Celery
 from celery.schedules import crontab
 
+from app.core.celery_config import (
+    CELERY_QUEUES,
+    CELERY_TASK_ANNOTATIONS,
+    CELERY_TASK_ROUTES,
+)
 from app.core.config import settings
+from app.core.sentry import init_sentry
 
-import sentry_sdk
-from sentry_sdk.integrations.celery import CeleryIntegration as SentryCeleryIntegration
+# Sentry must be initialised before Celery tasks are registered
+init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
 
 celery_app = Celery(
     "scr_worker",
@@ -40,17 +46,9 @@ celery_app = Celery(
         "app.modules.redaction.tasks",
         "app.modules.market_data.tasks",
         "app.tasks.backup",
+        "app.tasks.data_retention",
     ],
 )
-
-if getattr(settings, "SENTRY_DSN", ""):
-    sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
-        environment=getattr(settings, "SENTRY_ENVIRONMENT", "development"),
-        traces_sample_rate=getattr(settings, "SENTRY_TRACES_SAMPLE_RATE", 0.1),
-        integrations=[SentryCeleryIntegration()],
-        send_default_pii=False,
-    )
 
 celery_app.conf.update(
     task_serializer="json",
@@ -60,8 +58,16 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     task_acks_late=True,
+    task_reject_on_worker_lost=True,  # Re-queue if worker is killed mid-task
     worker_prefetch_multiplier=1,
     result_expires=86400,  # 24h
+    # ── Queue topology ────────────────────────────────────────────────────────
+    task_queues=CELERY_QUEUES,
+    task_routes=CELERY_TASK_ROUTES,
+    task_annotations=CELERY_TASK_ANNOTATIONS,
+    task_default_queue="default",
+    task_default_exchange="default",
+    task_default_routing_key="default",
 )
 
 celery_app.conf.beat_schedule = {
@@ -173,5 +179,10 @@ celery_app.conf.beat_schedule = {
     "prune-old-backups-weekly": {
         "task": "tasks.prune_old_backups",
         "schedule": crontab(hour=4, minute=0, day_of_week=0),  # Sunday 04:00 UTC
+    },
+    # ── Data retention cleanup ────────────────────────────────────────────────
+    "data-retention-cleanup": {
+        "task": "data_retention_cleanup",
+        "schedule": crontab(hour=4, minute=30),  # 04:30 UTC daily (after backups)
     },
 }

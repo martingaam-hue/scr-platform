@@ -2,6 +2,7 @@
 
 import uuid
 
+import sentry_sdk
 import structlog
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -66,13 +67,20 @@ async def get_current_user(
             detail="User not found or inactive",
         )
 
-    return CurrentUser(
+    current_user = CurrentUser(
         user_id=user.id,
         org_id=user.org_id,
         role=user.role,
         email=user.email,
         external_auth_id=clerk_user_id,
     )
+
+    # Enrich Sentry scope with identity (PII-free: no email)
+    sentry_sdk.set_user({"id": str(user.id)})
+    sentry_sdk.set_tag("org_id", str(user.org_id))
+    sentry_sdk.set_tag("user_role", user.role.value)
+
+    return current_user
 
 
 def require_role(allowed_roles: list[UserRole]):

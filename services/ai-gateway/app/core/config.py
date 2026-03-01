@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     API_URL: str = "http://localhost:8000"
     PORT: int = 8001
 
+    # Sentry error monitoring
+    SENTRY_DSN: str | None = None
+    SENTRY_ENVIRONMENT: str = "development"
+
     # Auth
     AI_GATEWAY_API_KEY: str = "internal-dev-key-change-in-production"
 

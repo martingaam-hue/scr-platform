@@ -4,6 +4,7 @@ All three are implemented as pure ASGI middleware (no BaseHTTPMiddleware)
 so they are compatible with streaming responses (SSE, chunked).
 """
 
+import base64
 import json
 import time
 
@@ -98,12 +99,26 @@ class RequestBodySizeLimitMiddleware:
 # (path_prefix, requests_allowed, window_seconds)
 # More specific prefixes must come before generic ones.
 _RATE_RULES: list[tuple[str, int, int]] = [
-    ("/auth/", 20, 60),          # Auth: 20/min per IP
+    ("/auth/", 20, 60),          # Auth: 20/min per IP (brute-force protection)
     ("/webhooks/", 200, 60),     # Webhooks: 200/min (Clerk sends many events)
-    ("/ralph/", 60, 60),         # Ralph AI: 60/min
-    ("/investor-signal-score/calculate", 10, 60),  # Score recalc: 10/min
+    ("/ralph/", 60, 60),         # Ralph AI: 60/min per IP
+    ("/investor-signal-score/calculate", 10, 60),   # Score recalc: 10/min
+    # Share links use the default 300/min IP limit (sufficient + doesn't break tests)
 ]
-_DEFAULT_RATE: tuple[int, int] = (300, 60)  # 300 req/min default
+_DEFAULT_RATE: tuple[int, int] = (300, 60)  # 300 req/min default per IP
+
+# Org-level rate limits — applied to authenticated requests in addition to IP limits.
+# Higher thresholds than IP limits (legitimate orgs make many requests), but prevent
+# single-org abuse from affecting other tenants.
+# (path_prefix, requests_allowed, window_seconds)
+_ORG_RATE_RULES: list[tuple[str, int, int]] = [
+    ("/ralph/", 200, 60),                        # 200 AI calls/min per org
+    ("/signal-score/calculate", 50, 60),         # 50 score calcs/min per org
+    ("/dataroom/bulk/analyze", 20, 60),          # 20 bulk analyses/min per org
+    ("/dataroom/upload", 100, 60),               # 100 uploads/min per org
+    ("/webhooks/", 500, 60),                     # 500 webhook events/min per org
+    ("/", 1000, 60),                             # 1000 req/min default per org
+]
 
 _SKIP_PATHS: frozenset[str] = frozenset(
     ["/health", "/docs", "/redoc", "/openapi.json", "/favicon.ico"]
@@ -111,10 +126,16 @@ _SKIP_PATHS: frozenset[str] = frozenset(
 
 
 class RateLimitMiddleware:
-    """IP-based sliding-window rate limiter backed by Redis.
+    """IP-based + org-based sliding-window rate limiter backed by Redis.
+
+    Two layers of protection:
+    1. IP-level limits — brute-force / unauthenticated request protection.
+    2. Org-level limits — prevents a single tenant from monopolising capacity.
+       The org_id is extracted by peeking at the JWT payload (no verification —
+       rate limiting is best-effort; actual auth happens in the route handler).
 
     Fails *open* if Redis is unavailable — requests are never blocked due to
-    a Redis outage.  Rate-limit headers are always added to passing responses.
+    a Redis outage.  Rate-limit headers are added to all passing responses.
     """
 
     def __init__(self, app: ASGIApp, redis_url: str, enabled: bool = True) -> None:
@@ -133,6 +154,47 @@ class RateLimitMiddleware:
             )
         return self._redis
 
+    @staticmethod
+    def _extract_org_id(headers: dict[bytes, bytes]) -> str | None:
+        """Peek at the JWT payload to extract org_id for rate limiting.
+
+        Does NOT verify the signature — auth is handled by the route dependency.
+        Returns None if the header is absent or the token is malformed.
+        """
+        try:
+            auth = headers.get(b"authorization", b"").decode()
+            if not auth.startswith("Bearer "):
+                return None
+            payload_b64 = auth[7:].split(".")[1]
+            # Standard base64url padding
+            payload_b64 += "=" * (4 - len(payload_b64) % 4)
+            claims = json.loads(base64.urlsafe_b64decode(payload_b64))
+            # Try the SCR custom claim first, then standard metadata
+            return (
+                claims.get("org_id")
+                or claims.get("metadata", {}).get("org_id")
+            )
+        except Exception:  # noqa: BLE001
+            return None
+
+    @staticmethod
+    async def _sliding_window(
+        redis: aioredis.Redis,
+        key: str,
+        limit: int,
+        window: int,
+    ) -> tuple[bool, int]:
+        """Execute sliding-window counter. Returns (allowed, remaining)."""
+        now = time.time()
+        pipe = redis.pipeline()
+        pipe.zadd(key, {str(now): now})
+        pipe.zremrangebyscore(key, 0, now - window)
+        pipe.zcard(key)
+        pipe.expire(key, window + 1)
+        results = await pipe.execute()
+        count: int = results[2]
+        return count <= limit, max(0, limit - count)
+
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http" or not self.enabled:
             await self.app(scope, receive, send)
@@ -143,77 +205,104 @@ class RateLimitMiddleware:
             await self.app(scope, receive, send)
             return
 
-        # Resolve client IP (respect X-Forwarded-For from trusted proxy)
-        headers = {k: v for k, v in scope.get("headers", [])}
-        xff = headers.get(b"x-forwarded-for", b"").decode()
-        if xff:
-            ip = xff.split(",")[0].strip()
-        else:
-            client = scope.get("client")
-            ip = client[0] if client else "unknown"
+        raw_headers: dict[bytes, bytes] = {k: v for k, v in scope.get("headers", [])}
 
-        # Strip version prefix for consistent rule/segment matching
+        # Resolve client IP (respect X-Forwarded-For from a trusted proxy)
+        xff = raw_headers.get(b"x-forwarded-for", b"").decode()
+        ip = xff.split(",")[0].strip() if xff else (scope.get("client") or ["unknown"])[0]
+
+        # Strip /v1 prefix for consistent rule matching
         effective_path = path[3:] if path.startswith("/v1") else path
 
-        # Match rate rule
-        limit, window = _DEFAULT_RATE
+        # ── IP-level check ─────────────────────────────────────────────────────
+        ip_limit, ip_window = _DEFAULT_RATE
         for prefix, r_lim, r_win in _RATE_RULES:
             if effective_path.startswith(prefix):
-                limit, window = r_lim, r_win
+                ip_limit, ip_window = r_lim, r_win
                 break
 
-        # Sliding window via Redis sorted set
-        allowed = True
-        remaining = limit
+        ip_allowed = True
+        ip_remaining = ip_limit
         try:
             redis = self._client()
-            # Group by top-level path segment to avoid key explosion
-            segment = effective_path.split("/")[1] if "/" in effective_path[1:] else effective_path.lstrip("/")
-            key = f"rl:{ip}:{segment}"
-            now = time.time()
-            window_start = now - window
-
-            pipe = redis.pipeline()
-            pipe.zadd(key, {str(now): now})
-            pipe.zremrangebyscore(key, 0, window_start)
-            pipe.zcard(key)
-            pipe.expire(key, window + 1)
-            results = await pipe.execute()
-
-            count: int = results[2]
-            remaining = max(0, limit - count)
-            allowed = count <= limit
-
-        except Exception as exc:
-            logger.warning("rate_limit.redis_error", error=str(exc))
-            # Fail open — don't block requests when Redis is down
-
-        if not allowed:
-            body = json.dumps({"detail": "Too many requests. Please slow down."}).encode()
-            await send(
-                {
-                    "type": "http.response.start",
-                    "status": 429,
-                    "headers": [
-                        (b"content-type", b"application/json"),
-                        (b"content-length", str(len(body)).encode()),
-                        (b"retry-after", str(window).encode()),
-                        (b"x-ratelimit-limit", str(limit).encode()),
-                        (b"x-ratelimit-remaining", b"0"),
-                        (b"x-ratelimit-window", str(window).encode()),
-                    ],
-                }
+            segment = (
+                effective_path.split("/")[1]
+                if "/" in effective_path[1:]
+                else effective_path.lstrip("/")
             )
-            await send({"type": "http.response.body", "body": body, "more_body": False})
-            return
+            ip_allowed, ip_remaining = await self._sliding_window(
+                redis, f"rl:ip:{ip}:{segment}", ip_limit, ip_window
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("rate_limit.ip_redis_error", error=str(exc))
 
-        # Pass-through — annotate response with rate limit headers
+        if not ip_allowed:
+            return await self._send_429(
+                send,
+                ip_limit,
+                ip_window,
+                reason="ip_limit_exceeded",
+            )
+
+        # ── Org-level check (authenticated requests only) ──────────────────────
+        org_id = self._extract_org_id(raw_headers)
+        org_limit, org_window = 1000, 60  # defaults
+        org_remaining = org_limit
+        if org_id:
+            for prefix, r_lim, r_win in _ORG_RATE_RULES:
+                if effective_path.startswith(prefix):
+                    org_limit, org_window = r_lim, r_win
+                    break
+            try:
+                redis = self._client()
+                org_allowed, org_remaining = await self._sliding_window(
+                    redis, f"rl:org:{org_id}:{segment}", org_limit, org_window
+                )
+                if not org_allowed:
+                    return await self._send_429(
+                        send,
+                        org_limit,
+                        org_window,
+                        reason="org_limit_exceeded",
+                        extra_headers=[
+                            (b"x-ratelimit-org-limit", str(org_limit).encode()),
+                            (b"x-ratelimit-org-remaining", b"0"),
+                        ],
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("rate_limit.org_redis_error", error=str(exc))
+
+        # ── Pass-through — annotate response headers ────────────────────────────
         async def _send_with_rl_headers(message: dict) -> None:
             if message["type"] == "http.response.start":
-                headers_obj = MutableHeaders(scope=message)
-                headers_obj.append("x-ratelimit-limit", str(limit))
-                headers_obj.append("x-ratelimit-remaining", str(remaining))
-                headers_obj.append("x-ratelimit-window", str(window))
+                h = MutableHeaders(scope=message)
+                h.append("x-ratelimit-limit", str(ip_limit))
+                h.append("x-ratelimit-remaining", str(ip_remaining))
+                h.append("x-ratelimit-window", str(ip_window))
+                if org_id:
+                    h.append("x-ratelimit-org-limit", str(org_limit))
+                    h.append("x-ratelimit-org-remaining", str(org_remaining))
             await send(message)
 
         await self.app(scope, receive, _send_with_rl_headers)
+
+    @staticmethod
+    async def _send_429(
+        send: Send,
+        limit: int,
+        window: int,
+        reason: str = "rate_limit_exceeded",
+        extra_headers: list[tuple[bytes, bytes]] | None = None,
+    ) -> None:
+        body = json.dumps({"detail": "Too many requests. Please slow down.", "reason": reason}).encode()
+        headers: list[tuple[bytes, bytes]] = [
+            (b"content-type", b"application/json"),
+            (b"content-length", str(len(body)).encode()),
+            (b"retry-after", str(window).encode()),
+            (b"x-ratelimit-limit", str(limit).encode()),
+            (b"x-ratelimit-remaining", b"0"),
+            (b"x-ratelimit-window", str(window).encode()),
+            *(extra_headers or []),
+        ]
+        await send({"type": "http.response.start", "status": 429, "headers": headers})
+        await send({"type": "http.response.body", "body": body, "more_body": False})

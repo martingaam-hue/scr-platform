@@ -2,14 +2,34 @@
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
+import sentry_sdk
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.httpx import HttpxIntegration
 
 from app.core.config import settings
 from app.routers import completions, embeddings, search, feeds
 
 logger = structlog.get_logger()
+
+# ── Sentry — initialise before FastAPI app is created ────────────────────────
+_sentry_dsn = getattr(settings, "SENTRY_DSN", None)
+if _sentry_dsn:
+    _env = getattr(settings, "SENTRY_ENVIRONMENT", "development")
+    _is_prod = _env == "production"
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        environment=_env,
+        traces_sample_rate=0.1 if _is_prod else 1.0,
+        integrations=[
+            FastApiIntegration(transaction_style="endpoint"),
+            HttpxIntegration(),
+        ],
+        send_default_pii=False,
+    )
+    logger.info("sentry_initialized", service="ai-gateway", environment=_env)
 
 
 @asynccontextmanager

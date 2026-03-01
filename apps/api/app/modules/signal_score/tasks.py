@@ -38,18 +38,15 @@ def calculate_signal_score_task(
     """
     import time
 
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session as SyncSession
-
+    from app.core.celery_db import get_celery_db_session
     from app.models.ai import AITaskLog
     from app.models.enums import AITaskStatus
     from app.modules.signal_score.engine import SignalScoreEngine
 
-    engine = create_engine(settings.DATABASE_URL_SYNC)
     task_log_uuid = uuid.UUID(task_log_id)
     start_time = time.time()
 
-    with SyncSession(engine) as session:
+    with get_celery_db_session() as session:
         task_log = session.get(AITaskLog, task_log_uuid)
         if not task_log:
             logger.error("task_log_not_found", task_log_id=task_log_id)
@@ -204,8 +201,8 @@ def calculate_signal_score_task(
 
         except Exception as exc:
             session.rollback()
-            # Update error status in fresh session
-            with SyncSession(engine) as err_session:
+            # Update error status in a fresh session
+            with get_celery_db_session() as err_session:
                 err_log = err_session.get(AITaskLog, task_log_uuid)
                 if err_log:
                     err_log.status = AITaskStatus.FAILED

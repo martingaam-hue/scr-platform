@@ -35,12 +35,24 @@ class Settings(BaseSettings):
                     file=sys.stderr,
                 )
                 sys.exit(1)
+            if len(self.SECRET_KEY) < 32:
+                print(  # noqa: T201
+                    "FATAL: SECRET_KEY must be at least 32 characters in production.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
             if not self.CLERK_SECRET_KEY:
                 print(  # noqa: T201
                     "FATAL: CLERK_SECRET_KEY is required in production.",
                     file=sys.stderr,
                 )
                 sys.exit(1)
+            if not self.SENTRY_DSN:
+                import warnings
+                warnings.warn(
+                    "SENTRY_DSN not set in production — errors will be invisible",
+                    stacklevel=2,
+                )
         return self
 
     # Database
@@ -58,7 +70,8 @@ class Settings(BaseSettings):
     CLERK_SECRET_KEY: str = ""
     CLERK_WEBHOOK_SECRET: str = ""
     CLERK_ISSUER_URL: str = ""  # e.g. "https://your-app.clerk.accounts.dev"
-    CLERK_JWKS_CACHE_TTL: int = 3600  # seconds to cache JWKS public keys
+    # 5 min TTL balances security (revoked JWTs invalid within 5 min) vs performance (fewer fetches)
+    CLERK_JWKS_CACHE_TTL: int = 300  # seconds to cache JWKS public keys
 
     # S3 / MinIO
     AWS_ACCESS_KEY_ID: str = "minioadmin"
@@ -79,11 +92,10 @@ class Settings(BaseSettings):
     # Custom Domain (E03)
     CUSTOM_DOMAIN_CNAME_TARGET: str = "custom.scr.io"
 
-    # Sentry error monitoring
-    SENTRY_DSN: str = ""
+    # Sentry error monitoring — set SENTRY_DSN to enable; no-op when unset
+    SENTRY_DSN: str | None = None
     SENTRY_ENVIRONMENT: str = "development"
-    SENTRY_TRACES_SAMPLE_RATE: float = 0.1  # 10% of transactions
-    SENTRY_PROFILES_SAMPLE_RATE: float = 0.1
+    APP_VERSION: str | None = None  # e.g. "1.2.3" or git SHA — used as Sentry release tag
 
     # AI token budget enforcement (per org, per calendar month)
     AI_TOKEN_BUDGET_ENABLED: bool = True

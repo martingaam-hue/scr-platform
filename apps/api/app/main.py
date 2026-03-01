@@ -93,26 +93,10 @@ from app.modules.market_data.router import router as market_data_router
 from app.modules.launch.router import router as launch_router
 from app.modules.custom_domain.router import router as custom_domain_router
 from app.core.elasticsearch import setup_indices, close_es_client
+from app.core.sentry import init_sentry
 
-# ── Sentry error monitoring ───────────────────────────────────────────────────
-import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
-from sentry_sdk.integrations.celery import CeleryIntegration
-
-if settings.SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
-        environment=settings.SENTRY_ENVIRONMENT,
-        traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
-        profiles_sample_rate=settings.SENTRY_PROFILES_SAMPLE_RATE,
-        integrations=[
-            FastApiIntegration(transaction_style="endpoint"),
-            SqlalchemyIntegration(),
-            CeleryIntegration(),
-        ],
-        send_default_pii=False,  # GDPR: never send PII
-    )
+# ── Sentry — must be initialised BEFORE FastAPI app is created ────────────────
+init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
 
 logger = structlog.get_logger()
 
@@ -190,8 +174,66 @@ async def add_version_header(request: Request, call_next) -> Response:
 
 
 @app.get("/health")
-async def health_check() -> dict[str, str]:
-    return {"status": "healthy", "service": "scr-api"}
+async def health_check() -> dict:
+    """Deep health check: probes PostgreSQL, Redis, Elasticsearch, and S3."""
+    import asyncio
+    checks: dict[str, dict] = {}
+
+    # ── PostgreSQL ────────────────────────────────────────────────────────────
+    try:
+        from sqlalchemy import text
+        from app.core.database import async_session_factory
+        async with async_session_factory() as db:
+            await db.execute(text("SELECT 1"))
+        checks["postgresql"] = {"status": "healthy"}
+    except Exception as exc:
+        checks["postgresql"] = {"status": "unhealthy", "error": str(exc)}
+
+    # ── Redis ─────────────────────────────────────────────────────────────────
+    try:
+        from redis.asyncio import from_url as redis_from_url
+        r = redis_from_url(settings.REDIS_URL, socket_connect_timeout=2)
+        await r.ping()
+        await r.aclose()
+        checks["redis"] = {"status": "healthy"}
+    except Exception as exc:
+        checks["redis"] = {"status": "unhealthy", "error": str(exc)}
+
+    # ── Elasticsearch ─────────────────────────────────────────────────────────
+    try:
+        from app.core.elasticsearch import get_es_client
+        es = get_es_client()
+        info = await asyncio.wait_for(es.info(), timeout=3.0)
+        checks["elasticsearch"] = {
+            "status": "healthy",
+            "version": info.get("version", {}).get("number", "unknown"),
+        }
+    except Exception as exc:
+        checks["elasticsearch"] = {"status": "unhealthy", "error": str(exc)}
+
+    # ── S3 / MinIO ────────────────────────────────────────────────────────────
+    try:
+        import boto3
+        from botocore.config import Config as BotoConfig
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=settings.AWS_S3_ENDPOINT_URL or None,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION,
+            config=BotoConfig(connect_timeout=2, read_timeout=2),
+        )
+        s3.head_bucket(Bucket=settings.AWS_S3_BUCKET)
+        checks["s3"] = {"status": "healthy"}
+    except Exception as exc:
+        checks["s3"] = {"status": "unhealthy", "error": str(exc)}
+
+    overall = (
+        "healthy"
+        if all(c["status"] == "healthy" for c in checks.values())
+        else "degraded"
+    )
+    return {"status": overall, "service": "scr-api", "checks": checks}
 
 
 # ── /v1 versioned router ──────────────────────────────────────────────────────
