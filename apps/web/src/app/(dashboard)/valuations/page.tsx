@@ -52,6 +52,7 @@ import {
 import { AIFeedback } from "@/components/ai-feedback";
 import { CitationBadges } from "@/components/citations/citation-badges";
 import { LineagePanel } from "@/components/lineage/lineage-panel";
+import { useSimilarComps } from "@/lib/comps";
 
 // ── Wizard steps ─────────────────────────────────────────────────────────────
 
@@ -302,10 +303,27 @@ function DCFForm({
 function ComparableForm({
   params,
   onChange,
+  projectId,
 }: {
   params: ComparableParams;
   onChange: (p: ComparableParams) => void;
+  projectId?: string | null;
 }) {
+  const similarComps = useSimilarComps(projectId);
+
+  function importFromComps() {
+    const items = similarComps.data?.items ?? [];
+    if (!items.length) return;
+    const imported = items.map((r) => ({
+      name: r.comp.deal_name,
+      ev_ebitda: r.comp.ebitda_multiple ?? null,
+      ev_mw: r.comp.ev_per_mw ?? null,
+      geography: r.comp.geography ?? null,
+      notes: r.rationale,
+    }));
+    onChange({ ...params, comparables: [...params.comparables, ...imported] });
+  }
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -366,22 +384,49 @@ function ComparableForm({
           <label className="text-sm font-medium text-neutral-700">
             Comparable Companies
           </label>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              onChange({
-                ...params,
-                comparables: [
-                  ...params.comparables,
-                  { name: "", ev_ebitda: null, ev_mw: null },
-                ],
-              })
-            }
-          >
-            <Plus className="h-3 w-3 mr-1" />
-            Add Row
-          </Button>
+          <div className="flex items-center gap-2">
+            {projectId && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={importFromComps}
+                disabled={similarComps.isLoading || !similarComps.data?.items.length}
+                title={
+                  !similarComps.data?.items.length
+                    ? "No similar comps found for this project"
+                    : `Import ${similarComps.data.items.length} similar comps from library`
+                }
+              >
+                {similarComps.isLoading ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <ArrowRightLeft className="h-3 w-3 mr-1" />
+                )}
+                Import from Library
+                {similarComps.data?.items.length ? (
+                  <span className="ml-1 text-xs text-neutral-400">
+                    ({similarComps.data.items.length})
+                  </span>
+                ) : null}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                onChange({
+                  ...params,
+                  comparables: [
+                    ...params.comparables,
+                    { name: "", ev_ebitda: null, ev_mw: null },
+                  ],
+                })
+              }
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add Row
+            </Button>
+          </div>
         </div>
         <div className="overflow-x-auto rounded-md border border-neutral-200">
           <table className="w-full text-sm">
@@ -1008,7 +1053,7 @@ function BuilderTab({ projectId }: { projectId: string | null }) {
             />
           )}
           {method === "comparables" && (
-            <ComparableForm params={compParams} onChange={setCompParams} />
+            <ComparableForm params={compParams} onChange={setCompParams} projectId={projectId} />
           )}
           {method === "replacement_cost" && (
             <ReplacementCostFormInner params={replParams} onChange={setReplParams} />

@@ -39,7 +39,7 @@ async def search_comps(
     data_quality: str | None = None,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    current_user: CurrentUser = Depends(require_permission("view", "comp")),
+    current_user: CurrentUser = Depends(require_permission("view", "analysis")),
     db: AsyncSession = Depends(get_db),
 ):
     """Search comparable transactions (org's own + global public comps)."""
@@ -63,7 +63,7 @@ async def search_comps(
 @router.post("", response_model=CompResponse, status_code=status.HTTP_201_CREATED)
 async def create_comp(
     body: CompCreate,
-    current_user: CurrentUser = Depends(require_permission("create", "comp")),
+    current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
     db: AsyncSession = Depends(get_db),
 ):
     """Add a new comparable transaction."""
@@ -78,7 +78,7 @@ async def create_comp(
 async def find_similar_comps(
     project_id: uuid.UUID,
     limit: int = Query(10, ge=1, le=50),
-    current_user: CurrentUser = Depends(require_permission("view", "comp")),
+    current_user: CurrentUser = Depends(require_permission("view", "analysis")),
     db: AsyncSession = Depends(get_db),
 ):
     """Find comps most similar to a project using AI ranking."""
@@ -89,7 +89,7 @@ async def find_similar_comps(
 @router.post("/implied-valuation", response_model=ImpliedValuationResponse)
 async def calculate_implied_valuation(
     body: ImpliedValuationRequest,
-    current_user: CurrentUser = Depends(require_permission("view", "comp")),
+    current_user: CurrentUser = Depends(require_permission("view", "analysis")),
     db: AsyncSession = Depends(get_db),
 ):
     """Calculate implied valuation from selected comparable transactions."""
@@ -100,7 +100,7 @@ async def calculate_implied_valuation(
 @router.post("/import-csv", status_code=status.HTTP_201_CREATED)
 async def import_comps_csv(
     file: UploadFile = File(...),
-    current_user: CurrentUser = Depends(require_permission("create", "comp")),
+    current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
     db: AsyncSession = Depends(get_db),
 ):
     """Bulk import comparable transactions from CSV."""
@@ -118,7 +118,7 @@ async def import_comps_csv(
 @router.get("/{comp_id}", response_model=CompResponse)
 async def get_comp(
     comp_id: uuid.UUID,
-    current_user: CurrentUser = Depends(require_permission("view", "comp")),
+    current_user: CurrentUser = Depends(require_permission("view", "analysis")),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single comparable transaction."""
@@ -132,7 +132,7 @@ async def get_comp(
 async def update_comp(
     comp_id: uuid.UUID,
     body: CompUpdate,
-    current_user: CurrentUser = Depends(require_permission("create", "comp")),
+    current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a comparable transaction."""
@@ -147,7 +147,7 @@ async def update_comp(
 @router.delete("/{comp_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_comp(
     comp_id: uuid.UUID,
-    current_user: CurrentUser = Depends(require_permission("create", "comp")),
+    current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
     db: AsyncSession = Depends(get_db),
 ):
     """Soft-delete a comparable transaction."""

@@ -43,6 +43,25 @@ export interface ValuationResult {
   confidence: string;
 }
 
+export interface SimilarCompResult {
+  comp: {
+    id: string;
+    deal_name: string;
+    asset_type: string;
+    geography: string | null;
+    ev_per_mw: number | null;
+    ebitda_multiple: number | null;
+    close_year: number | null;
+    data_quality: string;
+  };
+  similarity_score: number;
+  rationale: string;
+}
+
+export interface SimilarCompsResponse {
+  items: SimilarCompResult[];
+}
+
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
 export function useComps(filters: CompsFilters = {}) {
@@ -77,6 +96,16 @@ export function useUploadComps() {
       return api.post("/comps/upload", form).then((r) => r.data);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["comps"] }),
+  });
+}
+
+export function useSimilarComps(projectId: string | null | undefined) {
+  return useQuery<SimilarCompsResponse>({
+    queryKey: ["comps", "similar", projectId],
+    queryFn: () =>
+      api.get(`/comps/similar/${projectId}?limit=10`).then((r) => r.data),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
