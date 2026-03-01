@@ -11,7 +11,7 @@ terraform {
   backend "s3" {
     bucket  = "scr-platform-terraform-state"
     key     = "infrastructure/terraform.tfstate"
-    region  = "eu-west-1"
+    region  = "eu-north-1"
     encrypt = true
   }
 }
