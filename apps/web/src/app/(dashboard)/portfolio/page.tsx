@@ -26,6 +26,16 @@ import {
   type ColumnDef,
   cn,
 } from "@scr/ui";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
+import { useCashflowPacing } from "@/lib/metrics";
 import { usePermission } from "@/lib/auth";
 import {
   usePortfolios,
@@ -44,6 +54,149 @@ import {
   assetTypeLabel,
   holdingStatusColor,
 } from "@/lib/portfolio";
+
+// ── Pacing Tab ───────────────────────────────────────────────────────────────
+
+type PacingScenario = "base" | "optimistic" | "pessimistic";
+
+function PacingTab({ portfolioId }: { portfolioId: string }) {
+  const [scenario, setScenario] = useState<PacingScenario>("base");
+  const { data, isLoading } = useCashflowPacing(portfolioId, scenario);
+
+  if (!portfolioId) {
+    return (
+      <EmptyState
+        icon={<TrendingUp className="h-12 w-12 text-neutral-400" />}
+        title="No portfolio selected"
+        description="Select a portfolio to view pacing."
+      />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="h-64 animate-pulse rounded-lg bg-neutral-100" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data?.months.length) {
+    return (
+      <EmptyState
+        icon={<TrendingUp className="h-12 w-12 text-neutral-400" />}
+        title="No pacing data"
+        description="Pacing data will appear once cashflow projections are available."
+      />
+    );
+  }
+
+  const chartData = data.months.map((m) => ({
+    month: m.month,
+    "Drawn (cumulative)": m.cumulative_drawn,
+    "Distributed (cumulative)": m.cumulative_distributed,
+    NAV: m.nav,
+  }));
+
+  const fmtM = (v: number) => `€${(v / 1_000_000).toFixed(1)}M`;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-neutral-900">
+          Cashflow Pacing
+        </h3>
+        <select
+          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm"
+          value={scenario}
+          onChange={(e) => setScenario(e.target.value as PacingScenario)}
+        >
+          <option value="base">Base</option>
+          <option value="optimistic">Optimistic</option>
+          <option value="pessimistic">Pessimistic</option>
+        </select>
+      </div>
+      <Card>
+        <CardContent className="p-6">
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart
+              data={chartData}
+              margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="colorDrawn" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorDist" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorNAV" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} />
+              <YAxis
+                tickFormatter={fmtM}
+                tick={{ fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip
+                formatter={(v: number | undefined) =>
+                  v != null ? fmtM(v) : "—"
+                }
+                contentStyle={{ fontSize: 12 }}
+              />
+              <Area
+                type="monotone"
+                dataKey="Drawn (cumulative)"
+                stroke="#ef4444"
+                strokeWidth={2}
+                fill="url(#colorDrawn)"
+              />
+              <Area
+                type="monotone"
+                dataKey="Distributed (cumulative)"
+                stroke="#22c55e"
+                strokeWidth={2}
+                fill="url(#colorDist)"
+              />
+              <Area
+                type="monotone"
+                dataKey="NAV"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                fill="url(#colorNAV)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+          {/* Legend */}
+          <div className="mt-3 flex gap-5">
+            {[
+              { label: "Drawn (cumulative)", color: "#ef4444" },
+              { label: "Distributed (cumulative)", color: "#22c55e" },
+              { label: "NAV", color: "#3b82f6" },
+            ].map(({ label, color }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="text-xs text-neutral-500">{label}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 // ── Metric Card ─────────────────────────────────────────────────────────────
 
@@ -342,6 +495,7 @@ export default function PortfolioPage() {
           </TabsTrigger>
           <TabsTrigger value="allocation">Allocation</TabsTrigger>
           <TabsTrigger value="cash-flows">Cash Flows</TabsTrigger>
+          <TabsTrigger value="pacing">Pacing</TabsTrigger>
         </TabsList>
 
         {/* Holdings Tab */}
@@ -486,6 +640,11 @@ export default function PortfolioPage() {
               </div>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Pacing Tab */}
+        <TabsContent value="pacing" className="mt-6">
+          <PacingTab portfolioId={activeId ?? ""} />
         </TabsContent>
       </Tabs>
     </div>

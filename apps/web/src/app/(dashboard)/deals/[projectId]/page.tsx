@@ -29,6 +29,7 @@ import {
   type MemoAcceptedResponse,
 } from "@/lib/deals";
 import { AIFeedback } from "@/components/ai-feedback";
+import { CitationBadges } from "@/components/citations/citation-badges";
 
 // ── Recommendation badge ──────────────────────────────────────────────────
 
@@ -92,9 +93,15 @@ function ScreeningReportView({
                 {new Date(report.created_at).toLocaleDateString()}
               </p>
             </div>
-            <p className="text-sm text-neutral-700 leading-relaxed">
-              {report.executive_summary}
-            </p>
+            <div className="flex items-start gap-2">
+              <p className="text-sm text-neutral-700 leading-relaxed flex-1">
+                {report.executive_summary}
+              </p>
+              <CitationBadges
+                aiTaskLogId={report.task_log_id}
+                className="mt-0.5 flex-shrink-0"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -376,14 +383,20 @@ export default function DealScreeningPage() {
 
       {!isLoading && report && report.status === "completed" && (
         <>
-          <AIFeedback
-            taskType="screening"
-            entityType="deal"
-            entityId={projectId}
-            taskLogId={report.task_log_id}
-            compact
-            className="mt-2"
-          />
+          <div className="flex items-center gap-3">
+            <AIFeedback
+              taskType="screening"
+              entityType="deal"
+              entityId={projectId}
+              taskLogId={report.task_log_id}
+              compact
+              className="mt-2"
+            />
+            <CitationBadges
+              aiTaskLogId={report.task_log_id}
+              className="mt-2"
+            />
+          </div>
           <ScreeningReportView report={report} projectId={projectId} />
         </>
       )}

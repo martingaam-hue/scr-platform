@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   FileCheck,
   RefreshCw,
   Upload,
@@ -24,9 +25,20 @@ import {
   cn,
 } from "@scr/ui";
 import { useState } from "react";
+import {
+  ResponsiveContainer,
+  LineChart as RechartsLineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
 import { useProject } from "@/lib/projects";
 import { usePermission } from "@/lib/auth";
 import { AIFeedback } from "@/components/ai-feedback";
+import { CitationBadges } from "@/components/citations/citation-badges";
+import { LineagePanel } from "@/components/lineage/lineage-panel";
 import {
   useSignalScoreDetails,
   useSignalScoreGaps,
@@ -39,6 +51,12 @@ import {
   type DimensionScore,
   type CriterionScore,
 } from "@/lib/signal-score";
+import {
+  useScoreHistoryTrend,
+  useScoreVolatility,
+  useScoreChanges,
+  useBenchmarkComparison,
+} from "@/lib/metrics";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -104,7 +122,11 @@ function CriterionRow({ criterion }: { criterion: CriterionScore }) {
       </button>
       {expanded && ai && (
         <div className="border-t bg-neutral-50 px-11 py-3 space-y-2">
-          <p className="text-sm text-neutral-600">{ai.reasoning}</p>
+          <div className="flex items-start gap-1.5">
+            <p className="text-sm text-neutral-600">{ai.reasoning}</p>
+            {/* Add aiTaskLogId from AI task log when available */}
+            <CitationBadges aiTaskLogId={undefined} className="mt-0.5 flex-shrink-0" />
+          </div>
           {ai.strengths.length > 0 && (
             <div>
               <p className="text-xs font-medium text-green-700">Strengths:</p>
@@ -175,6 +197,343 @@ function DimensionSection({ dimension }: { dimension: DimensionScore }) {
           {dimension.criteria.map((c) => (
             <CriterionRow key={c.id} criterion={c} />
           ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ── Dimension color map ──────────────────────────────────────────────────────
+
+const DIMENSION_COLORS: Record<string, string> = {
+  overall: "#6366f1",
+  project_viability: "#22c55e",
+  financial_planning: "#3b82f6",
+  team_strength: "#f59e0b",
+  risk_assessment: "#ef4444",
+  esg: "#10b981",
+};
+
+// ── A: Score History Chart ───────────────────────────────────────────────────
+
+function ScoreHistoryChart({ projectId }: { projectId: string }) {
+  const { data, isLoading } = useScoreHistoryTrend(projectId);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="mb-4 text-sm font-semibold text-neutral-900">
+            Score History
+          </h3>
+          <div className="h-64 animate-pulse rounded-lg bg-neutral-100" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data?.items.length) {
+    return null;
+  }
+
+  const chartData = data.items.map((pt) => ({
+    date: new Date(pt.recorded_at).toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+    }),
+    Overall: pt.overall_score,
+    "Project Viability": pt.project_viability ?? undefined,
+    "Financial Planning": pt.financial_planning ?? undefined,
+    "Team Strength": pt.team_strength ?? undefined,
+    "Risk Assessment": pt.risk_assessment ?? undefined,
+    ESG: pt.esg ?? undefined,
+  }));
+
+  const lines: Array<{ key: string; color: string }> = [
+    { key: "Overall", color: DIMENSION_COLORS.overall },
+    { key: "Project Viability", color: DIMENSION_COLORS.project_viability },
+    { key: "Financial Planning", color: DIMENSION_COLORS.financial_planning },
+    { key: "Team Strength", color: DIMENSION_COLORS.team_strength },
+    { key: "Risk Assessment", color: DIMENSION_COLORS.risk_assessment },
+    { key: "ESG", color: DIMENSION_COLORS.esg },
+  ];
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <h3 className="mb-4 text-sm font-semibold text-neutral-900">
+          Score History
+        </h3>
+        <ResponsiveContainer width="100%" height={280}>
+          <RechartsLineChart
+            data={chartData}
+            margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 11 }}
+              tickLine={false}
+            />
+            <YAxis
+              domain={[0, 100]}
+              tick={{ fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip
+              contentStyle={{ fontSize: 12 }}
+              formatter={(value: number | undefined) =>
+                value != null ? value.toFixed(1) : "—"
+              }
+            />
+            {lines.map(({ key, color }) => (
+              <Line
+                key={key}
+                type="monotone"
+                dataKey={key}
+                stroke={color}
+                strokeWidth={2}
+                dot={false}
+                connectNulls
+              />
+            ))}
+          </RechartsLineChart>
+        </ResponsiveContainer>
+        {/* Legend */}
+        <div className="mt-3 flex flex-wrap gap-3">
+          {lines.map(({ key, color }) => (
+            <div key={key} className="flex items-center gap-1.5">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-xs text-neutral-500">{key}</span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── B: Volatility Badge ──────────────────────────────────────────────────────
+
+function VolatilityBadge({ projectId }: { projectId: string }) {
+  const { data } = useScoreVolatility(projectId);
+
+  if (!data) return null;
+
+  const config: Record<
+    string,
+    { label: string; variant: "success" | "warning" | "error" | "neutral" }
+  > = {
+    low: { label: "Stable", variant: "success" },
+    medium: { label: "Moderate", variant: "warning" },
+    high: { label: "Volatile", variant: "error" },
+    insufficient_data: { label: "Insufficient data", variant: "neutral" },
+  };
+
+  const c = config[data.volatility] ?? {
+    label: data.volatility,
+    variant: "neutral" as const,
+  };
+
+  return <Badge variant={c.variant}>{c.label}</Badge>;
+}
+
+// ── C: Benchmark Comparison Card ─────────────────────────────────────────────
+
+function BenchmarkCard({ projectId }: { projectId: string }) {
+  const { data, isLoading } = useBenchmarkComparison(projectId, [
+    "signal_score",
+  ]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-5">
+          <h3 className="mb-3 text-sm font-semibold text-neutral-900">
+            Peer Benchmark
+          </h3>
+          <div className="h-16 animate-pulse rounded-lg bg-neutral-100" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const comparison = data?.comparisons?.[0];
+
+  if (!comparison) {
+    return (
+      <Card>
+        <CardContent className="p-5">
+          <h3 className="mb-2 text-sm font-semibold text-neutral-900">
+            Peer Benchmark
+          </h3>
+          <p className="text-sm text-neutral-400">No peer data available yet</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const quartileLabel = `Q${comparison.quartile}`;
+  const percentileLabel =
+    comparison.percentile_rank >= 75
+      ? `Top ${(100 - comparison.percentile_rank).toFixed(0)}%`
+      : `${comparison.percentile_rank.toFixed(0)}th percentile`;
+  const vsDelta = comparison.vs_median;
+  const deltaPositive = vsDelta >= 0;
+
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <h3 className="mb-4 text-sm font-semibold text-neutral-900">
+          Peer Benchmark
+        </h3>
+        <div className="flex items-center gap-6">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-neutral-900">
+              {quartileLabel}
+            </p>
+            <p className="text-xs text-neutral-500">Quartile</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-neutral-900">
+              {percentileLabel}
+            </p>
+            <p className="text-xs text-neutral-500">Rank</p>
+          </div>
+          <div className="text-center">
+            <p
+              className={cn(
+                "text-2xl font-bold",
+                deltaPositive ? "text-green-600" : "text-red-600"
+              )}
+            >
+              {deltaPositive ? "+" : ""}
+              {vsDelta.toFixed(1)} pts
+            </p>
+            <p className="text-xs text-neutral-500">vs Median</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-semibold text-neutral-600">
+              {comparison.sample_count}
+            </p>
+            <p className="text-xs text-neutral-500">Peers</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── D: "What Changed?" Timeline ──────────────────────────────────────────────
+
+function WhatChangedCard({ projectId }: { projectId: string }) {
+  const [open, setOpen] = useState(false);
+  const { data, isLoading } = useScoreChanges(projectId);
+
+  const events = data?.items ?? [];
+
+  return (
+    <Card>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between p-4 text-left hover:bg-neutral-50"
+      >
+        <h3 className="text-sm font-semibold text-neutral-900">
+          What Changed?
+        </h3>
+        {open ? (
+          <ChevronUp className="h-4 w-4 text-neutral-400" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-neutral-400" />
+        )}
+      </button>
+
+      {open && (
+        <div className="border-t">
+          {isLoading ? (
+            <div className="space-y-3 p-4">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-14 animate-pulse rounded-lg bg-neutral-100"
+                />
+              ))}
+            </div>
+          ) : !events.length ? (
+            <div className="p-4">
+              <p className="text-sm text-neutral-400">No change events yet.</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {[...events]
+                .sort(
+                  (a, b) =>
+                    new Date(b.recorded_at).getTime() -
+                    new Date(a.recorded_at).getTime()
+                )
+                .map((event) => {
+                  const deltaPos = event.overall_delta >= 0;
+                  return (
+                    <div key={event.id} className="px-4 py-3">
+                      <div className="flex items-start gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-neutral-400">
+                              {new Date(event.recorded_at).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }
+                              )}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-sm font-semibold",
+                                deltaPos ? "text-green-600" : "text-red-600"
+                              )}
+                            >
+                              {deltaPos ? "+" : ""}
+                              {event.overall_delta.toFixed(1)} pts
+                            </span>
+                            {event.trigger_event && (
+                              <Badge
+                                variant="neutral"
+                                className="text-[10px]"
+                              >
+                                {event.trigger_event}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {event.dimension_changes.length > 0 && (
+                            <p className="mt-1 text-xs text-neutral-500">
+                              {event.dimension_changes
+                                .map((dc) => {
+                                  const sign = dc.delta >= 0 ? "+" : "";
+                                  return `${dc.dimension} ${sign}${dc.delta.toFixed(1)}`;
+                                })
+                                .join(" · ")}
+                            </p>
+                          )}
+
+                          {event.explanation && (
+                            <p className="mt-1 text-xs text-neutral-600">
+                              {event.explanation}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
       )}
     </Card>
@@ -265,11 +624,23 @@ export default function SignalScorePage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
             <Card className="lg:col-span-2">
               <CardContent className="flex flex-col items-center justify-center p-6">
-                <ScoreGauge
-                  score={details.overall_score}
-                  size={140}
-                  strokeWidth={12}
-                />
+                <div className="flex items-center gap-2">
+                  <ScoreGauge
+                    score={details.overall_score}
+                    size={140}
+                    strokeWidth={12}
+                  />
+                  <LineagePanel
+                    entityType="project"
+                    entityId={id}
+                    fieldName="signal_score"
+                    fieldLabel="Signal Score"
+                  />
+                </div>
+                {/* B: Volatility badge inline with score */}
+                <div className="mt-2 flex items-center gap-2">
+                  <VolatilityBadge projectId={id} />
+                </div>
                 <p className="mt-2 text-xs text-neutral-400">
                   v{details.version} · {details.model_used} ·{" "}
                   {new Date(details.calculated_at).toLocaleDateString()}
@@ -280,6 +651,11 @@ export default function SignalScorePage() {
                   entityId={id}
                   compact
                   className="mt-3"
+                />
+                {/* Add aiTaskLogId from AI task log when available */}
+                <CitationBadges
+                  aiTaskLogId={undefined}
+                  className="mt-2"
                 />
               </CardContent>
             </Card>
@@ -423,6 +799,17 @@ export default function SignalScorePage() {
               )}
             </TabsContent>
           </Tabs>
+
+          {/* ── New features below existing content ── */}
+
+          {/* A: Score History Chart (time-series from metrics API) */}
+          <ScoreHistoryChart projectId={id} />
+
+          {/* C: Peer Benchmark */}
+          <BenchmarkCard projectId={id} />
+
+          {/* D: What Changed? */}
+          <WhatChangedCard projectId={id} />
         </>
       )}
     </div>

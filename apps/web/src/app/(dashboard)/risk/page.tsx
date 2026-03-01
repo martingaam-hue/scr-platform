@@ -71,6 +71,7 @@ import {
 } from "@/lib/risk";
 import { usePortfolios } from "@/lib/portfolio";
 import { AIFeedback } from "@/components/ai-feedback";
+import { CitationBadges } from "@/components/citations/citation-badges";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -251,6 +252,8 @@ function DashboardTab({ portfolioId }: { portfolioId: string }) {
                 compact
                 className="mt-2"
               />
+              {/* Add aiTaskLogId from AI task log when available */}
+              <CitationBadges aiTaskLogId={undefined} className="mt-1" />
             </div>
           </CardContent>
         </Card>
@@ -1213,7 +1216,11 @@ function MitigationPanel({
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
-          <p className="text-xs text-neutral-600">{result.mitigation_text}</p>
+          <div className="flex items-start gap-1.5">
+            <p className="text-xs text-neutral-600 flex-1">{result.mitigation_text}</p>
+            {/* Add aiTaskLogId from AI task log when available */}
+            <CitationBadges aiTaskLogId={undefined} className="flex-shrink-0" />
+          </div>
           {result.key_actions.length > 0 && (
             <ul className="space-y-1">
               {result.key_actions.map((a, i) => (

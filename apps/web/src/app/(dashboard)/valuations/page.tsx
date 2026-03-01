@@ -50,6 +50,8 @@ import {
   type AssumptionSuggestion,
 } from "@/lib/valuation";
 import { AIFeedback } from "@/components/ai-feedback";
+import { CitationBadges } from "@/components/citations/citation-badges";
+import { LineagePanel } from "@/components/lineage/lineage-panel";
 
 // ── Wizard steps ─────────────────────────────────────────────────────────────
 
@@ -701,9 +703,19 @@ function ValuationResultCard({
             <div className="text-xs text-neutral-500 uppercase tracking-wide mb-1">
               Enterprise Value
             </div>
-            <div className="text-2xl font-bold text-blue-700">
-              {formatEV(valuation.enterprise_value, valuation.currency)}
+            <div className="flex items-center gap-2">
+              <div className="text-2xl font-bold text-blue-700">
+                {formatEV(valuation.enterprise_value, valuation.currency)}
+              </div>
+              <LineagePanel
+                entityType="valuation"
+                entityId={valuation.id}
+                fieldName="enterprise_value"
+                fieldLabel="Enterprise Value"
+              />
             </div>
+            {/* Add aiTaskLogId from AI task log when available */}
+            <CitationBadges aiTaskLogId={undefined} className="mt-1" />
           </CardContent>
         </Card>
         <Card>
