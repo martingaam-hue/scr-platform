@@ -32,6 +32,8 @@ celery_app = Celery(
         "app.tasks.qa_sla",
         "app.tasks.monitoring",
         "app.tasks.crm_sync",
+        "app.modules.expert_insights.tasks",
+        "app.modules.webhooks.tasks",
     ],
 )
 
@@ -137,5 +139,10 @@ celery_app.conf.beat_schedule = {
     "sync-crm-connections": {
         "task": "tasks.sync_crm_connections",
         "schedule": crontab(minute="*/15"),  # every 15 minutes
+    },
+    # ── Webhook retry ─────────────────────────────────────────────────────────
+    "retry-pending-webhooks": {
+        "task": "tasks.retry_pending_webhooks",
+        "schedule": crontab(minute="*/5"),  # every 5 minutes
     },
 }

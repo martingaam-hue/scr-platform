@@ -208,6 +208,18 @@ from app.models.pacing import CashflowAssumption, CashflowProjection
 from app.models.taxonomy import IndustryTaxonomy
 from app.models.financial_templates import FinancialTemplate
 
+# Score Backtesting
+from app.models.backtesting import BacktestRun, DealOutcome
+
+# Expert Insights
+from app.models.expert_notes import ExpertNote
+
+# Webhooks
+from app.models.webhooks import WebhookDelivery, WebhookSubscription
+
+# Document Annotations
+from app.models.document_annotations import DocumentAnnotation
+
 __all__ = [
     # Base
     "BaseModel",
@@ -348,4 +360,14 @@ __all__ = [
     # Industry Taxonomy & Financial Templates
     "IndustryTaxonomy",
     "FinancialTemplate",
+    # Score Backtesting
+    "DealOutcome",
+    "BacktestRun",
+    # Expert Insights
+    "ExpertNote",
+    # Webhooks
+    "WebhookSubscription",
+    "WebhookDelivery",
+    # Document Annotations
+    "DocumentAnnotation",
 ]

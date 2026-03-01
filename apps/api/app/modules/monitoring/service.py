@@ -161,6 +161,28 @@ class MonitoringService:
                     }
                 )
 
+                # Fire webhook when covenant transitions into breach
+                if covenant.status == "breach" and old_status != "breach":
+                    try:
+                        from app.modules.webhooks.service import WebhookService
+                        wh = WebhookService(self.db)
+                        await wh.fire_event(
+                            self.org_id,
+                            "monitoring.covenant_breach",
+                            {
+                                "covenant_id": str(covenant.id),
+                                "covenant_name": covenant.name,
+                                "project_id": str(covenant.project_id),
+                                "current_value": current,
+                                "threshold_value": float(covenant.threshold_value),
+                            },
+                        )
+                    except Exception as _wh_exc:
+                        logger.warning(
+                            "webhook_fire_covenant_breach_failed",
+                            error=str(_wh_exc),
+                        )
+
         await self.db.flush()
         return changes
 

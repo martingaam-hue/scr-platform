@@ -25,9 +25,11 @@ import {
   useDocument,
   useDocumentVersions,
   useAccessLog,
+  useDocumentDownload,
   type DocumentVersionResponse,
   type AccessLogEntry,
 } from "@/lib/dataroom";
+import { PdfViewer } from "@/components/pdf-viewer/pdf-viewer";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -121,14 +123,84 @@ function AccessLogRow({ entry }: { entry: AccessLogEntry }) {
   );
 }
 
+// ── PDF viewer tab ─────────────────────────────────────────────────────────
+
+function PdfViewerTab({
+  documentId,
+  documentName,
+  fileType,
+}: {
+  documentId: string;
+  documentName: string;
+  fileType: string;
+}) {
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const getDownloadUrl = useDocumentDownload();
+
+  const isPdf = fileType?.toLowerCase() === "pdf";
+
+  if (!isPdf) {
+    return (
+      <Card>
+        <CardContent className="p-8 flex flex-col items-center justify-center gap-3">
+          <FileText className="h-12 w-12 text-neutral-300" />
+          <p className="text-sm text-neutral-500">
+            PDF preview is only available for PDF documents. This document is a{" "}
+            <span className="uppercase font-medium">{fileType}</span> file.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!pdfUrl) {
+    return (
+      <Card>
+        <CardContent className="p-8 flex flex-col items-center justify-center gap-4">
+          <FileText className="h-12 w-12 text-primary-400" />
+          <p className="text-sm text-neutral-600">
+            Click below to load the PDF viewer with annotation support.
+          </p>
+          <Button
+            variant="default"
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              try {
+                const result = await getDownloadUrl.mutateAsync(documentId);
+                setPdfUrl(result.download_url);
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            {loading ? "Loading…" : "Open PDF Viewer"}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div style={{ height: "75vh" }}>
+      <PdfViewer
+        documentId={documentId}
+        documentUrl={pdfUrl}
+        documentName={documentName}
+      />
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
+
+type Tab = "versions" | "access-log" | "viewer";
 
 export default function DocumentVersionsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"versions" | "access-log">(
-    "versions"
-  );
+  const [activeTab, setActiveTab] = useState<Tab>("versions");
 
   const { data: doc, isLoading: docLoading } = useDocument(id);
   const { data: versions, isLoading: versionsLoading } =
@@ -144,6 +216,12 @@ export default function DocumentVersionsPage() {
       </div>
     );
   }
+
+  const tabs: Array<{ id: Tab; label: string }> = [
+    { id: "versions", label: "Version History" },
+    { id: "access-log", label: "Access Log" },
+    { id: "viewer", label: "PDF Viewer" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -228,26 +306,19 @@ export default function DocumentVersionsPage() {
 
       {/* Tabs */}
       <div className="border-b border-neutral-200 flex gap-6">
-        <button
-          onClick={() => setActiveTab("versions")}
-          className={`pb-3 text-sm font-medium transition-colors ${
-            activeTab === "versions"
-              ? "border-b-2 border-primary-600 text-primary-600"
-              : "text-neutral-500 hover:text-neutral-700"
-          }`}
-        >
-          Version History
-        </button>
-        <button
-          onClick={() => setActiveTab("access-log")}
-          className={`pb-3 text-sm font-medium transition-colors ${
-            activeTab === "access-log"
-              ? "border-b-2 border-primary-600 text-primary-600"
-              : "text-neutral-500 hover:text-neutral-700"
-          }`}
-        >
-          Access Log
-        </button>
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={`pb-3 text-sm font-medium transition-colors ${
+              activeTab === t.id
+                ? "border-b-2 border-primary-600 text-primary-600"
+                : "text-neutral-500 hover:text-neutral-700"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* Version list */}
@@ -304,8 +375,17 @@ export default function DocumentVersionsPage() {
         </Card>
       )}
 
+      {/* PDF Viewer */}
+      {activeTab === "viewer" && doc && (
+        <PdfViewerTab
+          documentId={id}
+          documentName={doc.name}
+          fileType={doc.file_type}
+        />
+      )}
+
       {/* Checksum verification note */}
-      {versions && versions.length > 0 && (
+      {activeTab === "versions" && versions && versions.length > 0 && (
         <Card>
           <CardContent className="p-5">
             <div className="flex items-start gap-3">

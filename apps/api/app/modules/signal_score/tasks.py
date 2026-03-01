@@ -166,6 +166,29 @@ def calculate_signal_score_task(
             except Exception as e:
                 logger.warning("gamification_evaluation_failed", error=str(e))
 
+            # Fire webhook event for signal_score.computed
+            try:
+                from app.core.database import async_session_factory
+                import asyncio
+
+                async def _fire_webhook() -> None:
+                    async with async_session_factory() as async_db:
+                        from app.modules.webhooks.service import WebhookService
+                        wh = WebhookService(async_db)
+                        await wh.fire_event(
+                            uuid.UUID(org_id),
+                            "signal_score.computed",
+                            {
+                                "project_id": str(project_id),
+                                "overall_score": float(signal_score.overall_score),
+                                "version": signal_score.version,
+                            },
+                        )
+
+                asyncio.run(_fire_webhook())
+            except Exception as e:
+                logger.warning("webhook_fire_signal_score_failed", error=str(e))
+
             logger.info(
                 "signal_score_task_completed",
                 project_id=project_id,

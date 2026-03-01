@@ -14,8 +14,24 @@ import {
   UserPlus,
   Users,
   Check,
+  Webhook,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useTriggerDigest, type DigestTriggerResponse } from "@/lib/digest";
+import {
+  useWebhooks,
+  useWebhookDeliveries,
+  useCreateWebhook,
+  useUpdateWebhook,
+  useDeleteWebhook,
+  useTestWebhook,
+  useEnableWebhook,
+  useDisableWebhook,
+  WEBHOOK_EVENTS,
+  type WebhookSubscription,
+  type WebhookDelivery,
+} from "@/lib/webhooks";
 import {
   useCRMConnections,
   useCRMOAuthURL,
@@ -1209,6 +1225,400 @@ function BrandingTab() {
   );
 }
 
+// ── Webhooks tab ──────────────────────────────────────────────────────────
+
+function statusVariantForDelivery(
+  status: WebhookDelivery["status"]
+): "success" | "error" | "warning" | "neutral" {
+  if (status === "delivered") return "success";
+  if (status === "failed") return "error";
+  if (status === "retrying") return "warning";
+  return "neutral";
+}
+
+function DeliveryLog({ subscriptionId }: { subscriptionId: string }) {
+  const { data: deliveries, isLoading } = useWebhookDeliveries(subscriptionId);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-16 items-center justify-center">
+        <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
+      </div>
+    );
+  }
+
+  if (!deliveries || deliveries.length === 0) {
+    return (
+      <p className="text-xs text-neutral-400 py-2">No deliveries yet.</p>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b text-left text-neutral-500">
+            <th className="py-1.5 pr-3 font-medium">Event</th>
+            <th className="py-1.5 pr-3 font-medium">Status</th>
+            <th className="py-1.5 pr-3 font-medium">Code</th>
+            <th className="py-1.5 pr-3 font-medium">Attempts</th>
+            <th className="py-1.5 font-medium">Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {deliveries.slice(0, 10).map((d) => (
+            <tr key={d.id} className="border-b last:border-0">
+              <td className="py-1.5 pr-3 font-mono text-neutral-700">
+                {d.event_type}
+              </td>
+              <td className="py-1.5 pr-3">
+                <Badge variant={statusVariantForDelivery(d.status)}>
+                  {d.status}
+                </Badge>
+              </td>
+              <td className="py-1.5 pr-3 text-neutral-500">
+                {d.response_status_code ?? "—"}
+              </td>
+              <td className="py-1.5 pr-3 text-neutral-500">{d.attempts}</td>
+              <td className="py-1.5 text-neutral-400">
+                {new Date(d.created_at).toLocaleString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+interface AddWebhookFormProps {
+  onClose: () => void;
+}
+
+function AddWebhookForm({ onClose }: AddWebhookFormProps) {
+  const create = useCreateWebhook();
+  const [url, setUrl] = useState("");
+  const [secret, setSecret] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
+  const [showSecret, setShowSecret] = useState(false);
+
+  function toggleEvent(event: string) {
+    setSelectedEvents((prev) =>
+      prev.includes(event) ? prev.filter((e) => e !== event) : [...prev, event]
+    );
+  }
+
+  function submit() {
+    if (!url.trim() || !secret.trim() || selectedEvents.length === 0) return;
+    create.mutate(
+      {
+        url: url.trim(),
+        secret: secret.trim(),
+        events: selectedEvents,
+        description: description.trim() || undefined,
+      },
+      { onSuccess: () => onClose() }
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-neutral-100">
+          <h2 className="text-lg font-bold text-neutral-900">
+            Add Webhook Endpoint
+          </h2>
+        </div>
+        <div className="p-6 space-y-4">
+          {/* URL */}
+          <div>
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
+              Endpoint URL
+            </label>
+            <input
+              type="url"
+              className="w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="https://your-service.example.com/webhooks"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+          </div>
+
+          {/* Secret */}
+          <div>
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
+              Signing Secret
+            </label>
+            <div className="relative">
+              <input
+                type={showSecret ? "text" : "password"}
+                className="w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 pr-9 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Your HMAC signing secret"
+                value={secret}
+                onChange={(e) => setSecret(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowSecret((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700"
+              >
+                {showSecret ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-neutral-400">
+              Payloads are signed with HMAC-SHA256. Verify the{" "}
+              <code className="font-mono">X-SCR-Signature</code> header.
+            </p>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
+              Description (optional)
+            </label>
+            <input
+              type="text"
+              className="w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="e.g. Notify Slack on score updates"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
+          {/* Events */}
+          <div>
+            <label className="block text-xs font-medium text-neutral-600 mb-2">
+              Events to subscribe to
+            </label>
+            <div className="grid grid-cols-1 gap-1 max-h-48 overflow-y-auto border border-neutral-200 rounded-lg p-3">
+              {WEBHOOK_EVENTS.map((event) => (
+                <label
+                  key={event}
+                  className="flex items-center gap-2 cursor-pointer hover:bg-neutral-50 rounded px-1 py-0.5"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedEvents.includes(event)}
+                    onChange={() => toggleEvent(event)}
+                    className="accent-primary-600"
+                  />
+                  <span className="text-xs font-mono text-neutral-700">
+                    {event}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {selectedEvents.length === 0 && (
+              <p className="text-xs text-red-500 mt-1">
+                Select at least one event.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 p-6 border-t border-neutral-100">
+          <Button variant="outline" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={submit}
+            disabled={
+              !url.trim() ||
+              !secret.trim() ||
+              selectedEvents.length === 0 ||
+              create.isPending
+            }
+          >
+            {create.isPending ? "Adding…" : "Add Webhook"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WebhookRow({ sub }: { sub: WebhookSubscription }) {
+  const [expanded, setExpanded] = useState(false);
+  const deleteWebhook = useDeleteWebhook();
+  const testWebhook = useTestWebhook();
+  const enableWebhook = useEnableWebhook();
+  const disableWebhook = useDisableWebhook();
+  const update = useUpdateWebhook(sub.id);
+
+  return (
+    <div className="border border-neutral-200 rounded-xl overflow-hidden">
+      {/* Header row */}
+      <div className="p-4 flex items-start gap-4 bg-white">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-sm text-neutral-900 truncate max-w-xs">
+              {sub.url}
+            </span>
+            <Badge variant={sub.is_active ? "success" : "neutral"}>
+              {sub.is_active ? "Active" : "Disabled"}
+            </Badge>
+            {sub.failure_count > 0 && (
+              <Badge variant="warning">{sub.failure_count} failures</Badge>
+            )}
+          </div>
+          {sub.description && (
+            <p className="text-xs text-neutral-500 mt-0.5">{sub.description}</p>
+          )}
+          {sub.disabled_reason && (
+            <p className="text-xs text-red-500 mt-0.5">{sub.disabled_reason}</p>
+          )}
+          <div className="flex flex-wrap gap-1 mt-2">
+            {sub.events.map((e) => (
+              <span
+                key={e}
+                className="text-xs font-mono bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded"
+              >
+                {e}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="text-xs text-neutral-500 hover:text-neutral-800 transition-colors"
+          >
+            {expanded ? "Hide logs" : "Show logs"}
+          </button>
+          <button
+            onClick={() =>
+              testWebhook.mutate({ id: sub.id, event_type: "test.ping" })
+            }
+            disabled={testWebhook.isPending}
+            className="text-xs text-primary-600 hover:text-primary-800 transition-colors"
+          >
+            {testWebhook.isPending ? "Testing…" : "Test"}
+          </button>
+          {sub.is_active ? (
+            <button
+              onClick={() => disableWebhook.mutate(sub.id)}
+              disabled={disableWebhook.isPending}
+              className="text-xs text-neutral-500 hover:text-neutral-800 transition-colors"
+            >
+              Disable
+            </button>
+          ) : (
+            <button
+              onClick={() => enableWebhook.mutate(sub.id)}
+              disabled={enableWebhook.isPending}
+              className="text-xs text-green-600 hover:text-green-800 transition-colors"
+            >
+              Enable
+            </button>
+          )}
+          <button
+            onClick={() => {
+              if (confirm("Delete this webhook subscription?")) {
+                deleteWebhook.mutate(sub.id);
+              }
+            }}
+            className="text-xs text-red-500 hover:text-red-700 transition-colors flex items-center gap-1"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete
+          </button>
+        </div>
+      </div>
+
+      {/* Delivery log */}
+      {expanded && (
+        <div className="border-t border-neutral-100 bg-neutral-50 p-4">
+          <h4 className="text-xs font-semibold text-neutral-600 mb-2">
+            Recent Deliveries
+          </h4>
+          <DeliveryLog subscriptionId={sub.id} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WebhooksTab() {
+  const { data: webhooks, isLoading } = useWebhooks();
+  const [showAdd, setShowAdd] = useState(false);
+
+  return (
+    <div className="max-w-3xl">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="font-semibold text-neutral-800">Webhook Endpoints</h2>
+          <p className="text-xs text-neutral-500 mt-0.5">
+            Receive real-time HTTP POST notifications when events occur in the
+            platform. Payloads are signed with HMAC-SHA256.
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setShowAdd(true)}>
+          <Plus className="h-4 w-4 mr-1.5" />
+          Add Webhook
+        </Button>
+      </div>
+
+      {/* Subscriptions list */}
+      {isLoading ? (
+        <div className="flex h-32 items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
+        </div>
+      ) : !webhooks || webhooks.length === 0 ? (
+        <EmptyState
+          icon={<Webhook className="h-8 w-8" />}
+          title="No webhook endpoints"
+          description="Add a webhook to receive real-time event notifications."
+        />
+      ) : (
+        <div className="space-y-3">
+          {webhooks.map((sub) => (
+            <WebhookRow key={sub.id} sub={sub} />
+          ))}
+        </div>
+      )}
+
+      {/* Events catalog */}
+      <div className="mt-8">
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="text-sm font-semibold text-neutral-900 mb-3">
+              Supported Event Types
+            </h3>
+            <div className="grid grid-cols-2 gap-1.5">
+              {WEBHOOK_EVENTS.map((event) => {
+                const [domain, name] = event.split(".");
+                return (
+                  <div
+                    key={event}
+                    className="flex items-start gap-2 rounded-lg bg-neutral-50 px-3 py-2"
+                  >
+                    <span className="font-mono text-xs text-neutral-700">
+                      <span className="text-primary-600">{domain}</span>
+                      <span className="text-neutral-400">.</span>
+                      {name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {showAdd && <AddWebhookForm onClose={() => setShowAdd(false)} />}
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -1245,6 +1655,10 @@ export default function SettingsPage() {
             <Palette className="h-4 w-4 mr-1.5" />
             Branding
           </TabsTrigger>
+          <TabsTrigger value="webhooks">
+            <Webhook className="h-4 w-4 mr-1.5" />
+            Webhooks
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="org">
@@ -1269,6 +1683,10 @@ export default function SettingsPage() {
 
         <TabsContent value="branding">
           <BrandingTab />
+        </TabsContent>
+
+        <TabsContent value="webhooks">
+          <WebhooksTab />
         </TabsContent>
       </Tabs>
     </div>

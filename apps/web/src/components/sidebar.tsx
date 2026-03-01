@@ -48,10 +48,12 @@ import {
   Network,
   Umbrella,
   Layers,
+  Lightbulb,
   PieChart,
   Rss,
   Construction,
   TrendingDown,
+  BarChart2,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -144,6 +146,7 @@ const investorNav: NavSection[] = [
       { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },
       { label: "Deal Flow Analytics", href: "/analytics/deal-flow", icon: TrendingUp },
       { label: "Portfolio Analytics", href: "/analytics/portfolio", icon: BarChart3 },
+      { label: "Score Performance", href: "/score-performance", icon: BarChart2 },
     ],
   },
   {
@@ -303,6 +306,7 @@ const adminNav: NavSection[] = [
       { label: "Impact", href: "/impact", icon: Target },
       { label: "Deal Flow Analytics", href: "/analytics/deal-flow", icon: TrendingUp },
       { label: "Portfolio Analytics", href: "/analytics/portfolio", icon: BarChart3 },
+      { label: "Score Performance", href: "/score-performance", icon: BarChart2 },
     ],
   },
   {
@@ -350,6 +354,7 @@ function getNavForRole(orgType?: string): NavSection[] {
 const PROJECT_SUB_ITEMS = [
   { label: "Signal Score", segment: "signal-score", icon: Sparkles },
   { label: "Due Diligence", segment: "due-diligence", icon: ScanSearch },
+  { label: "Expert Insights", segment: "expert-insights", icon: Lightbulb },
   { label: "Matching", segment: "matching", icon: Zap },
   { label: "Meeting Prep", segment: "meeting-prep", icon: Calendar },
   { label: "Certification", segment: "certification", icon: FileCheck },

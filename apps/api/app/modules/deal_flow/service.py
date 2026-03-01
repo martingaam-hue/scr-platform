@@ -30,6 +30,9 @@ DEAL_STAGES_ORDER = [
 ]
 
 
+_OUTCOME_STAGES = {"funded", "passed", "closed_lost"}
+
+
 async def record_transition(
     db: AsyncSession,
     org_id: uuid.UUID,
@@ -41,7 +44,7 @@ async def record_transition(
     user_id: uuid.UUID | None = None,
     metadata: dict | None = None,
 ) -> DealStageTransition:
-    """Append a stage transition event."""
+    """Append a stage transition event and auto-create a DealOutcome if terminal."""
     t = DealStageTransition(
         org_id=org_id,
         project_id=project_id,
@@ -54,7 +57,89 @@ async def record_transition(
     )
     db.add(t)
     await db.commit()
+
+    # Auto-capture outcome when deal reaches a terminal stage
+    if to_stage in _OUTCOME_STAGES:
+        await _auto_create_outcome(db, org_id, project_id, to_stage)
+
+    # Fire webhook for deal stage change
+    try:
+        from app.modules.webhooks.service import WebhookService
+        wh = WebhookService(db)
+        await wh.fire_event(
+            org_id,
+            "deal.stage_changed",
+            {
+                "project_id": str(project_id),
+                "from_stage": from_stage,
+                "to_stage": to_stage,
+                "reason": reason,
+            },
+        )
+    except Exception as _wh_exc:
+        import structlog as _sl
+        _sl.get_logger().warning(
+            "webhook_fire_deal_stage_failed", error=str(_wh_exc)
+        )
+
     return t
+
+
+async def _auto_create_outcome(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    project_id: uuid.UUID,
+    outcome_type: str,
+) -> None:
+    """Create a DealOutcome record if signal score data is available."""
+    try:
+        from app.models.projects import SignalScore
+        from app.models.backtesting import DealOutcome
+
+        stmt = (
+            select(SignalScore)
+            .where(SignalScore.project_id == project_id)
+            .order_by(SignalScore.version.desc())
+            .limit(1)
+        )
+        result = await db.execute(stmt)
+        latest_score = result.scalar_one_or_none()
+
+        score_at_decision = None
+        dimensions_snapshot = None
+        if latest_score is not None:
+            score_at_decision = latest_score.overall_score
+            # Snapshot dimension scores if available
+            scoring_details = latest_score.scoring_details or {}
+            if scoring_details:
+                dimensions_snapshot = {
+                    "project_viability_score": latest_score.project_viability_score,
+                    "financial_planning_score": latest_score.financial_planning_score,
+                    "risk_assessment_score": latest_score.risk_assessment_score,
+                    "team_strength_score": latest_score.team_strength_score,
+                    "esg_score": latest_score.esg_score,
+                    "overall_score": latest_score.overall_score,
+                }
+
+        outcome = DealOutcome(
+            org_id=org_id,
+            project_id=project_id,
+            outcome_type=outcome_type,
+            signal_score_at_decision=score_at_decision,
+            signal_dimensions_at_decision=dimensions_snapshot,
+        )
+        db.add(outcome)
+        await db.commit()
+    except Exception as exc:  # noqa: BLE001
+        # Never let auto-capture failures break the main flow
+        import structlog as _sl
+        _sl.get_logger().warning(
+            "deal_outcome_auto_capture_failed",
+            org_id=str(org_id),
+            project_id=str(project_id),
+            outcome_type=outcome_type,
+            error=str(exc),
+        )
 
 
 async def get_funnel(
