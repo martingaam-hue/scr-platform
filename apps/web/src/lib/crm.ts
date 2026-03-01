@@ -71,3 +71,47 @@ export function useSyncLogs(connectionId: string | undefined) {
     enabled: !!connectionId,
   });
 }
+
+// ── Salesforce types ───────────────────────────────────────────────────────
+
+export interface SalesforceSyncRequest {
+  project_ids: string[];
+}
+
+export interface SalesforceSyncResponse {
+  synced: number;
+  failed: number;
+}
+
+export interface SalesforceContact {
+  id: string | null;
+  name: string | null;
+  email: string | null;
+}
+
+// ── Salesforce hooks ───────────────────────────────────────────────────────
+
+export function useSalesforceSyncProjects(connectionId: string) {
+  const qc = useQueryClient();
+  return useMutation<SalesforceSyncResponse, Error, SalesforceSyncRequest>({
+    mutationFn: (body: SalesforceSyncRequest) =>
+      api
+        .post(`/crm/salesforce/sync?connection_id=${connectionId}`, body)
+        .then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm"] }),
+  });
+}
+
+export function useSalesforceContacts(
+  connectionId: string | undefined,
+  enabled = true
+) {
+  return useQuery<SalesforceContact[]>({
+    queryKey: ["crm", "salesforce", "contacts", connectionId],
+    queryFn: () =>
+      api
+        .get(`/crm/salesforce/contacts?connection_id=${connectionId}`)
+        .then((r) => r.data),
+    enabled: !!connectionId && enabled,
+  });
+}

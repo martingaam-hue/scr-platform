@@ -5,10 +5,11 @@ from __future__ import annotations
 import uuid
 
 import structlog
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_permission
 from app.core.database import get_db
 from app.modules.deal_flow import service
 from app.modules.deal_flow.schemas import (
@@ -98,3 +99,49 @@ async def get_velocity(
         org_id=current_user.org_id,
         investor_id=investor_id,
     )
+
+
+# ── Bulk Operations ─────────────────────────────────────────────────────────
+
+
+class BulkStageRequest(BaseModel):
+    deal_ids: list[uuid.UUID]
+    stage: str
+
+
+@router.post(
+    "/bulk/stage",
+    dependencies=[Depends(require_permission("write", "projects"))],
+)
+async def bulk_update_stage(
+    req: BulkStageRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Move multiple deals to the same stage in one request.
+
+    Calls ``record_transition`` for each deal ID. Failed transitions
+    (e.g. project not found) are collected and returned in ``failed``.
+    Maximum 100 deals per request.
+    """
+    if len(req.deal_ids) > 100:
+        raise HTTPException(status_code=400, detail="Max 100 items per bulk request")
+
+    updated = 0
+    failed: list[str] = []
+
+    for deal_id in req.deal_ids:
+        try:
+            await service.record_transition(
+                db,
+                org_id=current_user.org_id,
+                project_id=deal_id,
+                to_stage=req.stage,
+                user_id=current_user.user_id,
+            )
+            updated += 1
+        except Exception as exc:
+            logger.warning("bulk_stage.deal_failed", deal_id=str(deal_id), error=str(exc))
+            failed.append(str(deal_id))
+
+    return {"updated": updated, "failed": failed}

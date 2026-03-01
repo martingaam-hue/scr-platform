@@ -38,6 +38,8 @@ import {
   useDisconnectCRM,
   useTriggerSync,
   useSyncLogs,
+  useSalesforceSyncProjects,
+  useSalesforceContacts,
 } from "@/lib/crm";
 import { useBranding, useUpdateBranding } from "@/lib/branding";
 import {
@@ -929,57 +931,66 @@ function DigestPreviewCard() {
 
 // ── CRM Tab ───────────────────────────────────────────────────────────────
 
-function CRMTab() {
-  const { data: connections, isLoading } = useCRMConnections();
-  const oauthURL = useCRMOAuthURL("hubspot");
-  const disconnect = useDisconnectCRM();
-  const triggerSync = useTriggerSync();
-  const active = connections?.find((c) => c.is_active);
-  const { data: logs } = useSyncLogs(active?.id);
-
-  if (isLoading) {
-    return (
-      <div className="flex h-24 items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
-      </div>
-    );
-  }
+function CRMProviderCard({
+  label,
+  provider,
+  oauthURL,
+  active,
+  disconnect,
+  triggerSync,
+  logs,
+  sfSyncProjects,
+  sfContacts,
+}: {
+  label: string;
+  provider: string;
+  oauthURL: { data?: { url: string }; isLoading: boolean };
+  active?: { id: string; provider: string; sync_direction: string; last_synced_at: string | null; connection_name: string } | null;
+  disconnect: ReturnType<typeof useDisconnectCRM>;
+  triggerSync: ReturnType<typeof useTriggerSync>;
+  logs?: ReturnType<typeof useSyncLogs>["data"];
+  sfSyncProjects?: ReturnType<typeof useSalesforceSyncProjects>;
+  sfContacts?: ReturnType<typeof useSalesforceContacts>["data"];
+}) {
+  const isSalesforce = provider === "salesforce";
 
   if (!active) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <EmptyState
-            icon={<Shield className="h-10 w-10 text-neutral-400" />}
-            title="No CRM connected"
-            description="Connect HubSpot to sync your pipeline and contacts bidirectionally."
-            action={
-              <Button
-                onClick={() => {
-                  if (oauthURL.data?.url) window.location.href = oauthURL.data.url;
-                }}
-                disabled={oauthURL.isLoading}
-              >
-                {oauthURL.isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                Connect HubSpot
-              </Button>
-            }
-          />
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-neutral-900">{label}</p>
+              <p className="text-xs text-neutral-500">Not connected</p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (oauthURL.data?.url) window.location.href = oauthURL.data.url;
+              }}
+              disabled={oauthURL.isLoading}
+            >
+              {oauthURL.isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Connect {label}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card>
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-neutral-900">{active.connection_name}</p>
-              <p className="text-xs text-neutral-500 capitalize">{active.provider} · {active.sync_direction}</p>
+              <p className="text-xs text-neutral-500 capitalize">
+                {active.provider} · {active.sync_direction}
+              </p>
               {active.last_synced_at && (
                 <p className="text-xs text-neutral-400">
                   Last synced: {new Date(active.last_synced_at).toLocaleString()}
@@ -987,17 +998,19 @@ function CRMTab() {
               )}
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => triggerSync.mutate(active.id)}
-                disabled={triggerSync.isPending}
-              >
-                {triggerSync.isPending ? (
-                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                ) : null}
-                Sync Now
-              </Button>
+              {!isSalesforce && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => triggerSync.mutate(active.id)}
+                  disabled={triggerSync.isPending}
+                >
+                  {triggerSync.isPending ? (
+                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  Sync Now
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -1010,6 +1023,34 @@ function CRMTab() {
           </div>
         </CardContent>
       </Card>
+
+      {isSalesforce && sfContacts && sfContacts.length > 0 && (
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="mb-3 text-sm font-semibold text-neutral-900">
+              Salesforce Contacts ({sfContacts.length})
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-neutral-500">
+                    <th className="py-2 pr-4 font-medium">Name</th>
+                    <th className="py-2 font-medium">Email</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sfContacts.slice(0, 10).map((c) => (
+                    <tr key={c.id ?? c.email ?? c.name} className="border-b last:border-0">
+                      <td className="py-2 pr-4 text-neutral-700">{c.name ?? "—"}</td>
+                      <td className="py-2 text-neutral-700">{c.email ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {logs && logs.length > 0 && (
         <Card>
@@ -1033,7 +1074,15 @@ function CRMTab() {
                       <td className="py-2 pr-4 text-neutral-700">{log.entity_type}</td>
                       <td className="py-2 pr-4 text-neutral-700">{log.action}</td>
                       <td className="py-2 pr-4">
-                        <Badge variant={log.status === "success" ? "success" : log.status === "failed" ? "error" : "neutral"}>
+                        <Badge
+                          variant={
+                            log.status === "success"
+                              ? "success"
+                              : log.status === "failed"
+                              ? "error"
+                              : "neutral"
+                          }
+                        >
                           {log.status}
                         </Badge>
                       </td>
@@ -1048,6 +1097,77 @@ function CRMTab() {
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function CRMTab() {
+  const { data: connections, isLoading } = useCRMConnections();
+  const hubspotOAuthURL = useCRMOAuthURL("hubspot");
+  const salesforceOAuthURL = useCRMOAuthURL("salesforce");
+  const disconnect = useDisconnectCRM();
+  const triggerSync = useTriggerSync();
+
+  const activeHubspot = connections?.find((c) => c.is_active && c.provider === "hubspot");
+  const activeSalesforce = connections?.find((c) => c.is_active && c.provider === "salesforce");
+
+  const { data: hubspotLogs } = useSyncLogs(activeHubspot?.id);
+  const { data: salesforceLogs } = useSyncLogs(activeSalesforce?.id);
+
+  const sfSyncProjects = useSalesforceSyncProjects(activeSalesforce?.id ?? "");
+  const { data: sfContacts } = useSalesforceContacts(activeSalesforce?.id, !!activeSalesforce);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-24 items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
+      </div>
+    );
+  }
+
+  const hasAny = activeHubspot || activeSalesforce;
+
+  return (
+    <div className="space-y-8">
+      {!hasAny && (
+        <Card>
+          <CardContent className="p-6">
+            <EmptyState
+              icon={<Shield className="h-10 w-10 text-neutral-400" />}
+              title="No CRM connected"
+              description="Connect HubSpot or Salesforce to sync your pipeline and contacts bidirectionally."
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-neutral-700">HubSpot</h3>
+        <CRMProviderCard
+          label="HubSpot"
+          provider="hubspot"
+          oauthURL={hubspotOAuthURL}
+          active={activeHubspot}
+          disconnect={disconnect}
+          triggerSync={triggerSync}
+          logs={hubspotLogs}
+        />
+      </div>
+
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-neutral-700">Salesforce</h3>
+        <CRMProviderCard
+          label="Salesforce"
+          provider="salesforce"
+          oauthURL={salesforceOAuthURL}
+          active={activeSalesforce}
+          disconnect={disconnect}
+          triggerSync={triggerSync}
+          logs={salesforceLogs}
+          sfSyncProjects={sfSyncProjects}
+          sfContacts={sfContacts}
+        />
+      </div>
     </div>
   );
 }

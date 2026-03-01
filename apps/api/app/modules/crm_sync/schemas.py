@@ -43,3 +43,18 @@ class TestConnectionResponse(BaseModel):
     success: bool
     message: str
     portal_id: str | None = None
+
+
+class SalesforceSyncRequest(BaseModel):
+    project_ids: list[uuid.UUID]
+
+
+class SalesforceSyncResponse(BaseModel):
+    synced: int
+    failed: int
+
+
+class SalesforceContactResponse(BaseModel):
+    id: str | None = None
+    name: str | None = None
+    email: str | None = None

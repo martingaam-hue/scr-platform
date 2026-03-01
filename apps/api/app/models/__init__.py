@@ -223,6 +223,12 @@ from app.models.document_annotations import DocumentAnnotation
 # AI Document Redaction
 from app.models.redaction import RedactionJob
 
+# External Market Data
+from app.models.external_data import ExternalDataPoint
+
+# Launch Preparation (E04)
+from app.models.launch import FeatureFlag, FeatureFlagOverride, UsageEvent, WaitlistEntry
+
 __all__ = [
     # Base
     "BaseModel",
@@ -375,4 +381,11 @@ __all__ = [
     "DocumentAnnotation",
     # AI Document Redaction
     "RedactionJob",
+    # External Market Data
+    "ExternalDataPoint",
+    # Launch Preparation (E04)
+    "FeatureFlag",
+    "FeatureFlagOverride",
+    "UsageEvent",
+    "WaitlistEntry",
 ]

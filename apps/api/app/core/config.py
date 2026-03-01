@@ -67,5 +67,14 @@ class Settings(BaseSettings):
     AWS_S3_ENDPOINT_URL: str = "http://localhost:9000"
     AWS_S3_REGION: str = "us-east-1"
 
+    # Salesforce OAuth
+    SALESFORCE_CLIENT_ID: str = ""
+    SALESFORCE_CLIENT_SECRET: str = ""
+    SALESFORCE_REDIRECT_URI: str = ""
+
+    # External Market Data
+    FRED_API_KEY: str = ""            # St. Louis Fed FRED — https://fred.stlouisfed.org/docs/api/api_key.html
+    ALPHA_VANTAGE_API_KEY: str = ""   # Alpha Vantage (optional)
+
 
 settings = Settings()

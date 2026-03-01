@@ -13,6 +13,9 @@ from app.core.database import get_db
 from app.modules.crm_sync.schemas import (
     CRMConnectionResponse,
     FieldMappingUpdate,
+    SalesforceContactResponse,
+    SalesforceSyncRequest,
+    SalesforceSyncResponse,
     SyncLogResponse,
     TestConnectionResponse,
 )
@@ -175,3 +178,61 @@ async def test_connection(
     except LookupError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     return TestConnectionResponse(**result)
+
+
+@router.post(
+    "/salesforce/sync",
+    response_model=SalesforceSyncResponse,
+    summary="Sync SCR projects to Salesforce Opportunities",
+)
+async def salesforce_sync(
+    body: SalesforceSyncRequest,
+    connection_id: uuid.UUID = Query(..., description="Active Salesforce CRM connection ID"),
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SalesforceSyncResponse:
+    """Push the requested SCR projects to Salesforce as Opportunities.
+
+    Requires an active Salesforce CRM connection ID passed as a query parameter.
+    """
+    svc = CRMSyncService(db, current_user.org_id)
+    try:
+        result = await svc.sync_salesforce(connection_id, body.project_ids)
+        await db.commit()
+    except (LookupError, ValueError) as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        await db.rollback()
+        logger.error("salesforce_sync_error", connection_id=str(connection_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Salesforce sync failed",
+        )
+    return SalesforceSyncResponse(**result)
+
+
+@router.get(
+    "/salesforce/contacts",
+    response_model=list[SalesforceContactResponse],
+    summary="List contacts pulled from Salesforce",
+)
+async def salesforce_contacts(
+    connection_id: uuid.UUID = Query(..., description="Active Salesforce CRM connection ID"),
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[SalesforceContactResponse]:
+    """Fetch and return Salesforce contacts via SOQL (SELECT Id, Name, Email FROM Contact)."""
+    svc = CRMSyncService(db, current_user.org_id)
+    try:
+        contacts = await svc.pull_salesforce_contacts(connection_id)
+        await db.commit()
+    except (LookupError, ValueError) as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        await db.rollback()
+        logger.error("salesforce_contacts_error", connection_id=str(connection_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch Salesforce contacts",
+        )
+    return [SalesforceContactResponse(**c) for c in contacts]

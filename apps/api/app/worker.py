@@ -35,6 +35,7 @@ celery_app = Celery(
         "app.modules.expert_insights.tasks",
         "app.modules.webhooks.tasks",
         "app.modules.redaction.tasks",
+        "app.modules.market_data.tasks",
     ],
 )
 
@@ -145,5 +146,10 @@ celery_app.conf.beat_schedule = {
     "retry-pending-webhooks": {
         "task": "tasks.retry_pending_webhooks",
         "schedule": crontab(minute="*/5"),  # every 5 minutes
+    },
+    # ── Public market data (FRED + World Bank) ────────────────────────────────
+    "fetch-market-data": {
+        "task": "tasks.fetch_market_data",
+        "schedule": crontab(hour=6, minute=30),  # 6:30am UTC daily (after FRED updates)
     },
 }

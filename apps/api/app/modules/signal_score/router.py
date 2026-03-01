@@ -7,6 +7,7 @@ from typing import Optional
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
@@ -495,3 +496,57 @@ async def get_dimension_history(
         raise HTTPException(status_code=404, detail=str(exc))
     explainer = ScoreExplainability(db)
     return await explainer.get_dimension_history(project_id, from_date, to_date)
+
+
+# ── Bulk Operations ─────────────────────────────────────────────────────────
+
+
+class BulkScoreRequest(BaseModel):
+    project_ids: list[uuid.UUID]
+
+
+@router.post(
+    "/bulk/compute",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def bulk_compute_scores(
+    req: BulkScoreRequest,
+    current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Enqueue signal score computation for multiple projects at once.
+
+    Dispatches a Celery task for each project ID.  Projects that cannot be
+    found or fail to queue are reported in ``failed``.
+    Maximum 100 projects per request.
+    """
+    if len(req.project_ids) > 100:
+        raise HTTPException(status_code=400, detail="Max 100 items per bulk request")
+
+    queued = 0
+    failed: list[str] = []
+
+    for project_id in req.project_ids:
+        try:
+            task_log = await service.trigger_calculation(
+                db, project_id, current_user.org_id, current_user.user_id
+            )
+            await db.flush()
+            queued += 1
+        except LookupError as exc:
+            logger.warning("bulk_compute.project_not_found", project_id=str(project_id), error=str(exc))
+            failed.append(str(project_id))
+        except Exception as exc:
+            logger.warning("bulk_compute.project_failed", project_id=str(project_id), error=str(exc))
+            failed.append(str(project_id))
+
+    if queued:
+        await db.commit()
+
+    logger.info(
+        "bulk_compute_queued",
+        org_id=str(current_user.org_id),
+        queued=queued,
+        failed=len(failed),
+    )
+    return {"queued": queued, "failed": failed}

@@ -6,6 +6,7 @@ import uuid
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_permission
@@ -183,3 +184,60 @@ async def delete_alert(
     db: AsyncSession = Depends(get_db),
 ):
     await service.delete_alert(db, alert_id, current_user.user_id)
+
+
+# ── Bulk Operations ─────────────────────────────────────────────────────────
+
+
+class BulkWatchlistRequest(BaseModel):
+    project_ids: list[uuid.UUID]
+    watchlist_id: uuid.UUID
+
+
+@router.post(
+    "/bulk/add",
+    dependencies=[Depends(require_permission("view", "project"))],
+)
+async def bulk_add_to_watchlist(
+    req: BulkWatchlistRequest,
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Add multiple projects to a watchlist's tracked project list.
+
+    Project IDs are stored in the watchlist's ``criteria.project_ids`` JSONB
+    array.  Duplicates are silently skipped.
+    Maximum 100 projects per request.
+    """
+    if len(req.project_ids) > 100:
+        raise HTTPException(status_code=400, detail="Max 100 items per bulk request")
+
+    wl = await service.get_watchlist(db, req.watchlist_id, current_user.user_id)
+    if not wl:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+
+    criteria = dict(wl.criteria or {})
+    existing_ids: set[str] = set(criteria.get("project_ids", []))
+
+    added = 0
+    skipped = 0
+    for project_id in req.project_ids:
+        pid_str = str(project_id)
+        if pid_str in existing_ids:
+            skipped += 1
+        else:
+            existing_ids.add(pid_str)
+            added += 1
+
+    if added:
+        criteria["project_ids"] = list(existing_ids)
+        update_body = WatchlistUpdate(criteria=criteria)
+        await service.update_watchlist(db, wl, update_body)
+
+    logger.info(
+        "bulk_watchlist_add",
+        watchlist_id=str(req.watchlist_id),
+        added=added,
+        skipped=skipped,
+    )
+    return {"added": added, "skipped": skipped}

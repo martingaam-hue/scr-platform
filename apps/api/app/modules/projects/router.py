@@ -5,11 +5,15 @@ from math import ceil
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
 from app.core.database import get_db
+from app.middleware.tenant import tenant_filter
 from app.models.enums import ProjectStage, ProjectStatus, ProjectType
+from app.models.projects import Project
 from app.modules.projects import service
 from app.modules.projects.schemas import (
     BudgetItemCreateRequest,
@@ -504,6 +508,75 @@ async def delete_budget_item(
         await service.delete_budget_item(db, budget_id, project_id, current_user.org_id)
     except LookupError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+# ── Bulk Operations ─────────────────────────────────────────────────────────
+
+
+class BulkTagRequest(BaseModel):
+    project_ids: list[uuid.UUID]
+    tags: list[str]
+    operation: str = "add"  # "add" | "remove" | "replace"
+
+
+@router.post(
+    "/bulk/tag",
+    dependencies=[Depends(require_permission("write", "projects"))],
+)
+async def bulk_tag_projects(
+    req: BulkTagRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Add, remove, or replace tags on multiple projects at once.
+
+    Tags are stored in the ``technology_details`` JSONB column under the
+    ``_tags`` key so they coexist with any existing technology metadata.
+    Maximum 100 projects per request.
+    """
+    if len(req.project_ids) > 100:
+        raise HTTPException(status_code=400, detail="Max 100 items per bulk request")
+    if req.operation not in ("add", "remove", "replace"):
+        raise HTTPException(status_code=400, detail="operation must be 'add', 'remove', or 'replace'")
+
+    updated = 0
+    failed: list[str] = []
+
+    for project_id in req.project_ids:
+        try:
+            stmt = select(Project).where(
+                Project.id == project_id,
+                Project.is_deleted.is_(False),
+            )
+            stmt = tenant_filter(stmt, current_user.org_id, Project)
+            result = await db.execute(stmt)
+            project = result.scalar_one_or_none()
+            if not project:
+                failed.append(str(project_id))
+                continue
+
+            tech = dict(project.technology_details or {})
+            existing: list[str] = tech.get("_tags", [])
+
+            if req.operation == "add":
+                merged = list(dict.fromkeys(existing + req.tags))  # deduplicate, preserve order
+                tech["_tags"] = merged
+            elif req.operation == "remove":
+                tech["_tags"] = [t for t in existing if t not in req.tags]
+            else:  # replace
+                tech["_tags"] = list(req.tags)
+
+            project.technology_details = tech
+            db.add(project)
+            updated += 1
+        except Exception as exc:
+            logger.warning("bulk_tag.project_failed", project_id=str(project_id), error=str(exc))
+            failed.append(str(project_id))
+
+    if updated:
+        await db.commit()
+
+    return {"updated": updated, "failed": failed}
 
 
 # ── Business Plan AI ─────────────────────────────────────────────────────────

@@ -2,8 +2,9 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
 import structlog
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 
 from app.core.config import settings
 from app.middleware.security import (
@@ -88,6 +89,8 @@ from app.modules.expert_insights.router import router as expert_insights_router
 from app.modules.webhooks.router import router as webhooks_router
 from app.modules.document_annotations.router import router as document_annotations_router
 from app.modules.redaction.router import router as redaction_router
+from app.modules.market_data.router import router as market_data_router
+from app.modules.launch.router import router as launch_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -97,6 +100,17 @@ logger = structlog.get_logger()
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     logger.info("Starting SCR API", env=settings.APP_ENV)
     await setup_indices()
+
+    # Seed default feature flags
+    from app.core.database import async_session_factory
+    from app.modules.launch.service import seed_default_flags
+
+    async with async_session_factory() as db:
+        try:
+            await seed_default_flags(db)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("feature_flag_seed_failed", error=str(exc))
+
     yield
     logger.info("Shutting down SCR API")
     await close_es_client()
@@ -140,81 +154,102 @@ app.add_middleware(
     is_production=_is_prod,
 )
 
-# Routers
-app.include_router(auth_router)
-app.include_router(dataroom_router)
-app.include_router(projects_router)
-app.include_router(portfolio_router)
-app.include_router(onboarding_router)
-app.include_router(reporting_router)
-app.include_router(collaboration_router)
-app.include_router(notifications_router)
-app.include_router(signal_score_router)
-app.include_router(deal_intelligence_router)
-app.include_router(risk_router)
-app.include_router(matching_router)
-app.include_router(settings_router)
-app.include_router(impact_router)
-app.include_router(valuation_router)
-app.include_router(marketplace_router)
-app.include_router(tax_credits_router)
-app.include_router(legal_router)
-app.include_router(carbon_credits_router)
-app.include_router(board_advisor_router)
-app.include_router(investor_personas_router)
-app.include_router(equity_calculator_router)
-app.include_router(capital_efficiency_router)
-app.include_router(investor_signal_score_router)
-app.include_router(value_quantifier_router)
-app.include_router(tokenization_router)
-app.include_router(development_os_router)
-app.include_router(ecosystem_router)
-app.include_router(ralph_ai_router)
-app.include_router(admin_router)
-app.include_router(admin_prompts_router)
-app.include_router(search_router)
-app.include_router(ai_feedback_router)
-app.include_router(smart_screener_router)
-app.include_router(risk_profile_router)
-app.include_router(certification_router)
-app.include_router(deal_flow_router)
-app.include_router(due_diligence_router)
-app.include_router(esg_router)
-app.include_router(lp_reporting_router)
-app.include_router(comps_router)
-app.include_router(warm_intros_router)
-app.include_router(doc_versions_router)
-app.include_router(fx_router)
-app.include_router(meeting_prep_router)
-app.include_router(compliance_router)
-app.include_router(stress_test_router)
-app.include_router(connectors_router)
-app.include_router(deal_rooms_router)
-app.include_router(watchlists_router)
-app.include_router(blockchain_audit_router)
-app.include_router(voice_input_router)
-app.include_router(gamification_router)
-app.include_router(insurance_router)
-app.include_router(digest_router)
-app.include_router(metrics_router)
-app.include_router(citations_router)
-app.include_router(lineage_router)
-app.include_router(qa_workflow_router)
-app.include_router(engagement_router)
-app.include_router(monitoring_router)
-app.include_router(excel_api_router)
-app.include_router(crm_sync_router)
-app.include_router(pacing_router)
-app.include_router(taxonomy_router)
-app.include_router(financial_templates_router)
-app.include_router(business_plans_router)
-app.include_router(backtesting_router)
-app.include_router(expert_insights_router)
-app.include_router(webhooks_router)
-app.include_router(document_annotations_router)
-app.include_router(redaction_router)
+
+# ── X-API-Version response header ────────────────────────────────────────────
+
+
+@app.middleware("http")
+async def add_version_header(request: Request, call_next) -> Response:
+    response = await call_next(request)
+    response.headers["X-API-Version"] = "v1"
+    return response
+
+
+# ── Health check (root-level, not under /v1) ─────────────────────────────────
 
 
 @app.get("/health")
 async def health_check() -> dict[str, str]:
     return {"status": "healthy", "service": "scr-api"}
+
+
+# ── /v1 versioned router ──────────────────────────────────────────────────────
+
+api_v1 = APIRouter(prefix="/v1")
+
+api_v1.include_router(auth_router)
+api_v1.include_router(dataroom_router)
+api_v1.include_router(projects_router)
+api_v1.include_router(portfolio_router)
+api_v1.include_router(onboarding_router)
+api_v1.include_router(reporting_router)
+api_v1.include_router(collaboration_router)
+api_v1.include_router(notifications_router)
+api_v1.include_router(signal_score_router)
+api_v1.include_router(deal_intelligence_router)
+api_v1.include_router(risk_router)
+api_v1.include_router(matching_router)
+api_v1.include_router(settings_router)
+api_v1.include_router(impact_router)
+api_v1.include_router(valuation_router)
+api_v1.include_router(marketplace_router)
+api_v1.include_router(tax_credits_router)
+api_v1.include_router(legal_router)
+api_v1.include_router(carbon_credits_router)
+api_v1.include_router(board_advisor_router)
+api_v1.include_router(investor_personas_router)
+api_v1.include_router(equity_calculator_router)
+api_v1.include_router(capital_efficiency_router)
+api_v1.include_router(investor_signal_score_router)
+api_v1.include_router(value_quantifier_router)
+api_v1.include_router(tokenization_router)
+api_v1.include_router(development_os_router)
+api_v1.include_router(ecosystem_router)
+api_v1.include_router(ralph_ai_router)
+api_v1.include_router(admin_router)
+api_v1.include_router(admin_prompts_router)
+api_v1.include_router(search_router)
+api_v1.include_router(ai_feedback_router)
+api_v1.include_router(smart_screener_router)
+api_v1.include_router(risk_profile_router)
+api_v1.include_router(certification_router)
+api_v1.include_router(deal_flow_router)
+api_v1.include_router(due_diligence_router)
+api_v1.include_router(esg_router)
+api_v1.include_router(lp_reporting_router)
+api_v1.include_router(comps_router)
+api_v1.include_router(warm_intros_router)
+api_v1.include_router(doc_versions_router)
+api_v1.include_router(fx_router)
+api_v1.include_router(meeting_prep_router)
+api_v1.include_router(compliance_router)
+api_v1.include_router(stress_test_router)
+api_v1.include_router(connectors_router)
+api_v1.include_router(deal_rooms_router)
+api_v1.include_router(watchlists_router)
+api_v1.include_router(blockchain_audit_router)
+api_v1.include_router(voice_input_router)
+api_v1.include_router(gamification_router)
+api_v1.include_router(insurance_router)
+api_v1.include_router(digest_router)
+api_v1.include_router(metrics_router)
+api_v1.include_router(citations_router)
+api_v1.include_router(lineage_router)
+api_v1.include_router(qa_workflow_router)
+api_v1.include_router(engagement_router)
+api_v1.include_router(monitoring_router)
+api_v1.include_router(excel_api_router)
+api_v1.include_router(crm_sync_router)
+api_v1.include_router(pacing_router)
+api_v1.include_router(taxonomy_router)
+api_v1.include_router(financial_templates_router)
+api_v1.include_router(business_plans_router)
+api_v1.include_router(backtesting_router)
+api_v1.include_router(expert_insights_router)
+api_v1.include_router(webhooks_router)
+api_v1.include_router(document_annotations_router)
+api_v1.include_router(redaction_router)
+api_v1.include_router(market_data_router)
+api_v1.include_router(launch_router)
+
+app.include_router(api_v1)

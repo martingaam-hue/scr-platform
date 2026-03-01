@@ -31,37 +31,70 @@ class CRMSyncService:
                 f"&scope=crm.objects.deals.read+crm.objects.deals.write"
                 f"&state={str(self.org_id)}"
             )
+        elif provider == "salesforce":
+            from app.modules.crm_sync.salesforce_service import SalesforceService
+
+            # SalesforceService.get_oauth_url is a standalone helper; we build a
+            # temporary stub connection so we can reuse the class method.
+            stub_conn = type("_Stub", (), {"instance_url": None, "org_id": self.org_id})()
+            svc = SalesforceService(self.db, stub_conn)  # type: ignore[arg-type]
+            return await svc.get_oauth_url(self.org_id)
         raise ValueError(f"Unsupported provider: {provider}")
 
     async def handle_oauth_callback(self, provider: str, code: str) -> CRMConnection:
         """Exchange OAuth2 code for tokens and create CRMConnection."""
-        if provider != "hubspot":
-            raise ValueError("Only hubspot supported")
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                "https://api.hubapi.com/oauth/v1/token",
-                data={
-                    "grant_type": "authorization_code",
-                    "client_id": getattr(settings, "HUBSPOT_CLIENT_ID", ""),
-                    "client_secret": getattr(settings, "HUBSPOT_CLIENT_SECRET", ""),
-                    "redirect_uri": getattr(settings, "HUBSPOT_REDIRECT_URI", ""),
-                    "code": code,
-                },
+        if provider == "hubspot":
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    "https://api.hubapi.com/oauth/v1/token",
+                    data={
+                        "grant_type": "authorization_code",
+                        "client_id": getattr(settings, "HUBSPOT_CLIENT_ID", ""),
+                        "client_secret": getattr(settings, "HUBSPOT_CLIENT_SECRET", ""),
+                        "redirect_uri": getattr(settings, "HUBSPOT_REDIRECT_URI", ""),
+                        "code": code,
+                    },
+                )
+            tokens = resp.json()
+            conn = CRMConnection(
+                org_id=self.org_id,
+                provider=provider,
+                access_token=tokens.get("access_token", ""),
+                refresh_token=tokens.get("refresh_token"),
+                token_expires_at=datetime.now(timezone.utc)
+                + timedelta(seconds=tokens.get("expires_in", 3600)),
+                portal_id=str(tokens.get("hub_id", "")),
             )
-        tokens = resp.json()
-        conn = CRMConnection(
-            org_id=self.org_id,
-            provider=provider,
-            access_token=tokens.get("access_token", ""),
-            refresh_token=tokens.get("refresh_token"),
-            token_expires_at=datetime.now(timezone.utc)
-            + timedelta(seconds=tokens.get("expires_in", 3600)),
-            portal_id=str(tokens.get("hub_id", "")),
-        )
-        self.db.add(conn)
-        await self.db.flush()
-        await self.db.refresh(conn)
-        return conn
+            self.db.add(conn)
+            await self.db.flush()
+            await self.db.refresh(conn)
+            return conn
+        elif provider == "salesforce":
+            from app.modules.crm_sync.salesforce_service import SalesforceService
+
+            # Stub connection used only to call exchange_code (no DB access needed)
+            stub_conn = type("_Stub", (), {
+                "instance_url": None,
+                "org_id": self.org_id,
+                "access_token": "",
+                "refresh_token": None,
+            })()
+            svc = SalesforceService(self.db, stub_conn)  # type: ignore[arg-type]
+            tokens = await svc.exchange_code(code)
+            conn = CRMConnection(
+                org_id=self.org_id,
+                provider=provider,
+                access_token=tokens.get("access_token", ""),
+                refresh_token=tokens.get("refresh_token"),
+                token_expires_at=datetime.now(timezone.utc)
+                + timedelta(seconds=tokens.get("expires_in", 7200)),
+                instance_url=tokens.get("instance_url"),
+            )
+            self.db.add(conn)
+            await self.db.flush()
+            await self.db.refresh(conn)
+            return conn
+        raise ValueError(f"Unsupported provider: {provider}")
 
     async def list_connections(self) -> list[CRMConnection]:
         result = await self.db.execute(
@@ -143,6 +176,36 @@ class CRMSyncService:
 
         svc = HubSpotService(self.db, conn)
         return await svc.test_connection()
+
+    async def sync_salesforce(
+        self,
+        connection_id: uuid.UUID,
+        project_ids: list[uuid.UUID],
+    ) -> dict:
+        """Trigger Salesforce deal sync for the specified projects.
+
+        Returns {"synced": N, "failed": M}.
+        """
+        conn = await self._get_conn(connection_id)
+        if conn.provider != "salesforce":
+            raise ValueError("Connection is not a Salesforce connection")
+        from app.modules.crm_sync.salesforce_service import SalesforceService
+
+        svc = SalesforceService(self.db, conn)
+        result = await svc.sync_projects_to_deals(project_ids)
+        conn.last_sync_at = datetime.now(timezone.utc)
+        await self.db.flush()
+        return result
+
+    async def pull_salesforce_contacts(self, connection_id: uuid.UUID) -> list[dict]:
+        """Pull contacts from the Salesforce connection."""
+        conn = await self._get_conn(connection_id)
+        if conn.provider != "salesforce":
+            raise ValueError("Connection is not a Salesforce connection")
+        from app.modules.crm_sync.salesforce_service import SalesforceService
+
+        svc = SalesforceService(self.db, conn)
+        return await svc.pull_contacts()
 
     async def _get_conn(self, connection_id: uuid.UUID) -> CRMConnection:
         result = await self.db.execute(
