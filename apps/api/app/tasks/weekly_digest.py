@@ -11,6 +11,14 @@ from celery import shared_task
 
 logger = structlog.get_logger()
 
+# ── helpers ──────────────────────────────────────────────────────────────────
+
+
+def _build_subject(org_name: str, since: datetime) -> str:
+    """Build the email subject line used for both email and log."""
+    week_str = since.strftime("%-d %b %Y")
+    return f"Your SCR Platform Weekly Digest — {org_name} (w/c {week_str})"
+
 
 @shared_task(name="tasks.send_weekly_digests", bind=True, max_retries=3)
 def send_weekly_digests(self) -> dict:
@@ -26,6 +34,7 @@ async def _async_send_digests() -> dict:
     from app.modules.digest import service as digest_service
 
     since = datetime.utcnow() - timedelta(days=7)
+    now = datetime.utcnow()
     sent = 0
     failed = 0
 
@@ -50,10 +59,25 @@ async def _async_send_digests() -> dict:
                     db, user.org_id, user.id, since
                 )
                 summary = await digest_service.generate_digest_summary(activity, org_name)
+                subject = _build_subject(org_name, since)
                 await _send_digest_email(user.email, user.full_name, org_name, activity, summary)
+                # Record in digest_logs so history endpoint has real data
+                await digest_service.log_digest_sent(
+                    db=db,
+                    org_id=user.org_id,
+                    user_id=user.id,
+                    digest_type="weekly",
+                    period_start=since.date(),
+                    period_end=now.date(),
+                    subject=subject,
+                    narrative=summary,
+                    data_snapshot=activity,
+                )
+                await db.commit()
                 sent += 1
             except Exception as e:
                 logger.warning("digest_send_failed", user_id=str(user.id), error=str(e))
+                await db.rollback()
                 failed += 1
 
     logger.info("weekly_digest_complete", sent=sent, failed=failed)
@@ -96,11 +120,12 @@ async def _send_digest_email(
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
     )
+    since_dt = datetime.utcnow() - timedelta(days=7)
     ses.send_email(
         Source=settings.EMAIL_FROM,
         Destination={"ToAddresses": [email]},
         Message={
-            "Subject": {"Data": f"Your SCR Platform Weekly Digest — {org_name}"},
+            "Subject": {"Data": _build_subject(org_name, since_dt)},
             "Body": {"Html": {"Data": html_body}},
         },
     )

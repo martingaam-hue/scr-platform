@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import {
   Building2,
   Copy,
+  Globe,
   Key,
   Loader2,
   Mail,
@@ -43,10 +44,19 @@ import {
 } from "@/lib/crm";
 import { useBranding, useUpdateBranding } from "@/lib/branding";
 import {
+  useCustomDomain,
+  useSetDomain,
+  useVerifyDomain,
+  useDeleteDomain,
+  type CustomDomainRecord,
+} from "@/lib/custom-domain";
+import {
   Badge,
   Button,
   Card,
   CardContent,
+  CardHeader,
+  CardTitle,
   DataTable,
   EmptyState,
   Tabs,
@@ -1739,6 +1749,239 @@ function WebhooksTab() {
   );
 }
 
+// ── Custom Domain Tab ─────────────────────────────────────────────────────
+
+type DomainStatus = CustomDomainRecord["status"];
+
+function domainStatusVariant(s: DomainStatus): "neutral" | "info" | "success" | "error" {
+  switch (s) {
+    case "pending": return "neutral";
+    case "verifying": return "info";
+    case "verified":
+    case "active": return "success";
+    case "failed": return "error";
+    default: return "neutral";
+  }
+}
+
+function domainStatusLabel(s: DomainStatus): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function CopyInline({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        });
+      }}
+      className="ml-1.5 inline-flex items-center text-neutral-400 hover:text-neutral-600"
+      title="Copy"
+    >
+      {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+    </button>
+  );
+}
+
+function CustomDomainTab() {
+  const { data: record, isLoading } = useCustomDomain();
+  const setDomainMutation = useSetDomain();
+  const verifyMutation = useVerifyDomain();
+  const deleteMutation = useDeleteDomain();
+  const [domain, setDomain] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  // No domain configured
+  if (!record) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Configure Custom Domain</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm text-neutral-500">
+            Use your own domain (e.g.{" "}
+            <code className="rounded bg-neutral-100 px-1 py-0.5 text-xs">app.acme.com</code>)
+            instead of your default <code className="rounded bg-neutral-100 px-1 py-0.5 text-xs">scr.io</code> subdomain.
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (domain.trim()) setDomainMutation.mutate(domain.trim(), { onSuccess: () => setDomain("") });
+            }}
+            className="flex items-end gap-3"
+          >
+            <div className="flex-1">
+              <label className="mb-1.5 block text-sm font-medium text-neutral-700">Domain</label>
+              <input
+                type="text"
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                placeholder="app.acme.com"
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                disabled={setDomainMutation.isPending}
+              />
+            </div>
+            <Button type="submit" disabled={setDomainMutation.isPending || !domain.trim()}>
+              {setDomainMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Globe className="mr-2 h-4 w-4" />
+              )}
+              Set Domain
+            </Button>
+          </form>
+          {setDomainMutation.isError && (
+            <p className="mt-2 text-sm text-red-600">
+              {(setDomainMutation.error as Error)?.message ?? "Failed to set domain"}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isVerified = record.status === "verified" || record.status === "active";
+  const isFailed = record.status === "failed";
+  const { dns_instructions: dns } = record;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Custom Domain</CardTitle>
+            <Badge variant={domainStatusVariant(record.status)}>
+              {domainStatusLabel(record.status)}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-xs text-neutral-400 uppercase tracking-wide mb-0.5">Domain</p>
+            <p className="font-mono text-sm font-medium">{record.domain}</p>
+          </div>
+
+          {isVerified && record.ssl_provisioned_at && (
+            <div className="flex items-center gap-2 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">
+              <Shield className="h-4 w-4 text-green-600 flex-shrink-0" />
+              SSL provisioned on{" "}
+              {new Date(record.ssl_provisioned_at).toLocaleDateString("en-GB", {
+                day: "numeric", month: "short", year: "numeric",
+              })}
+            </div>
+          )}
+
+          {isFailed && record.error_message && (
+            <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2">
+              <p className="text-sm font-medium text-red-700 mb-0.5">Verification Failed</p>
+              <p className="text-sm text-red-600">{record.error_message}</p>
+            </div>
+          )}
+
+          {verifyMutation.isError && (
+            <p className="text-sm text-red-600">
+              {(verifyMutation.error as Error)?.message ?? "Verification request failed"}
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              onClick={() => verifyMutation.mutate()}
+              disabled={verifyMutation.isPending}
+              variant={isVerified ? "outline" : "default"}
+            >
+              {verifyMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Globe className="mr-2 h-4 w-4" />
+              )}
+              {isVerified ? "Re-verify DNS" : "Verify DNS"}
+            </Button>
+
+            <Button
+              variant={confirmDelete ? "destructive" : "outline"}
+              onClick={() => {
+                if (!confirmDelete) { setConfirmDelete(true); return; }
+                deleteMutation.mutate();
+                setConfirmDelete(false);
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              {confirmDelete ? "Click again to confirm" : "Remove Domain"}
+            </Button>
+
+            {confirmDelete && (
+              <Button variant="outline" onClick={() => setConfirmDelete(false)}>
+                Cancel
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* DNS instructions — always shown so user can re-add if needed */}
+      <Card>
+        <CardHeader>
+          <CardTitle>DNS Records</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-neutral-500">{dns.note}</p>
+
+          {[
+            { label: "CNAME Record", rec: dns.cname_record },
+            { label: "TXT Verification Record", rec: dns.txt_record },
+          ].map(({ label, rec }) => (
+            <div key={label} className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                {label}
+              </p>
+              <table className="w-full text-xs font-mono">
+                <thead>
+                  <tr className="text-neutral-400">
+                    <th className="pb-1 text-left font-medium w-14">Type</th>
+                    <th className="pb-1 text-left font-medium w-1/3">Name</th>
+                    <th className="pb-1 text-left font-medium">Value</th>
+                    <th className="pb-1 text-left font-medium w-14">TTL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="text-neutral-700">
+                    <td className="py-0.5">{rec.type}</td>
+                    <td className="py-0.5 break-all">
+                      {rec.name}<CopyInline text={rec.name} />
+                    </td>
+                    <td className="py-0.5 break-all">
+                      {rec.value}<CopyInline text={rec.value} />
+                    </td>
+                    <td className="py-0.5 text-neutral-400">{rec.ttl}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -1779,6 +2022,10 @@ export default function SettingsPage() {
             <Webhook className="h-4 w-4 mr-1.5" />
             Webhooks
           </TabsTrigger>
+          <TabsTrigger value="custom-domain">
+            <Globe className="h-4 w-4 mr-1.5" />
+            Custom Domain
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="org">
@@ -1807,6 +2054,10 @@ export default function SettingsPage() {
 
         <TabsContent value="webhooks">
           <WebhooksTab />
+        </TabsContent>
+
+        <TabsContent value="custom-domain">
+          <CustomDomainTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+import uuid
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 import structlog
@@ -23,6 +24,28 @@ router = APIRouter(prefix="/digest", tags=["digest"])
 class DigestPreferences(BaseModel):
     is_subscribed: bool = True
     frequency: Literal["daily", "weekly", "monthly"] = "weekly"
+
+
+# ── History response schemas ────────────────────────────────────────────────
+
+
+class DigestLogResponse(BaseModel):
+    id: uuid.UUID
+    digest_type: str
+    period_start: date
+    period_end: date
+    subject: str
+    narrative: str
+    sent_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class DigestHistoryResponse(BaseModel):
+    items: list[DigestLogResponse]
+    total: int
+    page: int
+    page_size: int
 
 
 @router.get("/preview")
@@ -82,17 +105,27 @@ async def trigger_digest(
 # ── Digest history ─────────────────────────────────────────────────────────────
 
 
-@router.get("/history")
+@router.get("/history", response_model=DigestHistoryResponse)
 async def get_digest_history(
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     current_user: CurrentUser = Depends(require_permission("view", "project")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return a log of past digest sends for this org.
-
-    Currently returns a stub while history tracking is being built out.
-    """
-    # No DigestLog model yet — return a stub so the frontend can render gracefully
-    return {"history": [], "message": "History tracking coming soon"}
+    """List previously sent digests for the current user (newest first)."""
+    items, total = await service.list_digest_history(
+        db,
+        org_id=current_user.org_id,
+        user_id=current_user.user_id,
+        page=page,
+        page_size=page_size,
+    )
+    return DigestHistoryResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 # ── Digest preferences ─────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -181,3 +181,68 @@ async def update_preferences(
     user.preferences = prefs
     await db.commit()
     return prefs["digest"]
+
+
+# ── Digest history ──────────────────────────────────────────────────────────
+
+
+async def log_digest_sent(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    digest_type: str,
+    period_start: date,
+    period_end: date,
+    subject: str,
+    narrative: str,
+    data_snapshot: dict,
+) -> Any:
+    """Insert a DigestLog row recording a successfully sent digest."""
+    from app.models.digest_log import DigestLog
+
+    log = DigestLog(
+        org_id=org_id,
+        user_id=user_id,
+        digest_type=digest_type,
+        period_start=period_start,
+        period_end=period_end,
+        subject=subject,
+        narrative=narrative,
+        data_snapshot=data_snapshot,
+    )
+    db.add(log)
+    await db.flush()
+    return log
+
+
+async def list_digest_history(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 20,
+) -> tuple[list, int]:
+    """Return paginated digest history for a specific user within an org.
+
+    Filters by both org_id (multi-tenancy) and user_id (personal history).
+    Results are ordered newest-first.
+    """
+    from sqlalchemy import func as sa_func, select
+
+    from app.models.digest_log import DigestLog
+
+    base = select(DigestLog).where(
+        DigestLog.org_id == org_id,
+        DigestLog.user_id == user_id,
+    )
+    total_scalar = await db.scalar(
+        select(sa_func.count()).select_from(base.subquery())
+    )
+    total = total_scalar or 0
+
+    result = await db.execute(
+        base.order_by(DigestLog.sent_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    return list(result.scalars().all()), total

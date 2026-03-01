@@ -229,6 +229,12 @@ from app.models.external_data import ExternalDataPoint
 # Launch Preparation (E04)
 from app.models.launch import FeatureFlag, FeatureFlagOverride, UsageEvent, WaitlistEntry
 
+# Custom Domain (E03)
+from app.models.custom_domain import CustomDomain
+
+# Digest History
+from app.models.digest_log import DigestLog
+
 __all__ = [
     # Base
     "BaseModel",
@@ -388,4 +394,8 @@ __all__ = [
     "FeatureFlagOverride",
     "UsageEvent",
     "WaitlistEntry",
+    # Custom Domain (E03)
+    "CustomDomain",
+    # Digest History
+    "DigestLog",
 ]

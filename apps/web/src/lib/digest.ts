@@ -37,14 +37,19 @@ export interface DigestTriggerResponse {
 
 export interface DigestHistoryEntry {
   id: string;
+  digest_type: string;
+  period_start: string; // YYYY-MM-DD
+  period_end: string;   // YYYY-MM-DD
+  subject: string;
+  narrative: string;
   sent_at: string;
-  recipients: number;
-  status: string;
 }
 
 export interface DigestHistoryResponse {
-  history: DigestHistoryEntry[];
-  message?: string;
+  items: DigestHistoryEntry[];
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 // ── Query key factory ───────────────────────────────────────────────────────
@@ -52,7 +57,7 @@ export interface DigestHistoryResponse {
 export const digestKeys = {
   preview: (days: number) => ["digest", "preview", days] as const,
   preferences: ["digest", "preferences"] as const,
-  history: ["digest", "history"] as const,
+  history: (page: number) => ["digest", "history", page] as const,
 };
 
 // ── Hooks ───────────────────────────────────────────────────────────────────
@@ -90,11 +95,13 @@ export function useUpdateDigestPreferences() {
   });
 }
 
-export function useDigestHistory() {
+export function useDigestHistory(page: number = 1) {
   return useQuery({
-    queryKey: digestKeys.history,
+    queryKey: digestKeys.history(page),
     queryFn: async () => {
-      const { data } = await api.get<DigestHistoryResponse>("/digest/history");
+      const { data } = await api.get<DigestHistoryResponse>("/digest/history", {
+        params: { page, page_size: 20 },
+      });
       return data;
     },
   });
@@ -109,6 +116,6 @@ export function useTriggerDigest() {
       });
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: digestKeys.history }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["digest", "history"] }),
   });
 }

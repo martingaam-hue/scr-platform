@@ -76,5 +76,8 @@ class Settings(BaseSettings):
     FRED_API_KEY: str = ""            # St. Louis Fed FRED — https://fred.stlouisfed.org/docs/api/api_key.html
     ALPHA_VANTAGE_API_KEY: str = ""   # Alpha Vantage (optional)
 
+    # Custom Domain (E03)
+    CUSTOM_DOMAIN_CNAME_TARGET: str = "custom.scr.io"
+
 
 settings = Settings()

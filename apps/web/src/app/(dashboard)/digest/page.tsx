@@ -14,7 +14,7 @@ import {
   Settings,
   Sparkles,
 } from "lucide-react";
-import { Badge, Button, Card, CardContent, cn, EmptyState, Tabs } from "@scr/ui";
+import { Badge, Button, Card, CardContent, cn, EmptyState } from "@scr/ui";
 import {
   useDigestPreview,
   useDigestHistory,
@@ -261,68 +261,107 @@ function PreviewTab({ isAdmin }: { isAdmin: boolean }) {
 // ── History tab ───────────────────────────────────────────────────────────────
 
 function HistoryTab() {
-  const { data, isLoading } = useDigestHistory();
+  const [page, setPage] = useState(1);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { data, isLoading } = useDigestHistory(page);
 
   if (isLoading) {
     return (
       <div className="space-y-3">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-2/3" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-2/3" />
       </div>
     );
   }
 
-  if (!data?.history || data.history.length === 0) {
+  if (!data?.items || data.items.length === 0) {
     return (
-      <div className="space-y-4">
-        <EmptyState
-          icon={<History className="h-8 w-8 text-gray-300" />}
-          title="No digest history yet"
-          description={data?.message ?? "Digest history will appear here once emails have been sent."}
-        />
-      </div>
+      <EmptyState
+        icon={<History className="h-8 w-8 text-gray-300" />}
+        title="No digest history yet"
+        description="Digest history will appear here once AI-generated emails have been sent."
+      />
     );
   }
+
+  const totalPages = Math.ceil(data.total / data.page_size);
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-gray-50">
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Date Sent</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Recipients</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.history.map((entry) => (
-              <tr key={entry.id} className="border-b last:border-0 hover:bg-gray-50">
-                <td className="px-4 py-3 text-gray-900 flex items-center gap-2">
-                  <Clock className="h-3.5 w-3.5 text-gray-400" />
-                  {formatDate(entry.sent_at)}
-                </td>
-                <td className="px-4 py-3 text-gray-600">{entry.recipients}</td>
-                <td className="px-4 py-3">
-                  <Badge
-                    variant={
-                      entry.status === "sent"
-                        ? "success"
-                        : entry.status === "failed"
-                        ? "error"
-                        : "neutral"
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="p-0">
+          <ul className="divide-y divide-gray-100">
+            {data.items.map((entry) => (
+              <li key={entry.id} className="hover:bg-gray-50 transition-colors">
+                <div className="px-4 py-3 flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {entry.subject}
+                    </p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                      <Clock className="h-3 w-3 shrink-0 text-gray-400" />
+                      Sent {formatDate(entry.sent_at)}
+                      {" · "}
+                      Period: {formatDate(entry.period_start)} – {formatDate(entry.period_end)}
+                      {" · "}
+                      <span className="capitalize">{entry.digest_type}</span>
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setExpandedId((prev) =>
+                        prev === entry.id ? null : entry.id
+                      )
                     }
+                    className="shrink-0"
                   >
-                    {entry.status}
-                  </Badge>
-                </td>
-              </tr>
+                    {expandedId === entry.id ? "Collapse" : "View"}
+                  </Button>
+                </div>
+                {expandedId === entry.id && (
+                  <div className="px-4 pb-4">
+                    <div className="prose prose-sm max-w-none text-gray-700 bg-gray-50 rounded-lg p-4 border text-sm leading-relaxed whitespace-pre-wrap">
+                      {entry.narrative}
+                    </div>
+                  </div>
+                )}
+              </li>
             ))}
-          </tbody>
-        </table>
-      </CardContent>
-    </Card>
+          </ul>
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-gray-500">
+          <span>
+            Showing {(page - 1) * data.page_size + 1}–
+            {Math.min(page * data.page_size, data.total)} of {data.total}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
+              Previous
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

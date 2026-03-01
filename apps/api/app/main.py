@@ -91,6 +91,7 @@ from app.modules.document_annotations.router import router as document_annotatio
 from app.modules.redaction.router import router as redaction_router
 from app.modules.market_data.router import router as market_data_router
 from app.modules.launch.router import router as launch_router
+from app.modules.custom_domain.router import router as custom_domain_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -251,5 +252,6 @@ api_v1.include_router(document_annotations_router)
 api_v1.include_router(redaction_router)
 api_v1.include_router(market_data_router)
 api_v1.include_router(launch_router)
+api_v1.include_router(custom_domain_router)
 
 app.include_router(api_v1)
