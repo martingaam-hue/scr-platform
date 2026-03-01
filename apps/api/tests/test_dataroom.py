@@ -247,7 +247,7 @@ async def sample_share(db: AsyncSession, sample_document: Document) -> ShareLink
 
 class TestFolders:
     async def test_create_folder(self, client_with_db: AsyncClient):
-        resp = await client_with_db.post("/dataroom/folders", json={
+        resp = await client_with_db.post("/v1/dataroom/folders", json={
             "name": "Financial Reports",
             "project_id": str(PROJECT_ID),
         })
@@ -260,7 +260,7 @@ class TestFolders:
     async def test_create_subfolder(
         self, client_with_db: AsyncClient, sample_folder: DocumentFolder
     ):
-        resp = await client_with_db.post("/dataroom/folders", json={
+        resp = await client_with_db.post("/v1/dataroom/folders", json={
             "name": "Q4 Reports",
             "project_id": str(PROJECT_ID),
             "parent_folder_id": str(sample_folder.id),
@@ -270,7 +270,7 @@ class TestFolders:
         assert data["parent_folder_id"] == str(sample_folder.id)
 
     async def test_create_folder_empty_name_rejected(self, client_with_db: AsyncClient):
-        resp = await client_with_db.post("/dataroom/folders", json={
+        resp = await client_with_db.post("/v1/dataroom/folders", json={
             "name": "",
             "project_id": str(PROJECT_ID),
         })
@@ -279,7 +279,7 @@ class TestFolders:
     async def test_get_folder_tree(
         self, client_with_db: AsyncClient, sample_folder: DocumentFolder
     ):
-        resp = await client_with_db.get(f"/dataroom/folders/{PROJECT_ID}")
+        resp = await client_with_db.get(f"/v1/dataroom/folders/{PROJECT_ID}")
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
@@ -290,7 +290,7 @@ class TestFolders:
         self, client_with_db: AsyncClient, sample_folder: DocumentFolder
     ):
         resp = await client_with_db.put(
-            f"/dataroom/folders/{sample_folder.id}",
+            f"/v1/dataroom/folders/{sample_folder.id}",
             json={"name": "Renamed Folder"},
         )
         assert resp.status_code == 200
@@ -299,7 +299,7 @@ class TestFolders:
     async def test_delete_empty_folder(
         self, client_with_db: AsyncClient, sample_folder: DocumentFolder
     ):
-        resp = await client_with_db.delete(f"/dataroom/folders/{sample_folder.id}")
+        resp = await client_with_db.delete(f"/v1/dataroom/folders/{sample_folder.id}")
         assert resp.status_code == 204
 
     async def test_delete_folder_with_documents_rejected(
@@ -326,20 +326,20 @@ class TestFolders:
         db.add(doc)
         await db.flush()
 
-        resp = await client_with_db.delete(f"/dataroom/folders/{sample_folder.id}")
+        resp = await client_with_db.delete(f"/v1/dataroom/folders/{sample_folder.id}")
         assert resp.status_code == 400
         assert "contains documents" in resp.json()["detail"]
 
     async def test_delete_nonexistent_folder(self, client_with_db: AsyncClient):
         fake_id = uuid.uuid4()
-        resp = await client_with_db.delete(f"/dataroom/folders/{fake_id}")
+        resp = await client_with_db.delete(f"/v1/dataroom/folders/{fake_id}")
         assert resp.status_code == 404
 
     async def test_folder_self_parent_rejected(
         self, client_with_db: AsyncClient, sample_folder: DocumentFolder
     ):
         resp = await client_with_db.put(
-            f"/dataroom/folders/{sample_folder.id}",
+            f"/v1/dataroom/folders/{sample_folder.id}",
             json={"parent_folder_id": str(sample_folder.id)},
         )
         assert resp.status_code == 400
@@ -353,7 +353,7 @@ class TestFolders:
 
 class TestDocumentUpload:
     async def test_presigned_upload(self, client_with_db: AsyncClient):
-        resp = await client_with_db.post("/dataroom/upload/presigned", json={
+        resp = await client_with_db.post("/v1/dataroom/upload/presigned", json={
             "file_name": "report.pdf",
             "file_type": "pdf",
             "file_size_bytes": 5000,
@@ -368,7 +368,7 @@ class TestDocumentUpload:
         assert str(ORG_ID) in data["s3_key"]
 
     async def test_upload_invalid_file_type(self, client_with_db: AsyncClient):
-        resp = await client_with_db.post("/dataroom/upload/presigned", json={
+        resp = await client_with_db.post("/v1/dataroom/upload/presigned", json={
             "file_name": "malware.exe",
             "file_type": "exe",
             "file_size_bytes": 5000,
@@ -379,7 +379,7 @@ class TestDocumentUpload:
         assert "not allowed" in resp.json()["detail"][0]["msg"]
 
     async def test_upload_exceeds_max_size(self, client_with_db: AsyncClient):
-        resp = await client_with_db.post("/dataroom/upload/presigned", json={
+        resp = await client_with_db.post("/v1/dataroom/upload/presigned", json={
             "file_name": "huge.pdf",
             "file_type": "pdf",
             "file_size_bytes": MAX_FILE_SIZE_BYTES + 1,
@@ -411,7 +411,7 @@ class TestDocumentUpload:
 
         with patch("app.modules.dataroom.tasks.process_document") as mock_task:
             mock_task.delay = MagicMock()
-            resp = await client_with_db.post("/dataroom/upload/confirm", json={
+            resp = await client_with_db.post("/v1/dataroom/upload/confirm", json={
                 "document_id": str(doc.id),
             })
 
@@ -424,13 +424,13 @@ class TestDocumentUpload:
         self, client_with_db: AsyncClient, sample_document: Document
     ):
         # sample_document is in READY state, not UPLOADING
-        resp = await client_with_db.post("/dataroom/upload/confirm", json={
+        resp = await client_with_db.post("/v1/dataroom/upload/confirm", json={
             "document_id": str(sample_document.id),
         })
         assert resp.status_code == 400
 
     async def test_viewer_cannot_upload(self, viewer_client: AsyncClient):
-        resp = await viewer_client.post("/dataroom/upload/presigned", json={
+        resp = await viewer_client.post("/v1/dataroom/upload/presigned", json={
             "file_name": "report.pdf",
             "file_type": "pdf",
             "file_size_bytes": 5000,
@@ -441,7 +441,7 @@ class TestDocumentUpload:
 
     async def test_all_allowed_file_types(self, client_with_db: AsyncClient):
         for ft in ALLOWED_FILE_TYPES:
-            resp = await client_with_db.post("/dataroom/upload/presigned", json={
+            resp = await client_with_db.post("/v1/dataroom/upload/presigned", json={
                 "file_name": f"test.{ft}",
                 "file_type": ft,
                 "file_size_bytes": 1000,
@@ -461,7 +461,7 @@ class TestDocumentCRUD:
         self, client_with_db: AsyncClient, sample_document: Document
     ):
         resp = await client_with_db.get(
-            "/dataroom/documents",
+            "/v1/dataroom/documents",
             params={"project_id": str(PROJECT_ID)},
         )
         assert resp.status_code == 200
@@ -491,7 +491,7 @@ class TestDocumentCRUD:
         await db.flush()
 
         resp = await client_with_db.get(
-            "/dataroom/documents",
+            "/v1/dataroom/documents",
             params={"project_id": str(PROJECT_ID), "page": 1, "page_size": 2},
         )
         assert resp.status_code == 200
@@ -504,7 +504,7 @@ class TestDocumentCRUD:
         self, client_with_db: AsyncClient, sample_document: Document
     ):
         resp = await client_with_db.get(
-            "/dataroom/documents",
+            "/v1/dataroom/documents",
             params={"search": "test-report"},
         )
         assert resp.status_code == 200
@@ -514,7 +514,7 @@ class TestDocumentCRUD:
         self, client_with_db: AsyncClient, sample_document: Document
     ):
         resp = await client_with_db.get(
-            "/dataroom/documents",
+            "/v1/dataroom/documents",
             params={"status": "ready"},
         )
         assert resp.status_code == 200
@@ -523,7 +523,7 @@ class TestDocumentCRUD:
     async def test_get_document_detail(
         self, client_with_db: AsyncClient, sample_document: Document, sample_extraction
     ):
-        resp = await client_with_db.get(f"/dataroom/documents/{sample_document.id}")
+        resp = await client_with_db.get(f"/v1/dataroom/documents/{sample_document.id}")
         assert resp.status_code == 200
         data = resp.json()
         assert data["id"] == str(sample_document.id)
@@ -531,14 +531,14 @@ class TestDocumentCRUD:
         assert len(data["extractions"]) == 1
 
     async def test_get_nonexistent_document(self, client_with_db: AsyncClient):
-        resp = await client_with_db.get(f"/dataroom/documents/{uuid.uuid4()}")
+        resp = await client_with_db.get(f"/v1/dataroom/documents/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_update_document(
         self, client_with_db: AsyncClient, sample_document: Document
     ):
         resp = await client_with_db.put(
-            f"/dataroom/documents/{sample_document.id}",
+            f"/v1/dataroom/documents/{sample_document.id}",
             json={"name": "renamed-report.pdf", "metadata": {"category": "finance"}},
         )
         assert resp.status_code == 200
@@ -549,12 +549,12 @@ class TestDocumentCRUD:
     async def test_delete_document(
         self, client_with_db: AsyncClient, sample_document: Document
     ):
-        resp = await client_with_db.delete(f"/dataroom/documents/{sample_document.id}")
+        resp = await client_with_db.delete(f"/v1/dataroom/documents/{sample_document.id}")
         assert resp.status_code == 204
 
         # Verify it's soft-deleted (no longer appears in list)
         resp = await client_with_db.get(
-            "/dataroom/documents",
+            "/v1/dataroom/documents",
             params={"project_id": str(PROJECT_ID)},
         )
         ids = [item["id"] for item in resp.json()["items"]]
@@ -564,7 +564,7 @@ class TestDocumentCRUD:
         self, client_with_db: AsyncClient, sample_document: Document
     ):
         resp = await client_with_db.get(
-            f"/dataroom/documents/{sample_document.id}/download"
+            f"/v1/dataroom/documents/{sample_document.id}/download"
         )
         assert resp.status_code == 200
         assert "download_url" in resp.json()
@@ -573,7 +573,7 @@ class TestDocumentCRUD:
         self, client_with_db: AsyncClient, sample_document: Document, db: AsyncSession
     ):
         await client_with_db.get(
-            f"/dataroom/documents/{sample_document.id}/download"
+            f"/v1/dataroom/documents/{sample_document.id}/download"
         )
 
         # Check access log was created
@@ -588,16 +588,16 @@ class TestDocumentCRUD:
     async def test_viewer_can_list_and_view(
         self, viewer_client: AsyncClient, sample_document: Document
     ):
-        resp = await viewer_client.get("/dataroom/documents")
+        resp = await viewer_client.get("/v1/dataroom/documents")
         assert resp.status_code == 200
 
-        resp = await viewer_client.get(f"/dataroom/documents/{sample_document.id}")
+        resp = await viewer_client.get(f"/v1/dataroom/documents/{sample_document.id}")
         assert resp.status_code == 200
 
     async def test_viewer_cannot_delete(
         self, viewer_client: AsyncClient, sample_document: Document
     ):
-        resp = await viewer_client.delete(f"/dataroom/documents/{sample_document.id}")
+        resp = await viewer_client.delete(f"/v1/dataroom/documents/{sample_document.id}")
         assert resp.status_code == 403
 
 
@@ -611,7 +611,7 @@ class TestVersioning:
         self, client_with_db: AsyncClient, sample_document: Document
     ):
         resp = await client_with_db.post(
-            f"/dataroom/documents/{sample_document.id}/versions",
+            f"/v1/dataroom/documents/{sample_document.id}/versions",
             json={
                 "file_name": "report-v2.pdf",
                 "file_type": "pdf",
@@ -647,7 +647,7 @@ class TestVersioning:
         await db.flush()
 
         resp = await client_with_db.get(
-            f"/dataroom/documents/{sample_document.id}/versions"
+            f"/v1/dataroom/documents/{sample_document.id}/versions"
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -677,7 +677,7 @@ class TestAccessLog:
         await db.flush()
 
         resp = await client_with_db.get(
-            f"/dataroom/documents/{sample_document.id}/access-log"
+            f"/v1/dataroom/documents/{sample_document.id}/access-log"
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -692,7 +692,7 @@ class TestAccessLog:
 
 class TestBulkOperations:
     async def test_bulk_upload(self, client_with_db: AsyncClient):
-        resp = await client_with_db.post("/dataroom/bulk/upload", json={
+        resp = await client_with_db.post("/v1/dataroom/bulk/upload", json={
             "files": [
                 {
                     "file_name": "doc1.pdf",
@@ -719,7 +719,7 @@ class TestBulkOperations:
         sample_document: Document,
         sample_folder: DocumentFolder,
     ):
-        resp = await client_with_db.post("/dataroom/bulk/move", json={
+        resp = await client_with_db.post("/v1/dataroom/bulk/move", json={
             "document_ids": [str(sample_document.id)],
             "target_folder_id": str(sample_folder.id),
         })
@@ -731,7 +731,7 @@ class TestBulkOperations:
     async def test_bulk_delete(
         self, client_with_db: AsyncClient, sample_document: Document
     ):
-        resp = await client_with_db.post("/dataroom/bulk/delete", json={
+        resp = await client_with_db.post("/v1/dataroom/bulk/delete", json={
             "document_ids": [str(sample_document.id)],
         })
         assert resp.status_code == 200
@@ -745,7 +745,7 @@ class TestBulkOperations:
         sample_folder: DocumentFolder,
     ):
         fake_id = uuid.uuid4()
-        resp = await client_with_db.post("/dataroom/bulk/move", json={
+        resp = await client_with_db.post("/v1/dataroom/bulk/move", json={
             "document_ids": [str(sample_document.id), str(fake_id)],
             "target_folder_id": str(sample_folder.id),
         })
@@ -756,7 +756,7 @@ class TestBulkOperations:
         assert len(data["errors"]) == 1
 
     async def test_bulk_upload_empty_list_rejected(self, client_with_db: AsyncClient):
-        resp = await client_with_db.post("/dataroom/bulk/upload", json={
+        resp = await client_with_db.post("/v1/dataroom/bulk/upload", json={
             "files": [],
             "project_id": str(PROJECT_ID),
         })
@@ -775,7 +775,7 @@ class TestExtraction:
         with patch("app.modules.dataroom.tasks.trigger_extraction") as mock_task:
             mock_task.delay = MagicMock()
             resp = await client_with_db.post(
-                f"/dataroom/documents/{sample_document.id}/extract",
+                f"/v1/dataroom/documents/{sample_document.id}/extract",
                 json={"extraction_types": ["kpi", "summary"]},
             )
         assert resp.status_code == 202
@@ -786,7 +786,7 @@ class TestExtraction:
         with patch("app.modules.dataroom.tasks.trigger_extraction") as mock_task:
             mock_task.delay = MagicMock()
             resp = await client_with_db.post(
-                f"/dataroom/documents/{sample_document.id}/extract",
+                f"/v1/dataroom/documents/{sample_document.id}/extract",
             )
         assert resp.status_code == 202
 
@@ -797,7 +797,7 @@ class TestExtraction:
         sample_extraction: DocumentExtraction,
     ):
         resp = await client_with_db.get(
-            f"/dataroom/documents/{sample_document.id}/extractions"
+            f"/v1/dataroom/documents/{sample_document.id}/extractions"
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -808,7 +808,7 @@ class TestExtraction:
         self, client_with_db: AsyncClient
     ):
         resp = await client_with_db.get(
-            f"/dataroom/extractions/summary/{PROJECT_ID}"
+            f"/v1/dataroom/extractions/summary/{PROJECT_ID}"
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -843,7 +843,7 @@ class TestExtraction:
         await db.flush()
 
         resp = await client_with_db.get(
-            f"/dataroom/extractions/summary/{PROJECT_ID}"
+            f"/v1/dataroom/extractions/summary/{PROJECT_ID}"
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -863,7 +863,7 @@ class TestSharing:
     async def test_create_share_link(
         self, client_with_db: AsyncClient, sample_document: Document
     ):
-        resp = await client_with_db.post("/dataroom/share", json={
+        resp = await client_with_db.post("/v1/dataroom/share", json={
             "document_id": str(sample_document.id),
             "allow_download": True,
             "watermark_enabled": True,
@@ -878,7 +878,7 @@ class TestSharing:
     async def test_create_share_link_with_password(
         self, client_with_db: AsyncClient, sample_document: Document
     ):
-        resp = await client_with_db.post("/dataroom/share", json={
+        resp = await client_with_db.post("/v1/dataroom/share", json={
             "document_id": str(sample_document.id),
             "password": "secret123",
             "max_views": 10,
@@ -891,7 +891,7 @@ class TestSharing:
         self, client_with_db: AsyncClient, sample_document: Document
     ):
         expires = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
-        resp = await client_with_db.post("/dataroom/share", json={
+        resp = await client_with_db.post("/v1/dataroom/share", json={
             "document_id": str(sample_document.id),
             "expires_at": expires,
         })
@@ -901,7 +901,7 @@ class TestSharing:
     async def test_access_share_link(
         self, client_with_db: AsyncClient, sample_share: ShareLink
     ):
-        resp = await client_with_db.get(f"/dataroom/share/{sample_share.share_token}")
+        resp = await client_with_db.get(f"/v1/dataroom/share/{sample_share.share_token}")
         assert resp.status_code == 200
         data = resp.json()
         assert data["document_name"] == "test-report.pdf"
@@ -911,7 +911,7 @@ class TestSharing:
         self, client_with_db: AsyncClient, sample_share: ShareLink, db: AsyncSession
     ):
         assert sample_share.view_count == 0
-        await client_with_db.get(f"/dataroom/share/{sample_share.share_token}")
+        await client_with_db.get(f"/v1/dataroom/share/{sample_share.share_token}")
 
         await db.refresh(sample_share)
         assert sample_share.view_count == 1
@@ -929,7 +929,7 @@ class TestSharing:
         db.add(share)
         await db.flush()
 
-        resp = await client_with_db.get(f"/dataroom/share/{share.share_token}")
+        resp = await client_with_db.get(f"/v1/dataroom/share/{share.share_token}")
         assert resp.status_code == 403
         assert "expired" in resp.json()["detail"]
 
@@ -947,7 +947,7 @@ class TestSharing:
         db.add(share)
         await db.flush()
 
-        resp = await client_with_db.get(f"/dataroom/share/{share.share_token}")
+        resp = await client_with_db.get(f"/v1/dataroom/share/{share.share_token}")
         assert resp.status_code == 403
         assert "maximum" in resp.json()["detail"]
 
@@ -964,7 +964,7 @@ class TestSharing:
         db.add(share)
         await db.flush()
 
-        resp = await client_with_db.get(f"/dataroom/share/{share.share_token}")
+        resp = await client_with_db.get(f"/v1/dataroom/share/{share.share_token}")
         assert resp.status_code == 403
         assert "Password required" in resp.json()["detail"]
 
@@ -982,7 +982,7 @@ class TestSharing:
         await db.flush()
 
         resp = await client_with_db.get(
-            f"/dataroom/share/{share.share_token}",
+            f"/v1/dataroom/share/{share.share_token}",
             params={"password": "wrong"},
         )
         assert resp.status_code == 403
@@ -1003,7 +1003,7 @@ class TestSharing:
         await db.flush()
 
         resp = await client_with_db.get(
-            f"/dataroom/share/{share.share_token}",
+            f"/v1/dataroom/share/{share.share_token}",
             params={"password": pw},
         )
         assert resp.status_code == 200
@@ -1011,15 +1011,15 @@ class TestSharing:
     async def test_revoke_share_link(
         self, client_with_db: AsyncClient, sample_share: ShareLink
     ):
-        resp = await client_with_db.delete(f"/dataroom/share/{sample_share.id}")
+        resp = await client_with_db.delete(f"/v1/dataroom/share/{sample_share.id}")
         assert resp.status_code == 204
 
         # Verify it's revoked
-        resp = await client_with_db.get(f"/dataroom/share/{sample_share.share_token}")
+        resp = await client_with_db.get(f"/v1/dataroom/share/{sample_share.share_token}")
         assert resp.status_code == 404
 
     async def test_access_nonexistent_share_token(self, client_with_db: AsyncClient):
-        resp = await client_with_db.get("/dataroom/share/nonexistent-token")
+        resp = await client_with_db.get("/v1/dataroom/share/nonexistent-token")
         assert resp.status_code == 404
 
 

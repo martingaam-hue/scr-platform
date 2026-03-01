@@ -505,7 +505,7 @@ async def test_get_latest_metrics_none(db: AsyncSession, seed_data, sample_portf
 
 @pytest.mark.asyncio
 async def test_api_create_portfolio(test_client: AsyncClient):
-    resp = await test_client.post("/portfolio", json={
+    resp = await test_client.post("/v1/portfolio", json={
         "name": "API Test Fund",
         "strategy": "growth",
         "fund_type": "closed_end",
@@ -520,7 +520,7 @@ async def test_api_create_portfolio(test_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_api_list_portfolios(test_client: AsyncClient, sample_portfolio):
-    resp = await test_client.get("/portfolio")
+    resp = await test_client.get("/v1/portfolio")
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] >= 1
@@ -528,7 +528,7 @@ async def test_api_list_portfolios(test_client: AsyncClient, sample_portfolio):
 
 @pytest.mark.asyncio
 async def test_api_get_portfolio_detail(test_client: AsyncClient, sample_portfolio):
-    resp = await test_client.get(f"/portfolio/{sample_portfolio.id}")
+    resp = await test_client.get(f"/v1/portfolio/{sample_portfolio.id}")
     assert resp.status_code == 200
     data = resp.json()
     assert data["id"] == str(sample_portfolio.id)
@@ -539,13 +539,13 @@ async def test_api_get_portfolio_detail(test_client: AsyncClient, sample_portfol
 
 @pytest.mark.asyncio
 async def test_api_get_portfolio_not_found(test_client: AsyncClient):
-    resp = await test_client.get(f"/portfolio/{uuid.uuid4()}")
+    resp = await test_client.get(f"/v1/portfolio/{uuid.uuid4()}")
     assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_api_update_portfolio(test_client: AsyncClient, sample_portfolio):
-    resp = await test_client.put(f"/portfolio/{sample_portfolio.id}", json={
+    resp = await test_client.put(f"/v1/portfolio/{sample_portfolio.id}", json={
         "name": "Updated Fund Name",
         "current_aum": "55000000",
     })
@@ -557,7 +557,7 @@ async def test_api_update_portfolio(test_client: AsyncClient, sample_portfolio):
 async def test_api_get_metrics(
     test_client: AsyncClient, sample_portfolio, sample_holdings
 ):
-    resp = await test_client.get(f"/portfolio/{sample_portfolio.id}/metrics")
+    resp = await test_client.get(f"/v1/portfolio/{sample_portfolio.id}/metrics")
     assert resp.status_code == 200
     data = resp.json()
     assert "moic" in data
@@ -570,7 +570,7 @@ async def test_api_get_metrics(
 async def test_api_list_holdings(
     test_client: AsyncClient, sample_portfolio, sample_holdings
 ):
-    resp = await test_client.get(f"/portfolio/{sample_portfolio.id}/holdings")
+    resp = await test_client.get(f"/v1/portfolio/{sample_portfolio.id}/holdings")
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] == 3
@@ -583,7 +583,7 @@ async def test_api_list_holdings_filter_status(
     test_client: AsyncClient, sample_portfolio, sample_holdings
 ):
     resp = await test_client.get(
-        f"/portfolio/{sample_portfolio.id}/holdings", params={"status": "active"}
+        f"/v1/portfolio/{sample_portfolio.id}/holdings", params={"status": "active"}
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -592,7 +592,7 @@ async def test_api_list_holdings_filter_status(
 
 @pytest.mark.asyncio
 async def test_api_add_holding(test_client: AsyncClient, sample_portfolio):
-    resp = await test_client.post(f"/portfolio/{sample_portfolio.id}/holdings", json={
+    resp = await test_client.post(f"/v1/portfolio/{sample_portfolio.id}/holdings", json={
         "asset_name": "API Holding",
         "asset_type": "equity",
         "investment_date": "2024-01-15",
@@ -612,7 +612,7 @@ async def test_api_update_holding(
 ):
     h = sample_holdings[0]
     resp = await test_client.put(
-        f"/portfolio/{sample_portfolio.id}/holdings/{h.id}",
+        f"/v1/portfolio/{sample_portfolio.id}/holdings/{h.id}",
         json={"current_value": "7500000"},
     )
     assert resp.status_code == 200
@@ -623,7 +623,7 @@ async def test_api_update_holding(
 async def test_api_cash_flows(
     test_client: AsyncClient, sample_portfolio, sample_holdings
 ):
-    resp = await test_client.get(f"/portfolio/{sample_portfolio.id}/cash-flows")
+    resp = await test_client.get(f"/v1/portfolio/{sample_portfolio.id}/cash-flows")
     assert resp.status_code == 200
     data = resp.json()
     assert "items" in data
@@ -634,7 +634,7 @@ async def test_api_cash_flows(
 async def test_api_allocation(
     test_client: AsyncClient, sample_portfolio, sample_holdings
 ):
-    resp = await test_client.get(f"/portfolio/{sample_portfolio.id}/allocation")
+    resp = await test_client.get(f"/v1/portfolio/{sample_portfolio.id}/allocation")
     assert resp.status_code == 200
     data = resp.json()
     assert "by_asset_type" in data
@@ -648,7 +648,7 @@ async def test_api_allocation(
 
 @pytest.mark.asyncio
 async def test_viewer_cannot_create_portfolio(viewer_client: AsyncClient):
-    resp = await viewer_client.post("/portfolio", json={
+    resp = await viewer_client.post("/v1/portfolio", json={
         "name": "Viewer Fund",
         "strategy": "growth",
         "fund_type": "closed_end",
@@ -659,7 +659,7 @@ async def test_viewer_cannot_create_portfolio(viewer_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_viewer_cannot_add_holding(viewer_client: AsyncClient, sample_portfolio):
-    resp = await viewer_client.post(f"/portfolio/{sample_portfolio.id}/holdings", json={
+    resp = await viewer_client.post(f"/v1/portfolio/{sample_portfolio.id}/holdings", json={
         "asset_name": "Viewer Holding",
         "asset_type": "equity",
         "investment_date": "2024-01-01",
@@ -671,7 +671,7 @@ async def test_viewer_cannot_add_holding(viewer_client: AsyncClient, sample_port
 
 @pytest.mark.asyncio
 async def test_viewer_can_list_portfolios(viewer_client: AsyncClient, sample_portfolio):
-    resp = await viewer_client.get("/portfolio")
+    resp = await viewer_client.get("/v1/portfolio")
     assert resp.status_code == 200
 
 
@@ -679,5 +679,5 @@ async def test_viewer_can_list_portfolios(viewer_client: AsyncClient, sample_por
 async def test_viewer_can_view_metrics(
     viewer_client: AsyncClient, sample_portfolio, sample_holdings
 ):
-    resp = await viewer_client.get(f"/portfolio/{sample_portfolio.id}/metrics")
+    resp = await viewer_client.get(f"/v1/portfolio/{sample_portfolio.id}/metrics")
     assert resp.status_code == 200

@@ -403,7 +403,7 @@ async def test_api_create_comment(client: AsyncClient, db: AsyncSession, seed_da
     app.dependency_overrides[get_current_user] = _override_auth(ANALYST_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        resp = await client.post("/collaboration/comments", json={
+        resp = await client.post("/v1/collaboration/comments", json={
             "entity_type": "project",
             "entity_id": str(ENTITY_ID),
             "content": "API comment",
@@ -422,13 +422,13 @@ async def test_api_list_comments(client: AsyncClient, db: AsyncSession, seed_dat
     app.dependency_overrides[get_db] = lambda: db
     try:
         # Create a comment first
-        await client.post("/collaboration/comments", json={
+        await client.post("/v1/collaboration/comments", json={
             "entity_type": "project",
             "entity_id": str(ENTITY_ID),
             "content": "First comment",
         })
         resp = await client.get(
-            "/collaboration/comments",
+            "/v1/collaboration/comments",
             params={"entity_type": "project", "entity_id": str(ENTITY_ID)},
         )
         assert resp.status_code == 200
@@ -443,13 +443,13 @@ async def test_api_update_comment(client: AsyncClient, db: AsyncSession, seed_da
     app.dependency_overrides[get_current_user] = _override_auth(ANALYST_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        create_resp = await client.post("/collaboration/comments", json={
+        create_resp = await client.post("/v1/collaboration/comments", json={
             "entity_type": "project",
             "entity_id": str(ENTITY_ID),
             "content": "Original",
         })
         comment_id = create_resp.json()["id"]
-        resp = await client.put(f"/collaboration/comments/{comment_id}", json={
+        resp = await client.put(f"/v1/collaboration/comments/{comment_id}", json={
             "content": "Updated",
         })
         assert resp.status_code == 200
@@ -463,13 +463,13 @@ async def test_api_delete_comment(client: AsyncClient, db: AsyncSession, seed_da
     app.dependency_overrides[get_current_user] = _override_auth(ANALYST_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        create_resp = await client.post("/collaboration/comments", json={
+        create_resp = await client.post("/v1/collaboration/comments", json={
             "entity_type": "project",
             "entity_id": str(ENTITY_ID),
             "content": "To delete",
         })
         comment_id = create_resp.json()["id"]
-        resp = await client.delete(f"/collaboration/comments/{comment_id}")
+        resp = await client.delete(f"/v1/collaboration/comments/{comment_id}")
         assert resp.status_code == 204
     finally:
         app.dependency_overrides.clear()
@@ -480,13 +480,13 @@ async def test_api_resolve_comment(client: AsyncClient, db: AsyncSession, seed_d
     app.dependency_overrides[get_current_user] = _override_auth(ANALYST_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        create_resp = await client.post("/collaboration/comments", json={
+        create_resp = await client.post("/v1/collaboration/comments", json={
             "entity_type": "project",
             "entity_id": str(ENTITY_ID),
             "content": "Resolve me",
         })
         comment_id = create_resp.json()["id"]
-        resp = await client.post(f"/collaboration/comments/{comment_id}/resolve")
+        resp = await client.post(f"/v1/collaboration/comments/{comment_id}/resolve")
         assert resp.status_code == 200
         assert resp.json()["is_resolved"] is True
     finally:
@@ -502,7 +502,7 @@ async def test_viewer_can_view_comments(client: AsyncClient, db: AsyncSession, s
     app.dependency_overrides[get_db] = lambda: db
     try:
         resp = await client.get(
-            "/collaboration/comments",
+            "/v1/collaboration/comments",
             params={"entity_type": "project", "entity_id": str(ENTITY_ID)},
         )
         assert resp.status_code == 200
@@ -515,7 +515,7 @@ async def test_viewer_cannot_create_comment(client: AsyncClient, db: AsyncSessio
     app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        resp = await client.post("/collaboration/comments", json={
+        resp = await client.post("/v1/collaboration/comments", json={
             "entity_type": "project",
             "entity_id": str(ENTITY_ID),
             "content": "Should fail",
@@ -530,7 +530,7 @@ async def test_viewer_cannot_edit_comment(client: AsyncClient, db: AsyncSession,
     app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        resp = await client.put(f"/collaboration/comments/{uuid.uuid4()}", json={
+        resp = await client.put(f"/v1/collaboration/comments/{uuid.uuid4()}", json={
             "content": "Should fail",
         })
         assert resp.status_code == 403
@@ -550,7 +550,7 @@ async def test_api_list_notifications(client: AsyncClient, db: AsyncSession, see
         await notif_service.create_notification(
             db, ORG_ID, USER_ID, NotificationType.INFO, "Test", "Msg"
         )
-        resp = await client.get("/notifications")
+        resp = await client.get("/v1/notifications")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] >= 1
@@ -566,7 +566,7 @@ async def test_api_unread_count(client: AsyncClient, db: AsyncSession, seed_data
         await notif_service.create_notification(
             db, ORG_ID, USER_ID, NotificationType.INFO, "Test", "Msg"
         )
-        resp = await client.get("/notifications/unread-count")
+        resp = await client.get("/v1/notifications/unread-count")
         assert resp.status_code == 200
         assert resp.json()["count"] >= 1
     finally:
@@ -581,7 +581,7 @@ async def test_api_mark_all_read(client: AsyncClient, db: AsyncSession, seed_dat
         await notif_service.create_notification(
             db, ORG_ID, USER_ID, NotificationType.INFO, "Test", "Msg"
         )
-        resp = await client.put("/notifications/read-all")
+        resp = await client.put("/v1/notifications/read-all")
         assert resp.status_code == 200
         assert resp.json()["marked_read"] >= 1
     finally:
@@ -596,7 +596,7 @@ async def test_api_mark_single_read(client: AsyncClient, db: AsyncSession, seed_
         notification = await notif_service.create_notification(
             db, ORG_ID, USER_ID, NotificationType.INFO, "Test", "Msg"
         )
-        resp = await client.put(f"/notifications/{notification.id}/read")
+        resp = await client.put(f"/v1/notifications/{notification.id}/read")
         assert resp.status_code == 200
         assert resp.json()["success"] is True
     finally:

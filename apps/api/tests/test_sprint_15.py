@@ -236,7 +236,7 @@ class TestCarbonAPI:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.post(f"/carbon/estimate/{PROJECT_ID}")
+            resp = await client.post(f"/v1/carbon/estimate/{PROJECT_ID}")
             assert resp.status_code == 200
             data = resp.json()
             assert "estimate" in data
@@ -251,7 +251,7 @@ class TestCarbonAPI:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.post(f"/carbon/estimate/{fake_id}")
+            resp = await client.post(f"/v1/carbon/estimate/{fake_id}")
             assert resp.status_code == 404
         finally:
             app.dependency_overrides.clear()
@@ -264,9 +264,9 @@ class TestCarbonAPI:
         app.dependency_overrides[get_db] = lambda: db
         try:
             # First create via estimate
-            await client.post(f"/carbon/estimate/{PROJECT_ID}")
+            await client.post(f"/v1/carbon/estimate/{PROJECT_ID}")
             # Then fetch
-            resp = await client.get(f"/carbon/{PROJECT_ID}")
+            resp = await client.get(f"/v1/carbon/{PROJECT_ID}")
             assert resp.status_code == 200
             data = resp.json()
             assert data["project_id"] == str(PROJECT_ID)
@@ -281,7 +281,7 @@ class TestCarbonAPI:
         app.dependency_overrides[get_db] = lambda: db
         try:
             # No estimate created yet
-            resp = await client.get(f"/carbon/{PROJECT_ID}")
+            resp = await client.get(f"/v1/carbon/{PROJECT_ID}")
             assert resp.status_code == 404
         finally:
             app.dependency_overrides.clear()
@@ -313,7 +313,7 @@ class TestRiskAssessment:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.post("/risk/assess", json=self._valid_body)
+            resp = await client.post("/v1/risk/assess", json=self._valid_body)
             assert resp.status_code == 201
             data = resp.json()
             assert data["entity_type"] == "project"
@@ -330,7 +330,7 @@ class TestRiskAssessment:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get("/risk/assessments")
+            resp = await client.get("/v1/risk/assessments")
             assert resp.status_code == 200
             assert resp.json() == []
         finally:
@@ -343,8 +343,8 @@ class TestRiskAssessment:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            await client.post("/risk/assess", json=self._valid_body)
-            resp = await client.get("/risk/assessments")
+            await client.post("/v1/risk/assess", json=self._valid_body)
+            resp = await client.get("/v1/risk/assessments")
             assert resp.status_code == 200
             items = resp.json()
             assert len(items) == 1
@@ -360,7 +360,7 @@ class TestRiskAssessment:
         app.dependency_overrides[get_db] = lambda: db
         try:
             bad_body = {**self._valid_body, "severity": "catastrophic"}
-            resp = await client.post("/risk/assess", json=bad_body)
+            resp = await client.post("/v1/risk/assess", json=bad_body)
             assert resp.status_code == 422
         finally:
             app.dependency_overrides.clear()
@@ -372,10 +372,10 @@ class TestRiskAssessment:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            await client.post("/risk/assess", json=self._valid_body)
+            await client.post("/v1/risk/assess", json=self._valid_body)
             # Filter by entity
             resp = await client.get(
-                "/risk/assessments",
+                "/v1/risk/assessments",
                 params={"entity_type": "project", "entity_id": str(PROJECT_ID)},
             )
             assert resp.status_code == 200
@@ -383,7 +383,7 @@ class TestRiskAssessment:
             # Filter by different entity returns empty
             other_id = uuid.UUID("00000000-0000-0000-9999-000000000099")
             resp2 = await client.get(
-                "/risk/assessments",
+                "/v1/risk/assessments",
                 params={"entity_type": "project", "entity_id": str(other_id)},
             )
             assert resp2.json() == []
@@ -404,7 +404,7 @@ class TestLegalTemplates:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get("/legal/templates")
+            resp = await client.get("/v1/legal/templates")
             assert resp.status_code == 200
             templates = resp.json()
             assert len(templates) > 0
@@ -424,7 +424,7 @@ class TestLegalTemplates:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get(f"/legal/templates/{first_id}")
+            resp = await client.get(f"/v1/legal/templates/{first_id}")
             assert resp.status_code == 200
             data = resp.json()
             assert data["id"] == first_id
@@ -437,7 +437,7 @@ class TestLegalTemplates:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get("/legal/templates/nonexistent-template-xyz")
+            resp = await client.get("/v1/legal/templates/nonexistent-template-xyz")
             assert resp.status_code == 404
         finally:
             app.dependency_overrides.clear()
@@ -455,7 +455,7 @@ class TestLegalDocuments:
         app.dependency_overrides[get_db] = lambda: db
         try:
             resp = await client.post(
-                "/legal/documents",
+                "/v1/legal/documents",
                 json={"template_id": first_id, "title": "Test Agreement"},
             )
             assert resp.status_code == 201
@@ -476,10 +476,10 @@ class TestLegalDocuments:
         try:
             # Create one doc first
             await client.post(
-                "/legal/documents",
+                "/v1/legal/documents",
                 json={"template_id": first_id, "title": "Listed Doc"},
             )
-            resp = await client.get("/legal/documents")
+            resp = await client.get("/v1/legal/documents")
             assert resp.status_code == 200
             data = resp.json()
             assert data["total"] >= 1
@@ -496,11 +496,11 @@ class TestLegalDocuments:
         app.dependency_overrides[get_db] = lambda: db
         try:
             create_resp = await client.post(
-                "/legal/documents",
+                "/v1/legal/documents",
                 json={"template_id": first_id, "title": "Fetched Doc"},
             )
             doc_id = create_resp.json()["id"]
-            get_resp = await client.get(f"/legal/documents/{doc_id}")
+            get_resp = await client.get(f"/v1/legal/documents/{doc_id}")
             assert get_resp.status_code == 200
             assert get_resp.json()["title"] == "Fetched Doc"
         finally:
@@ -521,7 +521,7 @@ class TestDealIntelligence:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get("/deals/pipeline")
+            resp = await client.get("/v1/deals/pipeline")
             assert resp.status_code == 200
             data = resp.json()
             assert "stages" in data or "total" in data or isinstance(data, dict)
@@ -534,7 +534,7 @@ class TestDealIntelligence:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get("/deals/discover")
+            resp = await client.get("/v1/deals/discover")
             assert resp.status_code == 200
             data = resp.json()
             assert "projects" in data or "items" in data or isinstance(data, dict)
@@ -547,7 +547,7 @@ class TestDealIntelligence:
         app.dependency_overrides[get_db] = lambda: db
         try:
             resp = await client.get(
-                "/deals/discover",
+                "/v1/deals/discover",
                 params={"sector": "solar", "score_min": 0, "score_max": 100},
             )
             assert resp.status_code == 200
@@ -562,7 +562,7 @@ class TestDealIntelligence:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get(f"/deals/{fake_id}/screening")
+            resp = await client.get(f"/v1/deals/{fake_id}/screening")
             assert resp.status_code == 404
         finally:
             app.dependency_overrides.clear()
@@ -575,7 +575,7 @@ class TestDealIntelligence:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.post("/deals/compare", json={"project_ids": []})
+            resp = await client.post("/v1/deals/compare", json={"project_ids": []})
             assert resp.status_code in (400, 422)
         finally:
             app.dependency_overrides.clear()

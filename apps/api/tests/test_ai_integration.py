@@ -277,7 +277,7 @@ class TestDocumentProcessingPipeline:
             mock_s3.return_value.head_object.return_value = {"ContentLength": 512000}
             async with await _make_client(ALLY_USER, db) as client:
                 resp = await client.post(
-                    "/dataroom/upload/confirm",
+                    "/v1/dataroom/upload/confirm",
                     json={"document_id": str(doc.id)},
                 )
             app.dependency_overrides.clear()
@@ -341,7 +341,7 @@ class TestDocumentProcessingPipeline:
         await db.flush()
 
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get(f"/dataroom/documents/{doc.id}/extractions")
+            resp = await client.get(f"/v1/dataroom/documents/{doc.id}/extractions")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -387,7 +387,7 @@ class TestDocumentProcessingPipeline:
         await db.flush()
 
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get(f"/dataroom/documents/{doc.id}/extractions")
+            resp = await client.get(f"/v1/dataroom/documents/{doc.id}/extractions")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -436,7 +436,7 @@ class TestDocumentProcessingPipeline:
         await db.flush()
 
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get(f"/dataroom/documents/{doc.id}/extractions")
+            resp = await client.get(f"/v1/dataroom/documents/{doc.id}/extractions")
         app.dependency_overrides.clear()
 
         kpi_items = [i for i in resp.json()["items"] if i["extraction_type"] == "kpi"]
@@ -466,7 +466,7 @@ class TestSignalScoreCalculation:
             "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
         ) as mock_delay:
             async with await _make_client(ALLY_USER, db) as client:
-                resp = await client.post(f"/signal-score/calculate/{project_id}")
+                resp = await client.post(f"/v1/signal-score/calculate/{project_id}")
             app.dependency_overrides.clear()
 
         assert resp.status_code == 202
@@ -524,7 +524,7 @@ class TestSignalScoreCalculation:
         await db.flush()
 
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get(f"/signal-score/{project_id}")
+            resp = await client.get(f"/v1/signal-score/{project_id}")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -565,7 +565,7 @@ class TestSignalScoreCalculation:
         await db.flush()
 
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get(f"/signal-score/{project_id}")
+            resp = await client.get(f"/v1/signal-score/{project_id}")
         app.dependency_overrides.clear()
 
         body = resp.json()
@@ -609,7 +609,7 @@ class TestSignalScoreCalculation:
         await db.flush()
 
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get(f"/signal-score/{project_id}/gaps")
+            resp = await client.get(f"/v1/signal-score/{project_id}/gaps")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -626,7 +626,7 @@ class TestSignalScoreCalculation:
         project_id = seeded["project_id"]
 
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.post(f"/signal-score/{project_id}/live")
+            resp = await client.post(f"/v1/signal-score/{project_id}/live")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -637,7 +637,7 @@ class TestSignalScoreCalculation:
 
         # Second call must return the same score (deterministic)
         async with await _make_client(ALLY_USER, db) as client2:
-            resp2 = await client2.post(f"/signal-score/{project_id}/live")
+            resp2 = await client2.post(f"/v1/signal-score/{project_id}/live")
         app.dependency_overrides.clear()
 
         assert resp2.json()["overall_score"] == body["overall_score"]
@@ -665,7 +665,7 @@ class TestSignalScoreCalculation:
         await db.flush()
 
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get(f"/signal-score/{project_id}/history")
+            resp = await client.get(f"/v1/signal-score/{project_id}/history")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -743,7 +743,7 @@ class TestDealScreening:
     ):
         """GET /matching/investor/recommendations must return projects best-first."""
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.get("/matching/investor/recommendations")
+            resp = await client.get("/v1/matching/investor/recommendations")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -765,7 +765,7 @@ class TestDealScreening:
         poor_id = str(projects[2].id)
 
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.get("/matching/investor/recommendations")
+            resp = await client.get("/v1/matching/investor/recommendations")
         app.dependency_overrides.clear()
 
         recs = resp.json().get("items", [])
@@ -792,7 +792,7 @@ class TestRalphAIConversation:
     async def test_create_conversation(self, db: AsyncSession, seeded: dict):
         async with await _make_client(ALLY_USER, db) as client:
             resp = await client.post(
-                "/ralph/conversations", json={"title": "Signal Score Analysis"}
+                "/v1/ralph/conversations", json={"title": "Signal Score Analysis"}
             )
         app.dependency_overrides.clear()
 
@@ -869,7 +869,7 @@ class TestRalphAIConversation:
         ):
             async with await _make_client(ALLY_USER, db) as client:
                 resp = await client.post(
-                    f"/ralph/conversations/{conv_id}/message",
+                    f"/v1/ralph/conversations/{conv_id}/message",
                     json={
                         "content": f"What is the Signal Score for project {project_id}?"
                     },
@@ -930,11 +930,11 @@ class TestRalphAIConversation:
         ):
             async with await _make_client(ALLY_USER, db) as client:
                 await client.post(
-                    f"/ralph/conversations/{conv_id}/message",
+                    f"/v1/ralph/conversations/{conv_id}/message",
                     json={"content": "What is the Signal Score for this project?"},
                 )
                 resp2 = await client.post(
-                    f"/ralph/conversations/{conv_id}/message",
+                    f"/v1/ralph/conversations/{conv_id}/message",
                     json={"content": "What are the main risks?"},
                 )
             app.dependency_overrides.clear()
@@ -944,7 +944,7 @@ class TestRalphAIConversation:
 
         # Verify conversation contains all messages
         async with await _make_client(ALLY_USER, db) as client:
-            detail_resp = await client.get(f"/ralph/conversations/{conv_id}")
+            detail_resp = await client.get(f"/v1/ralph/conversations/{conv_id}")
         app.dependency_overrides.clear()
 
         assert detail_resp.status_code == 200
@@ -963,7 +963,7 @@ class TestRalphAIConversation:
         await db.flush()
 
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get("/ralph/conversations")
+            resp = await client.get("/v1/ralph/conversations")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -980,8 +980,8 @@ class TestRalphAIConversation:
         conv_id = conv.id
 
         async with await _make_client(ALLY_USER, db) as client:
-            del_resp = await client.delete(f"/ralph/conversations/{conv_id}")
-            list_resp = await client.get("/ralph/conversations")
+            del_resp = await client.delete(f"/v1/ralph/conversations/{conv_id}")
+            list_resp = await client.get("/v1/ralph/conversations")
         app.dependency_overrides.clear()
 
         assert del_resp.status_code == 204
@@ -1017,7 +1017,7 @@ class TestValuationAndReporting:
         }
 
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.post("/valuations", json=payload)
+            resp = await client.post("/v1/valuations", json=payload)
         app.dependency_overrides.clear()
 
         assert resp.status_code == 201
@@ -1045,8 +1045,8 @@ class TestValuationAndReporting:
         }
 
         async with await _make_client(ALLY_USER, db) as client:
-            r1 = await client.post("/valuations", json={**payload, "name": "Run 1"})
-            r2 = await client.post("/valuations", json={**payload, "name": "Run 2"})
+            r1 = await client.post("/v1/valuations", json={**payload, "name": "Run 1"})
+            r2 = await client.post("/v1/valuations", json={**payload, "name": "Run 2"})
         app.dependency_overrides.clear()
 
         assert r1.status_code == r2.status_code == 201
@@ -1061,7 +1061,7 @@ class TestValuationAndReporting:
         # First create a valuation
         async with await _make_client(ALLY_USER, db) as client:
             create_resp = await client.post(
-                "/valuations",
+                "/v1/valuations",
                 json={
                     "project_id": str(project_id),
                     "method": "dcf",
@@ -1080,7 +1080,7 @@ class TestValuationAndReporting:
 
         with patch("app.modules.valuation.tasks.generate_valuation_report_task.delay") as mock_task:
             async with await _make_client(ALLY_USER, db) as client:
-                resp = await client.post(f"/valuations/{valuation_id}/report")
+                resp = await client.post(f"/v1/valuations/{valuation_id}/report")
             app.dependency_overrides.clear()
 
         assert resp.status_code == 202
@@ -1096,7 +1096,7 @@ class TestValuationAndReporting:
         async with await _make_client(ALLY_USER, db) as client:
             for _ in ["Base Case", "Upside Case"]:
                 await client.post(
-                    "/valuations",
+                    "/v1/valuations",
                     json={
                         "project_id": str(project_id),
                         "method": "dcf",
@@ -1108,7 +1108,7 @@ class TestValuationAndReporting:
                         },
                     },
                 )
-            list_resp = await client.get(f"/valuations?project_id={project_id}")
+            list_resp = await client.get(f"/v1/valuations?project_id={project_id}")
         app.dependency_overrides.clear()
 
         assert list_resp.status_code == 200
@@ -1183,7 +1183,7 @@ class TestMatchingPipeline:
         self, db: AsyncSession, seeded: dict
     ):
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.get("/matching/investor/recommendations")
+            resp = await client.get("/v1/matching/investor/recommendations")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -1195,7 +1195,7 @@ class TestMatchingPipeline:
         self, db: AsyncSession, seeded: dict
     ):
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.get("/matching/investor/recommendations")
+            resp = await client.get("/v1/matching/investor/recommendations")
         app.dependency_overrides.clear()
 
         recs = resp.json().get("items", [])
@@ -1209,7 +1209,7 @@ class TestMatchingPipeline:
         project = seeded["projects"][0]  # Solar Farm A
 
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get(f"/matching/ally/recommendations/{project.id}")
+            resp = await client.get(f"/v1/matching/ally/recommendations/{project.id}")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -1234,7 +1234,7 @@ class TestMatchingPipeline:
         await db.flush()
 
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.post(f"/matching/{match.id}/interest")
+            resp = await client.post(f"/v1/matching/{match.id}/interest")
         app.dependency_overrides.clear()
 
         assert resp.status_code in (200, 201)
@@ -1264,7 +1264,7 @@ class TestEndToEndAllyJourney:
         async with await _make_client(ALLY_USER, db) as client:
             # 1. Create project
             create_resp = await client.post(
-                "/projects",
+                "/v1/projects",
                 json={
                     "name": "Oaxaca Wind Farm",
                     "project_type": "wind",
@@ -1283,7 +1283,7 @@ class TestEndToEndAllyJourney:
             project_id = create_resp.json()["id"]
 
             # 2. Check live score (instant, no AI)
-            live_resp = await client.post(f"/signal-score/{project_id}/live")
+            live_resp = await client.post(f"/v1/signal-score/{project_id}/live")
             assert live_resp.status_code == 200
             live_score = live_resp.json()["overall_score"]
             assert 0 <= live_score <= 100
@@ -1292,7 +1292,7 @@ class TestEndToEndAllyJourney:
             with patch(
                 "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
             ):
-                calc_resp = await client.post(f"/signal-score/calculate/{project_id}")
+                calc_resp = await client.post(f"/v1/signal-score/calculate/{project_id}")
             assert calc_resp.status_code == 202
 
         app.dependency_overrides.clear()
@@ -1329,21 +1329,21 @@ class TestEndToEndAllyJourney:
 
         async with await _make_client(ALLY_USER, db) as client:
             # 5. View score
-            score_resp = await client.get(f"/signal-score/{project_id}")
+            score_resp = await client.get(f"/v1/signal-score/{project_id}")
             assert score_resp.status_code == 200
             assert score_resp.json()["overall_score"] == 68
 
             # 6. View gaps
-            gaps_resp = await client.get(f"/signal-score/{project_id}/gaps")
+            gaps_resp = await client.get(f"/v1/signal-score/{project_id}/gaps")
             assert gaps_resp.status_code == 200
 
             # 7. Find matching investors
             # Project must be published first — update it
             await client.put(
-                f"/projects/{project_id}", json={"is_published": True}
+                f"/v1/projects/{project_id}", json={"is_published": True}
             )
             match_resp = await client.get(
-                f"/matching/ally/recommendations/{project_id}"
+                f"/v1/matching/ally/recommendations/{project_id}"
             )
             assert match_resp.status_code == 200
 
@@ -1386,7 +1386,7 @@ class TestEndToEndInvestorJourney:
         async with await _make_client(INVESTOR_USER, db) as client:
             # 1. Add a portfolio holding
             holding_resp = await client.post(
-                f"/portfolio/{sample_portfolio.id}/holdings",
+                f"/v1/portfolio/{sample_portfolio.id}/holdings",
                 json={
                     "asset_name": "Sonora Solar I",
                     "asset_type": "equity",
@@ -1400,7 +1400,7 @@ class TestEndToEndInvestorJourney:
             assert holding_resp.status_code in (200, 201)
 
             # 2. Browse investor recommendations
-            recs_resp = await client.get("/matching/investor/recommendations")
+            recs_resp = await client.get("/v1/matching/investor/recommendations")
             assert recs_resp.status_code == 200
 
             # 3. Calculate investor signal score
@@ -1451,7 +1451,7 @@ class TestEndToEndInvestorJourney:
                     data_sources={"portfolios": 1, "mandates": 1, "holdings": 1, "risk_assessments": 0, "personas": 0, "users": 1},
                 )
 
-                score_resp = await client.post("/investor-signal-score/calculate")
+                score_resp = await client.post("/v1/investor-signal-score/calculate")
             assert score_resp.status_code == 201
             body = score_resp.json()
             assert 0 <= body["overall_score"] <= 100
@@ -1492,7 +1492,7 @@ class TestInvestorSignalScore:
 
     async def test_no_score_returns_404(self, db: AsyncSession, seeded: dict):
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.get("/investor-signal-score")
+            resp = await client.get("/v1/investor-signal-score")
         app.dependency_overrides.clear()
         assert resp.status_code == 404
 
@@ -1547,7 +1547,7 @@ class TestInvestorSignalScore:
             return_value=mock_result,
         ):
             async with await _make_client(INVESTOR_USER, db) as client:
-                resp = await client.post("/investor-signal-score/calculate")
+                resp = await client.post("/v1/investor-signal-score/calculate")
             app.dependency_overrides.clear()
 
         assert resp.status_code == 201
@@ -1597,7 +1597,7 @@ class TestInvestorSignalScore:
                         "estimated_impact": 4.0,
                         "effort_level": "low",
                         "category": "risk_management",
-                        "link_to": "/investor/risk",
+                        "link_to": "/v1/investor/risk",
                     }
                 ],
                 "factors": [],
@@ -1609,7 +1609,7 @@ class TestInvestorSignalScore:
         await db.flush()
 
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.get("/investor-signal-score/improvement-plan")
+            resp = await client.get("/v1/investor-signal-score/improvement-plan")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -1646,7 +1646,7 @@ class TestInvestorSignalScore:
         await db.flush()
 
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.get("/investor-signal-score/benchmark")
+            resp = await client.get("/v1/investor-signal-score/benchmark")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -1699,8 +1699,8 @@ class TestLiveScoring:
         await db.flush()
 
         async with await _make_client(ALLY_USER, db) as client:
-            min_resp = await client.post(f"/signal-score/{minimal.id}/live")
-            full_resp = await client.post(f"/signal-score/{full.id}/live")
+            min_resp = await client.post(f"/v1/signal-score/{minimal.id}/live")
+            full_resp = await client.post(f"/v1/signal-score/{full.id}/live")
         app.dependency_overrides.clear()
 
         assert min_resp.status_code == 200
@@ -1715,7 +1715,7 @@ class TestBoardAdvisor:
 
     async def test_list_advisors(self, db: AsyncSession, ally_user: User):
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get("/board-advisors/search")
+            resp = await client.get("/v1/board-advisors/search")
         app.dependency_overrides.clear()
         assert resp.status_code == 200
 
@@ -1724,7 +1724,7 @@ class TestBoardAdvisor:
     ):
         async with await _make_client(INVESTOR_USER, db) as client:
             resp = await client.post(
-                "/board-advisors/my-profile",
+                "/v1/board-advisors/my-profile",
                 json={
                     "full_name": "Dr. Elena Vasquez",
                     "title": "Chief Investment Officer",
@@ -1749,7 +1749,7 @@ class TestBoardAdvisor:
         self, db: AsyncSession, ally_user: User
     ):
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get("/board-advisors/search?expertise=solar")
+            resp = await client.get("/v1/board-advisors/search?expertise=solar")
         app.dependency_overrides.clear()
         assert resp.status_code == 200
 
@@ -1766,7 +1766,7 @@ class TestInvestorPersonas:
     async def test_create_persona(self, db: AsyncSession, seeded: dict):
         async with await _make_client(INVESTOR_USER, db) as client:
             resp = await client.post(
-                "/investor-personas",
+                "/v1/investor-personas",
                 json={
                     "persona_name": "Conservative LATAM Renewable Investor",
                     "strategy_type": "conservative",
@@ -1797,7 +1797,7 @@ class TestInvestorPersonas:
         await db.flush()
 
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.get("/investor-personas")
+            resp = await client.get("/v1/investor-personas")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -1822,7 +1822,7 @@ class TestEquityCalculator:
 
         async with await _make_client(ALLY_USER, db) as client:
             resp = await client.post(
-                "/equity-calculator/scenarios",
+                "/v1/equity-calculator/scenarios",
                 json={
                     "project_id": str(project_id),
                     "scenario_name": "Base Case",
@@ -1850,7 +1850,7 @@ class TestEquityCalculator:
 
         async with await _make_client(ALLY_USER, db) as client:
             resp = await client.post(
-                "/equity-calculator/scenarios",
+                "/v1/equity-calculator/scenarios",
                 json={
                     "project_id": str(project_id),
                     "scenario_name": "5x Exit Scenarios",
@@ -1908,7 +1908,7 @@ class TestCapitalEfficiency:
         portfolio_id = seeded["portfolio_id"]
 
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.get(f"/capital-efficiency?portfolio_id={portfolio_id}")
+            resp = await client.get(f"/v1/capital-efficiency?portfolio_id={portfolio_id}")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -2003,7 +2003,7 @@ class TestMultiTenantIsolation:
 
         # Investor tries to access ally's project score — should fail (403 or 404)
         async with await _make_client(INVESTOR_USER, db) as client:
-            resp = await client.get(f"/signal-score/{sample_project.id}")
+            resp = await client.get(f"/v1/signal-score/{sample_project.id}")
         app.dependency_overrides.clear()
 
         # Investor does not own this project → must not see the score
@@ -2023,7 +2023,7 @@ class TestMultiTenantIsolation:
 
         # Ally lists their conversations — investor conv should NOT appear
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get("/ralph/conversations")
+            resp = await client.get("/v1/ralph/conversations")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 200
@@ -2062,7 +2062,7 @@ class TestMultiTenantIsolation:
 
         # Ally tries to access the investor signal score endpoint — 404 (no ally score)
         async with await _make_client(ALLY_USER, db) as client:
-            resp = await client.get("/investor-signal-score")
+            resp = await client.get("/v1/investor-signal-score")
         app.dependency_overrides.clear()
 
         assert resp.status_code == 404  # Ally has no score; investor's score is invisible
@@ -2087,7 +2087,7 @@ class TestRBACEnforcement:
         with patch("app.modules.signal_score.tasks.calculate_signal_score_task.delay"):
             async with await _make_client(viewer, db) as client:
                 resp = await client.post(
-                    f"/signal-score/calculate/{sample_project.id}"
+                    f"/v1/signal-score/calculate/{sample_project.id}"
                 )
             app.dependency_overrides.clear()
 
@@ -2099,7 +2099,7 @@ class TestRBACEnforcement:
         with patch("app.modules.signal_score.tasks.calculate_signal_score_task.delay"):
             async with await _make_client(ALLY_USER, db) as client:
                 resp = await client.post(
-                    f"/signal-score/calculate/{sample_project.id}"
+                    f"/v1/signal-score/calculate/{sample_project.id}"
                 )
             app.dependency_overrides.clear()
 
@@ -2126,7 +2126,7 @@ class TestRBACEnforcement:
 
         # Ralph delete uses get_current_user — viewer's token should work but only their convs
         async with await _make_client(viewer, db) as client:
-            resp = await client.delete(f"/ralph/conversations/{conv.id}")
+            resp = await client.delete(f"/v1/ralph/conversations/{conv.id}")
         app.dependency_overrides.clear()
 
         # Viewer did not create this conv — 404 (not 403; user simply can't see it)

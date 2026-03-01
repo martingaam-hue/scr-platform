@@ -288,7 +288,7 @@ class TestOnboardingEndpoint:
         self, authenticated_client, sample_user
     ):
         response = await authenticated_client.put(
-            "/onboarding/complete",
+            "/v1/onboarding/complete",
             json={
                 "org_type": "investor",
                 "org_name": "API Test Capital",
@@ -309,7 +309,7 @@ class TestOnboardingEndpoint:
         self, authenticated_client, sample_user
     ):
         response = await authenticated_client.put(
-            "/onboarding/complete",
+            "/v1/onboarding/complete",
             json={
                 "org_type": "ally",
                 "org_name": "API Test GreenTech",
@@ -333,7 +333,7 @@ class TestOnboardingEndpoint:
         self, authenticated_client, sample_user
     ):
         response = await authenticated_client.put(
-            "/onboarding/complete",
+            "/v1/onboarding/complete",
             json={
                 "org_type": "ally",
                 "org_name": "API Test GreenTech",
@@ -350,7 +350,7 @@ class TestOnboardingEndpoint:
         self, authenticated_client, sample_user
     ):
         response = await authenticated_client.put(
-            "/onboarding/complete",
+            "/v1/onboarding/complete",
             json={
                 "org_type": "investor",
                 "preferences": {},
@@ -362,7 +362,7 @@ class TestOnboardingEndpoint:
         self, authenticated_client, sample_user
     ):
         response = await authenticated_client.put(
-            "/onboarding/complete",
+            "/v1/onboarding/complete",
             json={
                 "org_type": "unknown",
                 "org_name": "Bad Type Corp",
@@ -373,7 +373,7 @@ class TestOnboardingEndpoint:
 
     async def test_unauthenticated_returns_403(self, client):
         response = await client.put(
-            "/onboarding/complete",
+            "/v1/onboarding/complete",
             json={
                 "org_type": "investor",
                 "org_name": "Unauth Corp",
@@ -386,7 +386,7 @@ class TestOnboardingEndpoint:
         self, authenticated_client, sample_user
     ):
         response = await authenticated_client.put(
-            "/onboarding/complete",
+            "/v1/onboarding/complete",
             json={
                 "org_type": "investor",
                 "org_name": "",

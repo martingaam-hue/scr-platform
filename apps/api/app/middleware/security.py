@@ -152,10 +152,13 @@ class RateLimitMiddleware:
             client = scope.get("client")
             ip = client[0] if client else "unknown"
 
+        # Strip version prefix for consistent rule/segment matching
+        effective_path = path[3:] if path.startswith("/v1") else path
+
         # Match rate rule
         limit, window = _DEFAULT_RATE
         for prefix, r_lim, r_win in _RATE_RULES:
-            if path.startswith(prefix):
+            if effective_path.startswith(prefix):
                 limit, window = r_lim, r_win
                 break
 
@@ -165,7 +168,7 @@ class RateLimitMiddleware:
         try:
             redis = self._client()
             # Group by top-level path segment to avoid key explosion
-            segment = path.split("/")[1] if "/" in path[1:] else path.lstrip("/")
+            segment = effective_path.split("/")[1] if "/" in effective_path[1:] else effective_path.lstrip("/")
             key = f"rl:{ip}:{segment}"
             now = time.time()
             window_start = now - window

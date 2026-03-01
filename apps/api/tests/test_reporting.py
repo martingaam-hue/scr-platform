@@ -356,7 +356,7 @@ class TestScheduleService:
 
 class TestTemplateEndpoints:
     async def test_list_templates(self, test_client: AsyncClient):
-        resp = await test_client.get("/reports/templates")
+        resp = await test_client.get("/v1/reports/templates")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] >= 2
@@ -365,20 +365,20 @@ class TestTemplateEndpoints:
         assert "Org Template" in names
 
     async def test_list_templates_filter(self, test_client: AsyncClient):
-        resp = await test_client.get("/reports/templates?category=performance")
+        resp = await test_client.get("/v1/reports/templates?category=performance")
         assert resp.status_code == 200
         data = resp.json()
         assert all(t["category"] == "performance" for t in data["items"])
 
     async def test_get_template(self, test_client: AsyncClient, seed_data):
         tmpl_id = str(seed_data["sys_tmpl"].id)
-        resp = await test_client.get(f"/reports/templates/{tmpl_id}")
+        resp = await test_client.get(f"/v1/reports/templates/{tmpl_id}")
         assert resp.status_code == 200
         assert resp.json()["name"] == "System Template"
 
     async def test_get_template_not_found(self, test_client: AsyncClient):
         fake_id = str(uuid.uuid4())
-        resp = await test_client.get(f"/reports/templates/{fake_id}")
+        resp = await test_client.get(f"/v1/reports/templates/{fake_id}")
         assert resp.status_code == 404
 
 
@@ -387,7 +387,7 @@ class TestGenerateEndpoint:
     async def test_generate_report_202(self, mock_task, test_client: AsyncClient, seed_data):
         mock_task.delay = MagicMock()
         tmpl_id = str(seed_data["sys_tmpl"].id)
-        resp = await test_client.post("/reports/generate", json={
+        resp = await test_client.post("/v1/reports/generate", json={
             "template_id": tmpl_id,
             "parameters": {"date_from": "2025-01-01"},
             "output_format": "xlsx",
@@ -398,7 +398,7 @@ class TestGenerateEndpoint:
         assert "report_id" in data
 
     async def test_generate_invalid_template(self, test_client: AsyncClient):
-        resp = await test_client.post("/reports/generate", json={
+        resp = await test_client.post("/v1/reports/generate", json={
             "template_id": str(uuid.uuid4()),
             "parameters": {},
         })
@@ -407,7 +407,7 @@ class TestGenerateEndpoint:
 
 class TestReportEndpoints:
     async def test_list_reports(self, test_client: AsyncClient):
-        resp = await test_client.get("/reports")
+        resp = await test_client.get("/v1/reports")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] >= 2
@@ -415,7 +415,7 @@ class TestReportEndpoints:
         assert "total_pages" in data
 
     async def test_list_reports_pagination(self, test_client: AsyncClient):
-        resp = await test_client.get("/reports?page=1&page_size=1")
+        resp = await test_client.get("/v1/reports?page=1&page_size=1")
         assert resp.status_code == 200
         data = resp.json()
         assert len(data["items"]) == 1
@@ -427,7 +427,7 @@ class TestReportEndpoints:
         mock_s3.return_value = mock_client
 
         report_id = str(seed_data["report"].id)
-        resp = await test_client.get(f"/reports/{report_id}")
+        resp = await test_client.get(f"/v1/reports/{report_id}")
         assert resp.status_code == 200
         data = resp.json()
         assert data["title"] == "Test Report"
@@ -435,23 +435,23 @@ class TestReportEndpoints:
 
     async def test_delete_report(self, test_client: AsyncClient, seed_data):
         report_id = str(seed_data["queued_report"].id)
-        resp = await test_client.delete(f"/reports/{report_id}")
+        resp = await test_client.delete(f"/v1/reports/{report_id}")
         assert resp.status_code == 204
 
     async def test_delete_report_not_found(self, test_client: AsyncClient):
-        resp = await test_client.delete(f"/reports/{uuid.uuid4()}")
+        resp = await test_client.delete(f"/v1/reports/{uuid.uuid4()}")
         assert resp.status_code == 404
 
 
 class TestScheduleEndpoints:
     async def test_list_schedules(self, test_client: AsyncClient):
-        resp = await test_client.get("/reports/schedules")
+        resp = await test_client.get("/v1/reports/schedules")
         assert resp.status_code == 200
         assert resp.json()["total"] >= 1
 
     async def test_create_schedule(self, test_client: AsyncClient, seed_data):
         tmpl_id = str(seed_data["sys_tmpl"].id)
-        resp = await test_client.post("/reports/schedules", json={
+        resp = await test_client.post("/v1/reports/schedules", json={
             "template_id": tmpl_id,
             "name": "Monthly ESG",
             "frequency": "monthly",
@@ -464,7 +464,7 @@ class TestScheduleEndpoints:
 
     async def test_update_schedule(self, test_client: AsyncClient, seed_data):
         schedule_id = str(seed_data["schedule"].id)
-        resp = await test_client.put(f"/reports/schedules/{schedule_id}", json={
+        resp = await test_client.put(f"/v1/reports/schedules/{schedule_id}", json={
             "name": "Renamed Schedule",
             "is_active": False,
         })
@@ -474,11 +474,11 @@ class TestScheduleEndpoints:
 
     async def test_delete_schedule(self, test_client: AsyncClient, seed_data):
         schedule_id = str(seed_data["schedule"].id)
-        resp = await test_client.delete(f"/reports/schedules/{schedule_id}")
+        resp = await test_client.delete(f"/v1/reports/schedules/{schedule_id}")
         assert resp.status_code == 204
 
     async def test_delete_schedule_not_found(self, test_client: AsyncClient):
-        resp = await test_client.delete(f"/reports/schedules/{uuid.uuid4()}")
+        resp = await test_client.delete(f"/v1/reports/schedules/{uuid.uuid4()}")
         assert resp.status_code == 404
 
 
@@ -487,16 +487,16 @@ class TestScheduleEndpoints:
 
 class TestRBAC:
     async def test_viewer_can_list_templates(self, viewer_client: AsyncClient):
-        resp = await viewer_client.get("/reports/templates")
+        resp = await viewer_client.get("/v1/reports/templates")
         assert resp.status_code == 200
 
     async def test_viewer_can_list_reports(self, viewer_client: AsyncClient):
-        resp = await viewer_client.get("/reports")
+        resp = await viewer_client.get("/v1/reports")
         assert resp.status_code == 200
 
     async def test_viewer_cannot_generate(self, viewer_client: AsyncClient, seed_data):
         tmpl_id = str(seed_data["sys_tmpl"].id)
-        resp = await viewer_client.post("/reports/generate", json={
+        resp = await viewer_client.post("/v1/reports/generate", json={
             "template_id": tmpl_id,
             "parameters": {},
         })
@@ -504,14 +504,14 @@ class TestRBAC:
 
     async def test_viewer_cannot_delete(self, viewer_client: AsyncClient, seed_data):
         report_id = str(seed_data["report"].id)
-        resp = await viewer_client.delete(f"/reports/{report_id}")
+        resp = await viewer_client.delete(f"/v1/reports/{report_id}")
         assert resp.status_code == 403
 
     async def test_analyst_can_generate(self, analyst_client: AsyncClient, seed_data):
         tmpl_id = str(seed_data["sys_tmpl"].id)
         with patch("app.modules.reporting.tasks.generate_report_task") as mock_task:
             mock_task.delay = MagicMock()
-            resp = await analyst_client.post("/reports/generate", json={
+            resp = await analyst_client.post("/v1/reports/generate", json={
                 "template_id": tmpl_id,
                 "parameters": {},
                 "output_format": "pdf",
@@ -520,7 +520,7 @@ class TestRBAC:
 
     async def test_analyst_cannot_delete(self, analyst_client: AsyncClient, seed_data):
         report_id = str(seed_data["report"].id)
-        resp = await analyst_client.delete(f"/reports/{report_id}")
+        resp = await analyst_client.delete(f"/v1/reports/{report_id}")
         assert resp.status_code == 403
 
 

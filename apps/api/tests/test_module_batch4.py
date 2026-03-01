@@ -208,7 +208,7 @@ class TestComparableTransactions:
 
     async def test_list_comps_empty_200(self, b4_client: AsyncClient, b4_user: User):
         """List comps returns paginated structure when empty."""
-        resp = await b4_client.get("/comps")
+        resp = await b4_client.get("/v1/comps")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data
@@ -218,7 +218,7 @@ class TestComparableTransactions:
     async def test_create_comp_201(self, b4_client: AsyncClient, b4_user: User):
         """Create a new comparable transaction returns 201 with correct fields."""
         resp = await b4_client.post(
-            "/comps",
+            "/v1/comps",
             json={
                 "deal_name": "Test Solar Deal Germany",
                 "asset_type": "solar",
@@ -244,7 +244,7 @@ class TestComparableTransactions:
     async def test_get_comp_by_id_200(self, b4_client: AsyncClient, b4_user: User):
         """Create then GET a comp by its ID returns 200 with matching data."""
         create_resp = await b4_client.post(
-            "/comps",
+            "/v1/comps",
             json={
                 "deal_name": "Wind Farm UK 2022",
                 "asset_type": "wind",
@@ -259,7 +259,7 @@ class TestComparableTransactions:
         assert create_resp.status_code == 201
         comp_id = create_resp.json()["id"]
 
-        get_resp = await b4_client.get(f"/comps/{comp_id}")
+        get_resp = await b4_client.get(f"/v1/comps/{comp_id}")
         assert get_resp.status_code == 200
         data = get_resp.json()
         assert data["id"] == comp_id
@@ -268,13 +268,13 @@ class TestComparableTransactions:
 
     async def test_get_comp_not_found_404(self, b4_client: AsyncClient, b4_user: User):
         """GET on a non-existent comp ID returns 404."""
-        resp = await b4_client.get(f"/comps/{uuid.uuid4()}")
+        resp = await b4_client.get(f"/v1/comps/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_update_comp_200(self, b4_client: AsyncClient, b4_user: User):
         """Update an existing comp returns 200 with updated fields."""
         create_resp = await b4_client.post(
-            "/comps",
+            "/v1/comps",
             json={
                 "deal_name": "Hydro Project Update Test",
                 "asset_type": "hydro",
@@ -285,7 +285,7 @@ class TestComparableTransactions:
         comp_id = create_resp.json()["id"]
 
         put_resp = await b4_client.put(
-            f"/comps/{comp_id}",
+            f"/v1/comps/{comp_id}",
             json={"data_quality": "confirmed", "deal_size_eur": 15000000.0},
         )
         assert put_resp.status_code == 200, put_resp.text
@@ -296,7 +296,7 @@ class TestComparableTransactions:
     async def test_delete_comp_204(self, b4_client: AsyncClient, b4_user: User):
         """Delete a comp returns 204 and subsequent GET returns 404."""
         create_resp = await b4_client.post(
-            "/comps",
+            "/v1/comps",
             json={
                 "deal_name": "Delete Me Comp",
                 "asset_type": "hydro",
@@ -306,11 +306,11 @@ class TestComparableTransactions:
         assert create_resp.status_code == 201
         comp_id = create_resp.json()["id"]
 
-        del_resp = await b4_client.delete(f"/comps/{comp_id}")
+        del_resp = await b4_client.delete(f"/v1/comps/{comp_id}")
         assert del_resp.status_code == 204
 
         # Subsequent GET should 404
-        get_resp = await b4_client.get(f"/comps/{comp_id}")
+        get_resp = await b4_client.get(f"/v1/comps/{comp_id}")
         assert get_resp.status_code == 404
 
 
@@ -326,14 +326,14 @@ class TestTaxCredits:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """GET inventory for unknown portfolio returns 404."""
-        resp = await b4_client.get(f"/tax-credits/inventory/{uuid.uuid4()}")
+        resp = await b4_client.get(f"/v1/tax-credits/inventory/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_get_inventory_200_known_portfolio(
         self, b4_client: AsyncClient, b4_portfolio: Portfolio
     ):
         """GET inventory for known portfolio returns 200 with correct structure."""
-        resp = await b4_client.get(f"/tax-credits/inventory/{B4_PORTFOLIO_ID}")
+        resp = await b4_client.get(f"/v1/tax-credits/inventory/{B4_PORTFOLIO_ID}")
         assert resp.status_code == 200
         data = resp.json()
         assert "portfolio_id" in data
@@ -346,14 +346,14 @@ class TestTaxCredits:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """Identify credits for unknown project returns 404."""
-        resp = await b4_client.post(f"/tax-credits/identify/{uuid.uuid4()}")
+        resp = await b4_client.post(f"/v1/tax-credits/identify/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_identify_credits_201(
         self, b4_client: AsyncClient, b4_project: Project
     ):
         """Identify credits for known project returns 201 with identified list."""
-        resp = await b4_client.post(f"/tax-credits/identify/{B4_PROJECT_ID}")
+        resp = await b4_client.post(f"/v1/tax-credits/identify/{B4_PROJECT_ID}")
         assert resp.status_code == 201, resp.text
         data = resp.json()
         assert "project_id" in data
@@ -366,14 +366,14 @@ class TestTaxCredits:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """GET summary for unknown entity returns 404."""
-        resp = await b4_client.get(f"/tax-credits/summary/{uuid.uuid4()}")
+        resp = await b4_client.get(f"/v1/tax-credits/summary/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_get_summary_200_portfolio(
         self, b4_client: AsyncClient, b4_portfolio: Portfolio
     ):
         """GET summary for known portfolio returns 200 with expected structure."""
-        resp = await b4_client.get(f"/tax-credits/summary/{B4_PORTFOLIO_ID}")
+        resp = await b4_client.get(f"/v1/tax-credits/summary/{B4_PORTFOLIO_ID}")
         assert resp.status_code == 200
         data = resp.json()
         assert "entity_id" in data
@@ -392,7 +392,7 @@ class TestStressTest:
 
     async def test_list_scenarios_200(self, b4_client: AsyncClient, b4_user: User):
         """GET scenarios returns a list of predefined scenario objects."""
-        resp = await b4_client.get("/stress-test/scenarios")
+        resp = await b4_client.get("/v1/stress-test/scenarios")
         assert resp.status_code == 200
         items = resp.json()
         assert isinstance(items, list)
@@ -407,7 +407,7 @@ class TestStressTest:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """Predefined scenarios include expected scenario keys."""
-        resp = await b4_client.get("/stress-test/scenarios")
+        resp = await b4_client.get("/v1/stress-test/scenarios")
         assert resp.status_code == 200
         items = resp.json()
         keys = {s["key"] for s in items}
@@ -420,7 +420,7 @@ class TestStressTest:
     ):
         """Run a stress test for a portfolio with holdings returns 201 with results."""
         resp = await b4_client.post(
-            "/stress-test/run",
+            "/v1/stress-test/run",
             json={
                 "portfolio_id": str(B4_PORTFOLIO_ID),
                 "scenario_key": "rate_shock_100",
@@ -444,7 +444,7 @@ class TestStressTest:
     ):
         """Run a stress test for a portfolio with no holdings returns 400."""
         resp = await b4_client.post(
-            "/stress-test/run",
+            "/v1/stress-test/run",
             json={
                 "portfolio_id": str(B4_PORTFOLIO_ID),
                 "scenario_key": "combined_downturn",
@@ -458,7 +458,7 @@ class TestStressTest:
     ):
         """Create then GET a stress test run by ID."""
         run_resp = await b4_client.post(
-            "/stress-test/run",
+            "/v1/stress-test/run",
             json={
                 "portfolio_id": str(B4_PORTFOLIO_ID),
                 "scenario_key": "energy_crash_30",
@@ -468,7 +468,7 @@ class TestStressTest:
         assert run_resp.status_code == 201
         run_id = run_resp.json()["id"]
 
-        get_resp = await b4_client.get(f"/stress-test/{run_id}")
+        get_resp = await b4_client.get(f"/v1/stress-test/{run_id}")
         assert get_resp.status_code == 200
         data = get_resp.json()
         assert data["id"] == run_id
@@ -478,14 +478,14 @@ class TestStressTest:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """GET for unknown run_id returns 404."""
-        resp = await b4_client.get(f"/stress-test/{uuid.uuid4()}")
+        resp = await b4_client.get(f"/v1/stress-test/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_list_stress_tests_for_portfolio_200(
         self, b4_client: AsyncClient, b4_portfolio: Portfolio
     ):
         """List stress test runs for a portfolio returns paginated structure."""
-        resp = await b4_client.get(f"/stress-test/portfolio/{B4_PORTFOLIO_ID}")
+        resp = await b4_client.get(f"/v1/stress-test/portfolio/{B4_PORTFOLIO_ID}")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data
@@ -505,7 +505,7 @@ class TestDealRooms:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """List deal rooms returns empty list when none exist."""
-        resp = await b4_client.get("/deal-rooms/")
+        resp = await b4_client.get("/v1/deal-rooms/")
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
@@ -515,7 +515,7 @@ class TestDealRooms:
     ):
         """Create a deal room returns 201 with room data."""
         resp = await b4_client.post(
-            "/deal-rooms/",
+            "/v1/deal-rooms/",
             json={
                 "project_id": str(B4_PROJECT_ID),
                 "name": "Test Deal Room Alpha",
@@ -535,7 +535,7 @@ class TestDealRooms:
     ):
         """Create then GET a deal room by ID."""
         create_resp = await b4_client.post(
-            "/deal-rooms/",
+            "/v1/deal-rooms/",
             json={
                 "project_id": str(B4_PROJECT_ID),
                 "name": "Detail Test Room",
@@ -544,7 +544,7 @@ class TestDealRooms:
         assert create_resp.status_code == 201
         room_id = create_resp.json()["id"]
 
-        get_resp = await b4_client.get(f"/deal-rooms/{room_id}")
+        get_resp = await b4_client.get(f"/v1/deal-rooms/{room_id}")
         assert get_resp.status_code == 200
         data = get_resp.json()
         assert data["id"] == room_id
@@ -558,7 +558,7 @@ class TestDealRooms:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """GET on an unknown room returns 404."""
-        resp = await b4_client.get(f"/deal-rooms/{uuid.uuid4()}")
+        resp = await b4_client.get(f"/v1/deal-rooms/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_send_message_201(
@@ -566,7 +566,7 @@ class TestDealRooms:
     ):
         """Send a message to a deal room returns 201 with message data."""
         create_resp = await b4_client.post(
-            "/deal-rooms/",
+            "/v1/deal-rooms/",
             json={
                 "project_id": str(B4_PROJECT_ID),
                 "name": "Message Test Room",
@@ -576,7 +576,7 @@ class TestDealRooms:
         room_id = create_resp.json()["id"]
 
         msg_resp = await b4_client.post(
-            f"/deal-rooms/{room_id}/messages",
+            f"/v1/deal-rooms/{room_id}/messages",
             json={"content": "Hello from the deal room test!"},
         )
         assert msg_resp.status_code == 201, msg_resp.text
@@ -590,7 +590,7 @@ class TestDealRooms:
     ):
         """GET messages for a deal room returns a list."""
         create_resp = await b4_client.post(
-            "/deal-rooms/",
+            "/v1/deal-rooms/",
             json={
                 "project_id": str(B4_PROJECT_ID),
                 "name": "Messages List Room",
@@ -601,11 +601,11 @@ class TestDealRooms:
 
         # Send one message first
         await b4_client.post(
-            f"/deal-rooms/{room_id}/messages",
+            f"/v1/deal-rooms/{room_id}/messages",
             json={"content": "Test message for list"},
         )
 
-        resp = await b4_client.get(f"/deal-rooms/{room_id}/messages")
+        resp = await b4_client.get(f"/v1/deal-rooms/{room_id}/messages")
         assert resp.status_code == 200
         items = resp.json()
         assert isinstance(items, list)
@@ -624,7 +624,7 @@ class TestMeetingPrep:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """List briefings returns paginated structure when empty."""
-        resp = await b4_client.get("/meeting-prep/briefings")
+        resp = await b4_client.get("/v1/meeting-prep/briefings")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data
@@ -637,7 +637,7 @@ class TestMeetingPrep:
     ):
         """Generate a meeting prep briefing returns 201 with briefing data."""
         resp = await b4_client.post(
-            "/meeting-prep/briefings",
+            "/v1/meeting-prep/briefings",
             json={
                 "project_id": str(B4_PROJECT_ID),
                 "meeting_type": "screening",
@@ -657,7 +657,7 @@ class TestMeetingPrep:
     ):
         """Create then GET a briefing by ID."""
         create_resp = await b4_client.post(
-            "/meeting-prep/briefings",
+            "/v1/meeting-prep/briefings",
             json={
                 "project_id": str(B4_PROJECT_ID),
                 "meeting_type": "dd_review",
@@ -666,7 +666,7 @@ class TestMeetingPrep:
         assert create_resp.status_code == 201
         briefing_id = create_resp.json()["id"]
 
-        get_resp = await b4_client.get(f"/meeting-prep/briefings/{briefing_id}")
+        get_resp = await b4_client.get(f"/v1/meeting-prep/briefings/{briefing_id}")
         assert get_resp.status_code == 200
         data = get_resp.json()
         assert data["id"] == briefing_id
@@ -676,7 +676,7 @@ class TestMeetingPrep:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """GET on unknown briefing ID returns 404."""
-        resp = await b4_client.get(f"/meeting-prep/briefings/{uuid.uuid4()}")
+        resp = await b4_client.get(f"/v1/meeting-prep/briefings/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     @pytest.mark.skip(reason="Depends on test_generate_briefing_201 which is skipped")
@@ -685,7 +685,7 @@ class TestMeetingPrep:
     ):
         """List briefings filtered by project_id returns only that project's briefings."""
         create_resp = await b4_client.post(
-            "/meeting-prep/briefings",
+            "/v1/meeting-prep/briefings",
             json={
                 "project_id": str(B4_PROJECT_ID),
                 "meeting_type": "follow_up",
@@ -694,7 +694,7 @@ class TestMeetingPrep:
         assert create_resp.status_code == 201
 
         list_resp = await b4_client.get(
-            "/meeting-prep/briefings",
+            "/v1/meeting-prep/briefings",
             params={"project_id": str(B4_PROJECT_ID)},
         )
         assert list_resp.status_code == 200
@@ -715,7 +715,7 @@ class TestWatchlists:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """List watchlists returns empty list when none exist."""
-        resp = await b4_client.get("/watchlists/")
+        resp = await b4_client.get("/v1/watchlists/")
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
@@ -725,7 +725,7 @@ class TestWatchlists:
     ):
         """Create a watchlist returns 201 with watchlist data."""
         resp = await b4_client.post(
-            "/watchlists/",
+            "/v1/watchlists/",
             json={
                 "name": "Solar Projects Europe",
                 "watch_type": "new_projects",
@@ -746,7 +746,7 @@ class TestWatchlists:
     ):
         """A created watchlist appears in the list response."""
         create_resp = await b4_client.post(
-            "/watchlists/",
+            "/v1/watchlists/",
             json={
                 "name": "Risk Alert Watchlist",
                 "watch_type": "risk_alerts",
@@ -758,7 +758,7 @@ class TestWatchlists:
         assert create_resp.status_code == 201
         wl_id = create_resp.json()["id"]
 
-        list_resp = await b4_client.get("/watchlists/")
+        list_resp = await b4_client.get("/v1/watchlists/")
         assert list_resp.status_code == 200
         items = list_resp.json()
         ids = [w["id"] for w in items]
@@ -769,7 +769,7 @@ class TestWatchlists:
     ):
         """Delete a watchlist returns 204."""
         create_resp = await b4_client.post(
-            "/watchlists/",
+            "/v1/watchlists/",
             json={
                 "name": "Delete Me Watchlist",
                 "watch_type": "score_changes",
@@ -779,21 +779,21 @@ class TestWatchlists:
         assert create_resp.status_code == 201
         wl_id = create_resp.json()["id"]
 
-        del_resp = await b4_client.delete(f"/watchlists/{wl_id}")
+        del_resp = await b4_client.delete(f"/v1/watchlists/{wl_id}")
         assert del_resp.status_code == 204
 
     async def test_delete_watchlist_not_found_404(
         self, b4_client: AsyncClient, b4_user: User
     ):
         """DELETE on unknown watchlist returns 404."""
-        resp = await b4_client.delete(f"/watchlists/{uuid.uuid4()}")
+        resp = await b4_client.delete(f"/v1/watchlists/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_list_alerts_empty_200(
         self, b4_client: AsyncClient, b4_user: User
     ):
         """List alerts returns correct structure when no alerts exist."""
-        resp = await b4_client.get("/watchlists/alerts")
+        resp = await b4_client.get("/v1/watchlists/alerts")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data
@@ -814,7 +814,7 @@ class TestWarmIntros:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """List connections returns empty list when none exist."""
-        resp = await b4_client.get("/warm-intros/connections")
+        resp = await b4_client.get("/v1/warm-intros/connections")
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
@@ -824,7 +824,7 @@ class TestWarmIntros:
     ):
         """Add a professional connection returns 201 with connection data."""
         resp = await b4_client.post(
-            "/warm-intros/connections",
+            "/v1/warm-intros/connections",
             json={
                 "connection_type": "co_investor",
                 "connected_org_name": "Green Capital Partners",
@@ -846,7 +846,7 @@ class TestWarmIntros:
     ):
         """Added connection appears in the list."""
         await b4_client.post(
-            "/warm-intros/connections",
+            "/v1/warm-intros/connections",
             json={
                 "connection_type": "advisor",
                 "connected_org_name": "Impact Advisory LLC",
@@ -854,7 +854,7 @@ class TestWarmIntros:
             },
         )
 
-        list_resp = await b4_client.get("/warm-intros/connections")
+        list_resp = await b4_client.get("/v1/warm-intros/connections")
         assert list_resp.status_code == 200
         items = list_resp.json()
         assert isinstance(items, list)
@@ -865,7 +865,7 @@ class TestWarmIntros:
         self, b4_client: AsyncClient, b4_user: User
     ):
         """List introduction requests returns empty list when none exist."""
-        resp = await b4_client.get("/warm-intros/requests")
+        resp = await b4_client.get("/v1/warm-intros/requests")
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
@@ -874,7 +874,7 @@ class TestWarmIntros:
         self, b4_client: AsyncClient, b4_project: Project
     ):
         """GET suggestions for a project returns response structure."""
-        resp = await b4_client.get(f"/warm-intros/suggestions/{B4_PROJECT_ID}")
+        resp = await b4_client.get(f"/v1/warm-intros/suggestions/{B4_PROJECT_ID}")
         assert resp.status_code == 200
         data = resp.json()
         assert "project_id" in data
@@ -888,7 +888,7 @@ class TestWarmIntros:
     ):
         """GET introduction paths for an investor returns response structure."""
         investor_id = uuid.uuid4()
-        resp = await b4_client.get(f"/warm-intros/paths/{investor_id}")
+        resp = await b4_client.get(f"/v1/warm-intros/paths/{investor_id}")
         assert resp.status_code == 200
         data = resp.json()
         assert "investor_id" in data

@@ -445,7 +445,7 @@ async def test_delete_budget_item(db: AsyncSession, seed_data, sample_project):
 
 @pytest.mark.asyncio
 async def test_api_create_project(test_client: AsyncClient):
-    resp = await test_client.post("/projects", json={
+    resp = await test_client.post("/v1/projects", json={
         "name": "API Test Project",
         "project_type": "solar",
         "geography_country": "Germany",
@@ -461,7 +461,7 @@ async def test_api_create_project(test_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_api_list_projects(test_client: AsyncClient, sample_project):
-    resp = await test_client.get("/projects")
+    resp = await test_client.get("/v1/projects")
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] >= 1
@@ -470,7 +470,7 @@ async def test_api_list_projects(test_client: AsyncClient, sample_project):
 
 @pytest.mark.asyncio
 async def test_api_list_projects_with_filters(test_client: AsyncClient, sample_project):
-    resp = await test_client.get("/projects", params={
+    resp = await test_client.get("/v1/projects", params={
         "status": "active",
         "type": "solar",
         "geography": "Spain",
@@ -482,7 +482,7 @@ async def test_api_list_projects_with_filters(test_client: AsyncClient, sample_p
 
 @pytest.mark.asyncio
 async def test_api_get_project_detail(test_client: AsyncClient, sample_project):
-    resp = await test_client.get(f"/projects/{sample_project.id}")
+    resp = await test_client.get(f"/v1/projects/{sample_project.id}")
     assert resp.status_code == 200
     data = resp.json()
     assert data["id"] == str(sample_project.id)
@@ -494,13 +494,13 @@ async def test_api_get_project_detail(test_client: AsyncClient, sample_project):
 
 @pytest.mark.asyncio
 async def test_api_get_project_not_found(test_client: AsyncClient):
-    resp = await test_client.get(f"/projects/{uuid.uuid4()}")
+    resp = await test_client.get(f"/v1/projects/{uuid.uuid4()}")
     assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_api_update_project(test_client: AsyncClient, sample_project):
-    resp = await test_client.put(f"/projects/{sample_project.id}", json={
+    resp = await test_client.put(f"/v1/projects/{sample_project.id}", json={
         "name": "Updated Solar Farm",
     })
     assert resp.status_code == 200
@@ -509,16 +509,16 @@ async def test_api_update_project(test_client: AsyncClient, sample_project):
 
 @pytest.mark.asyncio
 async def test_api_delete_project(test_client: AsyncClient, sample_project):
-    resp = await test_client.delete(f"/projects/{sample_project.id}")
+    resp = await test_client.delete(f"/v1/projects/{sample_project.id}")
     assert resp.status_code == 204
     # Verify it's gone
-    resp2 = await test_client.get(f"/projects/{sample_project.id}")
+    resp2 = await test_client.get(f"/v1/projects/{sample_project.id}")
     assert resp2.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_api_publish_project(test_client: AsyncClient, sample_project):
-    resp = await test_client.put(f"/projects/{sample_project.id}/publish")
+    resp = await test_client.put(f"/v1/projects/{sample_project.id}/publish")
     assert resp.status_code == 200
     data = resp.json()
     assert data["is_published"] is True
@@ -526,7 +526,7 @@ async def test_api_publish_project(test_client: AsyncClient, sample_project):
 
 @pytest.mark.asyncio
 async def test_api_stats(test_client: AsyncClient, sample_project):
-    resp = await test_client.get("/projects/stats")
+    resp = await test_client.get("/v1/projects/stats")
     assert resp.status_code == 200
     data = resp.json()
     assert "total_projects" in data
@@ -539,7 +539,7 @@ async def test_api_stats(test_client: AsyncClient, sample_project):
 
 @pytest.mark.asyncio
 async def test_api_create_milestone(test_client: AsyncClient, sample_project):
-    resp = await test_client.post(f"/projects/{sample_project.id}/milestones", json={
+    resp = await test_client.post(f"/v1/projects/{sample_project.id}/milestones", json={
         "name": "API Milestone",
         "target_date": "2025-06-30",
         "description": "Test milestone",
@@ -556,7 +556,7 @@ async def test_api_list_milestones(test_client: AsyncClient, sample_project, db:
         db, sample_project.id, ORG_ID,
         name="M1", target_date=date(2025, 3, 1),
     )
-    resp = await test_client.get(f"/projects/{sample_project.id}/milestones")
+    resp = await test_client.get(f"/v1/projects/{sample_project.id}/milestones")
     assert resp.status_code == 200
     assert len(resp.json()) >= 1
 
@@ -568,7 +568,7 @@ async def test_api_update_milestone(test_client: AsyncClient, sample_project, db
         name="To Update", target_date=date(2025, 3, 1),
     )
     resp = await test_client.put(
-        f"/projects/{sample_project.id}/milestones/{m.id}",
+        f"/v1/projects/{sample_project.id}/milestones/{m.id}",
         json={"name": "Updated Milestone", "completion_pct": 75},
     )
     assert resp.status_code == 200
@@ -582,7 +582,7 @@ async def test_api_delete_milestone(test_client: AsyncClient, sample_project, db
         db, sample_project.id, ORG_ID,
         name="To Delete", target_date=date(2025, 3, 1),
     )
-    resp = await test_client.delete(f"/projects/{sample_project.id}/milestones/{m.id}")
+    resp = await test_client.delete(f"/v1/projects/{sample_project.id}/milestones/{m.id}")
     assert resp.status_code == 204
 
 
@@ -591,7 +591,7 @@ async def test_api_delete_milestone(test_client: AsyncClient, sample_project, db
 
 @pytest.mark.asyncio
 async def test_api_create_budget_item(test_client: AsyncClient, sample_project):
-    resp = await test_client.post(f"/projects/{sample_project.id}/budget", json={
+    resp = await test_client.post(f"/v1/projects/{sample_project.id}/budget", json={
         "category": "Equipment",
         "description": "Solar panels",
         "estimated_amount": "500000",
@@ -608,7 +608,7 @@ async def test_api_list_budget_items(test_client: AsyncClient, sample_project, d
         db, sample_project.id, ORG_ID,
         category="Labor", estimated_amount=Decimal("200000"),
     )
-    resp = await test_client.get(f"/projects/{sample_project.id}/budget")
+    resp = await test_client.get(f"/v1/projects/{sample_project.id}/budget")
     assert resp.status_code == 200
     assert len(resp.json()) >= 1
 
@@ -620,7 +620,7 @@ async def test_api_update_budget_item(test_client: AsyncClient, sample_project, 
         category="Equipment", estimated_amount=Decimal("500000"),
     )
     resp = await test_client.put(
-        f"/projects/{sample_project.id}/budget/{b.id}",
+        f"/v1/projects/{sample_project.id}/budget/{b.id}",
         json={"actual_amount": "480000", "status": "committed"},
     )
     assert resp.status_code == 200
@@ -633,7 +633,7 @@ async def test_api_delete_budget_item(test_client: AsyncClient, sample_project, 
         db, sample_project.id, ORG_ID,
         category="To Delete", estimated_amount=Decimal("1000"),
     )
-    resp = await test_client.delete(f"/projects/{sample_project.id}/budget/{b.id}")
+    resp = await test_client.delete(f"/v1/projects/{sample_project.id}/budget/{b.id}")
     assert resp.status_code == 204
 
 
@@ -642,7 +642,7 @@ async def test_api_delete_budget_item(test_client: AsyncClient, sample_project, 
 
 @pytest.mark.asyncio
 async def test_viewer_cannot_create_project(viewer_client: AsyncClient):
-    resp = await viewer_client.post("/projects", json={
+    resp = await viewer_client.post("/v1/projects", json={
         "name": "Viewer Project",
         "project_type": "solar",
         "geography_country": "Spain",
@@ -653,19 +653,19 @@ async def test_viewer_cannot_create_project(viewer_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_viewer_cannot_delete_project(viewer_client: AsyncClient, sample_project):
-    resp = await viewer_client.delete(f"/projects/{sample_project.id}")
+    resp = await viewer_client.delete(f"/v1/projects/{sample_project.id}")
     assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_viewer_can_list_projects(viewer_client: AsyncClient, sample_project):
-    resp = await viewer_client.get("/projects")
+    resp = await viewer_client.get("/v1/projects")
     assert resp.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_viewer_can_view_project(viewer_client: AsyncClient, sample_project):
-    resp = await viewer_client.get(f"/projects/{sample_project.id}")
+    resp = await viewer_client.get(f"/v1/projects/{sample_project.id}")
     assert resp.status_code == 200
 
 
@@ -730,7 +730,7 @@ async def test_project_detail_includes_signal_score(
     db.add(score)
     await db.flush()
 
-    resp = await test_client.get(f"/projects/{sample_project.id}")
+    resp = await test_client.get(f"/v1/projects/{sample_project.id}")
     assert resp.status_code == 200
     data = resp.json()
     assert data["latest_signal_score"] == 85

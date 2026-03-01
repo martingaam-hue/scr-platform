@@ -469,7 +469,7 @@ class TestSignalScoreAPI:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get(f"/signal-score/{PROJECT_ID}")
+            resp = await client.get(f"/v1/signal-score/{PROJECT_ID}")
             assert resp.status_code == 200
             data = resp.json()
             assert data["overall_score"] == 65
@@ -485,7 +485,7 @@ class TestSignalScoreAPI:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get(f"/signal-score/{PROJECT_ID}")
+            resp = await client.get(f"/v1/signal-score/{PROJECT_ID}")
             assert resp.status_code == 404
         finally:
             app.dependency_overrides.clear()
@@ -497,7 +497,7 @@ class TestSignalScoreAPI:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get(f"/signal-score/{PROJECT_ID}/details")
+            resp = await client.get(f"/v1/signal-score/{PROJECT_ID}/details")
             assert resp.status_code == 200
             data = resp.json()
             assert "dimensions" in data
@@ -514,7 +514,7 @@ class TestSignalScoreAPI:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get(f"/signal-score/{PROJECT_ID}/gaps")
+            resp = await client.get(f"/v1/signal-score/{PROJECT_ID}/gaps")
             assert resp.status_code == 200
             data = resp.json()
             assert data["total"] == 1
@@ -530,7 +530,7 @@ class TestSignalScoreAPI:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get(f"/signal-score/{PROJECT_ID}/history")
+            resp = await client.get(f"/v1/signal-score/{PROJECT_ID}/history")
             assert resp.status_code == 200
             data = resp.json()
             assert len(data["items"]) == 3
@@ -549,7 +549,7 @@ class TestSignalScoreAPI:
             with patch(
                 "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
             ):
-                resp = await client.post(f"/signal-score/calculate/{PROJECT_ID}")
+                resp = await client.post(f"/v1/signal-score/calculate/{PROJECT_ID}")
                 assert resp.status_code == 202
                 data = resp.json()
                 assert data["status"] == "pending"
@@ -567,7 +567,7 @@ class TestSignalScoreAPI:
             with patch(
                 "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
             ):
-                resp = await client.post(f"/signal-score/{PROJECT_ID}/recalculate")
+                resp = await client.post(f"/v1/signal-score/{PROJECT_ID}/recalculate")
                 assert resp.status_code == 202
         finally:
             app.dependency_overrides.clear()
@@ -580,7 +580,7 @@ class TestSignalScoreAPI:
         app.dependency_overrides[get_db] = lambda: db
         fake_id = uuid.UUID("00000000-0000-0000-0000-999999999999")
         try:
-            resp = await client.post(f"/signal-score/calculate/{fake_id}")
+            resp = await client.post(f"/v1/signal-score/calculate/{fake_id}")
             assert resp.status_code == 404
         finally:
             app.dependency_overrides.clear()
@@ -593,7 +593,7 @@ class TestSignalScoreAPI:
         app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.post(f"/signal-score/calculate/{PROJECT_ID}")
+            resp = await client.post(f"/v1/signal-score/calculate/{PROJECT_ID}")
             assert resp.status_code == 403
         finally:
             app.dependency_overrides.clear()
@@ -616,7 +616,7 @@ class TestSignalScoreAPI:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get(f"/signal-score/task/{task_log.id}")
+            resp = await client.get(f"/v1/signal-score/task/{task_log.id}")
             assert resp.status_code == 200
             data = resp.json()
             assert data["status"] == "processing"
@@ -631,7 +631,7 @@ class TestSignalScoreAPI:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get(f"/signal-score/task/{fake_id}")
+            resp = await client.get(f"/v1/signal-score/task/{fake_id}")
             assert resp.status_code == 404
         finally:
             app.dependency_overrides.clear()

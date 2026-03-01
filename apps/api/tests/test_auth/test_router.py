@@ -18,7 +18,7 @@ class TestWebhookEndpoint:
     async def test_webhook_without_signature_returns_error(self, client: AsyncClient):
         """Webhook without valid svix headers should fail (400 or 500)."""
         response = await client.post(
-            "/auth/webhook",
+            "/v1/auth/webhook",
             json={"type": "user.created", "data": {}},
         )
         # 400 if secret is set (bad signature), 500 if secret is empty
@@ -32,7 +32,7 @@ class TestWebhookEndpoint:
             return_value={"type": "unknown.event", "data": {}},
         ):
             response = await client.post(
-                "/auth/webhook",
+                "/v1/auth/webhook",
                 json={},
                 headers={
                     "svix-id": "test",
@@ -47,12 +47,12 @@ class TestWebhookEndpoint:
 @pytest.mark.anyio
 class TestMeEndpoint:
     async def test_unauthenticated_returns_401(self, client: AsyncClient):
-        response = await client.get("/auth/me")
+        response = await client.get("/v1/auth/me")
         assert response.status_code in (401, 403)
 
 
 @pytest.mark.anyio
 class TestPermissionsEndpoint:
     async def test_unauthenticated_returns_401(self, client: AsyncClient):
-        response = await client.get("/auth/permissions")
+        response = await client.get("/v1/auth/permissions")
         assert response.status_code in (401, 403)

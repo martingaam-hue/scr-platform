@@ -329,7 +329,7 @@ class TestInsuranceAPI:
                     return_value=None,
                 ),
             ):
-                resp = await client.get(f"/insurance/projects/{PROJECT_ID}/impact")
+                resp = await client.get(f"/v1/insurance/projects/{PROJECT_ID}/impact")
             assert resp.status_code == 200
             data = resp.json()
             assert data["project_id"] == str(PROJECT_ID)
@@ -347,7 +347,7 @@ class TestInsuranceAPI:
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         try:
-            resp = await client.get(f"/insurance/projects/{fake}/impact")
+            resp = await client.get(f"/v1/insurance/projects/{fake}/impact")
             assert resp.status_code == 404
         finally:
             app.dependency_overrides.clear()
@@ -364,7 +364,7 @@ class TestInsuranceAPI:
                 new_callable=AsyncMock,
                 return_value=None,
             ):
-                resp = await client.get(f"/insurance/projects/{PROJECT_ID}/summary")
+                resp = await client.get(f"/v1/insurance/projects/{PROJECT_ID}/summary")
             assert resp.status_code == 200
             data = resp.json()
             assert "coverage_adequacy" in data
@@ -576,7 +576,7 @@ class TestDigestEndpoints:
             },
         ):
             try:
-                resp = await client.get("/digest/preview?days=7")
+                resp = await client.get("/v1/digest/preview?days=7")
                 assert resp.status_code == 200
                 data = resp.json()
                 # Router wraps data in {"days": ..., "summary": ...}
@@ -611,7 +611,7 @@ class TestDigestEndpoints:
             ),
         ):
             try:
-                resp = await client.post("/digest/trigger?days=7")
+                resp = await client.post("/v1/digest/trigger?days=7")
                 assert resp.status_code == 200
                 data = resp.json()
                 assert data["status"] == "generated"
@@ -649,7 +649,7 @@ class TestConnectorIngest:
         ):
             try:
                 resp = await client.post(
-                    f"/connectors/{connector_id}/ingest",
+                    f"/v1/connectors/{connector_id}/ingest",
                     json={
                         "project_id": str(PROJECT_ID),
                         "endpoint": "fx/rates",
@@ -679,7 +679,7 @@ class TestConnectorIngest:
         ):
             try:
                 resp = await client.post(
-                    f"/connectors/{connector_id}/ingest",
+                    f"/v1/connectors/{connector_id}/ingest",
                     json={"project_id": str(PROJECT_ID), "endpoint": "fx/rates"},
                 )
                 assert resp.status_code == 404
@@ -702,7 +702,7 @@ class TestConnectorIngest:
         ):
             try:
                 resp = await client.post(
-                    f"/connectors/{connector_id}/ingest",
+                    f"/v1/connectors/{connector_id}/ingest",
                     json={"project_id": str(PROJECT_ID), "endpoint": "fx/rates"},
                 )
                 assert resp.status_code == 404
@@ -725,7 +725,7 @@ class TestConnectorIngest:
         ):
             try:
                 resp = await client.post(
-                    f"/connectors/{connector_id}/ingest",
+                    f"/v1/connectors/{connector_id}/ingest",
                     json={"project_id": str(PROJECT_ID), "endpoint": "fx/rates"},
                 )
                 assert resp.status_code == 502

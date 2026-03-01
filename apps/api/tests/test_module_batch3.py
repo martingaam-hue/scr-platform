@@ -235,7 +235,7 @@ class TestMatching:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """Investor recommendations endpoint returns items + total."""
-        resp = await b3_client.get("/matching/investor/recommendations")
+        resp = await b3_client.get("/v1/matching/investor/recommendations")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "items" in data
@@ -247,7 +247,7 @@ class TestMatching:
     ):
         """Investor recommendations can be filtered by sector and geography."""
         resp = await b3_client.get(
-            "/matching/investor/recommendations",
+            "/v1/matching/investor/recommendations",
             params={"sector": "solar", "geography": "Germany", "min_alignment": 0},
         )
         assert resp.status_code == 200, resp.text
@@ -259,14 +259,14 @@ class TestMatching:
     ):
         """Ally recommendations returns 404 for a project not owned by the org."""
         fake_id = uuid.uuid4()
-        resp = await b3_client.get(f"/matching/ally/recommendations/{fake_id}")
+        resp = await b3_client.get(f"/v1/matching/ally/recommendations/{fake_id}")
         assert resp.status_code == 404
 
     async def test_list_mandates_empty_200(
         self, b3_client: AsyncClient, b3_user: User
     ):
         """List mandates returns an empty list when none exist."""
-        resp = await b3_client.get("/matching/mandates")
+        resp = await b3_client.get("/v1/matching/mandates")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert isinstance(data, list)
@@ -276,7 +276,7 @@ class TestMatching:
     ):
         """Create a new mandate returns 201 with the mandate details."""
         resp = await b3_client.post(
-            "/matching/mandates",
+            "/v1/matching/mandates",
             json={
                 "name": "Green Energy Mandate",
                 "sectors": ["solar", "wind"],
@@ -308,7 +308,7 @@ class TestMatching:
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client1:
             create_resp = await client1.post(
-                "/matching/mandates",
+                "/v1/matching/mandates",
                 json={
                     "name": "Org1 Exclusive Mandate",
                     "ticket_size_min": "500000",
@@ -322,7 +322,7 @@ class TestMatching:
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client2:
-            resp2 = await client2.get("/matching/mandates")
+            resp2 = await client2.get("/v1/matching/mandates")
             assert resp2.status_code == 200
             mandates = resp2.json()
             assert all(m.get("name") != "Org1 Exclusive Mandate" for m in mandates)
@@ -343,7 +343,7 @@ class TestMarketplace:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """Browsing listings returns items + total even when empty."""
-        resp = await b3_client.get("/marketplace/listings")
+        resp = await b3_client.get("/v1/marketplace/listings")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "items" in data
@@ -355,7 +355,7 @@ class TestMarketplace:
     ):
         """Create a new marketplace listing returns 201 with listing details."""
         resp = await b3_client.post(
-            "/marketplace/listings",
+            "/v1/marketplace/listings",
             json={
                 "title": "Solar Equity Stake",
                 "description": "25% equity stake in operational solar farm",
@@ -378,7 +378,7 @@ class TestMarketplace:
     ):
         """Create a listing then GET the detail by ID returns 200."""
         create_resp = await b3_client.post(
-            "/marketplace/listings",
+            "/v1/marketplace/listings",
             json={
                 "title": "Wind Farm Carbon Credits",
                 "description": "Carbon credits from wind project",
@@ -391,7 +391,7 @@ class TestMarketplace:
         assert create_resp.status_code == 201
         listing_id = create_resp.json()["id"]
 
-        get_resp = await b3_client.get(f"/marketplace/listings/{listing_id}")
+        get_resp = await b3_client.get(f"/v1/marketplace/listings/{listing_id}")
         assert get_resp.status_code == 200
         data = get_resp.json()
         assert data["id"] == listing_id
@@ -401,14 +401,14 @@ class TestMarketplace:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """GET a non-existent listing returns 404."""
-        resp = await b3_client.get(f"/marketplace/listings/{uuid.uuid4()}")
+        resp = await b3_client.get(f"/v1/marketplace/listings/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_list_sent_rfqs_empty_200(
         self, b3_client: AsyncClient, b3_user: User
     ):
         """List sent RFQs returns items + total when none exist."""
-        resp = await b3_client.get("/marketplace/rfqs/sent")
+        resp = await b3_client.get("/v1/marketplace/rfqs/sent")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "items" in data
@@ -419,7 +419,7 @@ class TestMarketplace:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """List transactions returns items + total when none exist."""
-        resp = await b3_client.get("/marketplace/transactions")
+        resp = await b3_client.get("/v1/marketplace/transactions")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "items" in data
@@ -431,7 +431,7 @@ class TestMarketplace:
     ):
         """Creating a listing with an invalid listing_type returns 422."""
         resp = await b3_client.post(
-            "/marketplace/listings",
+            "/v1/marketplace/listings",
             json={
                 "title": "Invalid Listing",
                 "listing_type": "invalid_type",
@@ -452,7 +452,7 @@ class TestGamification:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """GET /gamification/badges/my returns a list (possibly empty)."""
-        resp = await b3_client.get("/gamification/badges/my")
+        resp = await b3_client.get("/v1/gamification/badges/my")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert isinstance(data, list)
@@ -462,7 +462,7 @@ class TestGamification:
     ):
         """GET /gamification/badges/project/{id} returns a list."""
         resp = await b3_client.get(
-            f"/gamification/badges/project/{B3_PROJECT_ID}"
+            f"/v1/gamification/badges/project/{B3_PROJECT_ID}"
         )
         assert resp.status_code == 200, resp.text
         data = resp.json()
@@ -472,7 +472,7 @@ class TestGamification:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """GET /gamification/leaderboard returns a list."""
-        resp = await b3_client.get("/gamification/leaderboard")
+        resp = await b3_client.get("/v1/gamification/leaderboard")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert isinstance(data, list)
@@ -481,7 +481,7 @@ class TestGamification:
         self, b3_client: AsyncClient, b3_project: Project
     ):
         """GET /gamification/quests/{project_id} returns a list."""
-        resp = await b3_client.get(f"/gamification/quests/{B3_PROJECT_ID}")
+        resp = await b3_client.get(f"/v1/gamification/quests/{B3_PROJECT_ID}")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert isinstance(data, list)
@@ -490,7 +490,7 @@ class TestGamification:
         self, b3_client: AsyncClient, b3_project: Project
     ):
         """GET /gamification/progress/{project_id} returns progress data."""
-        resp = await b3_client.get(f"/gamification/progress/{B3_PROJECT_ID}")
+        resp = await b3_client.get(f"/v1/gamification/progress/{B3_PROJECT_ID}")
         assert resp.status_code == 200, resp.text
 
     async def test_complete_quest_404_for_unknown(
@@ -498,7 +498,7 @@ class TestGamification:
     ):
         """POST /gamification/quests/{id}/complete returns 404 for unknown quest."""
         resp = await b3_client.post(
-            f"/gamification/quests/{uuid.uuid4()}/complete"
+            f"/v1/gamification/quests/{uuid.uuid4()}/complete"
         )
         assert resp.status_code == 404
 
@@ -515,7 +515,7 @@ class TestNotifications:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """List notifications returns paginated structure even when empty."""
-        resp = await b3_client.get("/notifications")
+        resp = await b3_client.get("/v1/notifications")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "items" in data
@@ -529,7 +529,7 @@ class TestNotifications:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """GET /notifications/unread-count returns a numeric count."""
-        resp = await b3_client.get("/notifications/unread-count")
+        resp = await b3_client.get("/v1/notifications/unread-count")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "count" in data
@@ -540,7 +540,7 @@ class TestNotifications:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """PUT /notifications/read-all returns marked_read count."""
-        resp = await b3_client.put("/notifications/read-all")
+        resp = await b3_client.put("/v1/notifications/read-all")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "marked_read" in data
@@ -550,7 +550,7 @@ class TestNotifications:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """PUT /notifications/{id}/read for a non-existent notification returns 404."""
-        resp = await b3_client.put(f"/notifications/{uuid.uuid4()}/read")
+        resp = await b3_client.put(f"/v1/notifications/{uuid.uuid4()}/read")
         assert resp.status_code == 404
 
     async def test_list_notifications_filtered_by_is_read(
@@ -558,7 +558,7 @@ class TestNotifications:
     ):
         """List notifications with is_read=false returns 200 with list."""
         resp = await b3_client.get(
-            "/notifications", params={"is_read": False}
+            "/v1/notifications", params={"is_read": False}
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -570,7 +570,7 @@ class TestNotifications:
     ):
         """PUT /notifications/preferences updates notification settings."""
         resp = await b3_client.put(
-            "/notifications/preferences",
+            "/v1/notifications/preferences",
             json={"preferences": {"email_on_match": True, "push_on_message": False}},
         )
         assert resp.status_code == 200, resp.text
@@ -590,7 +590,7 @@ class TestLPReporting:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """List LP reports returns paginated structure even when empty."""
-        resp = await b3_client.get("/lp-reports")
+        resp = await b3_client.get("/v1/lp-reports")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "items" in data
@@ -603,7 +603,7 @@ class TestLPReporting:
     ):
         """Create an LP report returns 201 with financial metrics."""
         resp = await b3_client.post(
-            "/lp-reports",
+            "/v1/lp-reports",
             json={
                 "report_period": "Q1 2025",
                 "period_start": "2025-01-01",
@@ -629,7 +629,7 @@ class TestLPReporting:
     ):
         """Create then GET the LP report by ID."""
         create_resp = await b3_client.post(
-            "/lp-reports",
+            "/v1/lp-reports",
             json={
                 "report_period": "Q2 2025",
                 "period_start": "2025-04-01",
@@ -643,7 +643,7 @@ class TestLPReporting:
         assert create_resp.status_code == 201
         report_id = create_resp.json()["id"]
 
-        get_resp = await b3_client.get(f"/lp-reports/{report_id}")
+        get_resp = await b3_client.get(f"/v1/lp-reports/{report_id}")
         assert get_resp.status_code == 200, get_resp.text
         data = get_resp.json()
         assert data["id"] == report_id
@@ -653,7 +653,7 @@ class TestLPReporting:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """GET a non-existent LP report returns 404."""
-        resp = await b3_client.get(f"/lp-reports/{uuid.uuid4()}")
+        resp = await b3_client.get(f"/v1/lp-reports/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_list_lp_reports_filtered_by_portfolio(
@@ -661,7 +661,7 @@ class TestLPReporting:
     ):
         """Filtering LP reports by portfolio_id returns 200 with list."""
         resp = await b3_client.get(
-            "/lp-reports",
+            "/v1/lp-reports",
             params={"portfolio_id": str(B3_PORTFOLIO_ID)},
         )
         assert resp.status_code == 200
@@ -682,7 +682,7 @@ class TestCertification:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """GET /certification/leaderboard returns a list (possibly empty)."""
-        resp = await b3_client.get("/certification/leaderboard")
+        resp = await b3_client.get("/v1/certification/leaderboard")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert isinstance(data, list)
@@ -691,14 +691,14 @@ class TestCertification:
         self, b3_client: AsyncClient, b3_project: Project
     ):
         """GET /certification/{project_id} returns 404 when no record exists."""
-        resp = await b3_client.get(f"/certification/{B3_PROJECT_ID}")
+        resp = await b3_client.get(f"/v1/certification/{B3_PROJECT_ID}")
         assert resp.status_code == 404
 
     async def test_get_certification_badge_uncertified(
         self, b3_client: AsyncClient, b3_project: Project
     ):
         """GET /certification/{project_id}/badge returns badge (certified=False if not certified)."""
-        resp = await b3_client.get(f"/certification/{B3_PROJECT_ID}/badge")
+        resp = await b3_client.get(f"/v1/certification/{B3_PROJECT_ID}/badge")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "certified" in data
@@ -709,7 +709,7 @@ class TestCertification:
     ):
         """GET /certification/{project_id}/requirements returns eligibility + gaps."""
         resp = await b3_client.get(
-            f"/certification/{B3_PROJECT_ID}/requirements"
+            f"/v1/certification/{B3_PROJECT_ID}/requirements"
         )
         assert resp.status_code == 200, resp.text
         data = resp.json()
@@ -722,7 +722,7 @@ class TestCertification:
     ):
         """POST /certification/{project_id}/evaluate creates or updates cert record."""
         resp = await b3_client.post(
-            f"/certification/{B3_PROJECT_ID}/evaluate"
+            f"/v1/certification/{B3_PROJECT_ID}/evaluate"
         )
         # Should be 200 (returns CertificationResponse) or 500 if evaluation issues
         assert resp.status_code in (200, 500), resp.text
@@ -736,7 +736,7 @@ class TestCertification:
         self, b3_client: AsyncClient, b3_user: User
     ):
         """GET /certification/{id} for unknown project returns 404."""
-        resp = await b3_client.get(f"/certification/{uuid.uuid4()}")
+        resp = await b3_client.get(f"/v1/certification/{uuid.uuid4()}")
         assert resp.status_code == 404
 
 
@@ -757,7 +757,7 @@ class TestESG:
         self, b3_esg_client: AsyncClient, b3_user: User
     ):
         """GET /esg/portfolio-summary returns expected structure."""
-        resp = await b3_esg_client.get("/esg/portfolio-summary")
+        resp = await b3_esg_client.get("/v1/esg/portfolio-summary")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "totals" in data
@@ -772,7 +772,7 @@ class TestESG:
     ):
         """GET /esg/portfolio-summary with period filter returns 200."""
         resp = await b3_esg_client.get(
-            "/esg/portfolio-summary", params={"period": "2024-Q4"}
+            "/v1/esg/portfolio-summary", params={"period": "2024-Q4"}
         )
         assert resp.status_code == 200, resp.text
         data = resp.json()
@@ -782,7 +782,7 @@ class TestESG:
         self, b3_esg_client: AsyncClient, b3_project: Project
     ):
         """GET /esg/projects/{id}/metrics returns history (empty records list when none exist)."""
-        resp = await b3_esg_client.get(f"/esg/projects/{B3_PROJECT_ID}/metrics")
+        resp = await b3_esg_client.get(f"/v1/esg/projects/{B3_PROJECT_ID}/metrics")
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert "project_id" in data
@@ -794,7 +794,7 @@ class TestESG:
     ):
         """PUT /esg/projects/{id}/metrics creates ESG metrics and returns 200."""
         resp = await b3_esg_client.put(
-            f"/esg/projects/{B3_PROJECT_ID}/metrics",
+            f"/v1/esg/projects/{B3_PROJECT_ID}/metrics",
             json={
                 "period": "2025-Q1",
                 "carbon_footprint_tco2e": 150.5,
@@ -820,7 +820,7 @@ class TestESG:
         """After upserting ESG metrics, GET history includes that record."""
         # Upsert
         put_resp = await b3_esg_client.put(
-            f"/esg/projects/{B3_PROJECT_ID}/metrics",
+            f"/v1/esg/projects/{B3_PROJECT_ID}/metrics",
             json={
                 "period": "2025-Q2",
                 "carbon_avoided_tco2e": 500.0,
@@ -831,7 +831,7 @@ class TestESG:
         assert put_resp.status_code == 200
 
         # Get history
-        get_resp = await b3_esg_client.get(f"/esg/projects/{B3_PROJECT_ID}/metrics")
+        get_resp = await b3_esg_client.get(f"/v1/esg/projects/{B3_PROJECT_ID}/metrics")
         assert get_resp.status_code == 200
         data = get_resp.json()
         periods = [r["period"] for r in data["records"]]
@@ -841,6 +841,6 @@ class TestESG:
         self, b3_esg_client: AsyncClient, b3_user: User
     ):
         """GET /esg/portfolio-summary/export returns CSV content."""
-        resp = await b3_esg_client.get("/esg/portfolio-summary/export")
+        resp = await b3_esg_client.get("/v1/esg/portfolio-summary/export")
         assert resp.status_code == 200, resp.text
         assert "text/csv" in resp.headers.get("content-type", "")

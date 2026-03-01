@@ -111,7 +111,7 @@ async def s16_client(
 class TestInsuranceQuotes:
     async def test_create_quote_201(self, s16_client: AsyncClient, s16_project: Project):
         resp = await s16_client.post(
-            "/insurance/quotes",
+            "/v1/insurance/quotes",
             json={
                 "project_id": str(S16_PROJECT_ID),
                 "provider_name": "Lloyd's of London",
@@ -130,7 +130,7 @@ class TestInsuranceQuotes:
         assert data["side"] == "investor"
 
     async def test_list_quotes_empty(self, s16_client: AsyncClient, s16_org: Organization):
-        resp = await s16_client.get("/insurance/quotes")
+        resp = await s16_client.get("/v1/insurance/quotes")
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
@@ -139,7 +139,7 @@ class TestInsuranceQuotes:
     ):
         # Create a quote
         await s16_client.post(
-            "/insurance/quotes",
+            "/v1/insurance/quotes",
             json={
                 "project_id": str(S16_PROJECT_ID),
                 "provider_name": "AIG",
@@ -150,7 +150,7 @@ class TestInsuranceQuotes:
             },
         )
         resp = await s16_client.get(
-            "/insurance/quotes", params={"project_id": str(S16_PROJECT_ID)}
+            "/v1/insurance/quotes", params={"project_id": str(S16_PROJECT_ID)}
         )
         assert resp.status_code == 200
         items = resp.json()
@@ -159,7 +159,7 @@ class TestInsuranceQuotes:
     async def test_create_quote_without_project(self, s16_client: AsyncClient, s16_org: Organization):
         """Quotes can be created without a project_id."""
         resp = await s16_client.post(
-            "/insurance/quotes",
+            "/v1/insurance/quotes",
             json={
                 "provider_name": "Zurich",
                 "coverage_type": "cyber_liability",
@@ -174,7 +174,7 @@ class TestInsuranceQuotes:
     async def test_delete_quote_204(self, s16_client: AsyncClient, s16_org: Organization):
         # Create
         create_resp = await s16_client.post(
-            "/insurance/quotes",
+            "/v1/insurance/quotes",
             json={
                 "provider_name": "Swiss Re",
                 "coverage_type": "weather_parametric",
@@ -187,11 +187,11 @@ class TestInsuranceQuotes:
         quote_id = create_resp.json()["id"]
 
         # Delete
-        del_resp = await s16_client.delete(f"/insurance/quotes/{quote_id}")
+        del_resp = await s16_client.delete(f"/v1/insurance/quotes/{quote_id}")
         assert del_resp.status_code == 204
 
         # Confirm no longer visible
-        list_resp = await s16_client.get("/insurance/quotes")
+        list_resp = await s16_client.get("/v1/insurance/quotes")
         ids = [q["id"] for q in list_resp.json()]
         assert quote_id not in ids
 
@@ -199,7 +199,7 @@ class TestInsuranceQuotes:
         self, s16_client: AsyncClient, s16_org: Organization
     ):
         fake_id = uuid.uuid4()
-        resp = await s16_client.delete(f"/insurance/quotes/{fake_id}")
+        resp = await s16_client.delete(f"/v1/insurance/quotes/{fake_id}")
         assert resp.status_code == 404
 
 
@@ -209,7 +209,7 @@ class TestInsuranceQuotes:
 class TestInsurancePolicies:
     async def _create_quote(self, client: AsyncClient) -> str:
         resp = await client.post(
-            "/insurance/quotes",
+            "/v1/insurance/quotes",
             json={
                 "project_id": str(S16_PROJECT_ID),
                 "provider_name": "Policy Test Insurer",
@@ -227,7 +227,7 @@ class TestInsurancePolicies:
     ):
         quote_id = await self._create_quote(s16_client)
         resp = await s16_client.post(
-            "/insurance/policies",
+            "/v1/insurance/policies",
             json={
                 "quote_id": quote_id,
                 "project_id": str(S16_PROJECT_ID),
@@ -249,7 +249,7 @@ class TestInsurancePolicies:
         assert data["premium_frequency"] == "annual"
 
     async def test_list_policies_empty(self, s16_client: AsyncClient, s16_org: Organization):
-        resp = await s16_client.get("/insurance/policies")
+        resp = await s16_client.get("/v1/insurance/policies")
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
@@ -258,7 +258,7 @@ class TestInsurancePolicies:
     ):
         quote_id = await self._create_quote(s16_client)
         await s16_client.post(
-            "/insurance/policies",
+            "/v1/insurance/policies",
             json={
                 "quote_id": quote_id,
                 "project_id": str(S16_PROJECT_ID),
@@ -273,7 +273,7 @@ class TestInsurancePolicies:
             },
         )
         resp = await s16_client.get(
-            "/insurance/policies", params={"project_id": str(S16_PROJECT_ID)}
+            "/v1/insurance/policies", params={"project_id": str(S16_PROJECT_ID)}
         )
         assert resp.status_code == 200
         items = resp.json()
@@ -284,7 +284,7 @@ class TestInsurancePolicies:
     ):
         quote_id = await self._create_quote(s16_client)
         create_resp = await s16_client.post(
-            "/insurance/policies",
+            "/v1/insurance/policies",
             json={
                 "quote_id": quote_id,
                 "project_id": str(S16_PROJECT_ID),
@@ -301,10 +301,10 @@ class TestInsurancePolicies:
         assert create_resp.status_code == 201
         policy_id = create_resp.json()["id"]
 
-        del_resp = await s16_client.delete(f"/insurance/policies/{policy_id}")
+        del_resp = await s16_client.delete(f"/v1/insurance/policies/{policy_id}")
         assert del_resp.status_code == 204
 
-        list_resp = await s16_client.get("/insurance/policies")
+        list_resp = await s16_client.get("/v1/insurance/policies")
         ids = [p["id"] for p in list_resp.json()]
         assert policy_id not in ids
 
@@ -312,7 +312,7 @@ class TestInsurancePolicies:
         self, s16_client: AsyncClient, s16_org: Organization
     ):
         fake_id = uuid.uuid4()
-        resp = await s16_client.delete(f"/insurance/policies/{fake_id}")
+        resp = await s16_client.delete(f"/v1/insurance/policies/{fake_id}")
         assert resp.status_code == 404
 
 
@@ -323,7 +323,7 @@ class TestDigestPreferences:
     async def test_get_preferences_returns_defaults(
         self, s16_client: AsyncClient, s16_user: User
     ):
-        resp = await s16_client.get("/digest/preferences")
+        resp = await s16_client.get("/v1/digest/preferences")
         assert resp.status_code == 200
         data = resp.json()
         assert "is_subscribed" in data
@@ -334,7 +334,7 @@ class TestDigestPreferences:
         self, s16_client: AsyncClient, s16_user: User
     ):
         resp = await s16_client.put(
-            "/digest/preferences",
+            "/v1/digest/preferences",
             json={"is_subscribed": True, "frequency": "weekly"},
         )
         assert resp.status_code == 200
@@ -344,7 +344,7 @@ class TestDigestPreferences:
 
     async def test_opt_out_200(self, s16_client: AsyncClient, s16_user: User):
         resp = await s16_client.put(
-            "/digest/preferences",
+            "/v1/digest/preferences",
             json={"is_subscribed": False, "frequency": "weekly"},
         )
         assert resp.status_code == 200
@@ -355,11 +355,11 @@ class TestDigestPreferences:
     ):
         # Set daily
         await s16_client.put(
-            "/digest/preferences",
+            "/v1/digest/preferences",
             json={"is_subscribed": True, "frequency": "daily"},
         )
         # Retrieve and verify
-        get_resp = await s16_client.get("/digest/preferences")
+        get_resp = await s16_client.get("/v1/digest/preferences")
         assert get_resp.status_code == 200
         assert get_resp.json()["frequency"] == "daily"
 
@@ -367,7 +367,7 @@ class TestDigestPreferences:
         self, s16_client: AsyncClient, s16_user: User
     ):
         resp = await s16_client.put(
-            "/digest/preferences",
+            "/v1/digest/preferences",
             json={"is_subscribed": True, "frequency": "quarterly"},
         )
         assert resp.status_code == 422
