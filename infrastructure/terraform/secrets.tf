@@ -55,7 +55,7 @@ resource "aws_secretsmanager_secret" "app_secrets" {
   for_each = toset(local.secret_names)
 
   name                    = "scr/${var.environment}/${each.key}"
-  description             = "SCR Platform ${var.environment} — ${each.key}"
+  description             = "SCR Platform ${var.environment} - ${each.key}"
   recovery_window_in_days = var.environment == "production" ? 30 : 7
 
   tags = {

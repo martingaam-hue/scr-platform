@@ -29,8 +29,8 @@ provider "aws" {
 }
 
 provider "aws" {
-  alias  = "eu_central_1"
-  region = "eu-central-1"
+  alias  = "eu_north_1"
+  region = "eu-north-1"
 
   default_tags {
     tags = {
@@ -363,7 +363,7 @@ resource "aws_iam_role_policy" "ecs_task_s3_extended" {
 
 # ── KMS Keys for Backup Encryption ───────────────────────────────────────────
 resource "aws_kms_key" "scr_backup" {
-  description             = "SCR Platform ${var.environment} — backup encryption"
+  description             = "SCR Platform ${var.environment} - backup encryption"
   deletion_window_in_days = 30
   enable_key_rotation     = true
 
@@ -379,8 +379,8 @@ resource "aws_kms_alias" "scr_backup" {
 
 # DR region KMS key
 resource "aws_kms_key" "scr_backup_dr" {
-  provider                = aws.eu_central_1
-  description             = "SCR Platform ${var.environment} — DR backup encryption"
+  provider                = aws.eu_north_1
+  description             = "SCR Platform ${var.environment} - DR backup encryption"
   deletion_window_in_days = 30
   enable_key_rotation     = true
 
@@ -390,7 +390,7 @@ resource "aws_kms_key" "scr_backup_dr" {
 }
 
 resource "aws_kms_alias" "scr_backup_dr" {
-  provider      = aws.eu_central_1
+  provider      = aws.eu_north_1
   name          = "alias/scr-${var.environment}-backup-dr"
   target_key_id = aws_kms_key.scr_backup_dr.key_id
 }
@@ -421,12 +421,12 @@ resource "aws_dynamodb_table" "terraform_locks" {
 
 # ── DR Region S3 Backup Bucket ────────────────────────────────────────────────
 resource "aws_s3_bucket" "backups_dr" {
-  provider = aws.eu_central_1
+  provider = aws.eu_north_1
   bucket   = "scr-${var.environment}-backups-dr"
 }
 
 resource "aws_s3_bucket_versioning" "backups_dr" {
-  provider = aws.eu_central_1
+  provider = aws.eu_north_1
   bucket   = aws_s3_bucket.backups_dr.id
   versioning_configuration {
     status = "Enabled"
@@ -434,7 +434,7 @@ resource "aws_s3_bucket_versioning" "backups_dr" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "backups_dr" {
-  provider = aws.eu_central_1
+  provider = aws.eu_north_1
   bucket   = aws_s3_bucket.backups_dr.id
   rule {
     apply_server_side_encryption_by_default {
@@ -445,7 +445,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "backups_dr" {
 }
 
 resource "aws_s3_bucket_public_access_block" "backups_dr" {
-  provider                = aws.eu_central_1
+  provider                = aws.eu_north_1
   bucket                  = aws_s3_bucket.backups_dr.id
   block_public_acls       = true
   block_public_policy     = true
@@ -454,7 +454,7 @@ resource "aws_s3_bucket_public_access_block" "backups_dr" {
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "backups_dr" {
-  provider = aws.eu_central_1
+  provider = aws.eu_north_1
   bucket   = aws_s3_bucket.backups_dr.id
   rule {
     id     = "glacier-transition"
@@ -470,18 +470,18 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups_dr" {
 
 # ── DR Region Documents Bucket ────────────────────────────────────────────────
 resource "aws_s3_bucket" "documents_dr" {
-  provider = aws.eu_central_1
+  provider = aws.eu_north_1
   bucket   = "scr-${var.environment}-documents-dr"
 }
 
 resource "aws_s3_bucket_versioning" "documents_dr" {
-  provider = aws.eu_central_1
+  provider = aws.eu_north_1
   bucket   = aws_s3_bucket.documents_dr.id
   versioning_configuration { status = "Enabled" }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "documents_dr" {
-  provider = aws.eu_central_1
+  provider = aws.eu_north_1
   bucket   = aws_s3_bucket.documents_dr.id
   rule {
     apply_server_side_encryption_by_default {
@@ -492,7 +492,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "documents_dr" {
 }
 
 resource "aws_s3_bucket_public_access_block" "documents_dr" {
-  provider                = aws.eu_central_1
+  provider                = aws.eu_north_1
   bucket                  = aws_s3_bucket.documents_dr.id
   block_public_acls       = true
   block_public_policy     = true

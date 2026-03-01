@@ -90,7 +90,7 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
 
 resource "aws_security_group" "alb" {
   name        = "scr-${var.environment}-alb"
-  description = "ALB — allow HTTPS from internet"
+  description = "ALB - allow HTTPS from internet"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
@@ -117,7 +117,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "ecs" {
   name        = "scr-${var.environment}-ecs"
-  description = "ECS tasks — only from ALB"
+  description = "ECS tasks - only from ALB"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
