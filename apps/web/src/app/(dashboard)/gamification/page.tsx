@@ -1,12 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/lib/api"
 import { formatPct } from "@/lib/format"
 import {
   useMyBadges, useProjectBadges, useProjectQuests,
-  useGamificationProgress, useLeaderboard,
+  useGamificationProgress, useLeaderboard, useCompleteQuest,
   RARITY_STYLE, RARITY_TEXT,
 } from "@/lib/gamification"
 import {
@@ -15,7 +13,6 @@ import {
 } from "lucide-react"
 
 export default function GamificationPage() {
-  const queryClient = useQueryClient()
   const [projectId, setProjectId] = useState("")
   const [activeTab, setActiveTab] = useState<"badges" | "quests" | "leaderboard">("badges")
 
@@ -27,14 +24,7 @@ export default function GamificationPage() {
   const { data: progress } = useGamificationProgress(projectId || undefined)
   const { data: leaderboard = [] } = useLeaderboard()
 
-  const completeQuestMutation = useMutation({
-    mutationFn: (questId: string) => api.post(`/gamification/quests/${questId}/complete`).then(r => r.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["quests"] })
-      queryClient.invalidateQueries({ queryKey: ["gamification-progress"] })
-      queryClient.invalidateQueries({ queryKey: ["badges"] })
-    },
-  })
+  const completeQuestMutation = useCompleteQuest()
 
   const earnedBadges = badges.filter(b => b.is_earned)
   const lockedBadges = badges.filter(b => !b.is_earned)

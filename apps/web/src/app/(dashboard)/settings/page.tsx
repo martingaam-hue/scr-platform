@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import {
   Building2,
   Copy,
@@ -15,7 +14,7 @@ import {
   Users,
   Check,
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { useTriggerDigest, type DigestTriggerResponse } from "@/lib/digest";
 import {
   Badge,
   Button,
@@ -842,21 +841,10 @@ function PreferencesTab() {
 
 // ── Digest Preview ─────────────────────────────────────────────────────────
 
-interface DigestResult {
-  status: string;
-  days: number;
-  narrative: string;
-  data: Record<string, unknown>;
-}
-
 function DigestPreviewCard() {
-  const [result, setResult] = useState<DigestResult | null>(null);
+  const [result, setResult] = useState<DigestTriggerResponse | null>(null);
 
-  const trigger = useMutation({
-    mutationFn: () =>
-      api.post<DigestResult>("/digest/trigger?days=7").then((r) => r.data),
-    onSuccess: (data) => setResult(data),
-  });
+  const trigger = useTriggerDigest();
 
   return (
     <Card>
@@ -873,7 +861,7 @@ function DigestPreviewCard() {
           </div>
           <Button
             variant="outline"
-            onClick={() => trigger.mutate()}
+            onClick={() => trigger.mutate(7, { onSuccess: (data) => setResult(data) })}
             disabled={trigger.isPending}
             className="h-8 text-xs"
           >

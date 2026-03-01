@@ -95,6 +95,19 @@ export function useLeaderboard() {
   });
 }
 
+export function useCompleteQuest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (questId: string) =>
+      api.post(`/gamification/quests/${questId}/complete`).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["quests"] });
+      qc.invalidateQueries({ queryKey: ["gamification-progress"] });
+      qc.invalidateQueries({ queryKey: ["badges"] });
+    },
+  });
+}
+
 export function useEvaluateBadges() {
   const qc = useQueryClient();
   return useMutation({

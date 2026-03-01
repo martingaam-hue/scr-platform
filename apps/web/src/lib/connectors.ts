@@ -83,6 +83,24 @@ export function useUpdateConnector() {
   });
 }
 
+export function useEnableConnector() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, apiKey }: { id: string; apiKey: string }) =>
+      api.post(`/connectors/${id}/enable`, { api_key: apiKey }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["connector-configs"] }),
+  });
+}
+
+export function useDisableConnector() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post(`/connectors/${id}/disable`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["connector-configs"] }),
+  });
+}
+
 export function useTestConnector() {
   return useMutation({
     mutationFn: (connectorId: string) =>

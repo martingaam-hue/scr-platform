@@ -1,9 +1,8 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
-import { useMutation } from "@tanstack/react-query"
-import { api } from "@/lib/api"
 import { useRouter } from "next/navigation"
+import { useProcessAudio } from "@/lib/voice-input"
 import {
   Mic, MicOff, Upload, Loader2, CheckCircle, ChevronRight,
   Volume2, AudioLines, FileAudio, AlertCircle, ArrowRight
@@ -48,19 +47,13 @@ export default function VoiceInputPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const recognitionRef = useRef<SpeechRecognitionType | null>(null)
 
-  const processMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const form = new FormData()
-      form.append("audio", file)
-      return api.post("/voice/process", form, { headers: { "Content-Type": "multipart/form-data" } }).then(r => r.data)
-    },
-    onSuccess: (data) => {
-      setTranscript(data.transcript ?? "")
-      setExtracted(data.extracted_data ?? null)
-      setRecordingState("done")
-    },
-    onError: () => setRecordingState("error"),
-  })
+  const processMutation = useProcessAudio()
+  const onProcessSuccess = (data: { transcript: string; extracted: ExtractedProject }) => {
+    setTranscript(data.transcript ?? "")
+    setExtracted(data.extracted ?? null)
+    setRecordingState("done")
+  }
+  const onProcessError = () => setRecordingState("error")
 
   const startRecording = useCallback(async () => {
     try {
@@ -112,15 +105,15 @@ export default function VoiceInputPage() {
   const processAudio = useCallback(() => {
     if (!audioBlob) return
     const file = new File([audioBlob], "recording.webm", { type: audioBlob.type })
-    processMutation.mutate(file)
-  }, [audioBlob, processMutation])
+    processMutation.mutate(file, { onSuccess: onProcessSuccess, onError: onProcessError })
+  }, [audioBlob, processMutation, onProcessSuccess, onProcessError])
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setRecordingState("processing")
-    processMutation.mutate(file)
-  }, [processMutation])
+    processMutation.mutate(file, { onSuccess: onProcessSuccess, onError: onProcessError })
+  }, [processMutation, onProcessSuccess, onProcessError])
 
   // After recording stops → auto process
   const handleStop = useCallback(() => {
@@ -130,10 +123,10 @@ export default function VoiceInputPage() {
       if (chunksRef.current.length > 0) {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" })
         const file = new File([blob], "recording.webm", { type: blob.type })
-        processMutation.mutate(file)
+        processMutation.mutate(file, { onSuccess: onProcessSuccess, onError: onProcessError })
       }
     }, 300)
-  }, [stopRecording, processMutation])
+  }, [stopRecording, processMutation, onProcessSuccess, onProcessError])
 
   const fieldValue = (key: keyof ExtractedProject) =>
     editedFields[key] !== undefined ? editedFields[key] : extracted?.[key]

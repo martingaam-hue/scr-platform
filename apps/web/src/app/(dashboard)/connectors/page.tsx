@@ -1,10 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/lib/api"
 import {
   useConnectors, useConnectorConfigs, useConnectorUsage,
+  useEnableConnector, useDisableConnector, useTestConnector,
   CATEGORY_COLORS, TIER_BADGE,
 } from "@/lib/connectors"
 import {
@@ -13,7 +12,6 @@ import {
 } from "lucide-react"
 
 export default function ConnectorsPage() {
-  const queryClient = useQueryClient()
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({})
   const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message: string } | null>>({})
@@ -22,26 +20,9 @@ export default function ConnectorsPage() {
   const { data: configs = [] } = useConnectorConfigs()
   const { data: usageData = [] } = useConnectorUsage()
 
-  const enableMutation = useMutation({
-    mutationFn: ({ id, apiKey }: { id: string; apiKey: string }) =>
-      api.post(`/connectors/${id}/enable`, { api_key: apiKey }).then(r => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["connector-configs"] }),
-  })
-
-  const disableMutation = useMutation({
-    mutationFn: (id: string) => api.post(`/connectors/${id}/disable`).then(r => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["connector-configs"] }),
-  })
-
-  const testMutation = useMutation({
-    mutationFn: (id: string) => api.post(`/connectors/${id}/test`).then(r => r.data),
-    onSuccess: (data, id) => {
-      setTestResults(prev => ({ ...prev, [id]: { ok: data.success, message: data.message ?? (data.success ? "Connected" : "Failed") } }))
-    },
-    onError: (_: unknown, id: string) => {
-      setTestResults(prev => ({ ...prev, [id]: { ok: false, message: "Connection failed" } }))
-    },
-  })
+  const enableMutation = useEnableConnector()
+  const disableMutation = useDisableConnector()
+  const testMutation = useTestConnector()
 
   const configMap = Object.fromEntries(configs.map(c => [c.connector_id, c]))
   const usageMap = Object.fromEntries(usageData.map(u => [u.connector_id, u]))
@@ -146,7 +127,10 @@ export default function ConnectorsPage() {
                       </button>
                     </div>
                     <button
-                      onClick={() => testMutation.mutate(connector.id)}
+                      onClick={() => testMutation.mutate(connector.id, {
+                        onSuccess: (data) => setTestResults(prev => ({ ...prev, [connector.id]: { ok: data.ok, message: data.message } })),
+                        onError: () => setTestResults(prev => ({ ...prev, [connector.id]: { ok: false, message: "Connection failed" } })),
+                      })}
                       disabled={testMutation.isPending}
                       className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-lg text-xs hover:bg-gray-50 disabled:opacity-50"
                     >

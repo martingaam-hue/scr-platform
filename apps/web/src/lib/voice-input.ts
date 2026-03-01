@@ -1,25 +1,36 @@
-/**
- * Voice Input — hooks and helpers for audio transcription + AI extraction.
- */
+"use client";
 
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface ExtractedProjectData {
-  name?: string;
-  description?: string;
-  project_type?: string;
-  location?: string;
-  capacity_mw?: number;
-  budget_total?: number;
-  timeline_months?: number;
-  [key: string]: unknown;
+  name: string | null;
+  description: string | null;
+  project_type: string | null;
+  location: string | null;
+  capacity_mw: number | null;
+  total_investment_needed: number | null;
+  budget_total: number | null;
+  currency: string | null;
+  stage: string | null;
+  technology: string | null;
+  irr_target: number | null;
+  timeline_months: number | null;
 }
 
-export interface TranscribeResponse {
-  transcript: string;
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+export const MAX_FILE_SIZE_MB = 25;
+
+const ALLOWED_AUDIO_TYPES = new Set([
+  "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav",
+  "audio/mp4", "audio/m4a", "audio/x-m4a", "audio/ogg", "audio/webm",
+]);
+
+export function isValidAudioFile(file: File): boolean {
+  return ALLOWED_AUDIO_TYPES.has(file.type) && file.size <= MAX_FILE_SIZE_MB * 1024 * 1024;
 }
 
 export interface ProcessResponse {
@@ -27,35 +38,11 @@ export interface ProcessResponse {
   extracted: ExtractedProjectData;
 }
 
-// ── Hooks ───────────────────────────────────────────────────────────────────
-
-export function useTranscribeAudio() {
-  return useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      const { data } = await api.post<TranscribeResponse>("/voice/transcribe", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      return data;
-    },
-  });
-}
-
-export function useExtractFromTranscript() {
-  return useMutation({
-    mutationFn: async (transcript: string) => {
-      const { data } = await api.post<{ extracted: ExtractedProjectData }>("/voice/extract", {
-        transcript,
-      });
-      return data;
-    },
-  });
-}
+// ── Hooks ─────────────────────────────────────────────────────────────────────
 
 export function useProcessAudio() {
   return useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async (file: File): Promise<ProcessResponse> => {
       const formData = new FormData();
       formData.append("file", file);
       const { data } = await api.post<ProcessResponse>("/voice/process", formData, {
@@ -64,29 +51,4 @@ export function useProcessAudio() {
       return data;
     },
   });
-}
-
-// ── Recording helpers ───────────────────────────────────────────────────────
-
-export const SUPPORTED_AUDIO_TYPES = [
-  "audio/mpeg",
-  "audio/mp3",
-  "audio/wav",
-  "audio/x-wav",
-  "audio/mp4",
-  "audio/m4a",
-  "audio/webm",
-  "audio/ogg",
-];
-
-export const MAX_FILE_SIZE_MB = 25;
-
-export function isValidAudioFile(file: File): boolean {
-  return SUPPORTED_AUDIO_TYPES.includes(file.type) && file.size <= MAX_FILE_SIZE_MB * 1024 * 1024;
-}
-
-export function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
