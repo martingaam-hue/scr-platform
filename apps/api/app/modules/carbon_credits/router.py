@@ -24,6 +24,28 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/carbon", tags=["carbon_credits"])
 
 
+# ── Fixed paths (MUST come before /{project_id}) ──────────────────────────────
+
+
+@router.get("/pricing-trends", response_model=list[PricingTrendPoint])
+async def get_pricing_trends(
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Historical carbon price trends across markets."""
+    return service.get_pricing_trends()
+
+
+@router.get("/methodologies", response_model=list[MethodologyResponse])
+async def get_methodologies(
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Available carbon credit verification methodologies."""
+    return service.get_methodologies()
+
+
+# ── Parameterised endpoints ────────────────────────────────────────────────────
+
+
 @router.post("/estimate/{project_id}", response_model=dict)
 async def estimate_carbon_credits(
     project_id: uuid.UUID,
@@ -120,19 +142,3 @@ async def list_on_marketplace(
         raise HTTPException(status_code=404, detail=str(exc))
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
-
-
-@router.get("/pricing-trends", response_model=list[PricingTrendPoint])
-async def get_pricing_trends(
-    current_user: CurrentUser = Depends(get_current_user),
-):
-    """Historical carbon price trends across markets."""
-    return service.get_pricing_trends()
-
-
-@router.get("/methodologies", response_model=list[MethodologyResponse])
-async def get_methodologies(
-    current_user: CurrentUser = Depends(get_current_user),
-):
-    """Available carbon credit verification methodologies."""
-    return service.get_methodologies()

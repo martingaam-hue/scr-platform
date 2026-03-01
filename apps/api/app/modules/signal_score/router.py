@@ -6,13 +6,18 @@ from typing import Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
 from app.core.database import get_db
 from app.modules.signal_score import service
+from app.services.response_cache import cache_key, get_cached, set_cached
 from app.modules.signal_score.criteria import DIMENSIONS
 from app.modules.signal_score.schemas import (
+    BatchScoreItem,
+    BatchScoreRequest,
+    BatchScoreResponse,
     CalculateAcceptedResponse,
     CriterionScoreResponse,
     DimensionScoreResponse,
@@ -53,6 +58,69 @@ async def get_task_status(
         id=task_log.id,
         status=task_log.status.value,
         error_message=task_log.error_message,
+    )
+
+
+# ── Batch scoring ────────────────────────────────────────────────────────────
+
+
+@router.post(
+    "/batch",
+    response_model=BatchScoreResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def batch_score_projects(
+    body: BatchScoreRequest,
+    current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Queue signal score computation for multiple projects at once.
+
+    Accepts up to 50 project IDs. Dispatches a separate Celery task for each
+    project and returns the individual task_log_ids for status polling.
+    Projects that cannot be found (or do not belong to the org) are reported
+    in the ``errors`` list but do not prevent the rest from being queued.
+    """
+    items: list[BatchScoreItem] = []
+    errors: list[dict] = []
+
+    for project_id in body.project_ids:
+        try:
+            task_log = await service.trigger_calculation(
+                db, project_id, current_user.org_id, current_user.user_id
+            )
+            await db.flush()
+            items.append(
+                BatchScoreItem(
+                    project_id=project_id,
+                    task_log_id=task_log.id,
+                    status="pending",
+                )
+            )
+        except LookupError as exc:
+            errors.append({"project_id": str(project_id), "error": str(exc)})
+        except Exception as exc:
+            logger.warning(
+                "batch_score.project_failed",
+                project_id=str(project_id),
+                error=str(exc),
+            )
+            errors.append({"project_id": str(project_id), "error": str(exc)})
+
+    if items:
+        await db.commit()
+
+    logger.info(
+        "batch_score_queued",
+        org_id=str(current_user.org_id),
+        queued=len(items),
+        failed=len(errors),
+    )
+    return BatchScoreResponse(
+        queued=len(items),
+        failed=len(errors),
+        items=items,
+        errors=errors,
     )
 
 
@@ -149,6 +217,11 @@ async def get_latest_score(
     db: AsyncSession = Depends(get_db),
 ):
     """Get latest signal score with full dimension breakdown."""
+    ck = cache_key("signal_score", str(current_user.org_id), str(project_id))
+    cached = await get_cached(ck)
+    if cached is not None:
+        return cached
+
     try:
         score = await service.get_latest_score(
             db, project_id, current_user.org_id
@@ -159,7 +232,9 @@ async def get_latest_score(
     if not score:
         raise HTTPException(status_code=404, detail="No signal score found")
 
-    return _build_detail_response(score)
+    result = _build_detail_response(score)
+    await set_cached(ck, jsonable_encoder(result), ttl=600)
+    return result
 
 
 @router.get("/{project_id}/details", response_model=SignalScoreDetailResponse)

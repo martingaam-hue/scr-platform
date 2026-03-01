@@ -150,3 +150,31 @@ class TaskStatusResponse(BaseModel):
     id: uuid.UUID
     status: str
     error_message: str | None = None
+
+
+# ── Batch scoring ─────────────────────────────────────────────────────────────
+
+
+class BatchScoreRequest(BaseModel):
+    project_ids: list[uuid.UUID]
+
+    @classmethod
+    def validate_count(cls, v: list[uuid.UUID]) -> list[uuid.UUID]:
+        if len(v) == 0:
+            raise ValueError("Must provide at least one project_id")
+        if len(v) > 50:
+            raise ValueError("Cannot batch more than 50 projects at once")
+        return v
+
+
+class BatchScoreItem(BaseModel):
+    project_id: uuid.UUID
+    task_log_id: uuid.UUID
+    status: str
+
+
+class BatchScoreResponse(BaseModel):
+    queued: int
+    failed: int
+    items: list[BatchScoreItem]
+    errors: list[dict]

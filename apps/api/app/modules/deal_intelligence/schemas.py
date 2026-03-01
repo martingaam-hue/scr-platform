@@ -135,3 +135,23 @@ class MemoResponse(BaseModel):
 class DealStatusUpdateRequest(BaseModel):
     status: str
     notes: str | None = None
+
+
+# ── Batch screening ───────────────────────────────────────────────────────────
+
+
+class BatchScreenRequest(BaseModel):
+    project_ids: list[uuid.UUID]
+
+
+class BatchScreenItem(BaseModel):
+    project_id: uuid.UUID
+    task_log_id: uuid.UUID
+    status: str
+
+
+class BatchScreenResponse(BaseModel):
+    queued: int
+    failed: int
+    items: list[BatchScreenItem]
+    errors: list[dict]

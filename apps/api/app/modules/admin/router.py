@@ -220,6 +220,32 @@ async def get_system_health(
 # ── Digest ─────────────────────────────────────────────────────────────────────
 
 
+@router.post("/cache/clear")
+async def clear_cache(
+    prefix: str = "signal_score",
+    _: CurrentUser = Depends(_require_platform_admin),
+) -> dict:
+    """Clear all cached responses for the given prefix across all orgs.
+
+    Uses the pattern ``{prefix}:*`` to wipe every org's entries for that
+    prefix.  Silently succeeds even if Redis is unavailable.
+    """
+    from app.services.response_cache import get_redis
+
+    cleared = 0
+    try:
+        r = await get_redis()
+        pattern = f"{prefix}:*"
+        keys = await r.keys(pattern)
+        if keys:
+            cleared = await r.delete(*keys)
+    except Exception as exc:
+        logger.warning("admin.cache_clear_error", prefix=prefix, error=str(exc))
+
+    logger.info("admin.cache_cleared", prefix=prefix, keys_deleted=cleared)
+    return {"cleared": True, "prefix": prefix, "keys_deleted": cleared}
+
+
 @router.post("/digest/send-test")
 async def send_digest_test(
     user_id: uuid.UUID = Query(..., description="User ID to send test digest to"),

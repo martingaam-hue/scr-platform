@@ -79,6 +79,22 @@ async def trigger_digest(
     }
 
 
+# ── Digest history ─────────────────────────────────────────────────────────────
+
+
+@router.get("/history")
+async def get_digest_history(
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return a log of past digest sends for this org.
+
+    Currently returns a stub while history tracking is being built out.
+    """
+    # No DigestLog model yet — return a stub so the frontend can render gracefully
+    return {"history": [], "message": "History tracking coming soon"}
+
+
 # ── Digest preferences ─────────────────────────────────────────────────────────
 
 

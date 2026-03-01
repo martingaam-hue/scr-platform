@@ -4,11 +4,13 @@ import uuid
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
 from app.core.database import get_db
 from app.modules.valuation import service
+from app.services.response_cache import cache_key, get_cached, set_cached
 from app.modules.valuation.schemas import (
     AssumptionSuggestion,
     SensitivityMatrix,
@@ -107,9 +109,16 @@ async def get_valuation(
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single valuation by ID."""
+    ck = cache_key("valuation", str(current_user.org_id), str(valuation_id))
+    cached = await get_cached(ck)
+    if cached is not None:
+        return cached
+
     try:
         val = await service.get_valuation(db, valuation_id, current_user.org_id)
-        return service._to_response(val)
+        result = service._to_response(val)
+        await set_cached(ck, jsonable_encoder(result), ttl=600)
+        return result
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 

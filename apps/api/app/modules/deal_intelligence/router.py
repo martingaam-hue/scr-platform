@@ -4,12 +4,17 @@ import uuid
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
 from app.core.database import get_db
 from app.modules.deal_intelligence import service
+from app.services.response_cache import cache_key, get_cached, set_cached
 from app.modules.deal_intelligence.schemas import (
+    BatchScreenItem,
+    BatchScreenRequest,
+    BatchScreenResponse,
     CompareRequest,
     CompareResponse,
     DealPipelineResponse,
@@ -69,6 +74,75 @@ async def compare_projects(
     return await service.compare_projects(db, body.project_ids, current_user.org_id)
 
 
+@router.post(
+    "/batch-screen",
+    response_model=BatchScreenResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def batch_screen_projects(
+    body: BatchScreenRequest,
+    current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Queue AI deal screening for multiple projects in a single call.
+
+    Accepts a list of project IDs and dispatches a Celery screening task for
+    each one. Projects that are not found or not published are reported in
+    ``errors`` but do not block the rest from being queued.
+    Returns per-project task_log_ids for individual status polling.
+    """
+    if not body.project_ids:
+        return BatchScreenResponse(queued=0, failed=0, items=[], errors=[])
+
+    if len(body.project_ids) > 50:
+        raise HTTPException(
+            status_code=422,
+            detail="Cannot batch-screen more than 50 projects at once",
+        )
+
+    items: list[BatchScreenItem] = []
+    errors: list[dict] = []
+
+    for project_id in body.project_ids:
+        try:
+            task_log = await service.trigger_screening(
+                db, project_id, current_user.org_id, current_user.user_id
+            )
+            await db.flush()
+            items.append(
+                BatchScreenItem(
+                    project_id=project_id,
+                    task_log_id=task_log.id,
+                    status="pending",
+                )
+            )
+        except LookupError as exc:
+            errors.append({"project_id": str(project_id), "error": str(exc)})
+        except Exception as exc:
+            logger.warning(
+                "batch_screen.project_failed",
+                project_id=str(project_id),
+                error=str(exc),
+            )
+            errors.append({"project_id": str(project_id), "error": str(exc)})
+
+    if items:
+        await db.commit()
+
+    logger.info(
+        "batch_screen_queued",
+        org_id=str(current_user.org_id),
+        queued=len(items),
+        failed=len(errors),
+    )
+    return BatchScreenResponse(
+        queued=len(items),
+        failed=len(errors),
+        items=items,
+        errors=errors,
+    )
+
+
 # ── Parameterised endpoints ───────────────────────────────────────────────────
 
 
@@ -79,9 +153,18 @@ async def get_screening_report(
     db: AsyncSession = Depends(get_db),
 ):
     """Get latest AI screening report for a project."""
+    ck = cache_key("deal_screening", str(current_user.org_id), str(project_id))
+    cached = await get_cached(ck)
+    if cached is not None:
+        return cached
+
     report = await service.get_screening_report(db, project_id, current_user.org_id)
     if not report:
         raise HTTPException(status_code=404, detail="No screening report found")
+
+    # Only cache completed reports — pending/processing may change shortly
+    if report.status == "completed":
+        await set_cached(ck, jsonable_encoder(report), ttl=300)
     return report
 
 

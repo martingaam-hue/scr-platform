@@ -327,6 +327,7 @@ const adminNav: NavSection[] = [
       { label: "Connectors", href: "/connectors", icon: Plug },
       { label: "Investor Personas", href: "/investor-personas", icon: Users },
       { label: "Ecosystem", href: "/ecosystem", icon: Network },
+      { label: "Activity Digest", href: "/digest", icon: Rss },
     ],
   },
 ];

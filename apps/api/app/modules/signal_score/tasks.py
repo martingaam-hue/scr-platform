@@ -80,6 +80,18 @@ def calculate_signal_score_task(
             task_log.processing_time_ms = elapsed_ms
             session.commit()
 
+            # Invalidate HTTP response cache so next GET fetches fresh data
+            try:
+                import asyncio
+                from app.services.response_cache import invalidate as cache_invalidate
+
+                async def _invalidate_cache() -> None:
+                    await cache_invalidate("signal_score", org_id)
+
+                asyncio.run(_invalidate_cache())
+            except Exception as e:
+                logger.warning("signal_score_cache_invalidation_failed", error=str(e))
+
             # Record metric snapshot
             try:
                 from app.modules.metrics.snapshot_service import MetricSnapshotService

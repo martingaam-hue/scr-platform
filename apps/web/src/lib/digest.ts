@@ -35,11 +35,24 @@ export interface DigestTriggerResponse {
   data: DigestSummary;
 }
 
+export interface DigestHistoryEntry {
+  id: string;
+  sent_at: string;
+  recipients: number;
+  status: string;
+}
+
+export interface DigestHistoryResponse {
+  history: DigestHistoryEntry[];
+  message?: string;
+}
+
 // ── Query key factory ───────────────────────────────────────────────────────
 
 export const digestKeys = {
   preview: (days: number) => ["digest", "preview", days] as const,
   preferences: ["digest", "preferences"] as const,
+  history: ["digest", "history"] as const,
 };
 
 // ── Hooks ───────────────────────────────────────────────────────────────────
@@ -77,7 +90,18 @@ export function useUpdateDigestPreferences() {
   });
 }
 
+export function useDigestHistory() {
+  return useQuery({
+    queryKey: digestKeys.history,
+    queryFn: async () => {
+      const { data } = await api.get<DigestHistoryResponse>("/digest/history");
+      return data;
+    },
+  });
+}
+
 export function useTriggerDigest() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (days: number = 7) => {
       const { data } = await api.post<DigestTriggerResponse>("/digest/trigger", null, {
@@ -85,5 +109,6 @@ export function useTriggerDigest() {
       });
       return data;
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: digestKeys.history }),
   });
 }

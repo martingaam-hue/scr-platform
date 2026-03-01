@@ -197,7 +197,7 @@ async def trigger_review(
 
     task_log = AITaskLog(
         org_id=org_id,
-        user_id=user_id,
+        triggered_by=user_id,
         agent_type=AIAgentType.COMPLIANCE,
         entity_type="legal_document",
         entity_id=document_id,
