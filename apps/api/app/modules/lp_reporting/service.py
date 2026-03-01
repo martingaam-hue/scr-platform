@@ -228,12 +228,33 @@ Write four narrative sections for the LP report. Respond ONLY with valid JSON:
     except Exception as exc:
         logger.warning("lp_report.narrative_generation_failed", error=str(exc))
 
-    # Return placeholder narrative on failure
+    # Fallback: template-based narrative using real metrics
+    irr_str = f"{gross_irr:.1%}" if gross_irr is not None else "N/A"
+    tvpi_str = f"{tvpi:.2f}x" if tvpi is not None else "N/A"
+    dpi_str = f"{dpi:.2f}x" if dpi is not None else "N/A"
+    nav_str = f"${total_nav:,.0f}" if total_nav else "N/A"
+    inv_count = len(investments)
     return {
-        "executive_summary": f"Fund performance summary for {period}. Narrative generation is pending review.",
-        "portfolio_commentary": "Portfolio commentary is being compiled by the investment team.",
-        "market_outlook": "Market conditions are being assessed by the investment team.",
-        "esg_highlights": "ESG data is being compiled across portfolio companies.",
+        "executive_summary": (
+            f"For {period}, the fund reported a gross IRR of {irr_str} and a TVPI of {tvpi_str}. "
+            f"Distributions to paid-in capital (DPI) stand at {dpi_str}, with a portfolio NAV of {nav_str}. "
+            f"The portfolio comprises {inv_count} active investment(s). "
+            "Full narrative commentary will be appended following investment team review."
+        ),
+        "portfolio_commentary": (
+            f"The portfolio holds {inv_count} investment(s) as of {period}. "
+            "Performance across holdings reflects ongoing operational and market developments. "
+            "Investment activity and valuation updates are detailed in the per-investment schedules."
+        ),
+        "market_outlook": (
+            "Macroeconomic conditions continue to influence asset valuations and deal flow. "
+            "The investment team is monitoring interest rate trends, sector dynamics, and regulatory changes "
+            "as they pertain to portfolio exposure and new deployment opportunities."
+        ),
+        "esg_highlights": (
+            "ESG monitoring is ongoing across portfolio companies. "
+            "Impact metrics and sustainability disclosures will be aggregated in the next reporting cycle."
+        ),
     }
 
 

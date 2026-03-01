@@ -38,6 +38,11 @@ async def fetch_ecb_rates(db: AsyncSession) -> dict[str, float]:
     cube = root.find(".//ecb:Cube/ecb:Cube", ECB_NS)
     if cube is None:
         logger.warning("ecb_fetch.no_cube_element")
+        # Fall back to most recent cached rates from DB
+        cached, _ = await get_latest_rates(db)
+        if cached:
+            logger.info("ecb_fetch.using_cached_rates", currencies=len(cached))
+            return cached
         return {}
 
     rate_date_str = cube.get("time")

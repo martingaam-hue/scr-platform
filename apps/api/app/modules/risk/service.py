@@ -754,15 +754,22 @@ async def get_risk_dashboard(
 
     concentration = await get_concentration_analysis(db, portfolio_id, org_id)
 
-    # Risk trend (stub: would come from historical snapshots in production)
+    # Risk trend: group assessments by month using their created_at timestamp
+    monthly_scores: dict[str, list[float]] = defaultdict(list)
+    for a in assessments:
+        month_key = a.created_at.strftime("%Y-%m")
+        monthly_scores[month_key].append(_risk_score(a.severity.value, a.probability.value) * 100 / 16)
     risk_trend = [
-        RiskTrendPoint(date="2025-09", risk_score=max(0, overall - 8)),
-        RiskTrendPoint(date="2025-10", risk_score=max(0, overall - 5)),
-        RiskTrendPoint(date="2025-11", risk_score=max(0, overall - 3)),
-        RiskTrendPoint(date="2025-12", risk_score=max(0, overall - 1)),
-        RiskTrendPoint(date="2026-01", risk_score=max(0, overall)),
-        RiskTrendPoint(date="2026-02", risk_score=overall),
+        RiskTrendPoint(
+            date=month,
+            risk_score=round(sum(scores) / len(scores), 1),
+        )
+        for month, scores in sorted(monthly_scores.items())
     ]
+    # If no historical data yet, fall back to a single current-month point
+    if not risk_trend:
+        import datetime as _dt
+        risk_trend = [RiskTrendPoint(date=_dt.date.today().strftime("%Y-%m"), risk_score=overall)]
 
     return RiskDashboardResponse(
         portfolio_id=portfolio_id,
