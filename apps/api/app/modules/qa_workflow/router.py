@@ -45,7 +45,8 @@ async def create_question(
     svc = _svc(db, current_user)
     question = await svc.create_question(project_id, current_user.user_id, body)
     await db.commit()
-    await db.refresh(question)
+    # Reload with eager-loaded answers to avoid MissingGreenlet on lazy access
+    question = await svc.get_question(question.id)
     return QAQuestionResponse.model_validate(question)
 
 
@@ -172,7 +173,7 @@ async def assign_question(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     await db.commit()
-    await db.refresh(question)
+    question = await svc.get_question(question.id)
     return QAQuestionResponse.model_validate(question)
 
 
@@ -195,5 +196,5 @@ async def update_status(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     await db.commit()
-    await db.refresh(question)
+    question = await svc.get_question(question.id)
     return QAQuestionResponse.model_validate(question)

@@ -51,6 +51,7 @@ import {
   PieChart,
   Rss,
   Construction,
+  TrendingDown,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -94,6 +95,8 @@ const investorNav: NavSection[] = [
       { label: "ESG Dashboard", href: "/esg", icon: Leaf },
       { label: "LP Reports", href: "/lp-reports", icon: FileText },
       { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
+      { label: "J-Curve Pacing", href: "/pacing", icon: TrendingDown },
+      { label: "Financial Models", href: "/financial-templates", icon: Calculator },
     ],
   },
   {
@@ -252,6 +255,8 @@ const adminNav: NavSection[] = [
       { label: "ESG Dashboard", href: "/esg", icon: Leaf },
       { label: "LP Reports", href: "/lp-reports", icon: FileText },
       { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
+      { label: "J-Curve Pacing", href: "/pacing", icon: TrendingDown },
+      { label: "Financial Models", href: "/financial-templates", icon: Calculator },
     ],
   },
   {

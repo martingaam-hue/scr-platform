@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Building2,
   Copy,
   Key,
   Loader2,
   Mail,
+  Palette,
   Plus,
   Shield,
   Trash2,
@@ -22,6 +23,7 @@ import {
   useTriggerSync,
   useSyncLogs,
 } from "@/lib/crm";
+import { useBranding, useUpdateBranding } from "@/lib/branding";
 import {
   Badge,
   Button,
@@ -1034,6 +1036,179 @@ function CRMTab() {
   );
 }
 
+// ── Branding tab ──────────────────────────────────────────────────────────
+
+function BrandingTab() {
+  const { data: branding } = useBranding();
+  const update = useUpdateBranding();
+  const [form, setForm] = useState({
+    primary_color: branding?.primary_color ?? "#6366f1",
+    accent_color: branding?.accent_color ?? "#8b5cf6",
+    company_name: branding?.company_name ?? "",
+    logo_url: branding?.logo_url ?? "",
+    font_family: branding?.font_family ?? "Inter",
+  });
+
+  // Update form when branding loads
+  useEffect(() => {
+    if (branding) {
+      setForm({
+        primary_color: branding.primary_color,
+        accent_color: branding.accent_color,
+        company_name: branding.company_name ?? "",
+        logo_url: branding.logo_url ?? "",
+        font_family: branding.font_family,
+      });
+    }
+  }, [branding]);
+
+  return (
+    <div className="max-w-2xl space-y-6">
+      <Card>
+        <CardContent className="p-6 space-y-6">
+          <div>
+            <h2 className="text-base font-semibold text-neutral-900 mb-1">
+              Brand Colors
+            </h2>
+            <p className="text-xs text-neutral-500 mb-4">
+              Customise the platform colours to match your organisation identity.
+            </p>
+            {/* Color pickers */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Primary Color
+                </label>
+                <input
+                  type="color"
+                  value={form.primary_color}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, primary_color: e.target.value }))
+                  }
+                  className="h-10 w-full rounded border border-neutral-200 cursor-pointer p-0.5"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Accent Color
+                </label>
+                <input
+                  type="color"
+                  value={form.accent_color}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, accent_color: e.target.value }))
+                  }
+                  className="h-10 w-full rounded border border-neutral-200 cursor-pointer p-0.5"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Text inputs */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Company Name
+              </label>
+              <input
+                type="text"
+                value={form.company_name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, company_name: e.target.value }))
+                }
+                className="w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Your Company"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Logo URL
+              </label>
+              <input
+                type="url"
+                value={form.logo_url}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, logo_url: e.target.value }))
+                }
+                className="w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="https://..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Font Family
+              </label>
+              <select
+                value={form.font_family}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, font_family: e.target.value }))
+                }
+                className="w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              >
+                {["Inter", "Roboto", "Poppins", "DM Sans"].map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Live preview */}
+          <div
+            className="rounded-lg border p-4"
+            style={{ borderColor: form.primary_color }}
+          >
+            <p
+              className="text-sm font-semibold mb-3"
+              style={{ color: form.primary_color }}
+            >
+              Live Preview
+            </p>
+            <div className="flex gap-2 mb-3">
+              <span
+                className="px-3 py-1 rounded text-white text-xs font-medium"
+                style={{ background: form.primary_color }}
+              >
+                Primary
+              </span>
+              <span
+                className="px-3 py-1 rounded text-white text-xs font-medium"
+                style={{ background: form.accent_color }}
+              >
+                Accent
+              </span>
+            </div>
+            {form.company_name && (
+              <p
+                className="text-xs font-medium"
+                style={{ color: form.accent_color }}
+              >
+                {form.company_name}
+              </p>
+            )}
+          </div>
+
+          <Button
+            onClick={() =>
+              update.mutate({
+                primary_color: form.primary_color,
+                accent_color: form.accent_color,
+                company_name: form.company_name || undefined,
+                logo_url: form.logo_url || undefined,
+                font_family: form.font_family,
+              })
+            }
+            disabled={update.isPending}
+          >
+            {update.isPending ? "Saving…" : "Save Branding"}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -1066,6 +1241,10 @@ export default function SettingsPage() {
           <TabsTrigger value="crm">
             CRM
           </TabsTrigger>
+          <TabsTrigger value="branding">
+            <Palette className="h-4 w-4 mr-1.5" />
+            Branding
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="org">
@@ -1086,6 +1265,10 @@ export default function SettingsPage() {
 
         <TabsContent value="crm">
           <CRMTab />
+        </TabsContent>
+
+        <TabsContent value="branding">
+          <BrandingTab />
         </TabsContent>
       </Tabs>
     </div>

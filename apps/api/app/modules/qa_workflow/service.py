@@ -110,6 +110,7 @@ class QAService:
                 QAQuestion.project_id == project_id,
                 QAQuestion.is_deleted.is_(False),
             )
+            .options(selectinload(QAQuestion.answers))
             .order_by(QAQuestion.question_number.asc())
             .offset(skip)
             .limit(limit)
@@ -130,11 +131,7 @@ class QAService:
                 QAQuestion.org_id == self.org_id,
                 QAQuestion.is_deleted.is_(False),
             )
-            .options(
-                selectinload(QAQuestion.answers).execution_options(
-                    populate_existing=True
-                )
-            )
+            .options(selectinload(QAQuestion.answers))
             .execution_options(populate_existing=True)
         )
         result = await self.db.execute(stmt)

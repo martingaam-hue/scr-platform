@@ -82,6 +82,7 @@ from app.modules.crm_sync.router import router as crm_sync_router
 from app.modules.pacing.router import router as pacing_router
 from app.modules.taxonomy.router import router as taxonomy_router
 from app.modules.financial_templates.router import router as financial_templates_router
+from app.modules.business_plans.router import router as business_plans_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -201,6 +202,7 @@ app.include_router(crm_sync_router)
 app.include_router(pacing_router)
 app.include_router(taxonomy_router)
 app.include_router(financial_templates_router)
+app.include_router(business_plans_router)
 
 
 @app.get("/health")

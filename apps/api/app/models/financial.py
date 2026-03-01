@@ -150,11 +150,19 @@ class BusinessPlan(BaseModel):
         ForeignKey("organizations.id", ondelete="CASCADE"),
         nullable=False,
     )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
+    )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     executive_summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
     financial_projections: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     market_analysis: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     risk_analysis: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    use_of_funds: Mapped[str | None] = mapped_column(Text, nullable=True)
+    team_section: Mapped[str | None] = mapped_column(Text, nullable=True)
+    risk_section: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[BusinessPlanStatus] = mapped_column(
         nullable=False, default=BusinessPlanStatus.DRAFT
     )

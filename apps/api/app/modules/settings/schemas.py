@@ -1,4 +1,6 @@
-"""Settings module schemas: org profile, team management, API keys, preferences."""
+"""Settings module schemas: org profile, team management, API keys, preferences, branding."""
+
+from __future__ import annotations
 
 import uuid
 from datetime import datetime
@@ -116,3 +118,26 @@ class NotificationPreferences(BaseModel):
 class PreferencesResponse(BaseModel):
     notification: NotificationPreferences
     raw: dict[str, Any]
+
+
+# ── Branding ──────────────────────────────────────────────────────────────────
+
+
+class BrandingSettings(BaseModel):
+    primary_color: str = "#6366f1"
+    logo_url: str | None = None
+    company_name: str | None = None
+    accent_color: str = "#8b5cf6"
+    font_family: str = "Inter"
+
+
+class BrandingResponse(BrandingSettings):
+    org_id: uuid.UUID
+
+
+class BrandingUpdateRequest(BaseModel):
+    primary_color: str | None = None
+    logo_url: str | None = None
+    company_name: str | None = None
+    accent_color: str | None = None
+    font_family: str | None = None

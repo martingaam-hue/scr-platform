@@ -1,7 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, ClipboardCopy, FileText, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  CheckCircle2,
+  ClipboardCopy,
+  FileText,
+  Loader2,
+  RefreshCw,
+  Save,
+  Sparkles,
+} from "lucide-react";
 import {
   Badge,
   Button,
@@ -18,6 +27,12 @@ import {
   type BusinessPlanActionKey,
 } from "@/lib/business-plan";
 import { useProjects } from "@/lib/projects";
+import {
+  useBusinessPlans,
+  useCreateBusinessPlan,
+  useUpdateBusinessPlan,
+  type BusinessPlanRecord,
+} from "@/lib/business-plans";
 
 // ── Section Card ──────────────────────────────────────────────────────────
 
@@ -35,7 +50,10 @@ function SectionCard({
 
   const { data: result } = useBusinessPlanResult(projectId, taskLogId);
 
-  const isLoading = generate.isPending || result?.status === "pending" || result?.status === "processing";
+  const isLoading =
+    generate.isPending ||
+    result?.status === "pending" ||
+    result?.status === "processing";
   const content = result?.status === "completed" ? result.content : null;
 
   const handleGenerate = () => {
@@ -118,11 +136,94 @@ function SectionCard({
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────
+// ── Save Bar ──────────────────────────────────────────────────────────────
+
+function SaveBar({
+  projectId,
+  currentPlan,
+}: {
+  projectId: string;
+  currentPlan: BusinessPlanRecord | null;
+}) {
+  const [title, setTitle] = useState(currentPlan?.title ?? "Business Plan");
+  const [dirty, setDirty] = useState(false);
+  const create = useCreateBusinessPlan();
+  const update = useUpdateBusinessPlan(currentPlan?.id ?? "");
+
+  // Sync title from loaded plan
+  useEffect(() => {
+    if (currentPlan) {
+      setTitle(currentPlan.title);
+      setDirty(false);
+    }
+  }, [currentPlan]);
+
+  const isSaving = create.isPending || update.isPending;
+
+  const handleSave = () => {
+    if (currentPlan) {
+      update.mutate({ title }, { onSuccess: () => setDirty(false) });
+    } else {
+      create.mutate(
+        { project_id: projectId, title },
+        { onSuccess: () => setDirty(false) }
+      );
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-neutral-50 border rounded-lg">
+      <input
+        className="flex-1 text-sm border border-neutral-200 rounded px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+        value={title}
+        onChange={(e) => {
+          setTitle(e.target.value);
+          setDirty(true);
+        }}
+        placeholder="Plan title…"
+      />
+      {currentPlan && (
+        <span className="text-xs text-neutral-400 shrink-0">
+          v{currentPlan.version}
+        </span>
+      )}
+      <span
+        className={`text-xs shrink-0 ${dirty ? "text-amber-500" : "text-green-600"}`}
+      >
+        {dirty ? "Unsaved changes" : "Saved"}
+      </span>
+      <Button
+        variant="default"
+        onClick={handleSave}
+        disabled={isSaving || !dirty}
+        className="h-8 text-xs px-3 shrink-0"
+      >
+        {isSaving ? (
+          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+        ) : (
+          <Save className="h-3 w-3 mr-1" />
+        )}
+        Save Plan
+      </Button>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function BusinessPlanPage() {
-  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const searchParams = useSearchParams();
+  const paramProjectId = searchParams.get("project_id") ?? "";
+
+  const [selectedProjectId, setSelectedProjectId] = useState(paramProjectId);
   const { data: projects } = useProjects({ page_size: 50 });
+  const { data: plans } = useBusinessPlans(
+    selectedProjectId || undefined
+  );
+
+  // Latest plan for the selected project
+  const currentPlan: BusinessPlanRecord | null =
+    plans && plans.length > 0 ? plans[0] : null;
 
   return (
     <div className="space-y-6">
@@ -173,6 +274,12 @@ export default function BusinessPlanPage() {
               Select sections to generate below
             </span>
           </div>
+
+          {/* Save bar */}
+          <SaveBar
+            projectId={selectedProjectId}
+            currentPlan={currentPlan}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {(

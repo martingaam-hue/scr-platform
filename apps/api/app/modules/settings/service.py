@@ -1,4 +1,4 @@
-"""Settings service: org management, team, API keys, preferences."""
+"""Settings service: org management, team, API keys, preferences, branding."""
 
 import hashlib
 import secrets
@@ -15,6 +15,8 @@ from app.models.enums import UserRole
 from app.modules.settings.schemas import (
     ApiKeyCreatedResponse,
     ApiKeyItem,
+    BrandingSettings,
+    BrandingUpdateRequest,
     InviteUserRequest,
     NotificationPreferences,
     OrgUpdateRequest,
@@ -248,3 +250,36 @@ async def update_user_preferences(
         notification=NotificationPreferences(**notif_raw),
         raw=raw,
     )
+
+
+# ── Branding ─────────────────────────────────────────────────────────────────
+
+_BRANDING_DEFAULTS: dict[str, Any] = {
+    "primary_color": "#6366f1",
+    "logo_url": None,
+    "company_name": None,
+    "accent_color": "#8b5cf6",
+    "font_family": "Inter",
+}
+
+
+async def get_branding(db: AsyncSession, org_id: uuid.UUID) -> BrandingSettings:
+    org = await get_org(db, org_id)
+    stored = (org.settings or {}).get("branding", {})
+    merged = {**_BRANDING_DEFAULTS, **stored}
+    return BrandingSettings(**merged)
+
+
+async def update_branding(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    body: BrandingUpdateRequest,
+) -> BrandingSettings:
+    org = await get_org(db, org_id)
+    settings = dict(org.settings or {})
+    existing = {**_BRANDING_DEFAULTS, **settings.get("branding", {})}
+    updates = body.model_dump(exclude_none=True)
+    existing.update(updates)
+    settings["branding"] = existing
+    org.settings = settings
+    return BrandingSettings(**existing)

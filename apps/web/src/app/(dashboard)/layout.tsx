@@ -15,6 +15,7 @@ import { RalphPanel } from "@/components/ralph-ai/ralph-panel";
 import { CommandPalette } from "@/components/search/command-palette";
 import { useAuthenticatedApi, useSCRUser } from "@/lib/auth";
 import { isOnboardingComplete } from "@/lib/onboarding";
+import { BrandingProvider } from "@/components/branding-provider";
 
 export default function DashboardLayout({
   children,
@@ -48,6 +49,10 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-[hsl(220,56%,7%)]">
+      <BrandingProvider>
+        {/* Injects org CSS variables (--brand-primary, --brand-accent, --font-sans) */}
+        <></>
+      </BrandingProvider>
       <Sidebar />
       <Topbar />
 

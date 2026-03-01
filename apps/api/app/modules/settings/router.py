@@ -1,4 +1,4 @@
-"""Settings API router: org profile, team, API keys, preferences."""
+"""Settings API router: org profile, team, API keys, preferences, branding."""
 
 import uuid
 
@@ -14,6 +14,8 @@ from app.modules.settings.schemas import (
     ApiKeyCreateRequest,
     ApiKeyCreatedResponse,
     ApiKeyListResponse,
+    BrandingResponse,
+    BrandingUpdateRequest,
     InviteUserRequest,
     NotificationPreferences,
     OrgResponse,
@@ -279,3 +281,34 @@ async def update_preferences(
         return result
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+
+
+# ── Branding ──────────────────────────────────────────────────────────────────
+
+
+@router.get("/branding", response_model=BrandingResponse)
+async def get_branding(
+    current_user: CurrentUser = Depends(require_permission("view", "settings")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get organisation branding settings (returns defaults if not configured)."""
+    try:
+        branding = await service.get_branding(db, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return BrandingResponse(org_id=current_user.org_id, **branding.model_dump())
+
+
+@router.put("/branding", response_model=BrandingResponse)
+async def update_branding(
+    body: BrandingUpdateRequest,
+    current_user: CurrentUser = Depends(require_permission("admin", "settings")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update organisation branding settings (admin only)."""
+    try:
+        branding = await service.update_branding(db, current_user.org_id, body)
+        await db.commit()
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return BrandingResponse(org_id=current_user.org_id, **branding.model_dump())
