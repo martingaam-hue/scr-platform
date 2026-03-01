@@ -7,6 +7,10 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
+// Prevent static prerendering — ClerkProvider requires the publishable key
+// at render time, which isn't available during Docker build.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "SCR Platform — Investment Intelligence",
   description:

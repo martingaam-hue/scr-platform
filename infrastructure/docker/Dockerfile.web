@@ -40,6 +40,9 @@ COPY packages/ ./packages/
 COPY apps/web/ ./apps/web/
 COPY package.json pnpm-workspace.yaml ./
 
+# Ensure public dir exists (app has no static assets but Next.js expects it)
+RUN mkdir -p apps/web/public
+
 # Build shared packages first, then the app
 RUN pnpm --filter @scr/types build && \
     pnpm --filter @scr/ui build && \
