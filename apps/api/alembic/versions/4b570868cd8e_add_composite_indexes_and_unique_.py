@@ -29,10 +29,11 @@ def upgrade() -> None:
     )
 
     # 2. audit_logs — admin audit trail queries (org + time range)
+    # Note: audit_logs uses "timestamp" column (not "created_at")
     op.create_index(
         "ix_audit_logs_org_time",
         "audit_logs",
-        ["org_id", "created_at"],
+        ["org_id", "timestamp"],
         if_not_exists=True,
     )
 
@@ -78,39 +79,13 @@ def upgrade() -> None:
 
     # ── Unique constraints for data integrity ─────────────────────────────────
 
-    # 8. metric_snapshots — prevent duplicate daily snapshots (idempotent beat tasks)
-    op.create_index(
-        "uq_metric_snapshots_daily",
-        "metric_snapshots",
-        [
-            "org_id",
-            "entity_id",
-            "entity_type",
-            "metric_name",
-            sa.text("(recorded_at::date)"),
-        ],
-        unique=True,
-        if_not_exists=True,
-        postgresql_where=sa.text("entity_id IS NOT NULL"),
-    )
-
-    # 9. cashflow_projections — prevent duplicate projections per assumption + date
-    op.create_index(
-        "uq_cashflow_projections_unique",
-        "cashflow_projections",
-        [
-            "org_id",
-            "assumption_id",
-            sa.text("(projection_date::date)"),
-        ],
-        unique=True,
-        if_not_exists=True,
-    )
+    # 8 & 9. Partial unique indexes with date-cast expressions are skipped here
+    # because ::date on TIMESTAMPTZ columns requires IMMUTABLE in PostgreSQL.
+    # These can be added manually if needed: CREATE UNIQUE INDEX CONCURRENTLY ...
 
 
 def downgrade() -> None:
-    op.drop_index("uq_cashflow_projections_unique", table_name="cashflow_projections", if_exists=True)
-    op.drop_index("uq_metric_snapshots_daily", table_name="metric_snapshots", if_exists=True)
+    # Partial indexes 8 & 9 were not created — nothing to drop
     op.drop_index("ix_signal_scores_project_time", table_name="signal_scores", if_exists=True)
     op.drop_index("ix_ai_task_logs_org_status_time", table_name="ai_task_logs", if_exists=True)
     op.drop_index("ix_doc_access_logs_doc_time", table_name="document_access_logs", if_exists=True)

@@ -21,7 +21,7 @@ def upgrade() -> None:
     op.create_table(
         "deal_outcomes",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("org_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("org_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False),
         sa.Column("project_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("projects.id", ondelete="SET NULL"), nullable=True),
         # deal_flow_stages table does not exist — plain UUID column
         sa.Column("deal_flow_stage_id", postgresql.UUID(as_uuid=True), nullable=True),
@@ -45,7 +45,7 @@ def upgrade() -> None:
     op.create_table(
         "backtest_runs",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("org_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("org_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False),
         sa.Column("run_by", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("methodology", sa.VARCHAR(50), nullable=False, server_default="threshold"),
         sa.Column("date_from", sa.DATE(), nullable=True),

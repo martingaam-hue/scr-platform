@@ -5,19 +5,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio
-async def test_list_badges(
+async def test_my_badges(
     authenticated_client: AsyncClient, sample_user, db: AsyncSession
 ) -> None:
-    response = await authenticated_client.get("/v1/gamification/badges")
+    # User's own badges: GET /gamification/badges/my
+    response = await authenticated_client.get("/v1/gamification/badges/my")
     assert response.status_code == 200
+    assert isinstance(response.json(), list)
 
 
 @pytest.mark.asyncio
-async def test_user_badges(
+async def test_project_badges(
     authenticated_client: AsyncClient, sample_user, db: AsyncSession
 ) -> None:
-    response = await authenticated_client.get("/v1/gamification/user-badges")
+    # Project badges require a project_id; nonexistent project returns empty list
+    fake_id = "00000000-0000-0000-0000-000000000099"
+    response = await authenticated_client.get(f"/v1/gamification/badges/project/{fake_id}")
     assert response.status_code == 200
+    assert isinstance(response.json(), list)
 
 
 @pytest.mark.asyncio
@@ -29,8 +34,10 @@ async def test_leaderboard(
 
 
 @pytest.mark.asyncio
-async def test_list_quests(
+async def test_progress_for_project(
     authenticated_client: AsyncClient, sample_user, db: AsyncSession
 ) -> None:
-    response = await authenticated_client.get("/v1/gamification/quests")
+    # Progress endpoint is read-only; returns zero data for a nonexistent project
+    fake_id = "00000000-0000-0000-0000-000000000099"
+    response = await authenticated_client.get(f"/v1/gamification/progress/{fake_id}")
     assert response.status_code == 200

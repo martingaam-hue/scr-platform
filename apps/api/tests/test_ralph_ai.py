@@ -58,9 +58,10 @@ def test_tool_definitions_structure() -> None:
     assert isinstance(RALPH_TOOL_DEFINITIONS, list)
     assert len(RALPH_TOOL_DEFINITIONS) > 0
     for tool in RALPH_TOOL_DEFINITIONS:
-        # Each tool should have at minimum a name field (Anthropic format)
+        # Tools use OpenAI function-calling format: {type, function: {name, ...}}
         assert isinstance(tool, dict)
-        assert "name" in tool
+        assert "function" in tool
+        assert "name" in tool["function"]
 
 
 # ── Context manager ─────────────────────────────────────────────────────────
@@ -69,19 +70,24 @@ def test_tool_definitions_structure() -> None:
 def test_context_manager_exists() -> None:
     from app.modules.ralph_ai.context_manager import ContextWindowManager
 
-    manager = ContextWindowManager(max_tokens=4096)
-    assert manager.max_tokens == 4096
+    # Class-level constants verify the manager is configured correctly
+    assert ContextWindowManager.TOTAL_BUDGET == 16_000
+    assert ContextWindowManager.MIN_RECENT_PAIRS == 3
+    assert ContextWindowManager.SYSTEM_BUDGET > 0
 
 
 def test_context_trimming_keeps_last_message() -> None:
-    from app.modules.ralph_ai.context_manager import ContextWindowManager
+    from unittest.mock import MagicMock
+    from app.modules.ralph_ai.context_manager import ContextWindowManager, GatewayAIClient
 
-    manager = ContextWindowManager(max_tokens=50)
+    ai_client = MagicMock(spec=GatewayAIClient)
+    manager = ContextWindowManager(ai_client=ai_client)
     messages = [
         {"role": "user", "content": "x" * 200},
         {"role": "assistant", "content": "y" * 200},
         {"role": "user", "content": "latest question"},
     ]
-    trimmed = manager.trim_messages(messages)
+    # Use a tight budget so only the last message fits
+    trimmed = manager._truncate_messages(messages, budget=20)
     assert len(trimmed) > 0
     assert trimmed[-1]["content"] == "latest question"

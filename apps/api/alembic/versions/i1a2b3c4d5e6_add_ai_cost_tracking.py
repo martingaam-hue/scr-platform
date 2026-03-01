@@ -20,10 +20,11 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("ai_task_logs", sa.Column("cost_usd", sa.Numeric(12, 6), nullable=True))
-    op.add_column("ai_task_logs", sa.Column("tokens_input", sa.Integer(), nullable=True))
-    op.add_column("ai_task_logs", sa.Column("tokens_output", sa.Integer(), nullable=True))
-    op.add_column("organizations", sa.Column("ai_monthly_budget", sa.Float(), nullable=True))
+    # Use raw SQL with IF NOT EXISTS — columns may have been added manually
+    op.execute("ALTER TABLE ai_task_logs ADD COLUMN IF NOT EXISTS cost_usd NUMERIC(12, 6)")
+    op.execute("ALTER TABLE ai_task_logs ADD COLUMN IF NOT EXISTS tokens_input INTEGER")
+    op.execute("ALTER TABLE ai_task_logs ADD COLUMN IF NOT EXISTS tokens_output INTEGER")
+    op.execute("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS ai_monthly_budget DOUBLE PRECISION")
 
 
 def downgrade() -> None:

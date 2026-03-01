@@ -33,7 +33,7 @@ router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 @router.get("/events", response_model=list[str])
 async def list_valid_events(
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-) -> list[str]:
+) -> list[str]:  # any authenticated user
     """Return the list of supported webhook event types."""
     return VALID_EVENTS
 
@@ -44,7 +44,7 @@ async def list_valid_events(
 @router.get("/deliveries", response_model=list[WebhookDeliveryResponse])
 async def list_all_deliveries(
     limit: int = Query(100, ge=1, le=500),
-    current_user: CurrentUser = Depends(require_permission("admin", "project")),
+    current_user: CurrentUser = Depends(require_permission("manage_settings", "settings")),
     db: AsyncSession = Depends(get_db),
 ) -> list[WebhookDeliveryResponse]:
     """List recent webhook deliveries across all subscriptions for the org."""
@@ -63,7 +63,7 @@ async def list_all_deliveries(
 )
 async def create_subscription(
     body: CreateSubscriptionRequest,
-    current_user: CurrentUser = Depends(require_permission("admin", "project")),
+    current_user: CurrentUser = Depends(require_permission("manage_settings", "settings")),
     db: AsyncSession = Depends(get_db),
 ) -> WebhookSubscriptionResponse:
     """Register a new webhook endpoint."""
@@ -76,7 +76,7 @@ async def create_subscription(
 
 @router.get("", response_model=list[WebhookSubscriptionResponse])
 async def list_subscriptions(
-    current_user: CurrentUser = Depends(require_permission("admin", "project")),
+    current_user: CurrentUser = Depends(require_permission("manage_settings", "settings")),
     db: AsyncSession = Depends(get_db),
 ) -> list[WebhookSubscriptionResponse]:
     """List all webhook subscriptions for the organisation."""
@@ -88,7 +88,7 @@ async def list_subscriptions(
 @router.get("/{subscription_id}", response_model=WebhookSubscriptionResponse)
 async def get_subscription(
     subscription_id: uuid.UUID,
-    current_user: CurrentUser = Depends(require_permission("admin", "project")),
+    current_user: CurrentUser = Depends(require_permission("manage_settings", "settings")),
     db: AsyncSession = Depends(get_db),
 ) -> WebhookSubscriptionResponse:
     """Get a single webhook subscription."""
@@ -103,7 +103,7 @@ async def get_subscription(
 async def update_subscription(
     subscription_id: uuid.UUID,
     body: UpdateSubscriptionRequest,
-    current_user: CurrentUser = Depends(require_permission("admin", "project")),
+    current_user: CurrentUser = Depends(require_permission("manage_settings", "settings")),
     db: AsyncSession = Depends(get_db),
 ) -> WebhookSubscriptionResponse:
     """Update a webhook subscription."""
@@ -121,7 +121,7 @@ async def update_subscription(
 )
 async def delete_subscription(
     subscription_id: uuid.UUID,
-    current_user: CurrentUser = Depends(require_permission("admin", "project")),
+    current_user: CurrentUser = Depends(require_permission("manage_settings", "settings")),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Delete a webhook subscription and all its deliveries."""
@@ -137,7 +137,7 @@ async def delete_subscription(
 @router.post("/{subscription_id}/enable", response_model=WebhookSubscriptionResponse)
 async def enable_subscription(
     subscription_id: uuid.UUID,
-    current_user: CurrentUser = Depends(require_permission("admin", "project")),
+    current_user: CurrentUser = Depends(require_permission("manage_settings", "settings")),
     db: AsyncSession = Depends(get_db),
 ) -> WebhookSubscriptionResponse:
     """Re-enable a webhook subscription (resets failure count)."""
@@ -151,7 +151,7 @@ async def enable_subscription(
 @router.post("/{subscription_id}/disable", response_model=WebhookSubscriptionResponse)
 async def disable_subscription(
     subscription_id: uuid.UUID,
-    current_user: CurrentUser = Depends(require_permission("admin", "project")),
+    current_user: CurrentUser = Depends(require_permission("manage_settings", "settings")),
     db: AsyncSession = Depends(get_db),
 ) -> WebhookSubscriptionResponse:
     """Manually disable a webhook subscription."""
@@ -169,7 +169,7 @@ async def disable_subscription(
 async def test_subscription(
     subscription_id: uuid.UUID,
     body: TestWebhookRequest,
-    current_user: CurrentUser = Depends(require_permission("admin", "project")),
+    current_user: CurrentUser = Depends(require_permission("manage_settings", "settings")),
     db: AsyncSession = Depends(get_db),
 ) -> WebhookDeliveryResponse:
     """Send a test event to the webhook endpoint."""
@@ -210,7 +210,7 @@ async def test_subscription(
 async def list_subscription_deliveries(
     subscription_id: uuid.UUID,
     limit: int = Query(50, ge=1, le=200),
-    current_user: CurrentUser = Depends(require_permission("admin", "project")),
+    current_user: CurrentUser = Depends(require_permission("manage_settings", "settings")),
     db: AsyncSession = Depends(get_db),
 ) -> list[WebhookDeliveryResponse]:
     """List delivery attempts for a specific webhook subscription."""
