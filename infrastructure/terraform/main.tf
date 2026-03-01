@@ -72,6 +72,7 @@ module "rds" {
   backup_retention_period = var.environment == "production" ? 14 : 7
   deletion_protection     = var.environment == "production"
 
+  create_db_subnet_group       = true
   parameter_group_name         = aws_db_parameter_group.postgres16.name
   create_db_parameter_group    = false
   multi_az                     = var.environment == "production"
