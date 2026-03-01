@@ -71,6 +71,7 @@ router = APIRouter(prefix="/dataroom", tags=["dataroom"])
 
 @router.post(
     "/folders",
+    summary="Create folder",
     response_model=FolderResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permission("upload", "document"))],
@@ -105,6 +106,7 @@ async def create_folder(
 
 @router.get(
     "/folders/{project_id}",
+    summary="Get project folder tree",
     response_model=list[FolderTreeNode],
     dependencies=[Depends(require_permission("view", "document"))],
 )
@@ -119,6 +121,7 @@ async def get_folder_tree(
 
 @router.put(
     "/folders/{folder_id}",
+    summary="Update folder",
     response_model=FolderResponse,
     dependencies=[Depends(require_permission("edit", "document"))],
 )
@@ -153,6 +156,7 @@ async def update_folder(
 
 @router.delete(
     "/folders/{folder_id}",
+    summary="Delete folder",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permission("delete", "document"))],
 )
@@ -175,6 +179,7 @@ async def delete_folder(
 
 @router.post(
     "/upload/presigned",
+    summary="Get pre-signed upload URL",
     response_model=PresignedUploadResponse,
     dependencies=[Depends(require_permission("upload", "document"))],
 )
@@ -210,6 +215,7 @@ async def get_presigned_upload_url(
 
 @router.post(
     "/upload/confirm",
+    summary="Confirm document upload",
     response_model=UploadConfirmResponse,
     dependencies=[Depends(require_permission("upload", "document"))],
 )
@@ -251,6 +257,7 @@ async def confirm_upload(
 
 @router.get(
     "/documents",
+    summary="List documents",
     response_model=DocumentListResponse,
     dependencies=[Depends(require_permission("view", "document"))],
 )
@@ -292,6 +299,7 @@ async def list_documents(
 
 @router.get(
     "/documents/{document_id}",
+    summary="Get document",
     response_model=DocumentDetailResponse,
     dependencies=[Depends(require_permission("view", "document"))],
 )
@@ -345,6 +353,7 @@ async def get_document(
 
 @router.get(
     "/documents/{document_id}/download",
+    summary="Get document download URL",
     response_model=PresignedDownloadResponse,
     dependencies=[Depends(require_permission("download", "document"))],
 )
@@ -370,6 +379,7 @@ async def download_document(
 
 @router.put(
     "/documents/{document_id}",
+    summary="Update document metadata",
     response_model=DocumentResponse,
     dependencies=[Depends(require_permission("edit", "document"))],
 )
@@ -397,6 +407,7 @@ async def update_document(
 
 @router.delete(
     "/documents/{document_id}",
+    summary="Delete document",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permission("delete", "document"))],
 )
@@ -417,6 +428,7 @@ async def delete_document(
 
 @router.post(
     "/documents/{document_id}/versions",
+    summary="Upload new document version",
     response_model=PresignedUploadResponse,
     dependencies=[Depends(require_permission("upload", "document"))],
 )
@@ -448,6 +460,7 @@ async def create_new_version(
 
 @router.get(
     "/documents/{document_id}/versions",
+    summary="List document versions",
     response_model=list[DocumentVersionResponse],
     dependencies=[Depends(require_permission("view", "document"))],
 )
@@ -478,6 +491,7 @@ async def list_versions(
 
 @router.get(
     "/documents/{document_id}/access-log",
+    summary="Get document access log",
     response_model=AccessLogListResponse,
     dependencies=[Depends(require_permission("view", "document"))],
 )
@@ -512,6 +526,7 @@ async def get_access_log(
 
 @router.post(
     "/bulk/upload",
+    summary="Bulk upload documents",
     response_model=BulkUploadResponse,
     dependencies=[Depends(require_permission("upload", "document"))],
 )
@@ -543,6 +558,7 @@ async def bulk_upload(
 
 @router.post(
     "/bulk/analyze",
+    summary="Bulk AI analyze documents",
     dependencies=[Depends(require_permission("view", "document"))],
 )
 async def bulk_analyze(
@@ -602,6 +618,7 @@ async def bulk_analyze(
 
 @router.post(
     "/bulk/move",
+    summary="Bulk move documents",
     response_model=BulkOperationResponse,
     dependencies=[Depends(require_permission("edit", "document"))],
 )
@@ -626,6 +643,7 @@ async def bulk_move(
 
 @router.post(
     "/bulk/delete",
+    summary="Bulk delete documents",
     response_model=BulkOperationResponse,
     dependencies=[Depends(require_permission("delete", "document"))],
 )
@@ -650,6 +668,7 @@ async def bulk_delete(
 
 @router.post(
     "/documents/{document_id}/extract",
+    summary="Trigger AI extraction",
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(require_permission("upload", "document"))],
 )
@@ -677,6 +696,7 @@ async def trigger_extraction(
 
 @router.get(
     "/documents/{document_id}/extractions",
+    summary="Get document extractions",
     response_model=ExtractionListResponse,
     dependencies=[Depends(require_permission("view", "document"))],
 )
@@ -710,6 +730,7 @@ async def get_extractions(
 
 @router.get(
     "/documents/{document_id}/analyses",
+    summary="Get cached AI analyses",
     dependencies=[Depends(require_permission("view", "document"))],
 )
 async def get_cached_analyses(
@@ -730,6 +751,7 @@ async def get_cached_analyses(
 
 @router.post(
     "/documents/{document_id}/analyses",
+    summary="Run cached AI analysis",
     dependencies=[Depends(require_permission("view", "document"))],
 )
 async def run_cached_analysis(
@@ -759,6 +781,7 @@ async def run_cached_analysis(
 
 @router.get(
     "/extractions/summary/{project_id}",
+    summary="Get project extraction summary",
     response_model=ProjectExtractionSummary,
     dependencies=[Depends(require_permission("view", "document"))],
 )
@@ -779,6 +802,7 @@ async def get_project_extraction_summary(
 
 @router.post(
     "/share",
+    summary="Create share link",
     response_model=ShareResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permission("upload", "document"))],
@@ -816,7 +840,7 @@ async def create_share_link(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-@router.get("/share/{share_token}", response_model=ShareAccessResponse)
+@router.get("/share/{share_token}", summary="Access shared document", response_model=ShareAccessResponse)
 async def access_share_link(
     share_token: str,
     password: str | None = Query(None),
@@ -840,6 +864,7 @@ async def access_share_link(
 
 @router.delete(
     "/share/{share_id}",
+    summary="Revoke share link",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permission("delete", "document"))],
 )

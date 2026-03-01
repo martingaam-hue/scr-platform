@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.services.auth import verify_gateway_key
 from app.services.rag import get_rag
+from app.services.vector_store import get_vector_store
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -144,3 +145,15 @@ async def rag_complete(
     except Exception as e:
         logger.error("rag_failed", error=str(e))
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+
+
+@router.delete("/namespaces/{org_id}", summary="Delete org RAG namespace")
+async def delete_namespace(org_id: str, _api_key: str = Depends(verify_gateway_key)):
+    """Delete all RAG vectors for an organization (used on org deletion)."""
+    try:
+        vs = get_vector_store()
+        await vs.delete_namespace(org_id)
+        return {"deleted": True, "org_id": org_id}
+    except Exception as e:
+        # 404 is acceptable — namespace may not exist
+        return {"deleted": False, "org_id": org_id, "note": str(e)}

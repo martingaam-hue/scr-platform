@@ -23,7 +23,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.main import app
 from app.models.core import Organization, User
 from app.models.enums import (
@@ -184,6 +184,7 @@ async def b4_client(db: AsyncSession, b4_user: User) -> AsyncClient:
 
     app.dependency_overrides[get_current_user] = lambda: CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_readonly_session] = lambda: db
     with patch.object(deps_module, "check_permission", side_effect=patched_check):
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
@@ -191,6 +192,7 @@ async def b4_client(db: AsyncSession, b4_user: User) -> AsyncClient:
             yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_readonly_session, None)
 
 
 # =============================================================================

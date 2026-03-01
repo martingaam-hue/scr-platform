@@ -38,7 +38,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.main import app
 from app.models.advisory import InvestorPersona, InvestorSignalScore
 from app.models.ai import AIConversation, AIMessage
@@ -100,6 +100,7 @@ def _override(current_user: CurrentUser, db: AsyncSession):
     return {
         get_current_user: lambda: current_user,
         get_db: lambda: db,
+        get_readonly_session: lambda: db,
     }
 
 

@@ -39,6 +39,7 @@ router = APIRouter(prefix="/valuations", tags=["valuations"])
 
 @router.post(
     "/batch",
+    summary="Batch create valuations",
     response_model=BatchValuationResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -107,7 +108,7 @@ async def batch_valuations(
     )
 
 
-@router.post("/suggest-assumptions", response_model=AssumptionSuggestion)
+@router.post("/suggest-assumptions", summary="Suggest DCF assumptions", response_model=AssumptionSuggestion)
 async def suggest_assumptions(
     body: SuggestAssumptionsRequest,
     db: AsyncSession = Depends(get_db),
@@ -119,7 +120,7 @@ async def suggest_assumptions(
     )
 
 
-@router.post("/compare", response_model=list[ValuationResponse])
+@router.post("/compare", summary="Compare multiple valuations", response_model=list[ValuationResponse])
 async def compare_valuations(
     valuation_ids: list[uuid.UUID],
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -141,6 +142,7 @@ async def compare_valuations(
 
 @router.post(
     "",
+    summary="Create valuation",
     response_model=ValuationResponse,
     status_code=status.HTTP_201_CREATED,
 )
@@ -163,7 +165,7 @@ async def create_valuation(
         raise HTTPException(status_code=422, detail=str(exc))
 
 
-@router.get("", response_model=ValuationListResponse)
+@router.get("", summary="List valuations", response_model=ValuationListResponse)
 async def list_valuations(
     project_id: uuid.UUID | None = Query(None),
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -177,7 +179,7 @@ async def list_valuations(
     )
 
 
-@router.get("/{valuation_id}", response_model=ValuationResponse)
+@router.get("/{valuation_id}", summary="Get valuation", response_model=ValuationResponse)
 async def get_valuation(
     valuation_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -198,7 +200,7 @@ async def get_valuation(
         raise HTTPException(status_code=404, detail=str(exc))
 
 
-@router.put("/{valuation_id}", response_model=ValuationResponse)
+@router.put("/{valuation_id}", summary="Update valuation", response_model=ValuationResponse)
 async def update_valuation(
     valuation_id: uuid.UUID,
     body: ValuationUpdateRequest,
@@ -217,7 +219,7 @@ async def update_valuation(
         raise HTTPException(status_code=422, detail=str(exc))
 
 
-@router.put("/{valuation_id}/approve", response_model=ValuationResponse)
+@router.put("/{valuation_id}/approve", summary="Approve valuation", response_model=ValuationResponse)
 async def approve_valuation(
     valuation_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("approve", "project")),
@@ -240,7 +242,7 @@ async def approve_valuation(
 # ── Analysis ──────────────────────────────────────────────────────────────────
 
 
-@router.post("/{valuation_id}/sensitivity", response_model=SensitivityMatrix)
+@router.post("/{valuation_id}/sensitivity", summary="Run sensitivity matrix", response_model=SensitivityMatrix)
 async def run_sensitivity(
     valuation_id: uuid.UUID,
     body: SensitivityRequest,
@@ -260,6 +262,7 @@ async def run_sensitivity(
 
 @router.post(
     "/{valuation_id}/report",
+    summary="Generate valuation report",
     response_model=ValuationReportResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )

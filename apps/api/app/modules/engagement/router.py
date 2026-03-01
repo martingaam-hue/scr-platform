@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.modules.engagement.schemas import (
     DocumentAnalyticsResponse,
     EngagementSessionResponse,
@@ -147,7 +147,7 @@ async def track_download(
 async def get_document_analytics(
     document_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "document")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ) -> DocumentAnalyticsResponse:
     """Return aggregate analytics for a document: views, time, page heatmap, recent sessions."""
     svc = EngagementService(db, current_user.org_id)
@@ -163,7 +163,7 @@ async def get_document_analytics(
 async def get_project_engagement(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ) -> list[InvestorEngagementResponse]:
     """Return per-investor engagement summaries for all documents in a project."""
     svc = EngagementService(db, current_user.org_id)
@@ -179,7 +179,7 @@ async def get_project_engagement(
 async def get_deal_room_engagement(
     deal_room_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ) -> list[InvestorEngagementResponse]:
     """Return per-investor engagement summaries filtered to a specific deal room."""
     from app.models.deal_rooms import DealRoom
@@ -213,7 +213,7 @@ async def get_deal_room_engagement(
 async def get_page_heatmap(
     document_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "document")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ) -> dict[int, int]:
     """Return a page-number → total_seconds heatmap for the document."""
     svc = EngagementService(db, current_user.org_id)

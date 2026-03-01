@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.main import app
 from app.models.core import Organization, User
 from app.models.dataroom import (
@@ -143,6 +143,7 @@ def mock_s3():
 async def client_with_db(db: AsyncSession, mock_s3, seed_data) -> AsyncClient:
     """AsyncClient with DB session and S3 mock injected, authenticated as ADMIN."""
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_readonly_session] = lambda: db
     app.dependency_overrides[get_current_user] = _override_auth(CURRENT_USER)
 
     async with AsyncClient(
@@ -158,6 +159,7 @@ async def client_with_db(db: AsyncSession, mock_s3, seed_data) -> AsyncClient:
 async def viewer_client(db: AsyncSession, mock_s3, seed_data) -> AsyncClient:
     """AsyncClient authenticated as VIEWER (read-only)."""
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_readonly_session] = lambda: db
     app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
 
     async with AsyncClient(

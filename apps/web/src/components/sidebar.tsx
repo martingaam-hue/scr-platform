@@ -100,6 +100,7 @@ const investorNav: NavSection[] = [
       { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
       { label: "J-Curve Pacing", href: "/pacing", icon: TrendingDown },
       { label: "Financial Models", href: "/financial-templates", icon: Calculator },
+      { label: "Benchmarks & Metrics", href: "/metrics", icon: TrendingUp },
     ],
   },
   {
@@ -160,6 +161,7 @@ const investorNav: NavSection[] = [
     items: [
       { label: "Settings", href: "/settings", icon: Settings },
       { label: "Connectors", href: "/connectors", icon: Plug },
+      { label: "Sync History", href: "/connectors/sync-history", icon: Plug },
       { label: "Investor Personas", href: "/investor-personas", icon: Users },
       { label: "Ecosystem", href: "/ecosystem", icon: Network },
       { label: "Activity Digest", href: "/digest", icon: Rss },
@@ -207,6 +209,9 @@ const allyNav: NavSection[] = [
       { label: "Tokenization", href: "/tokenization", icon: Layers },
       { label: "Dev OS", href: "/development-os", icon: Monitor },
       { label: "Activity Feed", href: "/collaboration", icon: Activity },
+      { label: "Q&A Workflow", href: "/qa", icon: MessageSquare },
+      { label: "Engagement Analytics", href: "/engagement", icon: Activity },
+      { label: "AI Citations", href: "/citations", icon: FileText },
     ],
   },
   {
@@ -262,6 +267,7 @@ const adminNav: NavSection[] = [
       { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
       { label: "J-Curve Pacing", href: "/pacing", icon: TrendingDown },
       { label: "Financial Models", href: "/financial-templates", icon: Calculator },
+      { label: "Benchmarks & Metrics", href: "/metrics", icon: TrendingUp },
     ],
   },
   {
@@ -322,6 +328,7 @@ const adminNav: NavSection[] = [
       { label: "Admin Panel", href: "/admin", icon: ShieldCheck },
       { label: "Prompt Templates", href: "/admin/prompts", icon: FileText },
       { label: "System Health", href: "/admin/health", icon: Activity },
+      { label: "AI Cost Management", href: "/admin/ai-costs", icon: DollarSign },
       { label: "Feature Flags", href: "/admin/feature-flags", icon: Construction },
       { label: "Blockchain Audit", href: "/blockchain-audit", icon: Link2 },
       { label: "Gamification", href: "/gamification", icon: Trophy },
@@ -333,6 +340,7 @@ const adminNav: NavSection[] = [
     items: [
       { label: "Settings", href: "/settings", icon: Settings },
       { label: "Connectors", href: "/connectors", icon: Plug },
+      { label: "Sync History", href: "/connectors/sync-history", icon: Plug },
       { label: "Investor Personas", href: "/investor-personas", icon: Users },
       { label: "Ecosystem", href: "/ecosystem", icon: Network },
       { label: "Activity Digest", href: "/digest", icon: Rss },

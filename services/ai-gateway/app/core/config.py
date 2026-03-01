@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     # Auth
     AI_GATEWAY_API_KEY: str = "internal-dev-key-change-in-production"
+    AI_GATEWAY_API_KEY_PREVIOUS: str = ""
 
     # LLM Providers — 5-provider routing (Anthropic, Google, xAI, DeepSeek, OpenAI)
     ANTHROPIC_API_KEY: str = ""

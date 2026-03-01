@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import secrets as secrets_module
 import time
 import uuid
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_permission
@@ -224,3 +226,31 @@ async def list_subscription_deliveries(
         current_user.org_id, subscription_id=subscription_id, limit=limit
     )
     return [WebhookDeliveryResponse.model_validate(d) for d in deliveries]
+
+
+# ── Secret rotation ───────────────────────────────────────────────────────────
+
+
+@router.post("/{webhook_id}/rotate-secret", summary="Rotate webhook signing secret")
+async def rotate_webhook_secret(
+    webhook_id: uuid.UUID,
+    current_user: CurrentUser = Depends(require_permission("manage_settings", "settings")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a new HMAC signing secret for a webhook subscription."""
+    from app.models.webhooks import WebhookSubscription
+
+    result = await db.execute(
+        select(WebhookSubscription).where(
+            WebhookSubscription.id == webhook_id,
+            WebhookSubscription.org_id == current_user.org_id,
+        )
+    )
+    subscription = result.scalar_one_or_none()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Webhook subscription not found")
+    new_secret = secrets_module.token_hex(32)
+    subscription.secret = new_secret
+    await db.commit()
+    logger.info("webhook.secret_rotated", webhook_id=str(webhook_id), org_id=str(current_user.org_id))
+    return {"id": str(subscription.id), "new_secret": new_secret}

@@ -93,7 +93,7 @@ export function useUploadComps() {
     mutationFn: (file: File) => {
       const form = new FormData();
       form.append("file", file);
-      return api.post("/comps/upload", form).then((r) => r.data);
+      return api.post("/comps/import-csv", form).then((r) => r.data);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["comps"] }),
   });

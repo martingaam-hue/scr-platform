@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.models.enums import HoldingStatus
 from app.modules.portfolio import service
 from app.modules.portfolio.schemas import (
@@ -86,6 +86,7 @@ def _holding_to_response(h) -> HoldingResponse:
 
 @router.get(
     "",
+    summary="List portfolios",
     response_model=PortfolioListResponse,
     dependencies=[Depends(require_permission("view", "portfolio"))],
 )
@@ -103,6 +104,7 @@ async def list_portfolios(
 
 @router.post(
     "",
+    summary="Create portfolio",
     response_model=PortfolioResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permission("create", "portfolio"))],
@@ -131,6 +133,7 @@ async def create_portfolio(
 
 @router.get(
     "/{portfolio_id}",
+    summary="Get portfolio",
     response_model=PortfolioDetailResponse,
     dependencies=[Depends(require_permission("view", "portfolio"))],
 )
@@ -173,6 +176,7 @@ async def get_portfolio(
 
 @router.put(
     "/{portfolio_id}",
+    summary="Update portfolio",
     response_model=PortfolioResponse,
     dependencies=[Depends(require_permission("edit", "portfolio"))],
 )
@@ -198,13 +202,14 @@ async def update_portfolio(
 
 @router.get(
     "/{portfolio_id}/metrics",
+    summary="Get portfolio metrics",
     response_model=PortfolioMetricsResponse,
     dependencies=[Depends(require_permission("view", "portfolio"))],
 )
 async def get_portfolio_metrics(
     portfolio_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Compute portfolio metrics (IRR, MOIC, TVPI, DPI, RVPI) using deterministic Python."""
     try:
@@ -219,13 +224,14 @@ async def get_portfolio_metrics(
 
 @router.get(
     "/{portfolio_id}/holdings",
+    summary="List portfolio holdings",
     response_model=HoldingListResponse,
     dependencies=[Depends(require_permission("view", "portfolio"))],
 )
 async def list_holdings(
     portfolio_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
     holding_status: HoldingStatus | None = Query(None, alias="status"),
 ):
     """List holdings in a portfolio."""
@@ -254,6 +260,7 @@ async def list_holdings(
 
 @router.post(
     "/{portfolio_id}/holdings",
+    summary="Add holding to portfolio",
     response_model=HoldingResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permission("edit", "portfolio"))],
@@ -287,6 +294,7 @@ async def add_holding(
 
 @router.put(
     "/{portfolio_id}/holdings/{holding_id}",
+    summary="Update holding",
     response_model=HoldingResponse,
     dependencies=[Depends(require_permission("edit", "portfolio"))],
 )
@@ -313,6 +321,7 @@ async def update_holding(
 
 @router.get(
     "/{portfolio_id}/cash-flows",
+    summary="Get portfolio cash flows",
     response_model=CashFlowResponse,
     dependencies=[Depends(require_permission("view", "portfolio"))],
 )
@@ -336,6 +345,7 @@ async def get_cash_flows(
 
 @router.get(
     "/{portfolio_id}/allocation",
+    summary="Get portfolio allocation breakdown",
     response_model=AllocationResponse,
     dependencies=[Depends(require_permission("view", "portfolio"))],
 )

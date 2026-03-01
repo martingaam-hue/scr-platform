@@ -89,3 +89,24 @@ def data_retention_cleanup(self) -> dict:  # type: ignore[misc]
                 results[table] = {"status": "failed", "error": str(exc)}
 
     return results
+
+
+@shared_task(name="cleanup_org_rag_namespace", queue="retention")
+def cleanup_org_rag_namespace(org_id: str) -> None:
+    """Delete all RAG vectors for a deleted organization's namespace."""
+    import httpx
+    from app.core.config import settings
+    ai_gateway_url = getattr(settings, "AI_GATEWAY_URL", "http://localhost:8001")
+    api_key = getattr(settings, "AI_GATEWAY_API_KEY", "")
+    try:
+        response = httpx.delete(
+            f"{ai_gateway_url}/v1/namespaces/{org_id}",
+            headers={"X-API-Key": api_key},
+            timeout=60,
+        )
+        if response.status_code in (200, 204, 404):
+            logger.info("rag_namespace.cleaned", org_id=org_id, status=response.status_code)
+        else:
+            logger.error("rag_namespace.cleanup_failed", org_id=org_id, status=response.status_code)
+    except Exception as exc:
+        logger.error("rag_namespace.cleanup_error", org_id=org_id, error=str(exc))

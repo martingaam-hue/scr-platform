@@ -10,7 +10,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.main import app
 from app.models.ai import AITaskLog
 from app.models.core import Organization, User
@@ -468,6 +468,7 @@ class TestSignalScoreAPI:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get(f"/v1/signal-score/{PROJECT_ID}")
             assert resp.status_code == 200
@@ -484,6 +485,7 @@ class TestSignalScoreAPI:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get(f"/v1/signal-score/{PROJECT_ID}")
             assert resp.status_code == 404
@@ -496,6 +498,7 @@ class TestSignalScoreAPI:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get(f"/v1/signal-score/{PROJECT_ID}/details")
             assert resp.status_code == 200
@@ -513,6 +516,7 @@ class TestSignalScoreAPI:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get(f"/v1/signal-score/{PROJECT_ID}/gaps")
             assert resp.status_code == 200
@@ -529,6 +533,7 @@ class TestSignalScoreAPI:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get(f"/v1/signal-score/{PROJECT_ID}/history")
             assert resp.status_code == 200
@@ -545,6 +550,7 @@ class TestSignalScoreAPI:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             with patch(
                 "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
@@ -563,6 +569,7 @@ class TestSignalScoreAPI:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             with patch(
                 "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
@@ -578,6 +585,7 @@ class TestSignalScoreAPI:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         fake_id = uuid.UUID("00000000-0000-0000-0000-999999999999")
         try:
             resp = await client.post(f"/v1/signal-score/calculate/{fake_id}")
@@ -592,6 +600,7 @@ class TestSignalScoreAPI:
         """Viewer role should not have run_analysis permission."""
         app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.post(f"/v1/signal-score/calculate/{PROJECT_ID}")
             assert resp.status_code == 403
@@ -615,6 +624,7 @@ class TestSignalScoreAPI:
 
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get(f"/v1/signal-score/task/{task_log.id}")
             assert resp.status_code == 200
@@ -630,6 +640,7 @@ class TestSignalScoreAPI:
         fake_id = uuid.UUID("00000000-0000-0000-0000-999999999999")
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get(f"/v1/signal-score/task/{fake_id}")
             assert resp.status_code == 404

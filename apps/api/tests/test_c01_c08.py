@@ -19,7 +19,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.main import app
 from app.models.core import Organization, User
 from app.models.dataroom import Document
@@ -218,12 +218,14 @@ async def c_client(db: AsyncSession, c_user: User) -> AsyncClient:
     """Authenticated AsyncClient for C01-C08 tests (org 1)."""
     app.dependency_overrides[get_current_user] = lambda: CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_readonly_session] = lambda: db
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_readonly_session, None)
 
 
 @pytest.fixture
@@ -231,12 +233,14 @@ async def c_client2(db: AsyncSession, c_user2: User) -> AsyncClient:
     """Authenticated AsyncClient for C01-C08 tests (org 2 — isolation checks)."""
     app.dependency_overrides[get_current_user] = lambda: CURRENT_USER2
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_readonly_session] = lambda: db
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_readonly_session, None)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

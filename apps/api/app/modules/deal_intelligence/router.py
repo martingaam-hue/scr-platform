@@ -8,7 +8,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.modules.deal_intelligence import service
 from app.services.response_cache import cache_key, get_cached, set_cached
 from app.modules.deal_intelligence.schemas import (
@@ -35,23 +35,23 @@ router = APIRouter(prefix="/deals", tags=["deal-intelligence"])
 # ── Fixed paths (before parameterised /{project_id}) ─────────────────────────
 
 
-@router.get("/pipeline", response_model=DealPipelineResponse)
+@router.get("/pipeline", summary="Get deal pipeline by stage", response_model=DealPipelineResponse)
 async def get_pipeline(
     current_user: CurrentUser = Depends(require_permission("view", "match")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get deal pipeline grouped by stage."""
     return await service.get_deal_pipeline(db, current_user.org_id)
 
 
-@router.get("/discover", response_model=DiscoveryResponse)
+@router.get("/discover", summary="Discover matching projects", response_model=DiscoveryResponse)
 async def discover_deals(
     sector: str | None = Query(None),
     geography: str | None = Query(None),
     score_min: int | None = Query(None, ge=0, le=100),
     score_max: int | None = Query(None, ge=0, le=100),
     current_user: CurrentUser = Depends(require_permission("view", "match")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Discover published projects matching investor mandate."""
     return await service.discover_deals(
@@ -64,7 +64,7 @@ async def discover_deals(
     )
 
 
-@router.post("/compare", response_model=CompareResponse)
+@router.post("/compare", summary="Compare projects side by side", response_model=CompareResponse)
 async def compare_projects(
     body: CompareRequest,
     current_user: CurrentUser = Depends(require_permission("view", "match")),
@@ -76,6 +76,7 @@ async def compare_projects(
 
 @router.post(
     "/batch-screen",
+    summary="Batch screen multiple projects",
     response_model=BatchScreenResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -146,7 +147,7 @@ async def batch_screen_projects(
 # ── Parameterised endpoints ───────────────────────────────────────────────────
 
 
-@router.get("/{project_id}/screening", response_model=ScreeningReportResponse)
+@router.get("/{project_id}/screening", summary="Get AI screening report", response_model=ScreeningReportResponse)
 async def get_screening_report(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "match")),
@@ -170,6 +171,7 @@ async def get_screening_report(
 
 @router.post(
     "/{project_id}/screen",
+    summary="Trigger AI deal screening",
     response_model=ScreenAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -196,6 +198,7 @@ async def trigger_screening(
 
 @router.post(
     "/{project_id}/memo",
+    summary="Generate investment memo",
     response_model=MemoAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -220,7 +223,7 @@ async def trigger_memo(
     )
 
 
-@router.get("/{project_id}/memo/{memo_id}", response_model=MemoResponse)
+@router.get("/{project_id}/memo/{memo_id}", summary="Get investment memo", response_model=MemoResponse)
 async def get_memo(
     project_id: uuid.UUID,
     memo_id: uuid.UUID,
@@ -234,7 +237,7 @@ async def get_memo(
     return memo
 
 
-@router.put("/{project_id}/status", response_model=dict)
+@router.put("/{project_id}/status", summary="Update deal pipeline stage", response_model=dict)
 async def update_deal_status(
     project_id: uuid.UUID,
     body: DealStatusUpdateRequest,

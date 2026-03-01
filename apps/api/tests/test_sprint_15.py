@@ -11,7 +11,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.main import app
 from app.models.core import Organization, User
 from app.models.enums import (
@@ -235,6 +235,7 @@ class TestCarbonAPI:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.post(f"/v1/carbon/estimate/{PROJECT_ID}")
             assert resp.status_code == 200
@@ -250,6 +251,7 @@ class TestCarbonAPI:
         fake_id = uuid.UUID("00000000-0000-0000-9999-000000000001")
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.post(f"/v1/carbon/estimate/{fake_id}")
             assert resp.status_code == 404
@@ -262,6 +264,7 @@ class TestCarbonAPI:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             # First create via estimate
             await client.post(f"/v1/carbon/estimate/{PROJECT_ID}")
@@ -279,6 +282,7 @@ class TestCarbonAPI:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             # No estimate created yet
             resp = await client.get(f"/v1/carbon/{PROJECT_ID}")
@@ -312,6 +316,7 @@ class TestRiskAssessment:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.post("/v1/risk/assess", json=self._valid_body)
             assert resp.status_code == 201
@@ -329,6 +334,7 @@ class TestRiskAssessment:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get("/v1/risk/assessments")
             assert resp.status_code == 200
@@ -342,6 +348,7 @@ class TestRiskAssessment:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             await client.post("/v1/risk/assess", json=self._valid_body)
             resp = await client.get("/v1/risk/assessments")
@@ -358,6 +365,7 @@ class TestRiskAssessment:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             bad_body = {**self._valid_body, "severity": "catastrophic"}
             resp = await client.post("/v1/risk/assess", json=bad_body)
@@ -371,6 +379,7 @@ class TestRiskAssessment:
     ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             await client.post("/v1/risk/assess", json=self._valid_body)
             # Filter by entity
@@ -403,6 +412,7 @@ class TestLegalTemplates:
     async def test_list_templates_200(self, client: AsyncClient, db: AsyncSession, seed_org_user):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get("/v1/legal/templates")
             assert resp.status_code == 200
@@ -423,6 +433,7 @@ class TestLegalTemplates:
 
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get(f"/v1/legal/templates/{first_id}")
             assert resp.status_code == 200
@@ -436,6 +447,7 @@ class TestLegalTemplates:
     async def test_get_template_detail_404(self, client: AsyncClient, db: AsyncSession, seed_org_user):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get("/v1/legal/templates/nonexistent-template-xyz")
             assert resp.status_code == 404
@@ -453,6 +465,7 @@ class TestLegalDocuments:
 
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.post(
                 "/v1/legal/documents",
@@ -473,6 +486,7 @@ class TestLegalDocuments:
 
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             # Create one doc first
             await client.post(
@@ -494,6 +508,7 @@ class TestLegalDocuments:
 
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             create_resp = await client.post(
                 "/v1/legal/documents",
@@ -520,6 +535,7 @@ class TestDealIntelligence:
         """Pipeline endpoint returns expected structure even with empty data."""
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get("/v1/deals/pipeline")
             assert resp.status_code == 200
@@ -533,6 +549,7 @@ class TestDealIntelligence:
         """Discovery endpoint returns a list even with no data."""
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get("/v1/deals/discover")
             assert resp.status_code == 200
@@ -545,6 +562,7 @@ class TestDealIntelligence:
     async def test_discover_with_filters(self, client: AsyncClient, db: AsyncSession, seed_org_user):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get(
                 "/v1/deals/discover",
@@ -561,6 +579,7 @@ class TestDealIntelligence:
         fake_id = uuid.UUID("00000000-0000-0000-9999-000000000002")
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.get(f"/v1/deals/{fake_id}/screening")
             assert resp.status_code == 404
@@ -574,6 +593,7 @@ class TestDealIntelligence:
         """Comparing fewer than 2 projects should return 422."""
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         try:
             resp = await client.post("/v1/deals/compare", json={"project_ids": []})
             assert resp.status_code in (400, 422)

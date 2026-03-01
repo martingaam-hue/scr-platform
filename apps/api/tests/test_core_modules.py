@@ -18,7 +18,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.main import app
 from app.models.core import Organization, User
 from app.models.enums import (
@@ -172,12 +172,14 @@ async def cm_client(db: AsyncSession, cm_user: User) -> AsyncClient:
     """Authenticated AsyncClient for core module tests (org 1)."""
     app.dependency_overrides[get_current_user] = lambda: CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_readonly_session] = lambda: db
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_readonly_session, None)
 
 
 @pytest.fixture
@@ -185,12 +187,14 @@ async def cm_client2(db: AsyncSession, cm_user2: User) -> AsyncClient:
     """Authenticated AsyncClient for isolation tests (org 2)."""
     app.dependency_overrides[get_current_user] = lambda: CURRENT_USER2
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_readonly_session] = lambda: db
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_readonly_session, None)
 
 
 # =============================================================================
@@ -312,6 +316,7 @@ class TestRiskAnalysis:
         # Use org1 client to create an assessment
         app.dependency_overrides[get_current_user] = lambda: CURRENT_USER
         app.dependency_overrides[get_db] = lambda: db
+        app.dependency_overrides[get_readonly_session] = lambda: db
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client1:
@@ -342,6 +347,7 @@ class TestRiskAnalysis:
 
         app.dependency_overrides.pop(get_current_user, None)
         app.dependency_overrides.pop(get_db, None)
+        app.dependency_overrides.pop(get_readonly_session, None)
 
 
 # =============================================================================

@@ -127,14 +127,18 @@ async def authenticated_client(
     from app.core.database import get_db
     from app.main import app as _app
 
+    from app.core.database import get_readonly_session
+
     _app.dependency_overrides[get_current_user] = lambda: sample_current_user
     _app.dependency_overrides[get_db] = lambda: db
+    _app.dependency_overrides[get_readonly_session] = lambda: db
     async with AsyncClient(
         transport=ASGITransport(app=_app), base_url="http://test"
     ) as ac:
         yield ac
     _app.dependency_overrides.pop(get_current_user, None)
     _app.dependency_overrides.pop(get_db, None)
+    _app.dependency_overrides.pop(get_readonly_session, None)
 
 
 # ── Investor org fixtures ─────────────────────────────────────────────────

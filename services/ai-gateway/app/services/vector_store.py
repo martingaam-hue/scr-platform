@@ -59,6 +59,13 @@ class InMemoryVectorStore:
         key = self._namespace_key(namespace, doc_id)
         self._store.pop(key, None)
 
+    async def delete_namespace(self, namespace: str) -> None:
+        """Delete all vectors in a namespace."""
+        keys_to_remove = [k for k, v in self._store.items() if v["namespace"] == namespace]
+        for key in keys_to_remove:
+            del self._store[key]
+        logger.info("namespace_deleted", namespace=namespace, vectors_removed=len(keys_to_remove))
+
 
 class PineconeVectorStore:
     """Pinecone-backed vector store for production."""
@@ -90,6 +97,11 @@ class PineconeVectorStore:
 
     def delete(self, namespace: str, doc_id: str) -> None:
         self._index.delete(ids=[doc_id], namespace=namespace)
+
+    async def delete_namespace(self, namespace: str) -> None:
+        """Delete all vectors in a Pinecone namespace."""
+        self._index.delete(delete_all=True, namespace=namespace)
+        logger.info("pinecone_namespace_deleted", namespace=namespace)
 
 
 def get_vector_store() -> InMemoryVectorStore | PineconeVectorStore:

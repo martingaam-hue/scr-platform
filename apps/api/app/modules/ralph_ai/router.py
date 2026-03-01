@@ -32,7 +32,7 @@ _agent = RalphAgent()
 
 # ── Conversation CRUD ─────────────────────────────────────────────────────────
 
-@router.post("/conversations", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/conversations", summary="Create conversation", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
 async def create_conversation(
     body: ConversationCreate,
     current_user: CurrentUser = Depends(get_current_user),
@@ -45,7 +45,7 @@ async def create_conversation(
     return ConversationResponse.model_validate(conversation)
 
 
-@router.get("/conversations", response_model=list[ConversationResponse])
+@router.get("/conversations", summary="List conversations", response_model=list[ConversationResponse])
 async def list_conversations(
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -57,7 +57,7 @@ async def list_conversations(
     return [ConversationResponse.model_validate(c) for c in conversations]
 
 
-@router.get("/conversations/{conversation_id}", response_model=ConversationDetailResponse)
+@router.get("/conversations/{conversation_id}", summary="Get conversation with messages", response_model=ConversationDetailResponse)
 async def get_conversation(
     conversation_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
@@ -80,7 +80,7 @@ async def get_conversation(
     )
 
 
-@router.delete("/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/conversations/{conversation_id}", summary="Delete conversation", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_conversation(
     conversation_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
@@ -94,7 +94,7 @@ async def delete_conversation(
 
 # ── Messaging ─────────────────────────────────────────────────────────────────
 
-@router.post("/conversations/{conversation_id}/message", response_model=SendMessageResponse)
+@router.post("/conversations/{conversation_id}/message", summary="Send message to Ralph", response_model=SendMessageResponse)
 async def send_message(
     conversation_id: uuid.UUID,
     body: MessageCreate,
@@ -128,7 +128,7 @@ async def send_message(
     )
 
 
-@router.post("/conversations/{conversation_id}/stream")
+@router.post("/conversations/{conversation_id}/stream", summary="Stream Ralph response via SSE")
 async def stream_message(
     conversation_id: uuid.UUID,
     body: MessageCreate,

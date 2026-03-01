@@ -10,7 +10,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.main import app
 from app.models.core import Organization, User
 from app.models.enums import (
@@ -107,6 +107,7 @@ async def seed_data(db: AsyncSession) -> None:
 async def test_client(db: AsyncSession, seed_data) -> AsyncClient:
     app.dependency_overrides[get_current_user] = _override_auth(CURRENT_USER)
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_readonly_session] = lambda: db
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
@@ -118,6 +119,7 @@ async def test_client(db: AsyncSession, seed_data) -> AsyncClient:
 async def viewer_client(db: AsyncSession, seed_data) -> AsyncClient:
     app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_readonly_session] = lambda: db
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:

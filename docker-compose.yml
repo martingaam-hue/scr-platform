@@ -159,8 +159,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # ── Flower (Celery task monitoring UI) ──────────────────────────────────────
+  flower:
+    build:
+      context: ./apps/api
+    command: celery -A app.worker flower --port=5555 --persistent=True --db=/data/flower.db
+    ports:
+      - "5555:5555"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://scr_user:scr_password@db:5432/scr_platform}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/1}
+      FLOWER_BASIC_AUTH: "${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-changeme}"
+    volumes:
+      - flower_data:/data
+    depends_on:
+      - redis
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   elasticsearch_data:
   minio_data:
+  flower_data:

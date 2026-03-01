@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.services.ai_budget import enforce_ai_budget
 from app.modules.signal_score import service
 from app.services.response_cache import cache_key, get_cached, set_cached
@@ -46,7 +46,7 @@ router = APIRouter(prefix="/signal-score", tags=["signal-score"])
 # ── Task status (fixed path before parameterised) ──────────────────────────
 
 
-@router.get("/task/{task_log_id}", response_model=TaskStatusResponse)
+@router.get("/task/{task_log_id}", summary="Get calculation task status", response_model=TaskStatusResponse)
 async def get_task_status(
     task_log_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
@@ -68,6 +68,7 @@ async def get_task_status(
 
 @router.post(
     "/batch",
+    summary="Batch score multiple projects",
     response_model=BatchScoreResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -131,6 +132,7 @@ async def batch_score_projects(
 
 @router.post(
     "/calculate/{project_id}",
+    summary="Trigger signal score calculation",
     response_model=CalculateAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -158,6 +160,7 @@ async def calculate_score(
 
 @router.post(
     "/{project_id}/recalculate",
+    summary="Force recalculate signal score",
     response_model=CalculateAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -185,7 +188,7 @@ async def recalculate_score(
 # ── Live Score (synchronous, no documents) ───────────────────────────────────
 
 
-@router.post("/{project_id}/live", response_model=LiveScoreResponse)
+@router.post("/{project_id}/live", summary="Get live metadata score", response_model=LiveScoreResponse)
 async def live_score(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -213,7 +216,7 @@ async def live_score(
 # ── Read endpoints ──────────────────────────────────────────────────────────
 
 
-@router.get("/{project_id}", response_model=SignalScoreDetailResponse)
+@router.get("/{project_id}", summary="Get latest signal score", response_model=SignalScoreDetailResponse)
 async def get_latest_score(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -240,7 +243,7 @@ async def get_latest_score(
     return result
 
 
-@router.get("/{project_id}/details", response_model=SignalScoreDetailResponse)
+@router.get("/{project_id}/details", summary="Get score dimension breakdown", response_model=SignalScoreDetailResponse)
 async def get_score_details(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -260,7 +263,7 @@ async def get_score_details(
     return _build_detail_response(score)
 
 
-@router.get("/{project_id}/gaps", response_model=GapsResponse)
+@router.get("/{project_id}/gaps", summary="Get gap analysis", response_model=GapsResponse)
 async def get_gaps(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -282,7 +285,7 @@ async def get_gaps(
     return GapsResponse(items=items, total=len(items))
 
 
-@router.get("/{project_id}/strengths", response_model=StrengthsResponse)
+@router.get("/{project_id}/strengths", summary="Get score strengths", response_model=StrengthsResponse)
 async def get_strengths(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -304,7 +307,7 @@ async def get_strengths(
     return StrengthsResponse(items=items, total=len(items))
 
 
-@router.get("/{project_id}/improvement-guidance", response_model=ImprovementGuidanceResponse)
+@router.get("/{project_id}/improvement-guidance", summary="Get improvement guidance", response_model=ImprovementGuidanceResponse)
 async def get_improvement_guidance(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -336,11 +339,11 @@ async def get_improvement_guidance(
     )
 
 
-@router.get("/{project_id}/history", response_model=ScoreHistoryResponse)
+@router.get("/{project_id}/history", summary="Get score history", response_model=ScoreHistoryResponse)
 async def get_score_history(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get signal score history across all versions."""
     try:
@@ -418,13 +421,13 @@ def _build_detail_response(score) -> SignalScoreDetailResponse:
 # ── Explainability / Snapshot trend endpoints ────────────────────────────────
 
 
-@router.get("/{project_id}/history-trend")
+@router.get("/{project_id}/history-trend", summary="Get score trend over time")
 async def get_score_history_trend(
     project_id: uuid.UUID,
     from_date: Optional[datetime] = Query(None),
     to_date: Optional[datetime] = Query(None),
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get signal score trend over time from metric snapshots."""
     from app.modules.metrics.snapshot_service import MetricSnapshotService
@@ -447,13 +450,13 @@ async def get_score_history_trend(
     ]
 
 
-@router.get("/{project_id}/changes")
+@router.get("/{project_id}/changes", summary="Get score change explanations")
 async def get_score_changes(
     project_id: uuid.UUID,
     from_date: Optional[datetime] = Query(None),
     to_date: Optional[datetime] = Query(None),
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get change explanations with triggers explaining what caused score movements."""
     from app.modules.signal_score.explainability import ScoreExplainability
@@ -465,12 +468,12 @@ async def get_score_changes(
     return await explainer.explain_changes(project_id, from_date, to_date)
 
 
-@router.get("/{project_id}/volatility")
+@router.get("/{project_id}/volatility", summary="Get score volatility indicator")
 async def get_score_volatility(
     project_id: uuid.UUID,
     period_months: int = Query(6, ge=1, le=24),
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get score stability indicator."""
     from app.modules.signal_score.explainability import ScoreExplainability
@@ -482,13 +485,13 @@ async def get_score_volatility(
     return await explainer.get_score_volatility(project_id, period_months)
 
 
-@router.get("/{project_id}/dimension-history")
+@router.get("/{project_id}/dimension-history", summary="Get per-dimension score history")
 async def get_dimension_history(
     project_id: uuid.UUID,
     from_date: Optional[datetime] = Query(None),
     to_date: Optional[datetime] = Query(None),
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get per-dimension score breakdown over time."""
     from app.modules.signal_score.explainability import ScoreExplainability
@@ -509,6 +512,7 @@ class BulkScoreRequest(BaseModel):
 
 @router.post(
     "/bulk/compute",
+    summary="Bulk enqueue score computation",
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def bulk_compute_scores(

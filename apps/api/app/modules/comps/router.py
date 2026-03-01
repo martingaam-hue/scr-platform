@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.modules.comps import service
 from app.modules.comps.schemas import (
     CompCreate,
@@ -27,7 +27,7 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/comps", tags=["comparable-transactions"])
 
 
-@router.get("", response_model=CompListResponse)
+@router.get("", summary="Search comparable transactions", response_model=CompListResponse)
 async def search_comps(
     asset_type: str | None = None,
     geography: str | None = None,
@@ -40,7 +40,7 @@ async def search_comps(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     current_user: CurrentUser = Depends(require_permission("view", "analysis")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Search comparable transactions (org's own + global public comps)."""
     comps, total = await service.search_comps(
@@ -60,7 +60,7 @@ async def search_comps(
     return CompListResponse(items=[CompResponse.model_validate(c) for c in comps], total=total)
 
 
-@router.post("", response_model=CompResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", summary="Create comparable transaction", response_model=CompResponse, status_code=status.HTTP_201_CREATED)
 async def create_comp(
     body: CompCreate,
     current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
@@ -74,7 +74,7 @@ async def create_comp(
     return CompResponse.model_validate(comp)
 
 
-@router.get("/similar/{project_id}", response_model=SimilarCompsResponse)
+@router.get("/similar/{project_id}", summary="Find similar comps", response_model=SimilarCompsResponse)
 async def find_similar_comps(
     project_id: uuid.UUID,
     limit: int = Query(10, ge=1, le=50),
@@ -86,7 +86,7 @@ async def find_similar_comps(
     return SimilarCompsResponse(items=results)
 
 
-@router.post("/implied-valuation", response_model=ImpliedValuationResponse)
+@router.post("/implied-valuation", summary="Calculate implied valuation from comps", response_model=ImpliedValuationResponse)
 async def calculate_implied_valuation(
     body: ImpliedValuationRequest,
     current_user: CurrentUser = Depends(require_permission("view", "analysis")),
@@ -97,7 +97,7 @@ async def calculate_implied_valuation(
     return ImpliedValuationResponse(**result)
 
 
-@router.post("/import-csv", status_code=status.HTTP_201_CREATED)
+@router.post("/import-csv", summary="Import comps from CSV", status_code=status.HTTP_201_CREATED)
 async def import_comps_csv(
     file: UploadFile = File(...),
     current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
@@ -115,11 +115,11 @@ async def import_comps_csv(
     return result
 
 
-@router.get("/{comp_id}", response_model=CompResponse)
+@router.get("/{comp_id}", summary="Get comparable transaction", response_model=CompResponse)
 async def get_comp(
     comp_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "analysis")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get a single comparable transaction."""
     comp = await service.get_comp(db, comp_id=comp_id, org_id=current_user.org_id)
@@ -128,7 +128,7 @@ async def get_comp(
     return CompResponse.model_validate(comp)
 
 
-@router.put("/{comp_id}", response_model=CompResponse)
+@router.put("/{comp_id}", summary="Update comparable transaction", response_model=CompResponse)
 async def update_comp(
     comp_id: uuid.UUID,
     body: CompUpdate,
@@ -144,7 +144,7 @@ async def update_comp(
     return CompResponse.model_validate(comp)
 
 
-@router.delete("/{comp_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{comp_id}", summary="Delete comparable transaction", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_comp(
     comp_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),

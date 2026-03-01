@@ -74,6 +74,7 @@ async def _project_to_response(db, project) -> ProjectResponse:
 
 @router.get(
     "/stats",
+    summary="Get project dashboard stats",
     response_model=ProjectStatsResponse,
     dependencies=[Depends(require_permission("view", "project"))],
 )
@@ -91,6 +92,7 @@ async def get_project_stats(
 
 @router.get(
     "",
+    summary="List projects",
     response_model=ProjectListResponse,
     dependencies=[Depends(require_permission("view", "project"))],
 )
@@ -137,6 +139,7 @@ async def list_projects(
 
 @router.post(
     "",
+    summary="Create project",
     response_model=ProjectResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permission("create", "project"))],
@@ -169,6 +172,7 @@ async def create_project(
 
 @router.get(
     "/{project_id}",
+    summary="Get project",
     response_model=ProjectDetailResponse,
     dependencies=[Depends(require_permission("view", "project"))],
 )
@@ -232,6 +236,7 @@ async def get_project(
 
 @router.put(
     "/{project_id}",
+    summary="Update project",
     response_model=ProjectResponse,
     dependencies=[Depends(require_permission("edit", "project"))],
 )
@@ -256,6 +261,7 @@ async def update_project(
 
 @router.delete(
     "/{project_id}",
+    summary="Delete project",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permission("delete", "project"))],
 )
@@ -273,6 +279,7 @@ async def delete_project(
 
 @router.put(
     "/{project_id}/publish",
+    summary="Publish project",
     response_model=ProjectResponse,
     dependencies=[Depends(require_permission("edit", "project"))],
 )
@@ -296,6 +303,7 @@ async def publish_project(
 
 @router.get(
     "/{project_id}/milestones",
+    summary="List project milestones",
     response_model=list[MilestoneResponse],
     dependencies=[Depends(require_permission("view", "project"))],
 )
@@ -329,6 +337,7 @@ async def list_milestones(
 
 @router.post(
     "/{project_id}/milestones",
+    summary="Create milestone",
     response_model=MilestoneResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permission("edit", "project"))],
@@ -362,6 +371,7 @@ async def create_milestone(
 
 @router.put(
     "/{project_id}/milestones/{milestone_id}",
+    summary="Update milestone",
     response_model=MilestoneResponse,
     dependencies=[Depends(require_permission("edit", "project"))],
 )
@@ -390,6 +400,7 @@ async def update_milestone(
 
 @router.delete(
     "/{project_id}/milestones/{milestone_id}",
+    summary="Delete milestone",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permission("edit", "project"))],
 )
@@ -411,6 +422,7 @@ async def delete_milestone(
 
 @router.get(
     "/{project_id}/budget",
+    summary="List budget items",
     response_model=list[BudgetItemResponse],
     dependencies=[Depends(require_permission("view", "project"))],
 )
@@ -437,6 +449,7 @@ async def list_budget_items(
 
 @router.post(
     "/{project_id}/budget",
+    summary="Create budget item",
     response_model=BudgetItemResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_permission("edit", "project"))],
@@ -466,6 +479,7 @@ async def create_budget_item(
 
 @router.put(
     "/{project_id}/budget/{budget_id}",
+    summary="Update budget item",
     response_model=BudgetItemResponse,
     dependencies=[Depends(require_permission("edit", "project"))],
 )
@@ -494,6 +508,7 @@ async def update_budget_item(
 
 @router.delete(
     "/{project_id}/budget/{budget_id}",
+    summary="Delete budget item",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_permission("edit", "project"))],
 )
@@ -521,6 +536,7 @@ class BulkTagRequest(BaseModel):
 
 @router.post(
     "/bulk/tag",
+    summary="Bulk tag projects",
     dependencies=[Depends(require_permission("write", "projects"))],
 )
 async def bulk_tag_projects(
@@ -589,6 +605,7 @@ VALID_ACTION_TYPES = {
 
 @router.post(
     "/{project_id}/ai/generate/{action_type}",
+    summary="Generate business plan content",
     response_model=BusinessPlanActionResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -620,6 +637,7 @@ async def generate_business_plan_content(
 
 @router.get(
     "/{project_id}/ai/tasks/{task_log_id}",
+    summary="Get business plan task result",
     response_model=BusinessPlanResultResponse,
 )
 async def get_business_plan_result(

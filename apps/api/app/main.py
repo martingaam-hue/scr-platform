@@ -117,6 +117,57 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         except Exception as exc:  # noqa: BLE001
             logger.warning("feature_flag_seed_failed", error=str(exc))
 
+    # ── Startup dependency validation ─────────────────────────────────────────
+    import httpx
+    checks: dict[str, str] = {}
+
+    # Database check
+    try:
+        from sqlalchemy import text
+        async with async_session_factory() as session:
+            await session.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as exc:
+        checks["database"] = f"FAILED: {exc}"
+
+    # Redis check
+    try:
+        import redis.asyncio as aioredis
+        redis_url = settings.REDIS_URL if hasattr(settings, "REDIS_URL") else "redis://localhost:6379/0"
+        r = aioredis.from_url(redis_url)
+        await r.ping()
+        await r.aclose()
+        checks["redis"] = "ok"
+    except Exception as exc:
+        checks["redis"] = f"FAILED: {exc}"
+
+    # AI Gateway check (non-blocking)
+    try:
+        ai_gw_url = settings.AI_GATEWAY_URL if hasattr(settings, "AI_GATEWAY_URL") else "http://localhost:8001"
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{ai_gw_url}/health")
+            checks["ai_gateway"] = "ok" if resp.status_code == 200 else f"WARNING: HTTP {resp.status_code}"
+    except Exception as exc:
+        checks["ai_gateway"] = f"WARNING: {exc}"
+
+    # Anthropic key check (non-blocking)
+    anthropic_key = settings.ANTHROPIC_API_KEY if hasattr(settings, "ANTHROPIC_API_KEY") else ""
+    checks["anthropic_key"] = "ok" if anthropic_key else "WARNING: ANTHROPIC_API_KEY not set"
+
+    # Log all results
+    for service, status in checks.items():
+        if status.startswith("FAILED"):
+            logger.error("startup_check_failed", service=service, detail=status)
+        elif status.startswith("WARNING"):
+            logger.warning("startup_check_warning", service=service, detail=status)
+        else:
+            logger.info("startup_check_passed", service=service)
+
+    # Block on critical failures only
+    critical = [k for k, v in checks.items() if v.startswith("FAILED") and k in ("database", "redis")]
+    if critical:
+        raise RuntimeError(f"Critical startup dependencies unavailable: {', '.join(critical)}")
+
     yield
     logger.info("Shutting down SCR API")
     await close_es_client()

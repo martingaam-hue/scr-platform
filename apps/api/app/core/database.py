@@ -98,3 +98,15 @@ async def get_readonly_db() -> AsyncSession:  # type: ignore[misc]
             raise
         finally:
             await session.close()
+
+
+async def get_readonly_session() -> AsyncSession:  # type: ignore[misc]
+    """Yields a read-only session — routes to read replica if configured.
+
+    Alias for get_readonly_db with the naming convention used by replica-routed routers.
+    """
+    async with read_only_session_factory() as session:
+        try:
+            yield session
+        finally:
+            await session.close()

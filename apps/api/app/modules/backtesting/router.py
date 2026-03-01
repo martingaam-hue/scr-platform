@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_session
 from app.modules.backtesting.schemas import (
     BacktestRunRequest,
     BacktestRunResponse,
@@ -77,7 +77,7 @@ async def run_backtest(
 )
 async def list_backtest_runs(
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ) -> list[BacktestRunResponse]:
     """List all backtest runs for the organisation."""
     svc = BacktestService(db)
@@ -92,7 +92,7 @@ async def list_backtest_runs(
 async def get_backtest_run(
     run_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ) -> BacktestRunResponse:
     """Get a single backtest run with full results."""
     svc = BacktestService(db)
@@ -108,7 +108,7 @@ async def get_backtest_run(
 )
 async def get_summary(
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ) -> BacktestSummaryResponse:
     """Get org-level backtesting summary statistics."""
     svc = BacktestService(db)
