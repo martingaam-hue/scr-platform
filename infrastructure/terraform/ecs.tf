@@ -515,3 +515,399 @@ resource "aws_appautoscaling_policy" "api_cpu" {
     scale_out_cooldown = 60
   }
 }
+
+# ── Celery Worker CloudWatch Log Groups ───────────────────────────────────────
+
+resource "aws_cloudwatch_log_group" "celery_beat" {
+  name              = "/ecs/scr-${var.environment}/celery-beat"
+  retention_in_days = var.environment == "production" ? 90 : 14
+}
+
+resource "aws_cloudwatch_log_group" "worker_critical" {
+  name              = "/ecs/scr-${var.environment}/worker-critical"
+  retention_in_days = var.environment == "production" ? 90 : 14
+}
+
+resource "aws_cloudwatch_log_group" "worker_default" {
+  name              = "/ecs/scr-${var.environment}/worker-default"
+  retention_in_days = var.environment == "production" ? 90 : 14
+}
+
+resource "aws_cloudwatch_log_group" "worker_bulk" {
+  name              = "/ecs/scr-${var.environment}/worker-bulk"
+  retention_in_days = var.environment == "production" ? 90 : 14
+}
+
+resource "aws_cloudwatch_log_group" "worker_webhooks" {
+  name              = "/ecs/scr-${var.environment}/worker-webhooks"
+  retention_in_days = var.environment == "production" ? 90 : 14
+}
+
+# ── Celery Shared Secrets Local ───────────────────────────────────────────────
+# Reusable secrets list for all Celery task definitions
+
+locals {
+  celery_secrets = [
+    { name = "DATABASE_URL", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/DATABASE_URL" },
+    { name = "DATABASE_URL_READ_REPLICA", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/DATABASE_URL_READ_REPLICA" },
+    { name = "REDIS_URL", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/REDIS_URL" },
+    { name = "SECRET_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/SECRET_KEY" },
+    { name = "CLERK_SECRET_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/CLERK_SECRET_KEY" },
+    { name = "AI_GATEWAY_URL", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/AI_GATEWAY_URL" },
+    { name = "AI_GATEWAY_API_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/AI_GATEWAY_API_KEY" },
+    { name = "AWS_ACCESS_KEY_ID", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/AWS_ACCESS_KEY_ID" },
+    { name = "AWS_SECRET_ACCESS_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/AWS_SECRET_ACCESS_KEY" },
+    { name = "SENTRY_DSN", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/SENTRY_DSN" },
+    { name = "ANTHROPIC_API_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/ANTHROPIC_API_KEY" },
+    { name = "OPENAI_API_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/OPENAI_API_KEY" },
+    { name = "GOOGLE_API_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/GOOGLE_API_KEY" },
+    { name = "XAI_API_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/XAI_API_KEY" },
+    { name = "DEEPSEEK_API_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/DEEPSEEK_API_KEY" },
+    { name = "RESEND_API_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/RESEND_API_KEY" },
+    { name = "HUBSPOT_CLIENT_ID", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/HUBSPOT_CLIENT_ID" },
+    { name = "HUBSPOT_CLIENT_SECRET", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/HUBSPOT_CLIENT_SECRET" },
+    { name = "SALESFORCE_CONSUMER_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/SALESFORCE_CONSUMER_KEY" },
+    { name = "SALESFORCE_CONSUMER_SECRET", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/SALESFORCE_CONSUMER_SECRET" },
+    { name = "PINECONE_API_KEY", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/PINECONE_API_KEY" },
+    { name = "CELERY_BROKER_URL", valueFrom = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:scr/${var.environment}/CELERY_BROKER_URL" },
+  ]
+}
+
+# ── Celery Beat Task Definition ───────────────────────────────────────────────
+
+resource "aws_ecs_task_definition" "celery_beat" {
+  family                   = "scr-celery-beat-${var.environment}"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([{
+    name      = "celery-beat"
+    image     = "${aws_ecr_repository.services["scr-api"].repository_url}:${var.environment}-latest"
+    essential = true
+
+    command = ["celery", "-A", "app.worker", "beat", "--loglevel=info", "--scheduler=celery.beat:PersistentScheduler"]
+
+    environment = [
+      { name = "APP_ENV", value = var.environment },
+      { name = "APP_DEBUG", value = "false" },
+    ]
+
+    secrets = local.celery_secrets
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = aws_cloudwatch_log_group.celery_beat.name
+        awslogs-region        = var.aws_region
+        awslogs-stream-prefix = "celery-beat"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "celery_beat" {
+  name            = "scr-celery-beat-${var.environment}"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.celery_beat.arn
+  # Beat must always be a single instance to avoid duplicate scheduled tasks
+  desired_count = 1
+
+  network_configuration {
+    subnets          = module.vpc.private_subnets
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = false
+  }
+
+  deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+}
+
+# ── Worker Critical Task Definition ──────────────────────────────────────────
+
+resource "aws_ecs_task_definition" "worker_critical" {
+  family                   = "scr-worker-critical-${var.environment}"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 1024
+  memory                   = 2048
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([{
+    name      = "worker-critical"
+    image     = "${aws_ecr_repository.services["scr-api"].repository_url}:${var.environment}-latest"
+    essential = true
+
+    command = ["celery", "-A", "app.worker", "worker", "--loglevel=info", "-Q", "critical", "--concurrency=4", "--max-tasks-per-child=100"]
+
+    environment = [
+      { name = "APP_ENV", value = var.environment },
+      { name = "APP_DEBUG", value = "false" },
+    ]
+
+    secrets = local.celery_secrets
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = aws_cloudwatch_log_group.worker_critical.name
+        awslogs-region        = var.aws_region
+        awslogs-stream-prefix = "worker-critical"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "worker_critical" {
+  name            = "scr-worker-critical-${var.environment}"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.worker_critical.arn
+  desired_count   = var.environment == "production" ? 2 : 1
+
+  network_configuration {
+    subnets          = module.vpc.private_subnets
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = false
+  }
+
+  deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+}
+
+# ── Worker Default Task Definition ────────────────────────────────────────────
+
+resource "aws_ecs_task_definition" "worker_default" {
+  family                   = "scr-worker-default-${var.environment}"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 1024
+  memory                   = 2048
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([{
+    name      = "worker-default"
+    image     = "${aws_ecr_repository.services["scr-api"].repository_url}:${var.environment}-latest"
+    essential = true
+
+    command = ["celery", "-A", "app.worker", "worker", "--loglevel=info", "-Q", "default,retention", "--concurrency=8", "--max-tasks-per-child=200"]
+
+    environment = [
+      { name = "APP_ENV", value = var.environment },
+      { name = "APP_DEBUG", value = "false" },
+    ]
+
+    secrets = local.celery_secrets
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = aws_cloudwatch_log_group.worker_default.name
+        awslogs-region        = var.aws_region
+        awslogs-stream-prefix = "worker-default"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "worker_default" {
+  name            = "scr-worker-default-${var.environment}"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.worker_default.arn
+  desired_count   = var.environment == "production" ? 2 : 1
+
+  network_configuration {
+    subnets          = module.vpc.private_subnets
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = false
+  }
+
+  deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+}
+
+# ── Worker Bulk Task Definition ───────────────────────────────────────────────
+
+resource "aws_ecs_task_definition" "worker_bulk" {
+  family                   = "scr-worker-bulk-${var.environment}"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 512
+  memory                   = 1024
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([{
+    name      = "worker-bulk"
+    image     = "${aws_ecr_repository.services["scr-api"].repository_url}:${var.environment}-latest"
+    essential = true
+
+    command = ["celery", "-A", "app.worker", "worker", "--loglevel=info", "-Q", "bulk", "--concurrency=2", "--max-tasks-per-child=50"]
+
+    environment = [
+      { name = "APP_ENV", value = var.environment },
+      { name = "APP_DEBUG", value = "false" },
+    ]
+
+    secrets = local.celery_secrets
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = aws_cloudwatch_log_group.worker_bulk.name
+        awslogs-region        = var.aws_region
+        awslogs-stream-prefix = "worker-bulk"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "worker_bulk" {
+  name            = "scr-worker-bulk-${var.environment}"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.worker_bulk.arn
+  desired_count   = 1
+
+  network_configuration {
+    subnets          = module.vpc.private_subnets
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = false
+  }
+
+  deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+}
+
+# ── Worker Webhooks Task Definition ───────────────────────────────────────────
+
+resource "aws_ecs_task_definition" "worker_webhooks" {
+  family                   = "scr-worker-webhooks-${var.environment}"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 512
+  memory                   = 1024
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([{
+    name      = "worker-webhooks"
+    image     = "${aws_ecr_repository.services["scr-api"].repository_url}:${var.environment}-latest"
+    essential = true
+
+    command = ["celery", "-A", "app.worker", "worker", "--loglevel=info", "-Q", "webhooks", "--concurrency=6", "--max-tasks-per-child=500"]
+
+    environment = [
+      { name = "APP_ENV", value = var.environment },
+      { name = "APP_DEBUG", value = "false" },
+    ]
+
+    secrets = local.celery_secrets
+
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = aws_cloudwatch_log_group.worker_webhooks.name
+        awslogs-region        = var.aws_region
+        awslogs-stream-prefix = "worker-webhooks"
+      }
+    }
+  }])
+}
+
+resource "aws_ecs_service" "worker_webhooks" {
+  name            = "scr-worker-webhooks-${var.environment}"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.worker_webhooks.arn
+  desired_count   = var.environment == "production" ? 2 : 1
+
+  network_configuration {
+    subnets          = module.vpc.private_subnets
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = false
+  }
+
+  deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+}
+
+# ── Celery Worker Auto Scaling (production only) ───────────────────────────────
+
+# worker-critical: min=2 max=8, CPU target 70%
+resource "aws_appautoscaling_target" "worker_critical" {
+  count              = var.environment == "production" ? 1 : 0
+  max_capacity       = 8
+  min_capacity       = 2
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.worker_critical.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "worker_critical_cpu" {
+  count              = var.environment == "production" ? 1 : 0
+  name               = "scr-${var.environment}-worker-critical-cpu"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.worker_critical[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.worker_critical[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.worker_critical[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# worker-default: min=2 max=12, CPU target 70%
+resource "aws_appautoscaling_target" "worker_default" {
+  count              = var.environment == "production" ? 1 : 0
+  max_capacity       = 12
+  min_capacity       = 2
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.worker_default.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "worker_default_cpu" {
+  count              = var.environment == "production" ? 1 : 0
+  name               = "scr-${var.environment}-worker-default-cpu"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.worker_default[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.worker_default[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.worker_default[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}

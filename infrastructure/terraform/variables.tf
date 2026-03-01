@@ -48,3 +48,33 @@ variable "acm_certificate_arn" {
   type        = string
   # No default — must be supplied per environment
 }
+
+variable "alert_email" {
+  description = "Email address for CloudWatch alarm notifications"
+  type        = string
+  default     = "ops@scr-platform.com"
+}
+
+variable "domain_name" {
+  description = "Primary domain name for the platform"
+  type        = string
+  default     = "scr-platform.com"
+}
+
+variable "db_read_replica_instance_class" {
+  description = "RDS read replica instance class (production)"
+  type        = string
+  default     = "db.t4g.medium"
+}
+
+variable "celery_critical_cpu" {
+  description = "CPU units for critical Celery worker"
+  type        = number
+  default     = 1024
+}
+
+variable "celery_critical_memory" {
+  description = "Memory (MiB) for critical Celery worker"
+  type        = number
+  default     = 2048
+}

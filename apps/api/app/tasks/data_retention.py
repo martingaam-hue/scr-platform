@@ -26,6 +26,9 @@ _POLICIES: list[tuple[str, int, bool]] = [
 
 _BATCH = 10_000  # rows per DELETE to avoid long locks
 
+# Public alias for external inspection / tests
+RETENTION_POLICIES = _POLICIES
+
 
 @shared_task(name="data_retention_cleanup", bind=True, max_retries=1)  # type: ignore[misc]
 def data_retention_cleanup(self) -> dict:  # type: ignore[misc]

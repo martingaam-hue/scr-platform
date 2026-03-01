@@ -5,6 +5,15 @@ import sentry_sdk
 import structlog
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+
+class ErrorResponse(BaseModel):
+    """Standard error envelope returned by all API error handlers."""
+    error: str
+    message: str
+    detail: Any = None
+    request_id: str = "unknown"
 
 logger = structlog.get_logger()
 
