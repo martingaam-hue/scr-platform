@@ -43,22 +43,16 @@ variable "api_memory" {
 
 # ── TLS ───────────────────────────────────────────────────────────────────────
 
-variable "acm_certificate_arn" {
-  description = "ARN of the ACM certificate for the ALB HTTPS listener"
-  type        = string
-  # No default — must be supplied per environment
-}
-
 variable "alert_email" {
   description = "Email address for CloudWatch alarm notifications"
   type        = string
-  default     = "ops@scr-platform.com"
+  default     = "ops@pampgroup.com"
 }
 
 variable "domain_name" {
   description = "Primary domain name for the platform"
   type        = string
-  default     = "scr-platform.com"
+  default     = "pampgroup.com"
 }
 
 variable "db_read_replica_instance_class" {

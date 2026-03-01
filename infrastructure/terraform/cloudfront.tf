@@ -9,14 +9,14 @@ provider "aws" {
 
 resource "aws_acm_certificate" "wildcard" {
   provider          = aws.us_east_1
-  domain_name       = "*.scr-platform.com"
+  domain_name       = "*.pampgroup.com"
   validation_method = "DNS"
 
   subject_alternative_names = [
-    "scr-platform.com",
-    "app.scr-platform.com",
-    "api.scr-platform.com",
-    "custom.scr-platform.com", # White-label CNAME target
+    "pampgroup.com",
+    "app.pampgroup.com",
+    "api.pampgroup.com",
+    "custom.pampgroup.com", # White-label CNAME target
   ]
 
   lifecycle {
@@ -27,10 +27,10 @@ resource "aws_acm_certificate" "wildcard" {
 # ── Route53 Hosted Zone and DNS Records ──────────────────────────────────────
 
 resource "aws_route53_zone" "main" {
-  name = "scr-platform.com"
+  name = "pampgroup.com"
 
   tags = {
-    Name = "scr-platform.com"
+    Name = "pampgroup.com"
   }
 }
 
@@ -58,10 +58,32 @@ resource "aws_acm_certificate_validation" "wildcard" {
   validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
 }
 
-# app.scr-platform.com → CloudFront
+# ── ACM Certificate (eu-west-1 — required for ALB) ───────────────────────────
+
+resource "aws_acm_certificate" "alb" {
+  domain_name       = "*.${var.domain_name}"
+  validation_method = "DNS"
+
+  subject_alternative_names = [
+    var.domain_name,
+    "app.${var.domain_name}",
+    "api.${var.domain_name}",
+  ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_acm_certificate_validation" "alb" {
+  certificate_arn         = aws_acm_certificate.alb.arn
+  validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
+}
+
+# app.pampgroup.com → CloudFront
 resource "aws_route53_record" "app" {
   zone_id = aws_route53_zone.main.zone_id
-  name    = "app.scr-platform.com"
+  name    = "app.pampgroup.com"
   type    = "A"
 
   alias {
@@ -71,10 +93,10 @@ resource "aws_route53_record" "app" {
   }
 }
 
-# api.scr-platform.com → ALB
+# api.pampgroup.com → ALB
 resource "aws_route53_record" "api" {
   zone_id = aws_route53_zone.main.zone_id
-  name    = "api.scr-platform.com"
+  name    = "api.pampgroup.com"
   type    = "A"
 
   alias {
@@ -84,10 +106,10 @@ resource "aws_route53_record" "api" {
   }
 }
 
-# custom.scr-platform.com → CloudFront (CNAME target for white-label domains)
+# custom.pampgroup.com → CloudFront (CNAME target for white-label domains)
 resource "aws_route53_record" "custom_cname_target" {
   zone_id = aws_route53_zone.main.zone_id
-  name    = "custom.scr-platform.com"
+  name    = "custom.pampgroup.com"
   type    = "A"
   alias {
     name                   = aws_cloudfront_distribution.web.domain_name
@@ -221,8 +243,8 @@ resource "aws_cloudfront_distribution" "web" {
   web_acl_id          = aws_wafv2_web_acl.main.arn
 
   aliases = var.environment == "production" ? [
-    "app.scr-platform.com",
-    "custom.scr-platform.com",
+    "app.pampgroup.com",
+    "custom.pampgroup.com",
   ] : []
 
   # Origin: ALB (web + API)

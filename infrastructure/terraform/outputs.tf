@@ -2,12 +2,12 @@
 
 output "alb_dns_name" {
   value       = aws_lb.main.dns_name
-  description = "ALB DNS name — use for api.scr-platform.com A record"
+  description = "ALB DNS name — use for api.pampgroup.com A record"
 }
 
 output "cloudfront_domain" {
   value       = aws_cloudfront_distribution.web.domain_name
-  description = "CloudFront domain — use for app.scr-platform.com alias"
+  description = "CloudFront domain — use for app.pampgroup.com alias"
 }
 
 output "rds_endpoint" {
