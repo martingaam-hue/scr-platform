@@ -331,11 +331,8 @@ resource "aws_cloudfront_distribution" "web" {
     }
   }
 
-  logging_config {
-    bucket          = aws_s3_bucket.exports.bucket_domain_name
-    prefix          = "cloudfront-logs/"
-    include_cookies = false
-  }
+  # CloudFront logging disabled in staging: requires S3 bucket ACLs which conflict
+  # with BucketOwnerEnforced ownership. Enable in production with a dedicated log bucket.
 
   depends_on = [aws_acm_certificate_validation.wildcard]
 }

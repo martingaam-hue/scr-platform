@@ -142,11 +142,6 @@ resource "aws_db_parameter_group" "postgres16" {
     apply_method = "pending-reboot"
   }
   parameter {
-    name         = "shared_buffers"
-    value        = "4294967296" # 4GB in bytes
-    apply_method = "pending-reboot"
-  }
-  parameter {
     name  = "statement_timeout"
     value = "30000" # 30 seconds in ms
   }

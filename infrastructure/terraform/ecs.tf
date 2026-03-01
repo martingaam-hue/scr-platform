@@ -482,7 +482,7 @@ resource "aws_lb_listener_rule" "api" {
 
   condition {
     path_pattern {
-      values = ["/api/*", "/auth/*", "/webhooks/*", "/health", "/docs", "/redoc"]
+      values = ["/api/*", "/auth/*", "/webhooks/*", "/health", "/redoc"]
     }
   }
 }
