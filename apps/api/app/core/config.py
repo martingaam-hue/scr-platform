@@ -79,5 +79,17 @@ class Settings(BaseSettings):
     # Custom Domain (E03)
     CUSTOM_DOMAIN_CNAME_TARGET: str = "custom.scr.io"
 
+    # Sentry error monitoring
+    SENTRY_DSN: str = ""
+    SENTRY_ENVIRONMENT: str = "development"
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1  # 10% of transactions
+    SENTRY_PROFILES_SAMPLE_RATE: float = 0.1
+
+    # AI token budget enforcement (per org, per calendar month)
+    AI_TOKEN_BUDGET_ENABLED: bool = True
+    AI_TOKEN_BUDGET_FOUNDATION: int = 2_000_000
+    AI_TOKEN_BUDGET_PROFESSIONAL: int = 20_000_000
+    AI_TOKEN_BUDGET_ENTERPRISE: int = 200_000_000
+
 
 settings = Settings()

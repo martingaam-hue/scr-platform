@@ -91,6 +91,29 @@ async def get_usage_summary(
     return await svc.get_usage_summary(current_user.org_id, days=days)
 
 
+@router.get("/usage/tokens")
+async def get_token_usage(
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Get current month AI token usage and budget for this org."""
+    from app.models.core import Organization
+    from app.services.token_budget import TIER_LIMITS, get_monthly_usage
+
+    org = await db.get(Organization, current_user.org_id)
+    tier = org.subscription_tier.value if org else "foundation"
+    limit = TIER_LIMITS.get(tier, 2_000_000)
+    current = await get_monthly_usage(db, current_user.org_id)
+    return {
+        "org_id": str(current_user.org_id),
+        "tier": tier,
+        "tokens_used": current,
+        "tokens_limit": limit,
+        "tokens_remaining": max(0, limit - current),
+        "usage_pct": round(current / limit * 100, 1) if limit > 0 else 0,
+    }
+
+
 # ── Waitlist ───────────────────────────────────────────────────────────────────
 
 
@@ -142,6 +165,21 @@ async def approve_waitlist_entry(
 
 
 # ── Health ─────────────────────────────────────────────────────────────────────
+
+
+@router.post("/admin/backup/trigger")
+async def trigger_backup(
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Admin: manually trigger a database backup."""
+    from app.models.core import Organization
+    org = await db.get(Organization, current_user.org_id)
+    if not org or org.type.value != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    from app.tasks.backup import backup_database_task
+    task = backup_database_task.delay()
+    return {"task_id": task.id, "status": "queued"}
 
 
 @router.get("/health", response_model=HealthStatus)

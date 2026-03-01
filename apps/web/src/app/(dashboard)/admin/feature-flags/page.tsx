@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Flag, ToggleLeft, ToggleRight } from "lucide-react";
+import { Flag, Cpu, ToggleLeft, ToggleRight } from "lucide-react";
 import {
   Badge,
   Button,
@@ -11,7 +11,125 @@ import {
   CardTitle,
   EmptyState,
 } from "@scr/ui";
-import { useFeatureFlags, useSetFlagOverride, type FeatureFlag } from "@/lib/launch";
+import { useFeatureFlags, useSetFlagOverride, useTokenUsage, type FeatureFlag } from "@/lib/launch";
+
+// ── Token Usage Card ───────────────────────────────────────────────────────────
+
+const TIER_LABELS: Record<string, string> = {
+  foundation: "Foundation",
+  professional: "Professional",
+  enterprise: "Enterprise",
+};
+
+const TIER_BADGE_VARIANTS: Record<string, "neutral" | "info" | "gold"> = {
+  foundation: "neutral",
+  professional: "info",
+  enterprise: "gold",
+};
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return n.toString();
+}
+
+function getResetDate(): string {
+  const now = new Date();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return nextMonth.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function TokenUsageCard() {
+  const { data, isLoading } = useTokenUsage();
+
+  const tier = data?.tier ?? "foundation";
+  const tierLabel = TIER_LABELS[tier] ?? tier;
+  const tierVariant = TIER_BADGE_VARIANTS[tier] ?? "neutral";
+  const usedPct = data?.usage_pct ?? 0;
+  const isWarning = usedPct >= 80;
+  const isCritical = usedPct >= 95;
+
+  const barColor = isCritical
+    ? "bg-red-500"
+    : isWarning
+      ? "bg-amber-500"
+      : "bg-emerald-500";
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+        <div className="flex items-center gap-2">
+          <Cpu className="h-4 w-4 text-neutral-500" />
+          <CardTitle className="text-base">AI Token Usage This Month</CardTitle>
+        </div>
+        {data && (
+          <Badge variant={tierVariant} className="text-xs">
+            {tierLabel}
+          </Badge>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {isLoading && (
+          <div className="h-16 animate-pulse rounded-lg bg-neutral-100 dark:bg-neutral-800" />
+        )}
+
+        {!isLoading && data && (
+          <>
+            {/* Progress bar */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-neutral-900 dark:text-white">
+                  {formatTokens(data.tokens_used)} / {formatTokens(data.tokens_limit)} tokens
+                </span>
+                <span
+                  className={
+                    isCritical
+                      ? "font-semibold text-red-600 dark:text-red-400"
+                      : isWarning
+                        ? "font-semibold text-amber-600 dark:text-amber-400"
+                        : "text-neutral-500 dark:text-neutral-400"
+                  }
+                >
+                  {data.usage_pct}%
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                  style={{ width: `${Math.min(usedPct, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Details row */}
+            <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+              <span>
+                {formatTokens(data.tokens_remaining)} remaining
+              </span>
+              <span>Resets on {getResetDate()}</span>
+            </div>
+
+            {/* Warning banners */}
+            {isCritical && (
+              <div className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950 dark:text-red-300">
+                Token budget nearly exhausted. AI features will be blocked when the limit is reached.
+              </div>
+            )}
+            {!isCritical && isWarning && (
+              <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                Approaching monthly token limit. Consider upgrading your plan.
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 // ── Override badge ─────────────────────────────────────────────────────────────
 
@@ -113,6 +231,9 @@ export default function FeatureFlagsPage() {
           Manage global feature flags and per-org overrides.
         </p>
       </div>
+
+      {/* AI Token Budget */}
+      <TokenUsageCard />
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">

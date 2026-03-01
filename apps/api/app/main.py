@@ -94,6 +94,26 @@ from app.modules.launch.router import router as launch_router
 from app.modules.custom_domain.router import router as custom_domain_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
+# ── Sentry error monitoring ───────────────────────────────────────────────────
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=settings.SENTRY_ENVIRONMENT,
+        traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+        profiles_sample_rate=settings.SENTRY_PROFILES_SAMPLE_RATE,
+        integrations=[
+            FastApiIntegration(transaction_style="endpoint"),
+            SqlalchemyIntegration(),
+            CeleryIntegration(),
+        ],
+        send_default_pii=False,  # GDPR: never send PII
+    )
+
 logger = structlog.get_logger()
 
 

@@ -1,10 +1,11 @@
 """Clerk RS256 JWT verification via JWKS.
 
 Fetches Clerk's public keys from the well-known JWKS endpoint, caches them
-in-process, and verifies RS256-signed session tokens.
+in Redis (shared across all worker processes) with an in-process fallback,
+and verifies RS256-signed tokens.
 """
 
-import time
+import json
 
 import httpx
 import structlog
@@ -14,27 +15,65 @@ from app.core.config import settings
 
 logger = structlog.get_logger()
 
-# Module-level JWKS cache
-_jwks_cache: dict | None = None
-_jwks_cache_timestamp: float = 0.0
+_REDIS_KEY = "clerk:jwks"
+
+
+async def _redis_client():
+    """Return a short-lived Redis client, or None if Redis is unavailable."""
+    try:
+        from redis.asyncio import from_url  # type: ignore[import-untyped]
+        return from_url(settings.REDIS_URL, decode_responses=True)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 async def _fetch_jwks() -> dict:
-    """Fetch JWKS from Clerk's well-known endpoint. Returns cached if fresh."""
-    global _jwks_cache, _jwks_cache_timestamp
+    """Fetch JWKS from Clerk's well-known endpoint.
 
-    now = time.time()
-    if _jwks_cache and (now - _jwks_cache_timestamp) < settings.CLERK_JWKS_CACHE_TTL:
-        return _jwks_cache
+    Strategy:
+    1. Try Redis cache (shared across all worker processes).
+    2. Fetch from Clerk and repopulate Redis.
+    Falls back gracefully if Redis is down.
+    """
+    # 1. Try Redis
+    redis = await _redis_client()
+    if redis:
+        try:
+            cached = await redis.get(_REDIS_KEY)
+            if cached:
+                await redis.aclose()
+                return json.loads(cached)
+        except Exception:  # noqa: BLE001
+            pass
+        finally:
+            try:
+                await redis.aclose()
+            except Exception:  # noqa: BLE001
+                pass
 
+    # 2. Fetch from Clerk
     jwks_url = f"{settings.CLERK_ISSUER_URL}/.well-known/jwks.json"
     async with httpx.AsyncClient() as client:
         response = await client.get(jwks_url, timeout=10.0)
         response.raise_for_status()
-        _jwks_cache = response.json()
-        _jwks_cache_timestamp = now
-        logger.info("clerk_jwks_refreshed", keys_count=len(_jwks_cache.get("keys", [])))
-        return _jwks_cache
+        jwks = response.json()
+
+    logger.info("clerk_jwks_refreshed", keys_count=len(jwks.get("keys", [])))
+
+    # 3. Store in Redis with TTL
+    redis = await _redis_client()
+    if redis:
+        try:
+            await redis.setex(_REDIS_KEY, settings.CLERK_JWKS_CACHE_TTL, json.dumps(jwks))
+        except Exception:  # noqa: BLE001
+            pass
+        finally:
+            try:
+                await redis.aclose()
+            except Exception:  # noqa: BLE001
+                pass
+
+    return jwks
 
 
 def _get_signing_key(jwks: dict, token: str) -> dict:
@@ -71,8 +110,16 @@ async def verify_clerk_token(token: str) -> dict:
     return payload
 
 
-def clear_jwks_cache() -> None:
-    """Clear the JWKS cache (useful for testing and key rotation)."""
-    global _jwks_cache, _jwks_cache_timestamp
-    _jwks_cache = None
-    _jwks_cache_timestamp = 0.0
+async def clear_jwks_cache() -> None:
+    """Clear the JWKS cache in Redis (useful for testing and key rotation)."""
+    redis = await _redis_client()
+    if redis:
+        try:
+            await redis.delete(_REDIS_KEY)
+        except Exception:  # noqa: BLE001
+            pass
+        finally:
+            try:
+                await redis.aclose()
+            except Exception:  # noqa: BLE001
+                pass

@@ -10,6 +10,9 @@ from celery.schedules import crontab
 
 from app.core.config import settings
 
+import sentry_sdk
+from sentry_sdk.integrations.celery import CeleryIntegration as SentryCeleryIntegration
+
 celery_app = Celery(
     "scr_worker",
     broker=settings.CELERY_BROKER_URL,
@@ -36,8 +39,18 @@ celery_app = Celery(
         "app.modules.webhooks.tasks",
         "app.modules.redaction.tasks",
         "app.modules.market_data.tasks",
+        "app.tasks.backup",
     ],
 )
+
+if getattr(settings, "SENTRY_DSN", ""):
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=getattr(settings, "SENTRY_ENVIRONMENT", "development"),
+        traces_sample_rate=getattr(settings, "SENTRY_TRACES_SAMPLE_RATE", 0.1),
+        integrations=[SentryCeleryIntegration()],
+        send_default_pii=False,
+    )
 
 celery_app.conf.update(
     task_serializer="json",
@@ -151,5 +164,14 @@ celery_app.conf.beat_schedule = {
     "fetch-market-data": {
         "task": "tasks.fetch_market_data",
         "schedule": crontab(hour=6, minute=30),  # 6:30am UTC daily (after FRED updates)
+    },
+    # ── Database backups ──────────────────────────────────────────────────────
+    "backup-database-daily": {
+        "task": "tasks.backup_database",
+        "schedule": crontab(hour=3, minute=30),  # 03:30 UTC daily (after benchmarks at 03:00)
+    },
+    "prune-old-backups-weekly": {
+        "task": "tasks.prune_old_backups",
+        "schedule": crontab(hour=4, minute=0, day_of_week=0),  # Sunday 04:00 UTC
     },
 }

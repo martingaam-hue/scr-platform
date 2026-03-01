@@ -39,6 +39,15 @@ export interface UsageSummary {
   total_events: number;
 }
 
+export interface TokenUsage {
+  org_id: string;
+  tier: string;
+  tokens_used: number;
+  tokens_limit: number;
+  tokens_remaining: number;
+  usage_pct: number;
+}
+
 export interface HealthStatus {
   status: "healthy" | "degraded" | "unhealthy";
   version: string;
@@ -55,6 +64,7 @@ export const launchKeys = {
   health: () => [...launchKeys.all, "health"] as const,
   waitlist: (status?: string) => [...launchKeys.all, "waitlist", status ?? "all"] as const,
   usageSummary: (days: number) => [...launchKeys.all, "usage-summary", days] as const,
+  tokenUsage: () => [...launchKeys.all, "token-usage"] as const,
 };
 
 // ── Feature flags ─────────────────────────────────────────────────────────────
@@ -166,5 +176,17 @@ export function useUsageSummary(days = 30) {
       return data;
     },
     staleTime: 60_000,
+  });
+}
+
+export function useTokenUsage() {
+  return useQuery({
+    queryKey: launchKeys.tokenUsage(),
+    queryFn: async (): Promise<TokenUsage> => {
+      const { data } = await api.get("/launch/usage/tokens");
+      return data;
+    },
+    refetchInterval: 60_000, // Auto-refresh every 60 s
+    staleTime: 55_000,
   });
 }

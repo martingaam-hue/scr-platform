@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -380,6 +380,7 @@ def _build_messages(request: CompletionRequest | StreamCompletionRequest) -> lis
 @router.post("/completions", response_model=CompletionResponse)
 async def create_completion(
     request: CompletionRequest,
+    response: Response,
     _api_key: str = Depends(verify_gateway_key),
 ) -> CompletionResponse:
     model = _resolve_model(request.task_type, request.model)
@@ -388,6 +389,10 @@ async def create_completion(
     messages = _build_messages(request)
     if not messages:
         raise HTTPException(status_code=400, detail="Either messages or prompt is required")
+
+    # Token estimation for budget pre-check (chars / 4 is standard approximation)
+    estimated_tokens = len(str(request.model_dump())) // 4
+    response.headers["X-Tokens-Estimated"] = str(estimated_tokens)
 
     # Rate limit check (non-blocking on Redis errors)
     if request.org_id:
@@ -406,6 +411,7 @@ async def create_completion(
         org_id=request.org_id,
         message_count=len(messages),
         has_tools=bool(request.tools),
+        estimated_tokens=estimated_tokens,
     )
 
     try:
@@ -433,6 +439,12 @@ async def create_completion(
         output_tokens=usage.get("completion_tokens", 0),
     )
 
+    # Expose actual token usage in response headers for budget tracking
+    actual_tokens = usage.get("total_tokens", 0)
+    response.headers["X-Tokens-Used"] = str(actual_tokens)
+    if request.org_id:
+        response.headers["X-Org-Id"] = request.org_id
+
     logger.info(
         "completion_success",
         model=result.get("model_used"),
@@ -440,6 +452,7 @@ async def create_completion(
         org_id=request.org_id,
         cost_usd=cost,
         stop_reason=result.get("stop_reason"),
+        tokens_used=actual_tokens,
     )
 
     return CompletionResponse(
