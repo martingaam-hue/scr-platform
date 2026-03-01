@@ -236,7 +236,11 @@ resource "aws_s3_bucket_versioning" "redacted" {
 }
 resource "aws_s3_bucket_server_side_encryption_configuration" "redacted" {
   bucket = aws_s3_bucket.redacted.id
-  rule { apply_server_side_encryption_by_default { sse_algorithm = "aws:kms" } }
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "aws:kms"
+    }
+  }
 }
 
 # scr-exports: generated reports (30-day lifecycle)
@@ -254,7 +258,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "exports" {
 }
 resource "aws_s3_bucket_server_side_encryption_configuration" "exports" {
   bucket = aws_s3_bucket.exports.id
-  rule { apply_server_side_encryption_by_default { sse_algorithm = "AES256" } }
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
 }
 
 # scr-backups: pg_dump backups
@@ -280,7 +288,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups" {
 }
 resource "aws_s3_bucket_server_side_encryption_configuration" "backups" {
   bucket = aws_s3_bucket.backups.id
-  rule { apply_server_side_encryption_by_default { sse_algorithm = "aws:kms" } }
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "aws:kms"
+    }
+  }
 }
 
 # Documents bucket: Glacier after 1 year
