@@ -1,40 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/lib/api"
 import { formatDate, formatCurrency, formatPct } from "@/lib/format"
-import { CheckCircle, Clock, FileText, Plus, Download, ChevronRight } from "lucide-react"
+import {
+  useLPReports,
+  useLPReport,
+  useCreateLPReport,
+  useApproveLPReport,
+  useGenerateLPReportPDF,
+  type LPReport,
+} from "@/lib/lp-reports"
+import { CheckCircle, FileText, Plus, Download, ChevronRight } from "lucide-react"
 import { AIFeedback } from "@/components/ai-feedback"
-
-interface LPReport {
-  id: string
-  report_period: string
-  period_start: string
-  period_end: string
-  status: string
-  gross_irr: number | null
-  net_irr: number | null
-  tvpi: number | null
-  dpi: number | null
-  rvpi: number | null
-  moic: number | null
-  total_committed: number | null
-  total_invested: number | null
-  total_returned: number | null
-  total_nav: number | null
-  narrative: {
-    executive_summary?: string
-    portfolio_commentary?: string
-    market_outlook?: string
-    esg_highlights?: string
-  } | null
-  investments_data: Record<string, unknown>[] | null
-  pdf_s3_key: string | null
-  created_at: string
-  updated_at: string
-  download_url?: string | null
-}
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
@@ -75,40 +52,15 @@ function ReportRow({ report, onSelect }: { report: LPReport; onSelect: () => voi
 }
 
 export default function LPReportsPage() {
-  const queryClient = useQueryClient()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showNewForm, setShowNewForm] = useState(false)
   const [newPeriod, setNewPeriod] = useState({ report_period: "", period_start: "", period_end: "" })
 
-  const { data: listData, isLoading } = useQuery({
-    queryKey: ["lp-reports"],
-    queryFn: () => api.get("/lp-reports").then((r) => r.data),
-  })
-
-  const { data: report } = useQuery({
-    queryKey: ["lp-report", selectedId],
-    queryFn: () => api.get(`/lp-reports/${selectedId}`).then((r) => r.data),
-    enabled: !!selectedId,
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post("/lp-reports", body).then((r) => r.data),
-    onSuccess: (data: LPReport) => {
-      queryClient.invalidateQueries({ queryKey: ["lp-reports"] })
-      setSelectedId(data.id)
-      setShowNewForm(false)
-    },
-  })
-
-  const approveMutation = useMutation({
-    mutationFn: (id: string) => api.post(`/lp-reports/${id}/approve`).then((r) => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lp-report", selectedId] }),
-  })
-
-  const generatePdfMutation = useMutation({
-    mutationFn: (id: string) => api.post(`/lp-reports/${id}/generate-pdf`).then((r) => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lp-report", selectedId] }),
-  })
+  const { data: listData, isLoading } = useLPReports()
+  const { data: report } = useLPReport(selectedId ?? "")
+  const createMutation = useCreateLPReport()
+  const approveMutation = useApproveLPReport()
+  const generatePdfMutation = useGenerateLPReportPDF()
 
   const reports: LPReport[] = listData?.items ?? []
 
@@ -157,7 +109,7 @@ export default function LPReportsPage() {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => createMutation.mutate({ ...newPeriod, cash_flows: [], investments_data: [] })}
+                onClick={() => createMutation.mutate({ ...newPeriod, cash_flows: [], investments_data: [] }, { onSuccess: (data) => { setSelectedId(data.id); setShowNewForm(false) } })}
                 disabled={createMutation.isPending}
                 className="flex-1 bg-primary-600 text-white text-sm py-1.5 rounded-md hover:bg-primary-700 disabled:opacity-50"
               >
@@ -303,13 +255,13 @@ export default function LPReportsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {(report.investments_data as Record<string, unknown>[]).map((inv, i) => (
+                      {report.investments_data.map((inv, i) => (
                         <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-900">{String(inv.name ?? "—")}</td>
-                          <td className="px-4 py-3 text-right text-gray-700">{inv.committed ? formatCurrency(Number(inv.committed)) : "—"}</td>
-                          <td className="px-4 py-3 text-right text-gray-700">{inv.nav ? formatCurrency(Number(inv.nav)) : "—"}</td>
-                          <td className="px-4 py-3 text-right text-gray-700">{inv.moic ? `${Number(inv.moic).toFixed(2)}x` : "—"}</td>
-                          <td className="px-4 py-3 text-gray-600 capitalize">{String(inv.stage ?? "—")}</td>
+                          <td className="px-4 py-3 font-medium text-gray-900">{inv.name ?? "—"}</td>
+                          <td className="px-4 py-3 text-right text-gray-700">{inv.committed != null ? formatCurrency(Number(inv.committed)) : "—"}</td>
+                          <td className="px-4 py-3 text-right text-gray-700">{inv.nav != null ? formatCurrency(Number(inv.nav)) : "—"}</td>
+                          <td className="px-4 py-3 text-right text-gray-700">{inv.moic != null ? `${Number(inv.moic).toFixed(2)}x` : "—"}</td>
+                          <td className="px-4 py-3 text-gray-600 capitalize">{inv.stage ?? "—"}</td>
                         </tr>
                       ))}
                     </tbody>

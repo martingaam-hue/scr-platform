@@ -11,88 +11,21 @@ import {
   ToggleRight,
   Zap,
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
 import { Badge, Button, Card, CardContent, EmptyState, cn } from "@scr/ui";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface PromptTemplate {
-  id: string;
-  task_type: string;
-  version: number;
-  name: string;
-  system_prompt: string | null;
-  user_prompt_template: string;
-  output_format_instruction: string | null;
-  variables_schema: Record<string, unknown>;
-  model_override: string | null;
-  temperature_override: number | null;
-  max_tokens_override: number | null;
-  is_active: boolean;
-  traffic_percentage: number;
-  total_uses: number;
-  avg_confidence: number | null;
-  positive_feedback_rate: number | null;
-  notes: string | null;
-  created_at: string | null;
-}
-
-interface PromptsResponse {
-  prompts: Record<string, PromptTemplate[]>;
-  total_task_types: number;
-}
-
-// ── Query hooks ───────────────────────────────────────────────────────────────
-
-const PROMPTS_KEY = ["admin", "prompts"] as const;
-
-function usePrompts() {
-  return useQuery({
-    queryKey: PROMPTS_KEY,
-    queryFn: () => api.get<PromptsResponse>("/admin/prompts").then((r) => r.data),
-  });
-}
-
-function useActivate() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      api.put(`/admin/prompts/${id}/activate`, null, {
-        params: { traffic_percentage: 100 },
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: PROMPTS_KEY }),
-  });
-}
-
-function useDeactivate() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => api.put(`/admin/prompts/${id}/deactivate`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: PROMPTS_KEY }),
-  });
-}
-
-function useCreate() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (body: {
-      task_type: string;
-      name: string;
-      user_prompt_template: string;
-      system_prompt?: string;
-      notes?: string;
-    }) => api.post("/admin/prompts", body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: PROMPTS_KEY }),
-  });
-}
+import {
+  useAdminPrompts,
+  useActivatePrompt,
+  useDeactivatePrompt,
+  useCreatePromptVersion,
+  type PromptTemplate,
+} from "@/lib/admin";
 
 // ── Template row ──────────────────────────────────────────────────────────────
 
 function TemplateRow({ t }: { t: PromptTemplate }) {
   const [expanded, setExpanded] = useState(false);
-  const { mutate: activate, isPending: activating } = useActivate();
-  const { mutate: deactivate, isPending: deactivating } = useDeactivate();
+  const { mutate: activate, isPending: activating } = useActivatePrompt();
+  const { mutate: deactivate, isPending: deactivating } = useDeactivatePrompt();
 
   return (
     <div className="border-b last:border-0">
@@ -277,7 +210,7 @@ function CreateDialog({
   defaultTaskType: string;
   onClose: () => void;
 }) {
-  const { mutate: create, isPending } = useCreate();
+  const { mutate: create, isPending } = useCreatePromptVersion();
   const [form, setForm] = useState({
     task_type: defaultTaskType,
     name: "",
@@ -399,7 +332,7 @@ function CreateDialog({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AdminPromptsPage() {
-  const { data, isLoading } = usePrompts();
+  const { data, isLoading } = useAdminPrompts();
   const [createFor, setCreateFor] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 

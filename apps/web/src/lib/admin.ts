@@ -403,3 +403,73 @@ export function useAICorrections(params: {
     staleTime: 30_000,
   });
 }
+
+// ── Prompt templates ──────────────────────────────────────────────────────────
+
+export interface PromptTemplate {
+  id: string;
+  task_type: string;
+  version: number;
+  name: string;
+  system_prompt: string | null;
+  user_prompt_template: string;
+  output_format_instruction: string | null;
+  variables_schema: Record<string, unknown>;
+  model_override: string | null;
+  temperature_override: number | null;
+  max_tokens_override: number | null;
+  is_active: boolean;
+  traffic_percentage: number;
+  total_uses: number;
+  avg_confidence: number | null;
+  positive_feedback_rate: number | null;
+  notes: string | null;
+  created_at: string | null;
+}
+
+export interface PromptsResponse {
+  prompts: Record<string, PromptTemplate[]>;
+  total_task_types: number;
+}
+
+const PROMPTS_KEY = ["admin", "prompts"] as const;
+
+export function useAdminPrompts() {
+  return useQuery({
+    queryKey: PROMPTS_KEY,
+    queryFn: () => api.get<PromptsResponse>("/admin/prompts").then((r) => r.data),
+  });
+}
+
+export function useActivatePrompt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.put(`/admin/prompts/${id}/activate`, null, {
+        params: { traffic_percentage: 100 },
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: PROMPTS_KEY }),
+  });
+}
+
+export function useDeactivatePrompt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.put(`/admin/prompts/${id}/deactivate`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: PROMPTS_KEY }),
+  });
+}
+
+export function useCreatePromptVersion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      task_type: string;
+      name: string;
+      user_prompt_template: string;
+      system_prompt?: string;
+      notes?: string;
+    }) => api.post("/admin/prompts", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: PROMPTS_KEY }),
+  });
+}
