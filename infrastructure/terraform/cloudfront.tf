@@ -139,8 +139,11 @@ resource "aws_wafv2_web_acl" "main" {
         name        = "AWSManagedRulesCommonRuleSet"
         vendor_name = "AWS"
         # Exclude rules that block large document uploads
-        excluded_rule {
+        rule_action_override {
           name = "SizeRestrictions_BODY"
+          action_to_use {
+            count {}
+          }
         }
       }
     }

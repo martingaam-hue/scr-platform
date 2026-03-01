@@ -83,7 +83,8 @@ module "rds" {
   backup_retention_period = var.environment == "production" ? 14 : 7
   deletion_protection     = var.environment == "production"
 
-  db_parameter_group_name      = aws_db_parameter_group.postgres16.name
+  parameter_group_name         = aws_db_parameter_group.postgres16.name
+  create_db_parameter_group    = false
   multi_az                     = var.environment == "production"
   performance_insights_enabled = var.environment == "production"
   monitoring_interval          = var.environment == "production" ? 60 : 0
@@ -204,15 +205,15 @@ resource "aws_db_instance" "read_replica" {
   count = var.environment == "production" ? 1 : 0
 
   identifier          = "scr-${var.environment}-read"
-  replicate_source_db = module.rds.db_instance_id
+  replicate_source_db = module.rds.db_instance_identifier
 
   instance_class      = var.db_instance_class
   publicly_accessible = false
   skip_final_snapshot = true
   deletion_protection = true
 
-  vpc_security_group_ids  = [module.vpc.default_security_group_id]
-  db_parameter_group_name = aws_db_parameter_group.postgres16.name
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  parameter_group_name   = aws_db_parameter_group.postgres16.name
 
   performance_insights_enabled = true
   monitoring_interval          = 60

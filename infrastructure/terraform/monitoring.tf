@@ -100,7 +100,7 @@ resource "aws_cloudwatch_dashboard" "platform_health" {
           region = var.aws_region
           metrics = [
             ["AWS/RDS", "CPUUtilization",
-              "DBInstanceIdentifier", module.rds.db_instance_id,
+              "DBInstanceIdentifier", module.rds.db_instance_identifier,
               { stat = "Average", period = 60, label = "RDS CPU %" }
             ]
           ]
@@ -120,7 +120,7 @@ resource "aws_cloudwatch_dashboard" "platform_health" {
           region = var.aws_region
           metrics = [
             ["AWS/RDS", "DatabaseConnections",
-              "DBInstanceIdentifier", module.rds.db_instance_id,
+              "DBInstanceIdentifier", module.rds.db_instance_identifier,
               { stat = "Average", period = 60, label = "Connections" }
             ]
           ]
@@ -140,11 +140,11 @@ resource "aws_cloudwatch_dashboard" "platform_health" {
           region = var.aws_region
           metrics = [
             ["AWS/ElastiCache", "EngineCPUUtilization",
-              "CacheClusterId", module.redis.cluster_id,
+              "CacheClusterId", aws_elasticache_replication_group.redis.id,
               { stat = "Average", period = 60, label = "Engine CPU %" }
             ],
             ["AWS/ElastiCache", "FreeableMemory",
-              "CacheClusterId", module.redis.cluster_id,
+              "CacheClusterId", aws_elasticache_replication_group.redis.id,
               { stat = "Average", period = 60, label = "Freeable Memory (bytes)" }
             ]
           ]
@@ -490,7 +490,7 @@ resource "aws_cloudwatch_metric_alarm" "api_p99_latency" {
     LoadBalancer = aws_lb.main.arn_suffix
   }
   period             = 60
-  statistic          = "p99"
+  extended_statistic = "p99"
   treat_missing_data = "notBreaching"
 
   alarm_actions = [aws_sns_topic.alerts.arn]
@@ -507,7 +507,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
   namespace           = "AWS/RDS"
   metric_name         = "CPUUtilization"
   dimensions = {
-    DBInstanceIdentifier = module.rds.db_instance_id
+    DBInstanceIdentifier = module.rds.db_instance_identifier
   }
   period             = 60
   statistic          = "Average"
@@ -527,7 +527,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_replica_lag" {
   namespace           = "AWS/RDS"
   metric_name         = "ReplicaLag"
   dimensions = {
-    DBInstanceIdentifier = module.rds.db_instance_read_replica_id
+    DBInstanceIdentifier = aws_db_instance.read_replica[0].identifier
   }
   period             = 60
   statistic          = "Average"
@@ -549,7 +549,7 @@ resource "aws_cloudwatch_metric_alarm" "redis_memory" {
   namespace           = "AWS/ElastiCache"
   metric_name         = "FreeableMemory"
   dimensions = {
-    CacheClusterId = module.redis.cluster_id
+    CacheClusterId = aws_elasticache_replication_group.redis.id
   }
   period             = 60
   statistic          = "Average"
