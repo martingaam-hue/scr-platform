@@ -165,10 +165,6 @@ resource "aws_db_parameter_group" "postgres16" {
     value = "60000" # 60 seconds in ms
   }
   parameter {
-    name  = "lock_timeout"
-    value = "10000" # 10 seconds in ms
-  }
-  parameter {
     name  = "log_min_duration_statement"
     value = "1000" # Log slow queries > 1s
   }
