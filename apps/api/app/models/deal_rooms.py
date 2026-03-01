@@ -7,7 +7,7 @@ from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel, TimestampedModel
 
@@ -28,6 +28,10 @@ class DealRoom(BaseModel):
     created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     settings: Mapped[dict] = mapped_column(JSONB, default=dict)
     # {watermark: true, download_restricted: false, nda_required: true, expires_at: "2026-06-01"}
+
+    members: Mapped[list["DealRoomMember"]] = relationship(
+        "DealRoomMember", foreign_keys="DealRoomMember.room_id", lazy="noload"
+    )
 
 
 class DealRoomMember(BaseModel):

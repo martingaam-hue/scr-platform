@@ -12,7 +12,7 @@ from typing import Any
 
 import httpx
 import structlog
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -146,21 +146,25 @@ async def search_comps(
     stage: str | None = None,
     min_size_eur: float | None = None,
     max_size_eur: float | None = None,
+    data_quality: str | None = None,
     limit: int = 50,
-) -> list[ComparableTransaction]:
+    offset: int = 0,
+) -> tuple[list[ComparableTransaction], int]:
     """Structured filter search — returns org's own comps + global comps.
 
     WHERE (org_id = :org_id OR org_id IS NULL)
     AND is_deleted = false
     AND optional filters
     """
-    stmt = select(ComparableTransaction).where(
+    base_where = [
         or_(
             ComparableTransaction.org_id == org_id,
             ComparableTransaction.org_id.is_(None),
         ),
         ComparableTransaction.is_deleted.is_(False),
-    )
+    ]
+
+    stmt = select(ComparableTransaction).where(*base_where)
 
     if asset_type:
         stmt = stmt.where(ComparableTransaction.asset_type == asset_type)
@@ -178,10 +182,15 @@ async def search_comps(
         stmt = stmt.where(ComparableTransaction.deal_size_eur >= min_size_eur)
     if max_size_eur is not None:
         stmt = stmt.where(ComparableTransaction.deal_size_eur <= max_size_eur)
+    if data_quality:
+        stmt = stmt.where(ComparableTransaction.data_quality == data_quality)
 
-    stmt = stmt.order_by(ComparableTransaction.close_year.desc().nullslast()).limit(limit)
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total: int = (await db.execute(count_stmt)).scalar_one()
+
+    stmt = stmt.order_by(ComparableTransaction.close_year.desc().nullslast()).offset(offset).limit(limit)
     result = await db.execute(stmt)
-    return list(result.scalars().all())
+    return list(result.scalars().all()), total
 
 
 # ── AI similarity ─────────────────────────────────────────────────────────────

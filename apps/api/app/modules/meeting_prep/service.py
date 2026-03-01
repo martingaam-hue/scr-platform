@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import uuid
 from datetime import date
 from typing import Any
@@ -202,15 +201,19 @@ async def generate_briefing(
     previous_meeting_date: date | None = None,
 ) -> MeetingBriefing:
     """Aggregate all module data and generate an AI briefing."""
-    results = await asyncio.gather(
-        _get_project(db, project_id, org_id),
-        _get_signal_score(db, project_id),
-        _get_risk_summary(db, project_id),
-        _get_dd_status(db, project_id, org_id),
-        _get_doc_count(db, project_id),
-        return_exceptions=True,
-    )
-    project, score, risks, dd_status, doc_count = [_safe(r) for r in results]
+    # Sequential awaits — asyncio.gather shares the DB connection which breaks
+    # under NullPool (tests) and causes issues with some async drivers.
+    async def _try(coro: Any) -> Any:
+        try:
+            return await coro
+        except Exception as exc:
+            return exc
+
+    project = _safe(await _try(_get_project(db, project_id, org_id)))
+    score = _safe(await _try(_get_signal_score(db, project_id)))
+    risks = _safe(await _try(_get_risk_summary(db, project_id)))
+    dd_status = _safe(await _try(_get_dd_status(db, project_id, org_id)))
+    doc_count = _safe(await _try(_get_doc_count(db, project_id)))
     if isinstance(doc_count, Exception) or doc_count is None:
         doc_count = 0
 

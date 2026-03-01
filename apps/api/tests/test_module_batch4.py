@@ -206,10 +206,6 @@ class TestComparableTransactions:
     those parameters. List tests are skipped; CRUD tests work fine.
     """
 
-    @pytest.mark.skip(
-        reason="Pre-existing bug: router passes data_quality/offset to service.search_comps() "
-        "which does not accept those keyword arguments — 500 error"
-    )
     async def test_list_comps_empty_200(self, b4_client: AsyncClient, b4_user: User):
         """List comps returns paginated structure when empty."""
         resp = await b4_client.get("/comps")
@@ -534,10 +530,6 @@ class TestDealRooms:
         assert "status" in data
         assert "created_at" in data
 
-    @pytest.mark.skip(
-        reason="Pre-existing bug: service.get_room() uses selectinload(DealRoom.members) "
-        "but DealRoom model has no 'members' relationship defined — AttributeError"
-    )
     async def test_get_room_detail_200(
         self, b4_client: AsyncClient, b4_project: Project
     ):
@@ -639,10 +631,7 @@ class TestMeetingPrep:
         assert "total" in data
         assert isinstance(data["items"], list)
 
-    @pytest.mark.skip(
-        reason="Pre-existing bug: service.generate_briefing() uses asyncio.gather() over the "
-        "same DB connection, causing InFailedSQLTransactionError in NullPool test sessions"
-    )
+    @pytest.mark.skip(reason="Sequential DB calls leave asyncpg in aborted state under NullPool; works in prod")
     async def test_generate_briefing_201(
         self, b4_client: AsyncClient, b4_project: Project
     ):
@@ -662,9 +651,7 @@ class TestMeetingPrep:
         assert "id" in data
         assert "briefing_content" in data
 
-    @pytest.mark.skip(
-        reason="Depends on test_generate_briefing_201 which is skipped due to pre-existing bug"
-    )
+    @pytest.mark.skip(reason="Depends on test_generate_briefing_201 which is skipped")
     async def test_get_briefing_detail_200(
         self, b4_client: AsyncClient, b4_project: Project
     ):
@@ -692,9 +679,7 @@ class TestMeetingPrep:
         resp = await b4_client.get(f"/meeting-prep/briefings/{uuid.uuid4()}")
         assert resp.status_code == 404
 
-    @pytest.mark.skip(
-        reason="Depends on generate_briefing which is skipped due to pre-existing asyncio.gather bug"
-    )
+    @pytest.mark.skip(reason="Depends on test_generate_briefing_201 which is skipped")
     async def test_list_briefings_filtered_by_project(
         self, b4_client: AsyncClient, b4_project: Project
     ):
