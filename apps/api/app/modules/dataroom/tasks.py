@@ -598,19 +598,43 @@ def trigger_extraction(self, document_id: str, extraction_types: list[str] | Non
                         processing_time_ms=30,
                     ))
                 else:
-                    # Placeholder for AI-powered extraction
-                    session.add(DocumentExtraction(
-                        document_id=doc.id,
-                        extraction_type=ext_type,
-                        result={
-                            "source": doc.name,
-                            "note": f"AI {ext_type.value} extraction placeholder",
-                        },
-                        model_used="placeholder",
-                        confidence_score=0.0,
-                        tokens_used=0,
-                        processing_time_ms=10,
-                    ))
+                    _AI_TASK_MAP = {
+                        ExtractionType.KPI: ("extract_kpis", {"kpis_found": []}),
+                        ExtractionType.FINANCIAL: ("extract_financial_metrics", {"metrics_found": []}),
+                        ExtractionType.CLAUSE: ("extract_clauses", {"clauses_found": []}),
+                        ExtractionType.DEADLINE: ("extract_deadlines", {"deadlines_found": []}),
+                        ExtractionType.QUALITY_ASSESSMENT: ("quality_assessment", {"issues": []}),
+                        ExtractionType.RISK_FLAGS: ("risk_flags", {"flags": []}),
+                        ExtractionType.DEAL_RELEVANCE: ("deal_relevance", {"score": None}),
+                        ExtractionType.COMPLETENESS_CHECK: ("completeness_check", {"missing": []}),
+                        ExtractionType.KEY_FIGURES: ("key_figures", {"figures": []}),
+                        ExtractionType.ENTITY_EXTRACTION: ("entity_extraction", {"entities": []}),
+                    }
+                    import time as _time
+                    task_type, fallback_result = _AI_TASK_MAP.get(ext_type, (None, {"source": doc.name}))
+                    if task_type and text_content:
+                        t0 = _time.time()
+                        ai_result = _call_ai_extraction(task_type, doc.name, text_content)
+                        ms = int((_time.time() - t0) * 1000)
+                        session.add(DocumentExtraction(
+                            document_id=doc.id,
+                            extraction_type=ext_type,
+                            result=ai_result if ai_result else {**fallback_result, "source": doc.name},
+                            model_used="ai_gateway" if ai_result else "fallback",
+                            confidence_score=float(ai_result.get("confidence", 0.7)) if ai_result else 0.0,
+                            tokens_used=int(ai_result.get("tokens_used", 0)) if ai_result else 0,
+                            processing_time_ms=ms,
+                        ))
+                    else:
+                        session.add(DocumentExtraction(
+                            document_id=doc.id,
+                            extraction_type=ext_type,
+                            result={**fallback_result, "source": doc.name},
+                            model_used="fallback",
+                            confidence_score=0.0,
+                            tokens_used=0,
+                            processing_time_ms=0,
+                        ))
 
             session.commit()
             return {"status": "success", "extractions": len(types_to_run)}

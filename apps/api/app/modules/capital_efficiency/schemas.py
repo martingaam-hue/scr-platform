@@ -29,6 +29,7 @@ class EfficiencyMetricsResponse(BaseModel):
     breakdown: dict[str, Any] | None
     created_at: datetime
     updated_at: datetime
+    is_demo: bool = False
 
     model_config = {"from_attributes": True}
 

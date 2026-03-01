@@ -115,6 +115,7 @@ def _synthetic_metrics(org_id: uuid.UUID) -> EfficiencyMetricsResponse:
         breakdown=None,
         created_at=now,
         updated_at=now,
+        is_demo=True,
     )
 
 

@@ -20,7 +20,7 @@ from app.modules.ecosystem.schemas import (
 
 
 def _default_ecosystem(org_id: uuid.UUID, entity_id: uuid.UUID) -> dict[str, Any]:
-    """Return a default ecosystem with a central org node and 3 synthetic stakeholders."""
+    """Return a minimal ecosystem with only the central org node (no synthetic stakeholders)."""
     org_node_id = f"org-{str(org_id)[:8]}"
     return {
         "nodes": [
@@ -34,60 +34,8 @@ def _default_ecosystem(org_id: uuid.UUID, entity_id: uuid.UUID) -> dict[str, Any
                 "tags": ["internal"],
                 "metadata": None,
             },
-            {
-                "id": "stakeholder-1",
-                "name": "Lead Investor",
-                "type": "investor",
-                "sub_type": "institutional",
-                "relationship_strength": 4,
-                "engagement_status": "active",
-                "tags": ["strategic", "anchor"],
-                "metadata": None,
-            },
-            {
-                "id": "stakeholder-2",
-                "name": "Technical Advisor",
-                "type": "advisor",
-                "sub_type": "technical",
-                "relationship_strength": 3,
-                "engagement_status": "active",
-                "tags": ["advisory"],
-                "metadata": None,
-            },
-            {
-                "id": "stakeholder-3",
-                "name": "Regulatory Authority",
-                "type": "regulator",
-                "sub_type": None,
-                "relationship_strength": 2,
-                "engagement_status": "passive",
-                "tags": ["compliance"],
-                "metadata": None,
-            },
         ],
-        "edges": [
-            {
-                "source": org_node_id,
-                "target": "stakeholder-1",
-                "relationship_type": "investment",
-                "weight": 8,
-                "description": "Primary capital provider",
-            },
-            {
-                "source": org_node_id,
-                "target": "stakeholder-2",
-                "relationship_type": "advisory",
-                "weight": 6,
-                "description": "Technical due diligence support",
-            },
-            {
-                "source": org_node_id,
-                "target": "stakeholder-3",
-                "relationship_type": "regulatory",
-                "weight": 4,
-                "description": "Permitting and compliance",
-            },
-        ],
+        "edges": [],
     }
 
 
