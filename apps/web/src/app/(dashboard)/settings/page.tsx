@@ -16,6 +16,13 @@ import {
 } from "lucide-react";
 import { useTriggerDigest, type DigestTriggerResponse } from "@/lib/digest";
 import {
+  useCRMConnections,
+  useCRMOAuthURL,
+  useDisconnectCRM,
+  useTriggerSync,
+  useSyncLogs,
+} from "@/lib/crm";
+import {
   Badge,
   Button,
   Card,
@@ -902,6 +909,131 @@ function DigestPreviewCard() {
   );
 }
 
+// ── CRM Tab ───────────────────────────────────────────────────────────────
+
+function CRMTab() {
+  const { data: connections, isLoading } = useCRMConnections();
+  const oauthURL = useCRMOAuthURL("hubspot");
+  const disconnect = useDisconnectCRM();
+  const triggerSync = useTriggerSync();
+  const active = connections?.find((c) => c.is_active);
+  const { data: logs } = useSyncLogs(active?.id);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-24 items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
+      </div>
+    );
+  }
+
+  if (!active) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <EmptyState
+            icon={<Shield className="h-10 w-10 text-neutral-400" />}
+            title="No CRM connected"
+            description="Connect HubSpot to sync your pipeline and contacts bidirectionally."
+            action={
+              <Button
+                onClick={() => {
+                  if (oauthURL.data?.url) window.location.href = oauthURL.data.url;
+                }}
+                disabled={oauthURL.isLoading}
+              >
+                {oauthURL.isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Connect HubSpot
+              </Button>
+            }
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-neutral-900">{active.connection_name}</p>
+              <p className="text-xs text-neutral-500 capitalize">{active.provider} · {active.sync_direction}</p>
+              {active.last_synced_at && (
+                <p className="text-xs text-neutral-400">
+                  Last synced: {new Date(active.last_synced_at).toLocaleString()}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => triggerSync.mutate(active.id)}
+                disabled={triggerSync.isPending}
+              >
+                {triggerSync.isPending ? (
+                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                ) : null}
+                Sync Now
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => disconnect.mutate(active.id)}
+                disabled={disconnect.isPending}
+              >
+                Disconnect
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {logs && logs.length > 0 && (
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="mb-3 text-sm font-semibold text-neutral-900">Sync Logs</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-neutral-500">
+                    <th className="py-2 pr-4 font-medium">Direction</th>
+                    <th className="py-2 pr-4 font-medium">Entity</th>
+                    <th className="py-2 pr-4 font-medium">Action</th>
+                    <th className="py-2 pr-4 font-medium">Status</th>
+                    <th className="py-2 font-medium">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.slice(0, 20).map((log) => (
+                    <tr key={log.id} className="border-b last:border-0">
+                      <td className="py-2 pr-4 text-neutral-700 capitalize">{log.direction}</td>
+                      <td className="py-2 pr-4 text-neutral-700">{log.entity_type}</td>
+                      <td className="py-2 pr-4 text-neutral-700">{log.action}</td>
+                      <td className="py-2 pr-4">
+                        <Badge variant={log.status === "success" ? "success" : log.status === "failed" ? "error" : "neutral"}>
+                          {log.status}
+                        </Badge>
+                      </td>
+                      <td className="py-2 text-neutral-400 text-xs">
+                        {new Date(log.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -931,6 +1063,9 @@ export default function SettingsPage() {
           <TabsTrigger value="preferences">
             Preferences
           </TabsTrigger>
+          <TabsTrigger value="crm">
+            CRM
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="org">
@@ -947,6 +1082,10 @@ export default function SettingsPage() {
 
         <TabsContent value="preferences">
           <PreferencesTab />
+        </TabsContent>
+
+        <TabsContent value="crm">
+          <CRMTab />
         </TabsContent>
       </Tabs>
     </div>

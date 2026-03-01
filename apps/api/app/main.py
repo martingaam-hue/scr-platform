@@ -79,6 +79,9 @@ from app.modules.engagement.router import router as engagement_router
 from app.modules.monitoring.router import router as monitoring_router
 from app.modules.excel_api.router import router as excel_api_router
 from app.modules.crm_sync.router import router as crm_sync_router
+from app.modules.pacing.router import router as pacing_router
+from app.modules.taxonomy.router import router as taxonomy_router
+from app.modules.financial_templates.router import router as financial_templates_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -195,6 +198,9 @@ app.include_router(engagement_router)
 app.include_router(monitoring_router)
 app.include_router(excel_api_router)
 app.include_router(crm_sync_router)
+app.include_router(pacing_router)
+app.include_router(taxonomy_router)
+app.include_router(financial_templates_router)
 
 
 @app.get("/health")

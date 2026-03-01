@@ -201,6 +201,13 @@ from app.models.api_keys import OrgApiKey
 # CRM Sync
 from app.models.crm import CRMConnection, CRMEntityMapping, CRMSyncLog
 
+# Cashflow Pacing
+from app.models.pacing import CashflowAssumption, CashflowProjection
+
+# Industry Taxonomy & Financial Templates
+from app.models.taxonomy import IndustryTaxonomy
+from app.models.financial_templates import FinancialTemplate
+
 __all__ = [
     # Base
     "BaseModel",
@@ -335,4 +342,10 @@ __all__ = [
     "CRMConnection",
     "CRMSyncLog",
     "CRMEntityMapping",
+    # Cashflow Pacing
+    "CashflowAssumption",
+    "CashflowProjection",
+    # Industry Taxonomy & Financial Templates
+    "IndustryTaxonomy",
+    "FinancialTemplate",
 ]

@@ -1,0 +1,110 @@
+name: E2E Tests (Playwright)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: scr_test
+          POSTGRES_USER: scr
+          POSTGRES_PASSWORD: scr_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter web exec playwright install chromium --with-deps
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install API dependencies
+        working-directory: apps/api
+        run: pip install poetry && poetry install
+
+      - name: Run migrations
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql+asyncpg://scr:scr_password@localhost:5432/scr_test
+        run: poetry run alembic upgrade head
+
+      - name: Start API server
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql+asyncpg://scr:scr_password@localhost:5432/scr_test
+          REDIS_URL: redis://localhost:6379
+          APP_ENV: test
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_TEST }}
+          AI_GATEWAY_URL: ${{ secrets.AI_GATEWAY_URL_TEST }}
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY_TEST }}
+        run: poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+
+      - name: Start frontend
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_TEST }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_TEST }}
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+        run: pnpm build && pnpm start &
+
+      - name: Wait for services
+        run: |
+          npx wait-on http://localhost:3000 http://localhost:8000/health --timeout 60000
+
+      - name: Run Playwright tests
+        working-directory: apps/web
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          PLAYWRIGHT_API_URL: http://localhost:8000
+          TEST_ALLY_EMAIL: ${{ secrets.TEST_ALLY_EMAIL }}
+          TEST_ALLY_PASSWORD: ${{ secrets.TEST_ALLY_PASSWORD }}
+          TEST_INVESTOR_EMAIL: ${{ secrets.TEST_INVESTOR_EMAIL }}
+          TEST_INVESTOR_PASSWORD: ${{ secrets.TEST_INVESTOR_PASSWORD }}
+        run: pnpm exec playwright test
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 30

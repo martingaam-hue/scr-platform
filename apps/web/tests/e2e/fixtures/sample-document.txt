@@ -1,0 +1,12 @@
+Sample Document for Playwright Testing
+
+This document contains financial data for testing purposes.
+
+Revenue: €5,000,000
+EBITDA: €1,500,000
+Total Assets: €20,000,000
+IRR: 12.5%
+MOIC: 2.3x
+Project Capacity: 50 MW
+
+This is test data only.

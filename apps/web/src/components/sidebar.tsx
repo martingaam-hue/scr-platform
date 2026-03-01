@@ -88,6 +88,7 @@ const investorNav: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Overview", href: "/portfolio", icon: Briefcase, tourId: "nav-portfolio" },
+      { label: "Monitoring", href: "/monitoring", icon: Monitor },
       { label: "FX Exposure", href: "/fx", icon: Globe },
       { label: "Stress Testing", href: "/stress-test", icon: Activity },
       { label: "ESG Dashboard", href: "/esg", icon: Leaf },
@@ -245,6 +246,7 @@ const adminNav: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Overview", href: "/portfolio", icon: Briefcase },
+      { label: "Monitoring", href: "/monitoring", icon: Monitor },
       { label: "FX Exposure", href: "/fx", icon: Globe },
       { label: "Stress Testing", href: "/stress-test", icon: Activity },
       { label: "ESG Dashboard", href: "/esg", icon: Leaf },

@@ -6,9 +6,10 @@ import {
   useDealRooms, useRoomMessages, useRoomActivity,
   useCreateRoom, useInviteMember, useSendMessage,
 } from "@/lib/deal-rooms"
+import { useProjectQuestions, useCreateQuestion, useQAStats } from "@/lib/qa"
 import {
   Users, MessageSquare, FileText, Shield, Plus, X, Send,
-  Lock, Eye, Activity
+  Lock, Eye, Activity, HelpCircle,
 } from "lucide-react"
 
 const STATUS_BADGE: Record<string, string> = {
@@ -25,6 +26,9 @@ export default function DealRoomsPage() {
   const [newRoom, setNewRoom] = useState({ name: "", project_id: "", nda_required: true, download_restricted: false })
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteRole, setInviteRole] = useState("viewer")
+  const [detailTab, setDetailTab] = useState<"messages" | "qa">("messages")
+  const [showAskForm, setShowAskForm] = useState(false)
+  const [qaForm, setQaForm] = useState({ category: "financial", priority: "normal", title: "", body: "" })
 
   const { data: rooms = [] } = useDealRooms()
   const { data: messages = [], refetch: refetchMessages } = useRoomMessages(selectedRoom)
@@ -34,6 +38,10 @@ export default function DealRoomsPage() {
   const messageMutation = useSendMessage(selectedRoom ?? "")
 
   const activeRoom = rooms.find(r => r.id === selectedRoom)
+  const projectId = activeRoom?.project_id ? String(activeRoom.project_id) : undefined
+  const { data: questions = [] } = useProjectQuestions(projectId)
+  const { data: qaStats } = useQAStats(projectId)
+  const createQuestion = useCreateQuestion()
 
   return (
     <div className="p-8 space-y-6">
@@ -113,7 +121,102 @@ export default function DealRoomsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            {/* Detail tabs */}
+            <div className="flex gap-1 border-b border-gray-200">
+              {(["messages", "qa"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setDetailTab(tab)}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${detailTab === tab ? "border-primary-600 text-primary-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                >
+                  {tab === "messages" ? <MessageSquare className="h-3.5 w-3.5" /> : <HelpCircle className="h-3.5 w-3.5" />}
+                  {tab === "messages" ? "Messages" : "Q&A"}
+                  {tab === "qa" && qaStats && qaStats.open > 0 && (
+                    <span className="ml-1 rounded-full bg-primary-100 px-1.5 py-0.5 text-[10px] font-semibold text-primary-700">{qaStats.open}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {detailTab === "qa" && (
+              <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+                {/* Stats bar */}
+                {qaStats && (
+                  <div className="flex gap-4 text-xs text-gray-500">
+                    <span>Open: <strong className="text-gray-700">{qaStats.open}</strong></span>
+                    <span>Answered: <strong className="text-gray-700">{qaStats.answered}</strong></span>
+                    {qaStats.sla_breached > 0 && (
+                      <span className="text-red-600">SLA Breached: <strong>{qaStats.sla_breached}</strong></span>
+                    )}
+                  </div>
+                )}
+                {/* Ask question form */}
+                {showAskForm ? (
+                  <div className="rounded-lg border border-gray-200 p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                        <select className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" value={qaForm.category} onChange={e => setQaForm(f => ({ ...f, category: e.target.value }))}>
+                          {["financial","legal","technical","commercial","regulatory","esg","operational"].map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
+                        <select className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm" value={qaForm.priority} onChange={e => setQaForm(f => ({ ...f, priority: e.target.value }))}>
+                          {["urgent","high","normal","low"].map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <input className="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Question title" value={qaForm.title} onChange={e => setQaForm(f => ({ ...f, title: e.target.value }))} />
+                    <textarea className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none" rows={3} placeholder="Question body" value={qaForm.body} onChange={e => setQaForm(f => ({ ...f, body: e.target.value }))} />
+                    <div className="flex gap-2">
+                      <button className="px-3 py-1.5 bg-primary-600 text-white rounded text-sm hover:bg-primary-700 disabled:opacity-50" disabled={!qaForm.title.trim() || createQuestion.isPending} onClick={() => {
+                        if (!projectId) return
+                        createQuestion.mutate({ project_id: projectId, ...qaForm }, { onSuccess: () => { setShowAskForm(false); setQaForm({ category: "financial", priority: "normal", title: "", body: "" }) } })
+                      }}>Submit</button>
+                      <button className="px-3 py-1.5 border border-gray-300 rounded text-sm" onClick={() => setShowAskForm(false)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50" onClick={() => setShowAskForm(true)}>
+                    <Plus className="h-4 w-4" /> Ask Question
+                  </button>
+                )}
+                {/* Questions list */}
+                {questions.length === 0 ? (
+                  <p className="text-center text-sm text-gray-400 py-8">No questions yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b text-left text-gray-500">
+                        <th className="py-2 pr-3 font-medium">#</th>
+                        <th className="py-2 pr-3 font-medium">Category</th>
+                        <th className="py-2 pr-3 font-medium">Priority</th>
+                        <th className="py-2 pr-3 font-medium">Status</th>
+                        <th className="py-2 font-medium">Title</th>
+                      </tr></thead>
+                      <tbody>
+                        {questions.map(q => (
+                          <tr key={q.id} className="border-b last:border-0">
+                            <td className="py-2 pr-3 text-gray-400">{q.question_number}</td>
+                            <td className="py-2 pr-3 capitalize text-gray-700">{q.category}</td>
+                            <td className="py-2 pr-3">
+                              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${q.priority === "urgent" ? "bg-red-100 text-red-700" : q.priority === "high" ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-600"}`}>{q.priority}</span>
+                            </td>
+                            <td className="py-2 pr-3">
+                              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${q.status === "answered" ? "bg-green-100 text-green-700" : q.sla_breached ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>{q.sla_breached ? "SLA breach" : q.status}</span>
+                            </td>
+                            <td className="py-2 text-gray-900">{q.title}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {detailTab === "messages" && <div className="grid grid-cols-3 gap-4">
               {/* Message thread */}
               <div className="col-span-2 rounded-xl border border-gray-200 bg-white flex flex-col" style={{ height: 480 }}>
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
@@ -189,7 +292,7 @@ export default function DealRoomsPage() {
                   )}
                 </div>
               </div>
-            </div>
+            </div>}
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-400">
