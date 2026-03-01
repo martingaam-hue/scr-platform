@@ -3,13 +3,18 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowLeft,
+  CheckSquare,
   Clock,
   Eye,
   FileText,
   GitBranch,
   HardDrive,
+  Loader2,
+  Scissors,
   Shield,
+  Square,
   Upload,
 } from "lucide-react";
 import {
@@ -29,6 +34,15 @@ import {
   type DocumentVersionResponse,
   type AccessLogEntry,
 } from "@/lib/dataroom";
+import {
+  useRedactionJob,
+  useRedactionJobs,
+  useAnalyzeDocument,
+  useApproveRedactions,
+  useApplyRedaction,
+  type DetectedEntity,
+  type RedactionJob,
+} from "@/lib/redaction";
 import { PdfViewer } from "@/components/pdf-viewer/pdf-viewer";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -175,7 +189,7 @@ function PdfViewerTab({
               }
             }}
           >
-            {loading ? "Loading…" : "Open PDF Viewer"}
+            {loading ? "Loading..." : "Open PDF Viewer"}
           </Button>
         </CardContent>
       </Card>
@@ -193,9 +207,439 @@ function PdfViewerTab({
   );
 }
 
+// ── Redaction tab ──────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  analyzing: "Analyzing...",
+  review: "Ready for Review",
+  applying: "Applying Redactions...",
+  done: "Complete",
+  failed: "Failed",
+};
+
+const STATUS_VARIANTS: Record<
+  string,
+  "neutral" | "info" | "warning" | "success" | "error"
+> = {
+  pending: "neutral",
+  analyzing: "info",
+  review: "warning",
+  applying: "info",
+  done: "success",
+  failed: "error",
+};
+
+function entityTypeLabel(type: string): string {
+  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function EntityRow({
+  entity,
+  selected,
+  onToggle,
+}: {
+  entity: DetectedEntity;
+  selected: boolean;
+  onToggle: (id: number) => void;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 py-2.5 px-3 rounded-lg cursor-pointer transition-colors ${
+        selected ? "bg-primary-50 border border-primary-200" : "hover:bg-neutral-50 border border-transparent"
+      }`}
+      onClick={() => onToggle(entity.id)}
+    >
+      <div className="flex-shrink-0 text-neutral-400">
+        {selected ? (
+          <CheckSquare className="h-4 w-4 text-primary-600" />
+        ) : (
+          <Square className="h-4 w-4" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant={entity.is_high_sensitivity ? "error" : "neutral"} className="text-[10px]">
+            {entityTypeLabel(entity.entity_type)}
+          </Badge>
+          {entity.is_high_sensitivity && (
+            <span title="High sensitivity PII">
+              <AlertTriangle className="h-3.5 w-3.5 text-error-500" />
+            </span>
+          )}
+          <span className="text-xs text-neutral-500">p.{entity.page}</span>
+          <span className="text-xs text-neutral-400">
+            {Math.round(entity.confidence * 100)}% confidence
+          </span>
+        </div>
+        <p className="text-sm text-neutral-800 mt-0.5 font-medium truncate" title={entity.text}>
+          &ldquo;{entity.text}&rdquo;
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function EntityGroup({
+  type,
+  entities,
+  selectedIds,
+  onToggle,
+}: {
+  type: string;
+  entities: DetectedEntity[];
+  selectedIds: Set<number>;
+  onToggle: (id: number) => void;
+}) {
+  return (
+    <div className="mb-4">
+      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+        {entityTypeLabel(type)} ({entities.length})
+      </p>
+      <div className="space-y-1">
+        {entities.map((e) => (
+          <EntityRow
+            key={e.id}
+            entity={e}
+            selected={selectedIds.has(e.id)}
+            onToggle={onToggle}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ActiveJobPanel({
+  job,
+  onSelectAll,
+  selectedIds,
+  onToggle,
+  onApprove,
+  onApply,
+  approving,
+  applying,
+}: {
+  job: RedactionJob;
+  onSelectAll: (highSensitivityOnly: boolean) => void;
+  selectedIds: Set<number>;
+  onToggle: (id: number) => void;
+  onApprove: () => void;
+  onApply: () => void;
+  approving: boolean;
+  applying: boolean;
+}) {
+  const isRunning =
+    job.status === "pending" ||
+    job.status === "analyzing" ||
+    job.status === "applying";
+
+  // Group entities by type
+  const entities: DetectedEntity[] = job.detected_entities ?? [];
+  const groups = entities.reduce<Record<string, DetectedEntity[]>>((acc, e) => {
+    if (!acc[e.entity_type]) acc[e.entity_type] = [];
+    acc[e.entity_type].push(e);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-4">
+      {/* Status banner */}
+      <div className="flex items-center gap-3 p-4 rounded-lg bg-neutral-50 border border-neutral-200">
+        {isRunning ? (
+          <Loader2 className="h-5 w-5 text-primary-600 animate-spin flex-shrink-0" />
+        ) : (
+          <Scissors className="h-5 w-5 text-primary-600 flex-shrink-0" />
+        )}
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-neutral-800">
+              {STATUS_LABELS[job.status] ?? job.status}
+            </span>
+            <Badge variant={STATUS_VARIANTS[job.status] ?? "neutral"}>
+              {job.status}
+            </Badge>
+          </div>
+          {job.status === "review" && (
+            <p className="text-xs text-neutral-500 mt-0.5">
+              {job.entity_count} entities detected — select those you want to
+              redact, then click Approve.
+            </p>
+          )}
+          {job.status === "done" && (
+            <p className="text-xs text-neutral-500 mt-0.5">
+              {job.approved_count} entities redacted successfully.
+            </p>
+          )}
+          {job.error_message && (
+            <p className="text-xs text-error-600 mt-0.5">{job.error_message}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Review UI */}
+      {job.status === "review" && entities.length > 0 && (
+        <>
+          {/* Quick select buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onSelectAll(false)}
+            >
+              Select All ({entities.length})
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onSelectAll(true)}
+            >
+              <AlertTriangle className="h-3.5 w-3.5 mr-1.5 text-error-500" />
+              Select All High-Sensitivity
+            </Button>
+            <span className="text-xs text-neutral-400 ml-auto">
+              {selectedIds.size} selected
+            </span>
+          </div>
+
+          {/* Entity list grouped by type */}
+          <Card>
+            <CardContent className="p-4 max-h-[480px] overflow-y-auto">
+              {Object.entries(groups).map(([type, items]) => (
+                <EntityGroup
+                  key={type}
+                  type={type}
+                  entities={items}
+                  selectedIds={selectedIds}
+                  onToggle={onToggle}
+                />
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Approve button */}
+          <div className="flex justify-end">
+            <Button
+              disabled={selectedIds.size === 0 || approving}
+              onClick={onApprove}
+            >
+              {approving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Approve Selected & Redact ({selectedIds.size})
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* No entities found */}
+      {job.status === "review" && entities.length === 0 && (
+        <EmptyState
+          icon={<Shield className="h-10 w-10 text-neutral-400" />}
+          title="No PII entities detected"
+          description="The AI found no personally identifiable information in this document."
+        />
+      )}
+
+      {/* Applying: show apply button */}
+      {job.status === "applying" && !isRunning && (
+        <div className="flex justify-end">
+          <Button disabled={applying} onClick={onApply}>
+            {applying && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Generate Redacted PDF
+          </Button>
+        </div>
+      )}
+
+      {/* Done: download link */}
+      {job.status === "done" && job.redacted_s3_key && (
+        <Card>
+          <CardContent className="p-5 flex items-center gap-3">
+            <Shield className="h-5 w-5 text-success-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-neutral-800">
+                Redacted document ready
+              </p>
+              <p className="text-xs text-neutral-500 font-mono mt-0.5 truncate">
+                {job.redacted_s3_key}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <a href="#" title="Download Redacted PDF">
+                Download Redacted PDF
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function RedactionTab({ documentId }: { documentId: string }) {
+  const { data: jobs, isLoading: jobsLoading } = useRedactionJobs(documentId);
+  const analyzeDoc = useAnalyzeDocument();
+  const approveMutation = useApproveRedactions();
+  const applyMutation = useApplyRedaction();
+
+  // Track which job the user is currently working with
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+
+  // Poll if we have an active job
+  const { data: polledJob } = useRedactionJob(activeJobId ?? "", !!activeJobId);
+
+  // Resolve the job to display: prefer the polled job for the active one
+  const latestJob: RedactionJob | null =
+    polledJob ?? (jobs && jobs.length > 0 ? jobs[0] : null);
+
+  // Selection state for entity approval
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  function toggleEntity(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAll(highSensitivityOnly: boolean) {
+    const entities: DetectedEntity[] = latestJob?.detected_entities ?? [];
+    const ids = entities
+      .filter((e) => !highSensitivityOnly || e.is_high_sensitivity)
+      .map((e) => e.id);
+    setSelectedIds(new Set(ids));
+  }
+
+  async function handleAnalyze() {
+    const result = await analyzeDoc.mutateAsync({ document_id: documentId });
+    setActiveJobId(result.job_id);
+    setSelectedIds(new Set());
+  }
+
+  async function handleApprove() {
+    if (!latestJob) return;
+    await approveMutation.mutateAsync({
+      job_id: latestJob.id,
+      approved_entity_ids: Array.from(selectedIds),
+    });
+  }
+
+  async function handleApply() {
+    if (!latestJob) return;
+    await applyMutation.mutateAsync({ job_id: latestJob.id });
+  }
+
+  // Sync activeJobId when jobs load for the first time
+  if (!activeJobId && jobs && jobs.length > 0 && !jobsLoading) {
+    setActiveJobId(jobs[0].id);
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-neutral-900">
+            AI Document Redaction
+          </h2>
+          <p className="text-xs text-neutral-500 mt-0.5">
+            Detect and redact PII from this document using AI.
+          </p>
+        </div>
+        <Button
+          onClick={handleAnalyze}
+          disabled={analyzeDoc.isPending}
+          variant="default"
+        >
+          {analyzeDoc.isPending ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Scissors className="h-4 w-4 mr-2" />
+          )}
+          {latestJob ? "Re-analyze for PII" : "Analyze for PII"}
+        </Button>
+      </div>
+
+      {/* Loading */}
+      {jobsLoading && (
+        <div className="flex h-24 items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary-600" />
+        </div>
+      )}
+
+      {/* No jobs yet */}
+      {!jobsLoading && !latestJob && (
+        <EmptyState
+          icon={<Scissors className="h-10 w-10 text-neutral-400" />}
+          title="No redaction jobs"
+          description="Click 'Analyze for PII' to start a new AI-powered PII detection scan."
+        />
+      )}
+
+      {/* Active job panel */}
+      {latestJob && (
+        <ActiveJobPanel
+          job={latestJob}
+          selectedIds={selectedIds}
+          onSelectAll={selectAll}
+          onToggle={toggleEntity}
+          onApprove={handleApprove}
+          onApply={handleApply}
+          approving={approveMutation.isPending}
+          applying={applyMutation.isPending}
+        />
+      )}
+
+      {/* Past jobs */}
+      {jobs && jobs.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Previous Jobs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {jobs.slice(1).map((job) => (
+                <div
+                  key={job.id}
+                  className="flex items-center gap-3 py-2 border-b last:border-0"
+                >
+                  <Badge variant={STATUS_VARIANTS[job.status] ?? "neutral"}>
+                    {job.status}
+                  </Badge>
+                  <span className="text-xs text-neutral-500">
+                    {job.entity_count} entities detected,{" "}
+                    {job.approved_count} redacted
+                  </span>
+                  <span className="text-xs text-neutral-400 ml-auto">
+                    {new Date(job.created_at).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setActiveJobId(job.id);
+                      setSelectedIds(new Set());
+                    }}
+                  >
+                    View
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
 
-type Tab = "versions" | "access-log" | "viewer";
+type Tab = "versions" | "access-log" | "viewer" | "redaction";
 
 export default function DocumentVersionsPage() {
   const { id } = useParams<{ id: string }>();
@@ -221,6 +665,7 @@ export default function DocumentVersionsPage() {
     { id: "versions", label: "Version History" },
     { id: "access-log", label: "Access Log" },
     { id: "viewer", label: "PDF Viewer" },
+    { id: "redaction", label: "Redaction" },
   ];
 
   return (
@@ -244,7 +689,7 @@ export default function DocumentVersionsPage() {
                 {doc?.name ?? "Document"}
               </h1>
               <p className="text-sm text-neutral-500 mt-0.5">
-                Version history — {versions?.length ?? 0} version
+                Version history &mdash; {versions?.length ?? 0} version
                 {versions?.length !== 1 ? "s" : ""}
               </p>
             </div>
@@ -383,6 +828,9 @@ export default function DocumentVersionsPage() {
           fileType={doc.file_type}
         />
       )}
+
+      {/* Redaction */}
+      {activeTab === "redaction" && <RedactionTab documentId={id} />}
 
       {/* Checksum verification note */}
       {activeTab === "versions" && versions && versions.length > 0 && (

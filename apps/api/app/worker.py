@@ -34,6 +34,7 @@ celery_app = Celery(
         "app.tasks.crm_sync",
         "app.modules.expert_insights.tasks",
         "app.modules.webhooks.tasks",
+        "app.modules.redaction.tasks",
     ],
 )
 

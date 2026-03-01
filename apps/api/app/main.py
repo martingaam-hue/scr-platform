@@ -87,6 +87,7 @@ from app.modules.backtesting.router import router as backtesting_router
 from app.modules.expert_insights.router import router as expert_insights_router
 from app.modules.webhooks.router import router as webhooks_router
 from app.modules.document_annotations.router import router as document_annotations_router
+from app.modules.redaction.router import router as redaction_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -211,6 +212,7 @@ app.include_router(backtesting_router)
 app.include_router(expert_insights_router)
 app.include_router(webhooks_router)
 app.include_router(document_annotations_router)
+app.include_router(redaction_router)
 
 
 @app.get("/health")

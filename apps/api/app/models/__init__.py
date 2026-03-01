@@ -220,6 +220,9 @@ from app.models.webhooks import WebhookDelivery, WebhookSubscription
 # Document Annotations
 from app.models.document_annotations import DocumentAnnotation
 
+# AI Document Redaction
+from app.models.redaction import RedactionJob
+
 __all__ = [
     # Base
     "BaseModel",
@@ -370,4 +373,6 @@ __all__ = [
     "WebhookDelivery",
     # Document Annotations
     "DocumentAnnotation",
+    # AI Document Redaction
+    "RedactionJob",
 ]
