@@ -1,5 +1,7 @@
 """Risk Analysis & Compliance API schemas."""
 
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 from typing import Any
@@ -271,3 +273,27 @@ class AuditEntry(BaseModel):
 class AuditTrailResponse(BaseModel):
     items: list[AuditEntry]
     total: int
+
+
+# ── Batch Risk Assessment ─────────────────────────────────────────────────────
+
+
+class BatchRiskRequest(BaseModel):
+    project_ids: list[uuid.UUID]
+    risk_type: str = "operational"
+    severity: str = "medium"
+    probability: str = "possible"
+    description: str = "Batch risk assessment"
+
+
+class BatchRiskItem(BaseModel):
+    project_id: uuid.UUID
+    assessment_id: uuid.UUID | None
+    status: str
+
+
+class BatchRiskResponse(BaseModel):
+    queued: int
+    failed: int
+    items: list[BatchRiskItem]
+    errors: list[dict]

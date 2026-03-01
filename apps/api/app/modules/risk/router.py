@@ -1,5 +1,7 @@
 """Risk Analysis & Compliance API router."""
 
+from __future__ import annotations
+
 import uuid
 
 import structlog
@@ -12,6 +14,9 @@ from app.modules.risk import service
 from app.modules.risk.schemas import (
     AlertResolveRequest,
     AuditTrailResponse,
+    BatchRiskItem,
+    BatchRiskRequest,
+    BatchRiskResponse,
     ComplianceStatusResponse,
     ConcentrationAnalysisResponse,
     FiveDomainRiskResponse,
@@ -30,6 +35,77 @@ from app.schemas.auth import CurrentUser
 logger = structlog.get_logger()
 
 router = APIRouter(prefix="/risk", tags=["risk"])
+
+
+# ── Batch Risk Assessment ──────────────────────────────────────────────────────
+
+
+@router.post(
+    "/batch",
+    response_model=BatchRiskResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def batch_risk_assessment(
+    body: BatchRiskRequest,
+    current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Queue risk assessment for multiple projects at once.
+
+    Accepts up to 50 project IDs. Creates a RiskAssessment record for each
+    project and returns the individual assessment IDs. Projects that fail
+    validation are reported in the ``errors`` list but do not prevent the
+    rest from being processed.
+    """
+    if len(body.project_ids) > 50:
+        raise HTTPException(status_code=400, detail="Maximum 50 projects per batch")
+
+    items: list[BatchRiskItem] = []
+    errors: list[dict] = []
+
+    for pid in body.project_ids:
+        try:
+            assessment_data = RiskAssessmentCreate(
+                entity_type="project",
+                entity_id=pid,
+                risk_type=body.risk_type,
+                severity=body.severity,
+                probability=body.probability,
+                description=body.description,
+            )
+            assessment = await service.create_risk_assessment(
+                db, current_user.org_id, current_user.user_id, assessment_data
+            )
+            items.append(
+                BatchRiskItem(
+                    project_id=pid,
+                    assessment_id=assessment.id,
+                    status="queued",
+                )
+            )
+        except Exception as exc:
+            logger.warning(
+                "batch_risk.project_failed",
+                project_id=str(pid),
+                error=str(exc),
+            )
+            errors.append({"project_id": str(pid), "error": str(exc)})
+
+    if items:
+        await db.commit()
+
+    logger.info(
+        "batch_risk_queued",
+        org_id=str(current_user.org_id),
+        queued=len(items),
+        failed=len(errors),
+    )
+    return BatchRiskResponse(
+        queued=len(items),
+        failed=len(errors),
+        items=items,
+        errors=errors,
+    )
 
 
 @router.get("/dashboard/{portfolio_id}", response_model=RiskDashboardResponse)

@@ -293,3 +293,29 @@ class ValuationReportResponse(BaseModel):
     report_id: uuid.UUID
     status: str
     message: str
+
+
+# ── Batch Valuations ──────────────────────────────────────────────────────────
+
+
+class BatchValuationRequest(BaseModel):
+    project_ids: list[uuid.UUID]
+    method: ValuationMethod = "dcf"
+    currency: str = "USD"
+    dcf_params: DCFParams | None = None
+    comparable_params: ComparableParams | None = None
+    replacement_params: ReplacementCostParams | None = None
+    blended_params: BlendedParams | None = None
+
+
+class BatchValuationItem(BaseModel):
+    project_id: uuid.UUID
+    valuation_id: uuid.UUID | None
+    status: str
+
+
+class BatchValuationResponse(BaseModel):
+    queued: int
+    failed: int
+    items: list[BatchValuationItem]
+    errors: list[dict]

@@ -1,5 +1,7 @@
 """Valuation Analysis API router."""
 
+from __future__ import annotations
+
 import uuid
 
 import structlog
@@ -13,6 +15,9 @@ from app.modules.valuation import service
 from app.services.response_cache import cache_key, get_cached, set_cached
 from app.modules.valuation.schemas import (
     AssumptionSuggestion,
+    BatchValuationItem,
+    BatchValuationRequest,
+    BatchValuationResponse,
     SensitivityMatrix,
     SensitivityRequest,
     SuggestAssumptionsRequest,
@@ -30,6 +35,76 @@ router = APIRouter(prefix="/valuations", tags=["valuations"])
 
 
 # ── Fixed paths (MUST come before /{valuation_id}) ────────────────────────────
+
+
+@router.post(
+    "/batch",
+    response_model=BatchValuationResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def batch_valuations(
+    body: BatchValuationRequest,
+    current_user: CurrentUser = Depends(require_permission("create", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger valuation analysis for multiple projects at once.
+
+    Accepts up to 50 project IDs. Creates a Valuation record for each project
+    using the shared method and params from the request body. Projects that
+    fail (e.g. missing params for the method, or project not found) are
+    reported in the ``errors`` list but do not prevent the rest from running.
+    """
+    if len(body.project_ids) > 50:
+        raise HTTPException(status_code=400, detail="Maximum 50 projects per batch")
+
+    items: list[BatchValuationItem] = []
+    errors: list[dict] = []
+
+    for pid in body.project_ids:
+        try:
+            valuation_data = ValuationCreateRequest(
+                project_id=pid,
+                method=body.method,
+                currency=body.currency,
+                dcf_params=body.dcf_params,
+                comparable_params=body.comparable_params,
+                replacement_params=body.replacement_params,
+                blended_params=body.blended_params,
+            )
+            val = await service.create_valuation(
+                db, current_user.org_id, current_user.user_id, valuation_data
+            )
+            await db.flush()
+            items.append(
+                BatchValuationItem(
+                    project_id=pid,
+                    valuation_id=val.id,
+                    status="queued",
+                )
+            )
+        except Exception as exc:
+            logger.warning(
+                "batch_valuation.project_failed",
+                project_id=str(pid),
+                error=str(exc),
+            )
+            errors.append({"project_id": str(pid), "error": str(exc)})
+
+    if items:
+        await db.commit()
+
+    logger.info(
+        "batch_valuations_queued",
+        org_id=str(current_user.org_id),
+        queued=len(items),
+        failed=len(errors),
+    )
+    return BatchValuationResponse(
+        queued=len(items),
+        failed=len(errors),
+        items=items,
+        errors=errors,
+    )
 
 
 @router.post("/suggest-assumptions", response_model=AssumptionSuggestion)
