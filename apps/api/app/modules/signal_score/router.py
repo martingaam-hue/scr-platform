@@ -1,9 +1,11 @@
 """Signal Score API router."""
 
 import uuid
+from datetime import datetime
+from typing import Optional
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
@@ -333,3 +335,88 @@ def _build_detail_response(score) -> SignalScoreDetailResponse:
         is_live=score.is_live,
         calculated_at=score.calculated_at,
     )
+
+
+# ── Explainability / Snapshot trend endpoints ────────────────────────────────
+
+
+@router.get("/{project_id}/history-trend")
+async def get_score_history_trend(
+    project_id: uuid.UUID,
+    from_date: Optional[datetime] = Query(None),
+    to_date: Optional[datetime] = Query(None),
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get signal score trend over time from metric snapshots."""
+    from app.modules.metrics.snapshot_service import MetricSnapshotService
+    try:
+        await service.get_latest_score(db, project_id, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    svc = MetricSnapshotService(db)
+    snapshots = await svc.get_trend("project", project_id, "signal_score", from_date, to_date)
+    return [
+        {
+            "date": s.recorded_at.isoformat(),
+            "value": s.value,
+            "previous_value": s.previous_value,
+            "delta": round(s.value - s.previous_value, 2) if s.previous_value is not None else None,
+            "trigger_event": s.trigger_event,
+            "dimensions": (s.metadata_ or {}).get("dimensions", {}),
+        }
+        for s in snapshots
+    ]
+
+
+@router.get("/{project_id}/changes")
+async def get_score_changes(
+    project_id: uuid.UUID,
+    from_date: Optional[datetime] = Query(None),
+    to_date: Optional[datetime] = Query(None),
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get change explanations with triggers explaining what caused score movements."""
+    from app.modules.signal_score.explainability import ScoreExplainability
+    try:
+        await service.get_latest_score(db, project_id, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    explainer = ScoreExplainability(db)
+    return await explainer.explain_changes(project_id, from_date, to_date)
+
+
+@router.get("/{project_id}/volatility")
+async def get_score_volatility(
+    project_id: uuid.UUID,
+    period_months: int = Query(6, ge=1, le=24),
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get score stability indicator."""
+    from app.modules.signal_score.explainability import ScoreExplainability
+    try:
+        await service.get_latest_score(db, project_id, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    explainer = ScoreExplainability(db)
+    return await explainer.get_score_volatility(project_id, period_months)
+
+
+@router.get("/{project_id}/dimension-history")
+async def get_dimension_history(
+    project_id: uuid.UUID,
+    from_date: Optional[datetime] = Query(None),
+    to_date: Optional[datetime] = Query(None),
+    current_user: CurrentUser = Depends(require_permission("view", "project")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get per-dimension score breakdown over time."""
+    from app.modules.signal_score.explainability import ScoreExplainability
+    try:
+        await service.get_latest_score(db, project_id, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    explainer = ScoreExplainability(db)
+    return await explainer.get_dimension_history(project_id, from_date, to_date)

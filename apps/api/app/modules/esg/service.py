@@ -273,6 +273,25 @@ async def upsert_esg_metrics(
         except Exception as exc:
             logger.warning("esg_narrative_generation_failed", error=str(exc))
 
+    # Record ESG metric snapshot (best-effort, uses savepoint to not abort outer tx)
+    try:
+        from app.modules.metrics.snapshot_service import MetricSnapshotService
+        async with db.begin_nested():
+            svc = MetricSnapshotService(db)
+            fields = data.model_dump(exclude={"period", "regenerate_narrative", "esg_narrative"}, exclude_unset=True)
+            esg_value = fields.get("carbon_reduction_tons") or fields.get("renewable_energy_kwh") or 0.0
+            await svc.record_snapshot(
+                org_id=org_id,
+                entity_type="project",
+                entity_id=project_id,
+                metric_name="esg_score",
+                value=float(esg_value),
+                metadata={"period": data.period, "fields": list(fields.keys())},
+                trigger_event="esg_metrics_updated",
+            )
+    except Exception:
+        pass
+
     return metrics
 
 

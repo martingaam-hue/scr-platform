@@ -752,6 +752,22 @@ async def get_risk_dashboard(
     ]
     overall = round(sum(all_scores) / len(all_scores), 1) if all_scores else 0.0
 
+    # Record risk score snapshot (best-effort, uses savepoint to not abort outer tx)
+    try:
+        from app.modules.metrics.snapshot_service import MetricSnapshotService
+        async with db.begin_nested():
+            svc = MetricSnapshotService(db)
+            await svc.record_snapshot(
+                org_id=org_id,
+                entity_type="portfolio",
+                entity_id=portfolio_id,
+                metric_name="risk_score",
+                value=overall,
+                trigger_event="dashboard_computed",
+            )
+    except Exception:
+        pass
+
     concentration = await get_concentration_analysis(db, portfolio_id, org_id)
 
     # Risk trend: group assessments by month using their created_at timestamp

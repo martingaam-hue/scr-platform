@@ -28,6 +28,7 @@ celery_app = Celery(
         "app.tasks.compliance",
         "app.tasks.watchlists",
         "app.tasks.blockchain",
+        "app.tasks.benchmarks",
     ],
 )
 
@@ -108,5 +109,15 @@ celery_app.conf.beat_schedule = {
     "batch-blockchain-anchors": {
         "task": "tasks.batch_blockchain_anchors",
         "schedule": crontab(hour="*/6", minute=0),  # every 6 hours
+    },
+    # ── Nightly benchmark aggregation ─────────────────────────────────────────
+    "compute-nightly-benchmarks": {
+        "task": "tasks.compute_nightly_benchmarks",
+        "schedule": crontab(hour=3, minute=0),  # 3am UTC daily
+    },
+    # ── Daily metric snapshots ────────────────────────────────────────────────
+    "record-daily-snapshots": {
+        "task": "tasks.record_daily_snapshots",
+        "schedule": crontab(hour=2, minute=0),  # 2am UTC daily
     },
 }

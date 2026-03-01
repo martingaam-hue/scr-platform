@@ -71,6 +71,9 @@ from app.modules.voice_input.router import router as voice_input_router
 from app.modules.gamification.router import router as gamification_router
 from app.modules.insurance.router import router as insurance_router
 from app.modules.digest.router import router as digest_router
+from app.modules.metrics.router import router as metrics_router
+from app.modules.citations.router import router as citations_router
+from app.modules.lineage.router import router as lineage_router
 from app.core.elasticsearch import setup_indices, close_es_client
 
 logger = structlog.get_logger()
@@ -179,6 +182,9 @@ app.include_router(voice_input_router)
 app.include_router(gamification_router)
 app.include_router(insurance_router)
 app.include_router(digest_router)
+app.include_router(metrics_router)
+app.include_router(citations_router)
+app.include_router(lineage_router)
 
 
 @app.get("/health")

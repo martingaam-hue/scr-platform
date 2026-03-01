@@ -183,6 +183,9 @@ from app.models.blockchain import BlockchainAnchor
 # Gamification
 from app.models.gamification import Badge, ImprovementQuest, UserBadge
 
+# Metrics & Benchmarks
+from app.models.metrics import BenchmarkAggregate, MetricSnapshot
+
 __all__ = [
     # Base
     "BaseModel",
@@ -298,4 +301,7 @@ __all__ = [
     "Badge",
     "UserBadge",
     "ImprovementQuest",
+    # Metrics & Benchmarks
+    "MetricSnapshot",
+    "BenchmarkAggregate",
 ]

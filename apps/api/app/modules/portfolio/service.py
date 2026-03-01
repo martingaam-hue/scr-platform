@@ -264,7 +264,7 @@ async def compute_metrics(
     # IRR calculation using numpy-financial
     irr_gross = _compute_irr(holdings)
 
-    return {
+    result = {
         "irr_gross": irr_gross,
         "irr_net": irr_gross,  # Simplified: net = gross for now (fees not modeled)
         "moic": moic,
@@ -277,6 +277,33 @@ async def compute_metrics(
         "carbon_reduction_tons": None,
         "as_of_date": date.today(),
     }
+
+    # Record metric snapshots (best-effort, uses savepoint to not abort outer tx)
+    try:
+        from app.modules.metrics.snapshot_service import MetricSnapshotService
+        async with db.begin_nested():
+            svc = MetricSnapshotService(db)
+            snapshot_pairs = [
+                ("moic", float(moic) if moic is not None else None),
+                ("tvpi", float(tvpi) if tvpi is not None else None),
+                ("dpi", float(dpi) if dpi is not None else None),
+                ("irr_gross", float(irr_gross) if irr_gross is not None else None),
+                ("nav", float(total_value) if total_value else None),
+            ]
+            for metric_name, value in snapshot_pairs:
+                if value is not None:
+                    await svc.record_snapshot(
+                        org_id=org_id,
+                        entity_type="portfolio",
+                        entity_id=portfolio_id,
+                        metric_name=metric_name,
+                        value=value,
+                        trigger_event="metrics_computed",
+                    )
+    except Exception:
+        pass  # Non-critical — never break metrics computation
+
+    return result
 
 
 def _compute_irr(holdings: list[PortfolioHolding]) -> Decimal | None:

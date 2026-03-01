@@ -80,6 +80,39 @@ def calculate_signal_score_task(
             task_log.processing_time_ms = elapsed_ms
             session.commit()
 
+            # Record metric snapshot
+            try:
+                from app.modules.metrics.snapshot_service import MetricSnapshotService
+                from app.core.database import async_session_factory
+
+                async def _record_snapshot() -> None:
+                    async with async_session_factory() as async_db:
+                        svc = MetricSnapshotService(async_db)
+                        await svc.record_snapshot(
+                            org_id=uuid.UUID(org_id),
+                            entity_type="project",
+                            entity_id=uuid.UUID(project_id),
+                            metric_name="signal_score",
+                            value=float(signal_score.overall_score),
+                            metadata={
+                                "dimensions": {
+                                    "project_viability": signal_score.project_viability_score,
+                                    "financial_planning": signal_score.financial_planning_score,
+                                    "team_strength": signal_score.team_strength_score,
+                                    "risk_assessment": signal_score.risk_assessment_score,
+                                    "esg": signal_score.esg_score,
+                                },
+                                "version": signal_score.version,
+                            },
+                            trigger_event="score_calculated",
+                            trigger_entity_id=task_log_uuid,
+                        )
+                        await async_db.commit()
+
+                asyncio.run(_record_snapshot())
+            except Exception as e:
+                logger.warning("signal_score_snapshot_failed", error=str(e))
+
             # Evaluate certification after score update
             try:
                 from app.modules.certification import service as cert_service

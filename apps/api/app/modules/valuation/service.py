@@ -189,6 +189,24 @@ async def create_valuation(
         prepared_by=user_id,
     )
     db.add(val)
+
+    # Record enterprise value snapshot (best-effort, uses savepoint to not abort outer tx)
+    try:
+        from app.modules.metrics.snapshot_service import MetricSnapshotService
+        async with db.begin_nested():
+            svc = MetricSnapshotService(db)
+            await svc.record_snapshot(
+                org_id=org_id,
+                entity_type="project",
+                entity_id=body.project_id,
+                metric_name="enterprise_value",
+                value=float(ev),
+                metadata={"method": body.method, "currency": body.currency, "version": version},
+                trigger_event="valuation_created",
+            )
+    except Exception:
+        pass
+
     return val
 
 
