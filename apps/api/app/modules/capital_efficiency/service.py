@@ -118,6 +118,124 @@ def _synthetic_metrics(org_id: uuid.UUID) -> EfficiencyMetricsResponse:
     )
 
 
+async def _compute_live_metrics(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+) -> EfficiencyMetricsResponse | None:
+    """Compute efficiency metrics from actual platform activity. Returns None if no data yet."""
+    from decimal import Decimal
+    from app.models.ai import AITaskLog
+    from app.models.deal_flow import DealStageTransition
+    from app.models.legal import LegalDocument
+    from app.models.financial import TaxCredit
+    from app.models.enums import AITaskStatus, TaxCreditQualification
+    from sqlalchemy import func
+
+    now = datetime.now(timezone.utc)
+    period_end = date(now.year, now.month, 1)
+    period_start = date(now.year - 1, now.month, 1)
+
+    # --- Deal metrics from DealStageTransition ---
+    trans_result = await db.execute(
+        select(func.count(DealStageTransition.id.distinct()))
+        .where(DealStageTransition.org_id == org_id)
+    )
+    deals_screened = trans_result.scalar() or 0
+
+    closed_result = await db.execute(
+        select(func.count(DealStageTransition.project_id.distinct()))
+        .where(
+            DealStageTransition.org_id == org_id,
+            DealStageTransition.to_stage == "closed",
+        )
+    )
+    deals_closed = closed_result.scalar() or 0
+
+    if deals_screened == 0:
+        return None  # No activity yet — caller will use synthetic
+
+    # --- AI task time savings (2h per completed task) ---
+    ai_result = await db.execute(
+        select(func.count(AITaskLog.id))
+        .where(
+            AITaskLog.org_id == org_id,
+            AITaskLog.status == AITaskStatus.COMPLETED,
+        )
+    )
+    ai_tasks_done = ai_result.scalar() or 0
+    time_saved_hours = round(ai_tasks_done * 2.0, 1)
+
+    # --- Legal automation savings ---
+    legal_result = await db.execute(
+        select(func.count(LegalDocument.id))
+        .where(LegalDocument.org_id == org_id)
+    )
+    legal_docs = legal_result.scalar() or 0
+    legal_savings = round(legal_docs * 3_000.0, 2)  # ~$3k avg legal doc cost saved
+
+    # --- Tax credit value captured ---
+    tax_result = await db.execute(
+        select(func.coalesce(func.sum(TaxCredit.claimed_value), 0))
+        .where(
+            TaxCredit.org_id == org_id,
+            TaxCredit.qualification == TaxCreditQualification.CLAIMED,
+        )
+    )
+    tax_captured = float(tax_result.scalar() or 0)
+
+    # --- DD savings: deals_screened * industry_avg reduced by platform efficiency ---
+    dd_savings = round(deals_screened * INDUSTRY_BENCHMARKS["avg_dd_cost_usd"] * 0.45, 2)
+    risk_savings = round(deals_screened * INDUSTRY_BENCHMARKS["avg_risk_assessment_cost_usd"] * 0.4, 2)
+
+    # --- Avg days to close ---
+    if deals_closed > 0:
+        avg_close_result = await db.execute(
+            select(
+                func.avg(
+                    func.extract(
+                        "epoch",
+                        func.max(DealStageTransition.created_at) - func.min(DealStageTransition.created_at)
+                    ) / 86400
+                )
+            )
+            .where(DealStageTransition.org_id == org_id)
+            .group_by(DealStageTransition.project_id)
+            .having(func.bool_or(DealStageTransition.to_stage == "closed"))
+        )
+        avg_close_days = float(avg_close_result.scalar() or INDUSTRY_BENCHMARKS["avg_time_to_close_days"])
+    else:
+        avg_close_days = float(INDUSTRY_BENCHMARKS["avg_time_to_close_days"])
+
+    total = dd_savings + legal_savings + risk_savings + tax_captured
+    efficiency_score = min(95.0, 50.0 + (deals_closed / max(deals_screened, 1)) * 30.0 + (ai_tasks_done / max(deals_screened, 1)) * 15.0)
+
+    synthetic_id = uuid.UUID(int=int.from_bytes(str(org_id).encode()[:16], "big") % (2**128))
+
+    return EfficiencyMetricsResponse(
+        id=synthetic_id,
+        org_id=org_id,
+        portfolio_id=None,
+        period_start=period_start,
+        period_end=period_end,
+        due_diligence_savings=dd_savings,
+        legal_automation_savings=legal_savings,
+        risk_analytics_savings=risk_savings,
+        tax_credit_value_captured=tax_captured,
+        time_saved_hours=time_saved_hours,
+        deals_screened=deals_screened,
+        deals_closed=deals_closed,
+        avg_time_to_close_days=round(avg_close_days, 1),
+        portfolio_irr_improvement=None,
+        industry_avg_dd_cost=float(INDUSTRY_BENCHMARKS["avg_dd_cost_usd"]),
+        industry_avg_time_to_close=float(INDUSTRY_BENCHMARKS["avg_time_to_close_days"]),
+        platform_efficiency_score=round(efficiency_score, 1),
+        total_savings=round(total, 2),
+        breakdown=None,
+        created_at=now,
+        updated_at=now,
+    )
+
+
 # ── Service functions ─────────────────────────────────────────────────────────
 
 
@@ -140,7 +258,8 @@ async def get_current_metrics(
     metrics = result.scalar_one_or_none()
 
     if metrics is None:
-        return _synthetic_metrics(org_id)
+        live = await _compute_live_metrics(db, org_id)
+        return live if live is not None else _synthetic_metrics(org_id)
 
     return _orm_to_response(metrics)
 

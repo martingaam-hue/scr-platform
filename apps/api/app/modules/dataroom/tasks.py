@@ -189,10 +189,12 @@ def _extract_text(doc) -> str:
         # OCR placeholder — would queue to an OCR service
         logger.info("ocr_placeholder", document_id=str(doc.id), file_type=doc.file_type)
         return f"[Image file: {doc.name} — OCR processing not yet available]"
-    elif doc.file_type in ("docx", "xlsx", "pptx"):
-        # Placeholder for Office document extraction
-        logger.info("office_extraction_placeholder", document_id=str(doc.id))
-        return f"[Office file: {doc.name} — text extraction placeholder]"
+    elif doc.file_type == "docx":
+        return _extract_docx_text(body)
+    elif doc.file_type == "xlsx":
+        return _extract_xlsx_text(body)
+    elif doc.file_type == "pptx":
+        return _extract_pptx_text(body)
     else:
         return ""
 
@@ -217,6 +219,64 @@ def _extract_pdf_text(pdf_bytes: bytes) -> str:
     except Exception as e:
         logger.warning("pdf_extraction_failed", error=str(e))
         return f"[PDF extraction failed: {e}]"
+
+
+def _extract_docx_text(docx_bytes: bytes) -> str:
+    """Extract text from DOCX using python-docx."""
+    try:
+        import io
+        from docx import Document as DocxDocument
+        doc = DocxDocument(io.BytesIO(docx_bytes))
+        parts = [p.text for p in doc.paragraphs if p.text.strip()]
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    if cell.text.strip():
+                        parts.append(cell.text.strip())
+        return "\n".join(parts)
+    except Exception as e:
+        logger.warning("docx_extraction_failed", error=str(e))
+        return f"[DOCX extraction failed: {e}]"
+
+
+def _extract_xlsx_text(xlsx_bytes: bytes) -> str:
+    """Extract text from XLSX using openpyxl."""
+    try:
+        import io
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(xlsx_bytes), data_only=True)
+        parts = []
+        for sheet in wb.worksheets:
+            parts.append(f"Sheet: {sheet.title}")
+            for row in sheet.iter_rows(values_only=True):
+                row_vals = [str(v) for v in row if v is not None and str(v).strip()]
+                if row_vals:
+                    parts.append("\t".join(row_vals))
+        return "\n".join(parts)
+    except Exception as e:
+        logger.warning("xlsx_extraction_failed", error=str(e))
+        return f"[XLSX extraction failed: {e}]"
+
+
+def _extract_pptx_text(pptx_bytes: bytes) -> str:
+    """Extract text from PPTX using python-pptx."""
+    try:
+        import io
+        from pptx import Presentation
+        prs = Presentation(io.BytesIO(pptx_bytes))
+        parts = []
+        for slide_num, slide in enumerate(prs.slides, 1):
+            parts.append(f"Slide {slide_num}:")
+            for shape in slide.shapes:
+                if shape.has_text_frame:
+                    for para in shape.text_frame.paragraphs:
+                        text = para.text.strip()
+                        if text:
+                            parts.append(text)
+        return "\n".join(parts)
+    except Exception as e:
+        logger.warning("pptx_extraction_failed", error=str(e))
+        return f"[PPTX extraction failed: {e}]"
 
 
 def _classify_document(doc, text_content: str) -> str:
@@ -281,71 +341,87 @@ def _classify_document(doc, text_content: str) -> str:
     return "other"
 
 
-def _extract_structured_data(session, doc, text_content: str, classification: str) -> None:
-    """Extract KPIs, deadlines, and financial data based on document classification.
+def _call_ai_extraction(task_type: str, doc_name: str, text_content: str, timeout: float = 30.0) -> dict:
+    """Call AI Gateway for structured extraction. Returns validated_data dict or {} on failure."""
+    import httpx
+    try:
+        resp = httpx.post(
+            f"{settings.AI_GATEWAY_URL}/v1/completions",
+            json={
+                "task_type": task_type,
+                "context": {
+                    "document_name": doc_name,
+                    "document_text": text_content[:8000],
+                },
+            },
+            headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+            timeout=timeout,
+        )
+        resp.raise_for_status()
+        return resp.json().get("validated_data") or {}
+    except Exception as exc:
+        logger.warning("ai_extraction_failed", task_type=task_type, doc=doc_name, error=str(exc))
+        return {}
 
-    In production, this would route through the AI Gateway to Claude/GPT-4o.
-    """
+
+def _extract_structured_data(session, doc, text_content: str, classification: str) -> None:
+    """Extract KPIs, deadlines, financial data and clauses via AI Gateway."""
+    import time
     from app.models.dataroom import DocumentExtraction
     from app.models.enums import ExtractionType
 
-    # Placeholder extraction — in production, call AI Gateway
     if classification == "financial_statement":
+        t0 = time.time()
+        result = _call_ai_extraction("extract_financial_metrics", doc.name, text_content)
+        ms = int((time.time() - t0) * 1000)
         session.add(DocumentExtraction(
             document_id=doc.id,
             extraction_type=ExtractionType.FINANCIAL,
-            result={
-                "source": doc.name,
-                "note": "AI financial extraction placeholder",
-                "metrics_found": [],
-            },
-            model_used="placeholder",
-            confidence_score=0.0,
-            tokens_used=0,
-            processing_time_ms=10,
+            result=result if result else {"metrics_found": [], "source": doc.name},
+            model_used="ai_gateway" if result else "fallback",
+            confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
+            tokens_used=int(result.get("tokens_used", 0)) if result else 0,
+            processing_time_ms=ms,
         ))
 
     if classification in ("legal_agreement", "permit"):
+        t0 = time.time()
+        result = _call_ai_extraction("extract_deadlines", doc.name, text_content)
+        ms = int((time.time() - t0) * 1000)
         session.add(DocumentExtraction(
             document_id=doc.id,
             extraction_type=ExtractionType.DEADLINE,
-            result={
-                "source": doc.name,
-                "note": "AI deadline extraction placeholder",
-                "deadlines_found": [],
-            },
-            model_used="placeholder",
-            confidence_score=0.0,
-            tokens_used=0,
-            processing_time_ms=10,
+            result=result if result else {"deadlines_found": [], "source": doc.name},
+            model_used="ai_gateway" if result else "fallback",
+            confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
+            tokens_used=int(result.get("tokens_used", 0)) if result else 0,
+            processing_time_ms=ms,
         ))
+        t0 = time.time()
+        result = _call_ai_extraction("extract_clauses", doc.name, text_content)
+        ms = int((time.time() - t0) * 1000)
         session.add(DocumentExtraction(
             document_id=doc.id,
             extraction_type=ExtractionType.CLAUSE,
-            result={
-                "source": doc.name,
-                "note": "AI clause extraction placeholder",
-                "clauses_found": [],
-            },
-            model_used="placeholder",
-            confidence_score=0.0,
-            tokens_used=0,
-            processing_time_ms=10,
+            result=result if result else {"clauses_found": [], "source": doc.name},
+            model_used="ai_gateway" if result else "fallback",
+            confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
+            tokens_used=int(result.get("tokens_used", 0)) if result else 0,
+            processing_time_ms=ms,
         ))
 
     # Always extract KPIs
+    t0 = time.time()
+    result = _call_ai_extraction("extract_kpis", doc.name, text_content)
+    ms = int((time.time() - t0) * 1000)
     session.add(DocumentExtraction(
         document_id=doc.id,
         extraction_type=ExtractionType.KPI,
-        result={
-            "source": doc.name,
-            "note": "AI KPI extraction placeholder",
-            "kpis_found": [],
-        },
-        model_used="placeholder",
-        confidence_score=0.0,
-        tokens_used=0,
-        processing_time_ms=10,
+        result=result if result else {"kpis_found": [], "source": doc.name},
+        model_used="ai_gateway" if result else "fallback",
+        confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
+        tokens_used=int(result.get("tokens_used", 0)) if result else 0,
+        processing_time_ms=ms,
     ))
 
 
