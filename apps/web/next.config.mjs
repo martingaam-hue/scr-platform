@@ -1,9 +1,5 @@
 /** @type {import('next').NextConfig} */
 import { withSentryConfig } from "@sentry/nextjs"
-import path from "path"
-import { fileURLToPath } from "url"
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -84,8 +80,6 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Standalone output bundles the minimal server for Docker production images
-  output: "standalone",
   transpilePackages: ["@scr/ui", "@scr/types"],
   images: {
     remotePatterns: [
@@ -105,10 +99,6 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "@scr/ui"],
-    // Required for pnpm monorepos: tells Next.js to trace files from the
-    // repo root so it can follow pnpm virtual-store symlinks and include
-    // all server-side deps (e.g. 'next' itself) in the standalone output.
-    outputFileTracingRoot: path.join(__dirname, "../../"),
   },
 
   async headers() {
@@ -132,4 +122,7 @@ export default withSentryConfig(nextConfig, {
   widenClientFileUpload: true,
   hideSourceMaps: true,
   disableLogger: true,
+  // Prevent Sentry from wrapping middleware — its Edge Runtime instrumentation
+  // causes MIDDLEWARE_INVOCATION_FAILED on Vercel when SENTRY_ORG/PROJECT are unset.
+  autoInstrumentMiddleware: false,
 });
