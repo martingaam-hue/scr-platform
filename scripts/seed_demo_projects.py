@@ -60,12 +60,8 @@ DEMO_PORTFOLIO_NAME = "PAMP Infrastructure & Energy Fund I"
 # ---------------------------------------------------------------------------
 
 def get_engine():
-    # Prefer DATABASE_URL_SYNC if it points to a real host; otherwise derive
-    # the sync (psycopg2) URL from the async URL by stripping "+asyncpg".
-    sync_url = settings.DATABASE_URL_SYNC
-    if "localhost" in sync_url or "127.0.0.1" in sync_url:
-        sync_url = settings.DATABASE_URL.replace("+asyncpg", "")
-    return create_engine(sync_url, echo=False)
+    url = settings.DATABASE_URL_SYNC
+    return create_engine(url, echo=False)
 
 
 # ---------------------------------------------------------------------------
@@ -307,17 +303,14 @@ def seed_helios(
 
         # ── Signal Score ───────────────────────────────────────────────────────
         session.add(SignalScore(
-            id=_uid(), project_id=pid,
-            overall_score=83,
-            project_viability_score=85,
-            financial_planning_score=88,
-            risk_assessment_score=75,
-            team_strength_score=80,
-            esg_score=90,
-            market_opportunity_score=75,
-            model_used="demo-seed",
-            version=1,
-            calculated_at=_now(),
+            id=_uid(), project_id=pid, org_id=org_id,
+            overall_score=Decimal("82.5"),
+            project_viability_score=Decimal("85"),
+            financial_planning_score=Decimal("88"),
+            risk_assessment_score=Decimal("75"),
+            team_strength_score=Decimal("80"),
+            esg_score=Decimal("90"),
+            last_computed_at=_now(),
         ))
 
         # ── Risk Assessments ───────────────────────────────────────────────────
@@ -444,7 +437,7 @@ def seed_helios(
         folder_id = _uid()
         session.add(DocumentFolder(
             id=folder_id, org_id=org_id, project_id=pid,
-            name="Helios Solar — Data Room",
+            name="Helios Solar — Data Room", description="All project documents",
         ))
         docs = [
             ("Investment Committee Memo", DocumentClassification.PRESENTATION, "IC Pack", "2024-07-22"),
@@ -469,8 +462,8 @@ def seed_helios(
                 s3_bucket="scr-staging-documents",
                 file_size_bytes=1024 * 1024 * (2 + hash(doc_name) % 8),  # 2–10 MB
                 version=1, status=DocumentStatus.READY,
-                classification=classification,
-                metadata_={
+                classification=classification.value,
+                metadata={
                     "doc_type": doc_type,
                     "doc_date": doc_date,
                     "project_id": "PRJ-2024-0187",
@@ -593,17 +586,14 @@ def seed_nordvik(
 
         # ── Signal Score ───────────────────────────────────────────────────────
         session.add(SignalScore(
-            id=_uid(), project_id=pid,
-            overall_score=78,
-            project_viability_score=82,
-            financial_planning_score=80,
-            risk_assessment_score=70,
-            team_strength_score=78,
-            esg_score=88,
-            market_opportunity_score=70,
-            model_used="demo-seed",
-            version=1,
-            calculated_at=_now(),
+            id=_uid(), project_id=pid, org_id=org_id,
+            overall_score=Decimal("78.0"),
+            project_viability_score=Decimal("82"),
+            financial_planning_score=Decimal("80"),
+            risk_assessment_score=Decimal("70"),
+            team_strength_score=Decimal("78"),
+            esg_score=Decimal("88"),
+            last_computed_at=_now(),
         ))
 
         # ── Risk Assessments ───────────────────────────────────────────────────
@@ -719,7 +709,7 @@ def seed_nordvik(
         folder_id = _uid()
         session.add(DocumentFolder(
             id=folder_id, org_id=org_id, project_id=pid,
-            name="Nordvik Wind II — Data Room",
+            name="Nordvik Wind II — Data Room", description="All project documents",
         ))
         docs = [
             ("Investment Committee Memo", DocumentClassification.PRESENTATION, "IC Pack", "2025-02-28"),
@@ -744,8 +734,8 @@ def seed_nordvik(
                 s3_bucket="scr-staging-documents",
                 file_size_bytes=1024 * 1024 * (2 + hash(doc_name) % 6),
                 version=1, status=DocumentStatus.READY,
-                classification=classification,
-                metadata_={"doc_type": doc_type, "doc_date": doc_date, "project_id": "PRJ-2025-0042"},
+                classification=classification.value,
+                metadata={"doc_type": doc_type, "doc_date": doc_date, "project_id": "PRJ-2025-0042"},
                 uploaded_by=user_id,
                 checksum_sha256=f"demo-sha256-nordvik-{hash(doc_name) & 0xffffffff:08x}",
                 watermark_enabled=True,
@@ -861,17 +851,14 @@ def seed_adriatic(
 
         # ── Signal Score ───────────────────────────────────────────────────────
         session.add(SignalScore(
-            id=_uid(), project_id=pid,
-            overall_score=71,
-            project_viability_score=78,
-            financial_planning_score=74,
-            risk_assessment_score=60,   # Watchlist item
-            team_strength_score=75,
-            esg_score=72,
-            market_opportunity_score=65,
-            model_used="demo-seed",
-            version=1,
-            calculated_at=_now(),
+            id=_uid(), project_id=pid, org_id=org_id,
+            overall_score=Decimal("71.0"),
+            project_viability_score=Decimal("78"),
+            financial_planning_score=Decimal("74"),
+            risk_assessment_score=Decimal("60"),   # Watchlist item
+            team_strength_score=Decimal("75"),
+            esg_score=Decimal("72"),
+            last_computed_at=_now(),
         ))
 
         # ── Risk Assessments ───────────────────────────────────────────────────
@@ -1011,7 +998,7 @@ def seed_adriatic(
         folder_id = _uid()
         session.add(DocumentFolder(
             id=folder_id, org_id=org_id, project_id=pid,
-            name="Adriatic Infra — Data Room",
+            name="Adriatic Infra — Data Room", description="All project documents",
         ))
         docs = [
             ("Investment Committee Memo", DocumentClassification.PRESENTATION, "IC Pack", "2023-11-20"),
@@ -1038,8 +1025,8 @@ def seed_adriatic(
                 s3_bucket="scr-staging-documents",
                 file_size_bytes=1024 * 1024 * (2 + hash(doc_name) % 7),
                 version=1, status=DocumentStatus.READY,
-                classification=classification,
-                metadata_={"doc_type": doc_type, "doc_date": doc_date, "project_id": "PRJ-2023-0311"},
+                classification=classification.value,
+                metadata={"doc_type": doc_type, "doc_date": doc_date, "project_id": "PRJ-2023-0311"},
                 uploaded_by=user_id,
                 checksum_sha256=f"demo-sha256-adriatic-{hash(doc_name) & 0xffffffff:08x}",
                 watermark_enabled=True,
@@ -1081,8 +1068,7 @@ def main() -> None:
 
     print(f"\n{'[DRY RUN] ' if dry_run else ''}SCR Platform — Demo Seed Script")
     print("=" * 60)
-    _db_url = str(engine.url)
-    print(f"Database: {_db_url[:60]}...")
+    print(f"Database: {settings.DATABASE_URL_SYNC[:50]}...")
 
     with Session(engine) as session:
         if args.wipe:

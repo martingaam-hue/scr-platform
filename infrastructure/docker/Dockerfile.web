@@ -57,10 +57,17 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 nextjs
 
-# Static assets and standalone server
-COPY --from=builder /app/apps/web/public ./public
+# outputFileTracingRoot=monorepo-root causes standalone to mirror the full
+# directory tree from the repo root.  After the copy:
+#   /app/apps/web/server.js          ← entry point
+#   /app/apps/web/.next/server/      ← server-side chunks
+#   /app/node_modules/               ← all server deps (incl. 'next')
+# Static assets must be placed where server.js expects them:
+#   /app/apps/web/.next/static/
+#   /app/apps/web/public/
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder /app/apps/web/public ./apps/web/public
 
 USER nextjs
 
@@ -70,5 +77,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME="0.0.0.0"
 
-# Next.js standalone produces server.js at the root of the standalone dir
-CMD ["node", "server.js"]
+# server.js lives at apps/web/server.js within the standalone tree
+CMD ["node", "apps/web/server.js"]

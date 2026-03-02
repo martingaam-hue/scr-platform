@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 import { withSentryConfig } from "@sentry/nextjs"
+import path from "path"
+import { fileURLToPath } from "url"
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -101,6 +105,10 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "@scr/ui"],
+    // Required for pnpm monorepos: tells Next.js to trace files from the
+    // repo root so it can follow pnpm virtual-store symlinks and include
+    // all server-side deps (e.g. 'next' itself) in the standalone output.
+    outputFileTracingRoot: path.join(__dirname, "../../"),
   },
 
   async headers() {

@@ -35,8 +35,8 @@ def init_sentry(
 
     No-op when dsn is None or empty — safe to call unconditionally.
     """
-    if not dsn:
-        logger.warning("sentry_disabled", reason="SENTRY_DSN not set")
+    if not dsn or not dsn.startswith("https://"):
+        logger.warning("sentry_disabled", reason="SENTRY_DSN not set or invalid")
         return
 
     is_prod = environment == "production"

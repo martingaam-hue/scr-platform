@@ -34,6 +34,8 @@ FROM base AS final
 RUN groupadd -r scr && useradd -r -g scr -d /app -s /sbin/nologin scr
 
 WORKDIR /app
+# Ensure the working directory is writable by the scr user
+RUN chown scr:scr /app
 
 # Copy installed Python packages from deps stage
 COPY --from=deps /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
