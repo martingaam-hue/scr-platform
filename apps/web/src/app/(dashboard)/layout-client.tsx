@@ -33,17 +33,20 @@ export function DashboardLayoutClient({
   const { isOpen } = useSidebarStore();
   const { isOpen: isRalphOpen } = useRalphStore();
   const router = useRouter();
-  const { user, isLoaded } = useSCRUser();
+  const { user, isLoaded, isSignedIn } = useSCRUser();
   const [tourDismissed, setTourDismissed] = useState(false);
 
   useAuthenticatedApi();
 
-  if (isLoaded && !user) {
+  // Redirect to sign-in only when Clerk explicitly says not authenticated.
+  // Do NOT redirect on API errors (e.g. 401/403 from /auth/me) — that would
+  // create a redirect loop between /sign-in and /dashboard.
+  if (isLoaded && !isSignedIn) {
     router.replace("/sign-in");
     return null;
   }
 
-  if (isLoaded && user && !isOnboardingComplete(user)) {
+  if (isLoaded && isSignedIn && user && !isOnboardingComplete(user)) {
     router.replace("/onboarding");
     return null;
   }

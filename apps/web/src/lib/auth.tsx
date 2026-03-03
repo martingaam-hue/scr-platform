@@ -95,7 +95,10 @@ export function useSCRUser() {
 
   return {
     user: query.data ?? null,
-    isLoaded: isLoaded && (query.isSuccess || query.isError),
+    // isLoaded is true when:
+    //   - Clerk has loaded and the user is NOT signed in (so layouts can redirect)
+    //   - OR the API query has completed (success or error)
+    isLoaded: isLoaded && (!isSignedIn || query.isSuccess || query.isError),
     isSignedIn: isSignedIn ?? false,
     isLoading: query.isLoading,
     error: query.error,

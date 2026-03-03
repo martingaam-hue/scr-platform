@@ -11,16 +11,16 @@ export function OnboardingLayoutClient({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { user, isLoaded } = useSCRUser();
+  const { user, isLoaded, isSignedIn } = useSCRUser();
 
   useAuthenticatedApi();
 
-  if (isLoaded && !user) {
+  if (isLoaded && !isSignedIn) {
     router.replace("/sign-in");
     return null;
   }
 
-  if (isLoaded && user && isOnboardingComplete(user)) {
+  if (isLoaded && isSignedIn && user && isOnboardingComplete(user)) {
     router.replace("/dashboard");
     return null;
   }
