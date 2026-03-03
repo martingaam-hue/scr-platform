@@ -205,6 +205,40 @@ class AccessLogListResponse(BaseModel):
     total: int
 
 
+# ── Unassigned Upload ────────────────────────────────────────────────────────
+
+
+class UnassignedPresignedUploadRequest(BaseModel):
+    file_name: str = Field(..., min_length=1, max_length=500)
+    file_type: str
+    file_size_bytes: int = Field(..., gt=0)
+    checksum_sha256: str = Field(..., min_length=64, max_length=64)
+    category: str | None = Field(None, max_length=100, description="Subfolder label (e.g. 'financial')")
+
+    @field_validator("file_type")
+    @classmethod
+    def validate_file_type(cls, v: str) -> str:
+        v = v.lower().lstrip(".")
+        if v not in ALLOWED_FILE_TYPES:
+            raise ValueError(
+                f"File type '{v}' not allowed. Allowed: {', '.join(sorted(ALLOWED_FILE_TYPES))}"
+            )
+        return v
+
+    @field_validator("file_size_bytes")
+    @classmethod
+    def validate_file_size(cls, v: int) -> int:
+        if v > MAX_FILE_SIZE_BYTES:
+            raise ValueError(
+                f"File size {v} bytes exceeds maximum of {MAX_FILE_SIZE_BYTES} bytes (100 MB)"
+            )
+        return v
+
+
+class AssignDocumentRequest(BaseModel):
+    project_id: uuid.UUID | None = None  # None = move back to unassigned
+
+
 # ── Bulk Operations ─────────────────────────────────────────────────────────
 
 

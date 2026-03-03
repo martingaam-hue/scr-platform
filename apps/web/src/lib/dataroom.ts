@@ -170,6 +170,7 @@ export const dataroomKeys = {
 
 export interface DocumentListParams {
   project_id?: string;
+  unassigned?: boolean;
   folder_id?: string | null;
   file_type?: string;
   status?: DocumentStatus;
@@ -249,7 +250,7 @@ export function useDocuments(params: DocumentListParams) {
       api
         .get<DocumentListResponse>("/dataroom/documents", { params })
         .then((r) => r.data),
-    enabled: !!params.project_id,
+    enabled: !!params.project_id || params.unassigned === true,
   });
 }
 
@@ -370,6 +371,42 @@ export function useConfirmUpload() {
           "/dataroom/upload/confirm",
           body
         )
+        .then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: dataroomKeys.all });
+    },
+  });
+}
+
+export function useUnassignedPresignedUpload() {
+  return useMutation({
+    mutationFn: (body: {
+      file_name: string;
+      file_type: string;
+      file_size_bytes: number;
+      checksum_sha256: string;
+      category?: string | null;
+    }) =>
+      api
+        .post<PresignedUploadResponse>("/dataroom/upload/unassigned", body)
+        .then((r) => r.data),
+  });
+}
+
+export function useAssignDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      documentId,
+      project_id,
+    }: {
+      documentId: string;
+      project_id: string | null;
+    }) =>
+      api
+        .patch<DocumentResponse>(`/dataroom/documents/${documentId}/assign`, {
+          project_id,
+        })
         .then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: dataroomKeys.all });

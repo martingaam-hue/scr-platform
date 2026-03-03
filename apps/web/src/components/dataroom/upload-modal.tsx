@@ -17,6 +17,7 @@ import {
 import type { FileItem } from "@scr/ui";
 import {
   usePresignedUpload,
+  useUnassignedPresignedUpload,
   useConfirmUpload,
   computeSHA256,
   formatFileSize,
@@ -45,7 +46,9 @@ export function UploadModal({
   const [uploading, setUploading] = useState(false);
   const [completed, setCompleted] = useState(0);
 
+  const isUnassigned = projectId === "UNASSIGNED";
   const presignedUpload = usePresignedUpload();
+  const unassignedPresignedUpload = useUnassignedPresignedUpload();
   const confirmUpload = useConfirmUpload();
 
   const handleFilesSelected = useCallback((newFiles: File[]) => {
@@ -86,14 +89,21 @@ export function UploadModal({
         const ext = fileItem.file.name.split(".").pop()?.toLowerCase() ?? "";
 
         // 3. Request pre-signed URL
-        const presigned = await presignedUpload.mutateAsync({
-          file_name: fileItem.file.name,
-          file_type: ext,
-          file_size_bytes: fileItem.file.size,
-          project_id: projectId,
-          folder_id: folderId,
-          checksum_sha256: checksum,
-        });
+        const presigned = isUnassigned
+          ? await unassignedPresignedUpload.mutateAsync({
+              file_name: fileItem.file.name,
+              file_type: ext,
+              file_size_bytes: fileItem.file.size,
+              checksum_sha256: checksum,
+            })
+          : await presignedUpload.mutateAsync({
+              file_name: fileItem.file.name,
+              file_type: ext,
+              file_size_bytes: fileItem.file.size,
+              project_id: projectId,
+              folder_id: folderId,
+              checksum_sha256: checksum,
+            });
         updateFileStatus(index, { progress: 40 });
 
         // 4. Upload directly to S3
@@ -116,7 +126,7 @@ export function UploadModal({
         updateFileStatus(index, { status: "error", error: message });
       }
     },
-    [presignedUpload, confirmUpload, projectId, folderId, updateFileStatus]
+    [presignedUpload, unassignedPresignedUpload, confirmUpload, isUnassigned, projectId, folderId, updateFileStatus]
   );
 
   const handleUploadAll = useCallback(async () => {

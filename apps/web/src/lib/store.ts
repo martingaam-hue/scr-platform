@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 // ── Ralph AI store ─────────────────────────────────────────────────────────
 
@@ -74,3 +75,22 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   decrement: () =>
     set((state) => ({ unreadCount: Math.max(0, state.unreadCount - 1) })),
 }));
+
+// ── Platform mode store ──────────────────────────────────────────────────────
+
+export type PlatformMode = "ally" | "investor";
+
+interface PlatformModeState {
+  mode: PlatformMode | null; // null = auto-detect from org_type
+  setMode: (mode: PlatformMode) => void;
+}
+
+export const usePlatformModeStore = create<PlatformModeState>()(
+  persist(
+    (set) => ({
+      mode: null,
+      setMode: (mode) => set({ mode }),
+    }),
+    { name: "scr-platform-mode" }
+  )
+);

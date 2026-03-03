@@ -54,11 +54,12 @@ import {
   Construction,
   TrendingDown,
   BarChart2,
+  ArrowLeftRight,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
 import { Avatar } from "@scr/ui";
-import { useSidebarStore } from "@/lib/store";
+import { useSidebarStore, usePlatformModeStore, type PlatformMode } from "@/lib/store";
 import { useSCRUser } from "@/lib/auth";
 
 // ── Navigation config ───────────────────────────────────────────────────
@@ -124,6 +125,7 @@ const investorNav: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Risk Dashboard", href: "/risk", icon: ShieldAlert },
+      { label: "Legal", href: "/legal", icon: Scale },
       { label: "Compliance Calendar", href: "/compliance", icon: Calendar },
       { label: "Blockchain Audit", href: "/blockchain-audit", icon: Link2 },
     ],
@@ -361,6 +363,103 @@ function getNavForRole(orgType?: string): NavSection[] {
   }
 }
 
+// ── Simplified mode navs (platform switcher) ─────────────────────────────
+
+const ALLY_MODE_NAV: NavSection[] = [
+  {
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Projects", href: "/projects", icon: FolderKanban },
+      { label: "Development OS", href: "/development-os", icon: Monitor },
+      { label: "Funding", href: "/funding", icon: Wallet },
+      { label: "Data Room", href: "/data-room", icon: FolderLock },
+      { label: "Deal Rooms", href: "/deal-rooms", icon: MessageSquare },
+      { label: "Business Plan", href: "/business-plan", icon: FileText },
+    ],
+  },
+];
+
+const INVESTOR_MODE_NAV: NavSection[] = [
+  {
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Portfolio", href: "/portfolio", icon: Briefcase },
+      { label: "Deals", href: "/deals", icon: FolderKanban },
+      { label: "Analytics", href: "/analytics/deal-flow", icon: BarChart3 },
+      { label: "Screening", href: "/screener", icon: ScanSearch },
+      { label: "Matching", href: "/matching", icon: Zap },
+      { label: "Reports", href: "/reports", icon: BarChart3 },
+    ],
+  },
+];
+
+// ── Mode switcher ────────────────────────────────────────────────────────
+
+function ModeSwitcher({
+  mode,
+  onModeChange,
+  isOpen: sidebarOpen,
+}: {
+  mode: PlatformMode;
+  onModeChange: (m: PlatformMode) => void;
+  isOpen: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const label = mode === "ally" ? "Ally Mode" : "Investor Mode";
+
+  return (
+    <div className="relative px-2 pb-3 mb-1 border-b border-white/10">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title={!sidebarOpen ? label : undefined}
+        className={cn(
+          "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors bg-white/10 hover:bg-white/20 text-white",
+          !sidebarOpen && "justify-center px-2"
+        )}
+      >
+        <ArrowLeftRight className="h-4 w-4 shrink-0" />
+        {sidebarOpen && (
+          <>
+            <span className="flex-1 text-left">{label}</span>
+            <ChevronDown
+              className={cn(
+                "h-3.5 w-3.5 transition-transform",
+                open && "rotate-180"
+              )}
+            />
+          </>
+        )}
+      </button>
+
+      {open && sidebarOpen && (
+        <div className="absolute left-2 right-2 top-full mt-1 z-50 rounded-md overflow-hidden border border-white/10 bg-primary-700 shadow-xl">
+          {(["ally", "investor"] as PlatformMode[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => {
+                onModeChange(m);
+                setOpen(false);
+              }}
+              className={cn(
+                "flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-white/10",
+                mode === m ? "text-white font-medium" : "text-white/60"
+              )}
+            >
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full shrink-0",
+                  mode === m ? "bg-secondary-400" : "bg-transparent"
+                )}
+              />
+              {m === "ally" ? "Ally Mode" : "Investor Mode"}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Project sub-nav ─────────────────────────────────────────────────────
 
 const PROJECT_SUB_ITEMS = [
@@ -455,8 +554,17 @@ export function Sidebar() {
   const { isOpen, toggle } = useSidebarStore();
   const { signOut } = useClerk();
   const { user } = useSCRUser();
+  const { mode: storedMode, setMode } = usePlatformModeStore();
 
-  const navSections = getNavForRole(user?.org_type);
+  const isAdmin = user?.org_type === "admin";
+  const effectiveMode: PlatformMode =
+    storedMode ?? (user?.org_type === "investor" ? "investor" : "ally");
+
+  const navSections = isAdmin
+    ? adminNav
+    : effectiveMode === "investor"
+    ? INVESTOR_MODE_NAV
+    : ALLY_MODE_NAV;
 
   // Track which collapsible sections are collapsed (by title)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -511,6 +619,15 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-4">
+        {/* Platform mode switcher (non-admin only) */}
+        {!isAdmin && (
+          <ModeSwitcher
+            mode={effectiveMode}
+            onModeChange={setMode}
+            isOpen={isOpen}
+          />
+        )}
+
         {navSections.map((section, si) => {
           const sectionKey = section.title ?? `section-${si}`;
           const isCollapsed = !!(section.title && collapsedSections.has(section.title));

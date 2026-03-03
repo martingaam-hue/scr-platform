@@ -55,6 +55,7 @@ import {
   useDocument,
   useDocumentDownload,
   useDeleteDocument,
+  useAssignDocument,
   useFolderTree,
   useCreateFolder,
   useUpdateFolder,
@@ -314,14 +315,18 @@ function DetailDrawer({
   documentId,
   onClose,
   canEdit,
+  projects,
 }: {
   documentId: string;
   onClose: () => void;
   canEdit: boolean;
+  projects: import("@/lib/projects").ProjectResponse[];
 }) {
   const { data: doc, isLoading } = useDocument(documentId);
   const download = useDocumentDownload();
   const deleteDoc = useDeleteDocument();
+  const assignDoc = useAssignDocument();
+  const [assignProjectId, setAssignProjectId] = React.useState<string>("");
   const triggerExtraction = useTriggerExtraction();
   const { data: extractions, isLoading: extractionsLoading } =
     useExtractions(documentId);
@@ -469,6 +474,32 @@ function DetailDrawer({
       </DrawerBody>
 
       <DrawerFooter>
+        {canEdit && !doc.project_id && projects.length > 0 && (
+          <div className="flex w-full items-center gap-2 pb-2 border-b border-neutral-200 dark:border-neutral-700">
+            <select
+              value={assignProjectId}
+              onChange={(e) => setAssignProjectId(e.target.value)}
+              className="flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1.5 text-xs dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+            >
+              <option value="">Assign to project…</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              disabled={!assignProjectId}
+              loading={assignDoc.isPending}
+              onClick={async () => {
+                if (!assignProjectId) return;
+                await assignDoc.mutateAsync({ documentId, project_id: assignProjectId });
+                onClose();
+              }}
+            >
+              Assign
+            </Button>
+          </div>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -574,10 +605,13 @@ export default function DataRoomPage() {
   const projects: ProjectResponse[] = projectList?.items ?? [];
   const activeProject = projects.find((p) => p.id === projectId);
 
+  const isUnassigned = projectId === "UNASSIGNED";
+
   // ── Queries ────────────────────────────────────────────────────────────
   const params: DocumentListParams = {
-    project_id: projectId || undefined,
-    folder_id: selectedFolderId,
+    project_id: !isUnassigned ? (projectId || undefined) : undefined,
+    unassigned: isUnassigned ? true : undefined,
+    folder_id: isUnassigned ? undefined : selectedFolderId,
     search: search || undefined,
     page,
     page_size: 20,
@@ -703,6 +737,7 @@ export default function DataRoomPage() {
               onChange={(e) => e.target.value && setProjectId(e.target.value)}
             >
               <option value="">— Select a project —</option>
+              <option value="UNASSIGNED">📥 Unassigned Documents</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -733,6 +768,7 @@ export default function DataRoomPage() {
             value={projectId}
             onChange={(e) => { setProjectId(e.target.value); setSelectedFolderId(null); setPage(1); }}
           >
+            <option value="UNASSIGNED">📥 Unassigned</option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
@@ -750,25 +786,27 @@ export default function DataRoomPage() {
 
       {/* 3-panel layout */}
       <div className="flex gap-4" style={{ minHeight: "calc(100vh - 200px)" }}>
-        {/* Left: folder tree */}
-        <div className="w-[250px] shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800">
-          {foldersLoading ? (
-            <FolderTreeSkeleton />
-          ) : (
-            <FolderTree
-              folders={folders ?? []}
-              selectedFolderId={selectedFolderId}
-              onSelectFolder={(id) => {
-                setSelectedFolderId(id);
-                setPage(1);
-              }}
-              onCreateFolder={handleCreateFolder}
-              onRenameFolder={handleRenameFolder}
-              onDeleteFolder={handleDeleteFolder}
-              canEdit={canEdit}
-            />
-          )}
-        </div>
+        {/* Left: folder tree (hidden for unassigned view) */}
+        {!isUnassigned && (
+          <div className="w-[250px] shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800">
+            {foldersLoading ? (
+              <FolderTreeSkeleton />
+            ) : (
+              <FolderTree
+                folders={folders ?? []}
+                selectedFolderId={selectedFolderId}
+                onSelectFolder={(id) => {
+                  setSelectedFolderId(id);
+                  setPage(1);
+                }}
+                onCreateFolder={handleCreateFolder}
+                onRenameFolder={handleRenameFolder}
+                onDeleteFolder={handleDeleteFolder}
+                canEdit={canEdit}
+              />
+            )}
+          </div>
+        )}
 
         {/* Center: documents */}
         <div className="min-w-0 flex-1">
@@ -965,6 +1003,7 @@ export default function DataRoomPage() {
             documentId={detailDocId}
             onClose={() => setDetailDocId(null)}
             canEdit={canEdit}
+            projects={projects}
           />
         )}
       </Drawer>

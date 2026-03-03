@@ -14,6 +14,7 @@ from app.modules.dataroom import service
 from app.modules.dataroom.schemas import (
     AccessLogListResponse,
     AccessLogResponse,
+    AssignDocumentRequest,
     BulkDeleteRequest,
     BulkMoveRequest,
     BulkOperationResponse,
@@ -40,6 +41,7 @@ from app.modules.dataroom.schemas import (
     ShareAccessResponse,
     ShareCreateRequest,
     ShareResponse,
+    UnassignedPresignedUploadRequest,
     UploadConfirmRequest,
     UploadConfirmResponse,
 )
@@ -252,6 +254,41 @@ async def confirm_upload(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
+@router.post(
+    "/upload/unassigned",
+    summary="Get pre-signed upload URL for unassigned document",
+    response_model=PresignedUploadResponse,
+    dependencies=[Depends(require_permission("upload", "document"))],
+)
+async def get_unassigned_presigned_upload_url(
+    body: UnassignedPresignedUploadRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate an S3 pre-signed URL for a document not tied to any project."""
+    try:
+        upload_url, doc = await service.generate_presigned_upload_unassigned(
+            db=db,
+            current_user=current_user,
+            file_name=body.file_name,
+            file_type=body.file_type,
+            file_size_bytes=body.file_size_bytes,
+            checksum_sha256=body.checksum_sha256,
+            category=body.category,
+        )
+        return PresignedUploadResponse(
+            upload_url=upload_url,
+            document_id=doc.id,
+            s3_key=doc.s3_key,
+        )
+    except Exception as e:
+        logger.error("unassigned_presigned_upload_failed", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate upload URL",
+        )
+
+
 # ── Document CRUD ────────────────────────────────────────────────────────────
 
 
@@ -265,6 +302,7 @@ async def list_documents(
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     project_id: uuid.UUID | None = Query(None),
+    unassigned: bool = Query(False, description="If true, return only documents with no project"),
     folder_id: uuid.UUID | None = Query(None),
     file_type: str | None = Query(None),
     doc_status: DocumentStatus | None = Query(None, alias="status"),
@@ -279,6 +317,7 @@ async def list_documents(
         db=db,
         org_id=current_user.org_id,
         project_id=project_id,
+        unassigned=unassigned,
         folder_id=folder_id,
         file_type=file_type,
         status=doc_status,
@@ -419,6 +458,28 @@ async def delete_document(
     """Soft-delete a document."""
     try:
         await service.soft_delete_document(db, document_id, current_user.org_id)
+    except LookupError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.patch(
+    "/documents/{document_id}/assign",
+    summary="Assign document to project",
+    response_model=DocumentResponse,
+    dependencies=[Depends(require_permission("edit", "document"))],
+)
+async def assign_document(
+    document_id: uuid.UUID,
+    body: AssignDocumentRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Assign an unassigned document to a project, or move it back to unassigned (project_id=null)."""
+    try:
+        doc = await service.assign_document_to_project(
+            db, document_id, current_user.org_id, body.project_id
+        )
+        return _doc_to_response(doc)
     except LookupError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 

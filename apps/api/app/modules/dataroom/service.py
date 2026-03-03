@@ -264,6 +264,68 @@ async def generate_presigned_upload(
     return upload_url, doc
 
 
+async def generate_presigned_upload_unassigned(
+    db: AsyncSession,
+    current_user: CurrentUser,
+    file_name: str,
+    file_type: str,
+    file_size_bytes: int,
+    checksum_sha256: str,
+    category: str | None = None,
+) -> tuple[str, Document]:
+    """Create an unassigned Document record and return a pre-signed PUT URL."""
+    file_uuid = uuid.uuid4()
+    safe_name = file_name.replace("/", "_").replace("\\", "_")
+    category_segment = category.replace("/", "_") if category else "unassigned"
+    s3_key = f"{current_user.org_id}/unassigned/{category_segment}/{file_uuid}_{safe_name}"
+
+    mime_type = MIME_TYPE_MAP.get(file_type, "application/octet-stream")
+
+    doc = Document(
+        org_id=current_user.org_id,
+        project_id=None,
+        folder_id=None,
+        name=file_name,
+        file_type=file_type,
+        mime_type=mime_type,
+        s3_key=s3_key,
+        s3_bucket=settings.AWS_S3_BUCKET,
+        file_size_bytes=file_size_bytes,
+        status=DocumentStatus.UPLOADING,
+        uploaded_by=current_user.user_id,
+        checksum_sha256=checksum_sha256,
+    )
+    db.add(doc)
+    await db.flush()
+
+    s3 = _get_s3_client()
+    upload_url = s3.generate_presigned_url(
+        "put_object",
+        Params={
+            "Bucket": settings.AWS_S3_BUCKET,
+            "Key": s3_key,
+            "ContentType": mime_type,
+        },
+        ExpiresIn=3600,
+    )
+
+    return upload_url, doc
+
+
+async def assign_document_to_project(
+    db: AsyncSession,
+    document_id: uuid.UUID,
+    org_id: uuid.UUID,
+    project_id: uuid.UUID | None,
+) -> Document:
+    """Assign (or unassign) a document to a project."""
+    doc = await _get_document_or_raise(db, document_id, org_id)
+    doc.project_id = project_id
+    await db.flush()
+    await db.refresh(doc)
+    return doc
+
+
 async def confirm_upload(
     db: AsyncSession,
     document_id: uuid.UUID,
@@ -309,6 +371,7 @@ async def list_documents(
     db: AsyncSession,
     org_id: uuid.UUID,
     project_id: uuid.UUID | None = None,
+    unassigned: bool = False,
     folder_id: uuid.UUID | None = None,
     file_type: str | None = None,
     status: DocumentStatus | None = None,
@@ -322,7 +385,9 @@ async def list_documents(
     base = select(Document).where(Document.is_deleted.is_(False))
     base = tenant_filter(base, org_id, Document)
 
-    if project_id:
+    if unassigned:
+        base = base.where(Document.project_id.is_(None))
+    elif project_id:
         base = base.where(Document.project_id == project_id)
     if folder_id:
         base = base.where(Document.folder_id == folder_id)
