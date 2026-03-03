@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@scr/ui";
 import { ArrowRight, BarChart3, Shield, TrendingUp } from "lucide-react";
 
@@ -44,13 +45,17 @@ export default function HomePage() {
         </div>
 
         <div className="mt-10 flex justify-center gap-4">
-          <Button size="lg">
-            Get Started
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="lg">
-            Learn More
-          </Button>
+          <Link href="/sign-up">
+            <Button size="lg">
+              Get Started
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+          <Link href="/sign-in">
+            <Button variant="outline" size="lg">
+              Sign In
+            </Button>
+          </Link>
         </div>
       </div>
     </main>
