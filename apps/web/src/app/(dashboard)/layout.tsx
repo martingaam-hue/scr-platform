@@ -1,97 +1,16 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { DashboardLayoutClient } from "./layout-client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { cn } from "@scr/ui";
-import { Sidebar } from "@/components/sidebar";
-import { Topbar } from "@/components/topbar";
-import {
-  FeatureTour,
-  INVESTOR_TOUR_STEPS,
-  ALLY_TOUR_STEPS,
-} from "@/components/feature-tour";
-import dynamic from "next/dynamic";
-import { useSidebarStore, useRalphStore } from "@/lib/store";
-
-// Lazy-load Ralph — only mounts when the user opens it, preventing
-// unnecessary conversation-init API calls on every page load.
-const RalphPanel = dynamic(
-  () =>
-    import("@/components/ralph-ai/ralph-panel").then((m) => ({
-      default: m.RalphPanel,
-    })),
-  { ssr: false, loading: () => null }
-);
-import { CommandPalette } from "@/components/search/command-palette";
-import { useAuthenticatedApi, useSCRUser } from "@/lib/auth";
-import { isOnboardingComplete } from "@/lib/onboarding";
-import { BrandingProvider } from "@/components/branding-provider";
-
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isOpen } = useSidebarStore();
-  const { isOpen: isRalphOpen } = useRalphStore();
-  const router = useRouter();
-  const { user, isLoaded } = useSCRUser();
-  const [tourDismissed, setTourDismissed] = useState(false);
-
-  // Register Clerk token provider for API calls
-  useAuthenticatedApi();
-
-  // Redirect to onboarding if not completed
-  if (isLoaded && user && !isOnboardingComplete(user)) {
-    router.replace("/onboarding");
-    return null;
+  const { userId } = await auth();
+  if (!userId) {
+    redirect("/sign-in");
   }
 
-  // Show feature tour if onboarding is done but tour hasn't been completed
-  const showTour =
-    !tourDismissed &&
-    isLoaded &&
-    user &&
-    isOnboardingComplete(user) &&
-    user.preferences?.tour_completed !== true;
-
-  const tourSteps =
-    user?.org_type === "investor" ? INVESTOR_TOUR_STEPS : ALLY_TOUR_STEPS;
-
-  return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-[hsl(220,56%,7%)]">
-      <BrandingProvider>
-        {/* Injects org CSS variables (--brand-primary, --brand-accent, --font-sans) */}
-        <></>
-      </BrandingProvider>
-      <Sidebar />
-      <Topbar />
-
-      {/* Main content */}
-      <main
-        className={cn(
-          "pt-[var(--topbar-height)] transition-all duration-300",
-          isOpen
-            ? "ml-[var(--sidebar-width)]"
-            : "ml-[var(--sidebar-collapsed-width)]"
-        )}
-      >
-        <div className="p-6">{children}</div>
-      </main>
-
-      {/* Ralph AI panel — lazy-mounted only when open */}
-      {isRalphOpen && <RalphPanel />}
-
-      {/* Global search command palette (⌘K) */}
-      <CommandPalette />
-
-      {/* Feature tour overlay */}
-      {showTour && (
-        <FeatureTour
-          steps={tourSteps}
-          onComplete={() => setTourDismissed(true)}
-        />
-      )}
-    </div>
-  );
+  return <DashboardLayoutClient>{children}</DashboardLayoutClient>;
 }
