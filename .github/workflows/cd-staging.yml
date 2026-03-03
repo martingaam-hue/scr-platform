@@ -196,19 +196,67 @@ jobs:
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
 
-      - name: Update Celery worker task definition
-        id: celery-worker-taskdef
+      - name: Update worker-critical task definition
+        id: worker-critical-taskdef
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: .github/ecs/staging-celery-worker-taskdef.json
-          container-name: staging-celery-worker
+          task-definition: .github/ecs/staging-worker-critical-taskdef.json
+          container-name: worker-critical
           image: ${{ env.ECR_REGISTRY }}/scr-api:${{ env.IMAGE_TAG }}
 
-      - name: Deploy Celery worker service
+      - name: Deploy worker-critical service
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          task-definition: ${{ steps.celery-worker-taskdef.outputs.task-definition }}
-          service: scr-celery-worker-staging
+          task-definition: ${{ steps.worker-critical-taskdef.outputs.task-definition }}
+          service: scr-worker-critical-staging
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Update worker-default task definition
+        id: worker-default-taskdef
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .github/ecs/staging-worker-default-taskdef.json
+          container-name: worker-default
+          image: ${{ env.ECR_REGISTRY }}/scr-api:${{ env.IMAGE_TAG }}
+
+      - name: Deploy worker-default service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.worker-default-taskdef.outputs.task-definition }}
+          service: scr-worker-default-staging
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Update worker-bulk task definition
+        id: worker-bulk-taskdef
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .github/ecs/staging-worker-bulk-taskdef.json
+          container-name: worker-bulk
+          image: ${{ env.ECR_REGISTRY }}/scr-api:${{ env.IMAGE_TAG }}
+
+      - name: Deploy worker-bulk service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.worker-bulk-taskdef.outputs.task-definition }}
+          service: scr-worker-bulk-staging
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Update worker-webhooks task definition
+        id: worker-webhooks-taskdef
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .github/ecs/staging-worker-webhooks-taskdef.json
+          container-name: worker-webhooks
+          image: ${{ env.ECR_REGISTRY }}/scr-api:${{ env.IMAGE_TAG }}
+
+      - name: Deploy worker-webhooks service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.worker-webhooks-taskdef.outputs.task-definition }}
+          service: scr-worker-webhooks-staging
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
 
