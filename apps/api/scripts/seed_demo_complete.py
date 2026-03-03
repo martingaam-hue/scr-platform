@@ -1212,10 +1212,17 @@ DOCUMENTS = {
 }
 
 CLASSIFICATION_MAP = {
-    "Confidential": DocumentClassification.CONFIDENTIAL,
-    "StrictlyConfidential": DocumentClassification.STRICTLY_CONFIDENTIAL,
-    "Internal": DocumentClassification.INTERNAL,
-    "Public": DocumentClassification.PUBLIC,
+    "Legal": DocumentClassification.LEGAL_AGREEMENT,
+    "Permit": DocumentClassification.PERMIT,
+    "Insurance": DocumentClassification.INSURANCE,
+    "Valuation": DocumentClassification.VALUATION,
+    "ESG / Regulatory": DocumentClassification.ENVIRONMENTAL_REPORT,
+    "Due Diligence": DocumentClassification.TECHNICAL_STUDY,
+    "Technical": DocumentClassification.TECHNICAL_STUDY,
+    "IC Pack": DocumentClassification.PRESENTATION,
+    "Monitoring": DocumentClassification.OTHER,
+    "Financial": DocumentClassification.FINANCIAL_STATEMENT,
+    "Business Plan": DocumentClassification.BUSINESS_PLAN,
 }
 
 
@@ -1268,9 +1275,10 @@ def seed_documents(session: Session, project_ids: dict, org_id: uuid.UUID, user_
                     status=DocumentStatus.READY,
                     uploaded_by=user_id,
                     checksum_sha256="0" * 64,
-                    classification=CLASSIFICATION_MAP.get(classification),
+                    classification=CLASSIFICATION_MAP.get(doc_type),
                     metadata_={
                         "document_type": doc_type,
+                        "access_level": classification,
                         "document_date": str(doc_date),
                         "source": "Demo Seed",
                     },
