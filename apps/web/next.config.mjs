@@ -51,7 +51,6 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "@scr/ui"],
-    middlewareNodeRuntime: true,
   },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
