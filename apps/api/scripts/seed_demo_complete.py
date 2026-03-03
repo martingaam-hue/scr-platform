@@ -1295,46 +1295,55 @@ def seed_documents(session: Session, project_ids: dict, org_id: uuid.UUID, user_
 
 SIGNAL_SCORES = {
     "helios-solar-portfolio-iberia": {
-        "overall_score": Decimal("82.5"),
-        "project_viability_score": Decimal("88.0"),
-        "financial_planning_score": Decimal("85.0"),
-        "risk_assessment_score": Decimal("79.0"),
-        "team_strength_score": Decimal("84.0"),
-        "esg_score": Decimal("78.0"),
-        "ai_summary": (
-            "Strong operational solar portfolio with 56% contracted revenue providing cash-flow "
-            "visibility. DSCR 1.42x comfortably above 1.15x covenant. Merchant tail exposure "
-            "manageable; bifacial upside supports P50. ESG Art. 9, EU Taxonomy aligned. "
-            "Minor amber: merchant price risk and Spanish regulatory environment."
-        ),
+        "overall_score": 83,
+        "project_viability_score": 88,
+        "financial_planning_score": 85,
+        "risk_assessment_score": 79,
+        "team_strength_score": 84,
+        "esg_score": 78,
+        "market_opportunity_score": 80,
+        "scoring_details": {
+            "ai_summary": (
+                "Strong operational solar portfolio with 56% contracted revenue providing cash-flow "
+                "visibility. DSCR 1.42x comfortably above 1.15x covenant. Merchant tail exposure "
+                "manageable; bifacial upside supports P50. ESG Art. 9, EU Taxonomy aligned. "
+                "Minor amber: merchant price risk and Spanish regulatory environment."
+            )
+        },
     },
     "nordvik-wind-farm-ii": {
-        "overall_score": Decimal("76.0"),
-        "project_viability_score": Decimal("79.0"),
-        "financial_planning_score": Decimal("77.0"),
-        "risk_assessment_score": Decimal("71.0"),
-        "team_strength_score": Decimal("82.0"),
-        "esg_score": Decimal("69.0"),
-        "ai_summary": (
-            "Late-stage construction wind farm with strong wind resource (NCF 38.5%). "
-            "85% complete; 7 remaining nacelles in transit. Construction risk amber due to "
-            "winter weather and geotech at T-29 to T-35. NOK/EUR FX naturally hedged. "
-            "Post-COD DSCR projected 1.48x. Sámi agreement resolved key ESG risk."
-        ),
+        "overall_score": 76,
+        "project_viability_score": 79,
+        "financial_planning_score": 77,
+        "risk_assessment_score": 71,
+        "team_strength_score": 82,
+        "esg_score": 69,
+        "market_opportunity_score": 74,
+        "scoring_details": {
+            "ai_summary": (
+                "Late-stage construction wind farm with strong wind resource (NCF 38.5%). "
+                "85% complete; 7 remaining nacelles in transit. Construction risk amber due to "
+                "winter weather and geotech at T-29 to T-35. NOK/EUR FX naturally hedged. "
+                "Post-COD DSCR projected 1.48x. Sámi agreement resolved key ESG risk."
+            )
+        },
     },
     "adriatic-infrastructure-holdings": {
-        "overall_score": Decimal("73.5"),
-        "project_viability_score": Decimal("80.0"),
-        "financial_planning_score": Decimal("75.0"),
-        "risk_assessment_score": Decimal("65.0"),
-        "team_strength_score": Decimal("78.0"),
-        "esg_score": Decimal("70.0"),
-        "ai_summary": (
-            "Diversified core infrastructure portfolio with stable regulated revenues. "
-            "DSCR 1.38x holdco level. Key watchlist: Primorska Voda tariff review 2028 — "
-            "Red risk flag. NRW reduction behind plan (34% vs 30% target). District Energy "
-            "decarbonisation CapEx creates near-term free cash compression. SFDR Art. 8."
-        ),
+        "overall_score": 74,
+        "project_viability_score": 80,
+        "financial_planning_score": 75,
+        "risk_assessment_score": 65,
+        "team_strength_score": 78,
+        "esg_score": 70,
+        "market_opportunity_score": 72,
+        "scoring_details": {
+            "ai_summary": (
+                "Diversified core infrastructure portfolio with stable regulated revenues. "
+                "DSCR 1.38x holdco level. Key watchlist: Primorska Voda tariff review 2028 — "
+                "Red risk flag. NRW reduction behind plan (34% vs 30% target). District Energy "
+                "decarbonisation CapEx creates near-term free cash compression. SFDR Art. 8."
+            )
+        },
     },
 }
 
@@ -1347,7 +1356,6 @@ def seed_signal_scores(session: Session, project_ids: dict, org_id: uuid.UUID, u
         existing = session.execute(
             select(SignalScore).where(
                 SignalScore.project_id == pid,
-                SignalScore.is_deleted == False,  # noqa: E712
             )
         ).scalar_one_or_none()
         if existing:
@@ -1360,8 +1368,8 @@ def seed_signal_scores(session: Session, project_ids: dict, org_id: uuid.UUID, u
             s = SignalScore(
                 id=_uid(),
                 project_id=pid,
-                org_id=org_id,
-                computed_by=user_id,
+                model_used="demo-seed",
+                calculated_at=datetime.utcnow(),
                 **data,
             )
             session.add(s)

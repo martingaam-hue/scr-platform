@@ -178,7 +178,7 @@ jobs:
           service: scr-api-staging
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
-          wait-for-minutes: 10
+          wait-for-minutes: 15
 
       - name: Update Gateway task definition
         id: gateway-taskdef
