@@ -185,6 +185,38 @@ jobs:
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
 
+      - name: Update Celery worker task definition
+        id: celery-worker-taskdef
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .github/ecs/production-celery-worker-taskdef.json
+          container-name: production-celery-worker
+          image: ${{ env.ECR_REGISTRY }}/scr-api:${{ env.IMAGE_TAG }}
+
+      - name: Deploy Celery worker
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.celery-worker-taskdef.outputs.task-definition }}
+          service: scr-celery-worker-production
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Update Celery beat task definition
+        id: celery-beat-taskdef
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .github/ecs/production-celery-beat-taskdef.json
+          container-name: celery-beat
+          image: ${{ env.ECR_REGISTRY }}/scr-api:${{ env.IMAGE_TAG }}
+
+      - name: Deploy Celery beat
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.celery-beat-taskdef.outputs.task-definition }}
+          service: scr-celery-beat-production
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
   # ── Post-deploy ───────────────────────────────────────────────────────────────
   verify:
     name: Production verification

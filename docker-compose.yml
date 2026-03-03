@@ -137,8 +137,8 @@ services:
   #   celery -A app.worker worker -Q retention  --concurrency=1  --max-tasks-per-child=10
   celery-worker:
     build:
-      context: ./apps/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
     container_name: scr-celery-worker
     command: celery -A app.worker worker --loglevel=info -Q critical,default,bulk,webhooks,retention --concurrency=4
     environment:
@@ -162,7 +162,8 @@ services:
   # ── Flower (Celery task monitoring UI) ──────────────────────────────────────
   flower:
     build:
-      context: ./apps/api
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
     command: celery -A app.worker flower --port=5555 --persistent=True --db=/data/flower.db
     ports:
       - "5555:5555"

@@ -196,6 +196,38 @@ jobs:
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
 
+      - name: Update Celery worker task definition
+        id: celery-worker-taskdef
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .github/ecs/staging-celery-worker-taskdef.json
+          container-name: staging-celery-worker
+          image: ${{ env.ECR_REGISTRY }}/scr-api:${{ env.IMAGE_TAG }}
+
+      - name: Deploy Celery worker service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.celery-worker-taskdef.outputs.task-definition }}
+          service: scr-celery-worker-staging
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Update Celery beat task definition
+        id: celery-beat-taskdef
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .github/ecs/staging-celery-beat-taskdef.json
+          container-name: celery-beat
+          image: ${{ env.ECR_REGISTRY }}/scr-api:${{ env.IMAGE_TAG }}
+
+      - name: Deploy Celery beat service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.celery-beat-taskdef.outputs.task-definition }}
+          service: scr-celery-beat-staging
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
   # ── Smoke test ────────────────────────────────────────────────────────────────
   smoke-test:
     name: Smoke test staging

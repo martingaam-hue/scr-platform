@@ -1,0 +1,174 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "celery-beat",
+      "image": "547279162499.dkr.ecr.eu-north-1.amazonaws.com/scr-api:latest",
+      "cpu": 0,
+      "portMappings": [],
+      "essential": true,
+      "command": [
+        "celery",
+        "-A",
+        "app.worker",
+        "beat",
+        "--loglevel=info",
+        "--scheduler=celery.beat:PersistentScheduler",
+        "--schedule=/tmp/celerybeat-schedule"
+      ],
+      "environment": [
+        {
+          "name": "APP_DEBUG",
+          "value": "false"
+        },
+        {
+          "name": "APP_ENV",
+          "value": "production"
+        }
+      ],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/DATABASE_URL"
+        },
+        {
+          "name": "DATABASE_URL_READ_REPLICA",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/DATABASE_URL_READ_REPLICA"
+        },
+        {
+          "name": "REDIS_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/REDIS_URL"
+        },
+        {
+          "name": "CELERY_BROKER_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/CELERY_BROKER_URL"
+        },
+        {
+          "name": "SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/SECRET_KEY"
+        },
+        {
+          "name": "CLERK_SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/CLERK_SECRET_KEY"
+        },
+        {
+          "name": "CLERK_WEBHOOK_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/CLERK_WEBHOOK_SECRET"
+        },
+        {
+          "name": "CLERK_ISSUER_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/CLERK_ISSUER_URL"
+        },
+        {
+          "name": "AI_GATEWAY_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/AI_GATEWAY_API_KEY"
+        },
+        {
+          "name": "AI_GATEWAY_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/AI_GATEWAY_URL"
+        },
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/ANTHROPIC_API_KEY"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/OPENAI_API_KEY"
+        },
+        {
+          "name": "GOOGLE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/GOOGLE_API_KEY"
+        },
+        {
+          "name": "XAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/XAI_API_KEY"
+        },
+        {
+          "name": "DEEPSEEK_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/DEEPSEEK_API_KEY"
+        },
+        {
+          "name": "PINECONE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/PINECONE_API_KEY"
+        },
+        {
+          "name": "RESEND_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/RESEND_API_KEY"
+        },
+        {
+          "name": "SENTRY_DSN",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/SENTRY_DSN"
+        },
+        {
+          "name": "AWS_ACCESS_KEY_ID",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/AWS_ACCESS_KEY_ID"
+        },
+        {
+          "name": "AWS_SECRET_ACCESS_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/AWS_SECRET_ACCESS_KEY"
+        },
+        {
+          "name": "HUBSPOT_CLIENT_ID",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/HUBSPOT_CLIENT_ID"
+        },
+        {
+          "name": "HUBSPOT_CLIENT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/HUBSPOT_CLIENT_SECRET"
+        },
+        {
+          "name": "SALESFORCE_CONSUMER_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/SALESFORCE_CONSUMER_KEY"
+        },
+        {
+          "name": "SALESFORCE_CONSUMER_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/SALESFORCE_CONSUMER_SECRET"
+        },
+        {
+          "name": "FRED_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/FRED_API_KEY"
+        },
+        {
+          "name": "ALPHA_VANTAGE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/ALPHA_VANTAGE_API_KEY"
+        },
+        {
+          "name": "EMBER_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/EMBER_API_KEY"
+        },
+        {
+          "name": "EIA_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/EIA_API_KEY"
+        },
+        {
+          "name": "OPENWEATHER_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/OPENWEATHER_API_KEY"
+        },
+        {
+          "name": "COMPANIES_HOUSE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/COMPANIES_HOUSE_API_KEY"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/scr-production/celery-beat",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "celery-beat"
+        }
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "scr-celery-beat-production",
+  "taskRoleArn": "arn:aws:iam::547279162499:role/scr-production-ecs-task",
+  "executionRoleArn": "arn:aws:iam::547279162499:role/scr-production-ecs-exec",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512"
+}
