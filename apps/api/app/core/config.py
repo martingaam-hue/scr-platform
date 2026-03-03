@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str = "minioadmin"
     AWS_SECRET_ACCESS_KEY: str = "minioadmin"
     AWS_S3_BUCKET: str = "scr-documents"
-    AWS_S3_ENDPOINT_URL: str = "http://localhost:9000"
+    AWS_S3_ENDPOINT_URL: str = ""
     AWS_S3_REGION: str = "eu-north-1"
 
     # HubSpot OAuth

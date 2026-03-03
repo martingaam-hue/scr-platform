@@ -27,7 +27,7 @@ def _get_s3_client():
     """Create a boto3 S3 client configured for MinIO / AWS."""
     return boto3.client(
         "s3",
-        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+        endpoint_url=settings.AWS_S3_ENDPOINT_URL or None,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         region_name=settings.AWS_S3_REGION,

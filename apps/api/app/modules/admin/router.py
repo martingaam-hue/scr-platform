@@ -371,7 +371,7 @@ async def get_backup_status(
     try:
         s3 = boto3.client(
             "s3",
-            endpoint_url=getattr(settings, "AWS_S3_ENDPOINT_URL", None),
+            endpoint_url=settings.AWS_S3_ENDPOINT_URL or None,
             aws_access_key_id=getattr(settings, "AWS_ACCESS_KEY_ID", None),
             aws_secret_access_key=getattr(settings, "AWS_SECRET_ACCESS_KEY", None),
             region_name=getattr(settings, "AWS_S3_REGION", "eu-west-1"),
