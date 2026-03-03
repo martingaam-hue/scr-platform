@@ -363,36 +363,6 @@ function getNavForRole(orgType?: string): NavSection[] {
   }
 }
 
-// ── Simplified mode navs (platform switcher) ─────────────────────────────
-
-const ALLY_MODE_NAV: NavSection[] = [
-  {
-    items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Projects", href: "/projects", icon: FolderKanban },
-      { label: "Development OS", href: "/development-os", icon: Monitor },
-      { label: "Funding", href: "/funding", icon: Wallet },
-      { label: "Data Room", href: "/data-room", icon: FolderLock },
-      { label: "Deal Rooms", href: "/deal-rooms", icon: MessageSquare },
-      { label: "Business Plan", href: "/business-plan", icon: FileText },
-    ],
-  },
-];
-
-const INVESTOR_MODE_NAV: NavSection[] = [
-  {
-    items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Portfolio", href: "/portfolio", icon: Briefcase },
-      { label: "Deals", href: "/deals", icon: FolderKanban },
-      { label: "Analytics", href: "/analytics/deal-flow", icon: BarChart3 },
-      { label: "Screening", href: "/screener", icon: ScanSearch },
-      { label: "Matching", href: "/matching", icon: Zap },
-      { label: "Reports", href: "/reports", icon: BarChart3 },
-    ],
-  },
-];
-
 // ── Mode switcher ────────────────────────────────────────────────────────
 
 function ModeSwitcher({
@@ -563,8 +533,8 @@ export function Sidebar() {
   const navSections = isAdmin
     ? adminNav
     : effectiveMode === "investor"
-    ? INVESTOR_MODE_NAV
-    : ALLY_MODE_NAV;
+    ? investorNav
+    : allyNav;
 
   // Track which collapsible sections are collapsed (by title)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
