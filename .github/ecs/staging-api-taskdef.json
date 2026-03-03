@@ -31,7 +31,11 @@
         },
         {
           "name": "FRONTEND_URL",
-          "value": "https://scr-platform-web-2.vercel.app"
+          "value": "https://app.pampgroup.com"
+        },
+        {
+          "name": "AWS_S3_REGION",
+          "value": "eu-north-1"
         }
       ],
       "mountPoints": [],

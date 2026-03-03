@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false  # Never cancel in-progress deploys
 
 env:
-  AWS_REGION: eu-west-1
+  AWS_REGION: eu-north-1
   ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
   ECS_CLUSTER: scr-staging
   IMAGE_TAG: ${{ github.sha }}

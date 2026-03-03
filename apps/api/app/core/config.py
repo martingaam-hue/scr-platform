@@ -80,7 +80,12 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str = "minioadmin"
     AWS_S3_BUCKET: str = "scr-documents"
     AWS_S3_ENDPOINT_URL: str = "http://localhost:9000"
-    AWS_S3_REGION: str = "us-east-1"
+    AWS_S3_REGION: str = "eu-north-1"
+
+    # HubSpot OAuth
+    HUBSPOT_CLIENT_ID: str = ""
+    HUBSPOT_CLIENT_SECRET: str = ""
+    HUBSPOT_REDIRECT_URI: str = ""
 
     # Salesforce OAuth
     SALESFORCE_CLIENT_ID: str = ""
@@ -102,6 +107,13 @@ class Settings(BaseSettings):
     BNEF_API_KEY: str = ""                  # Bloomberg NEF — subscription required
     MSCI_ESG_API_KEY: str = ""              # MSCI ESG Research — subscription required
     PREQIN_API_KEY: str = ""                # Preqin Pro — subscription required
+
+    # Google (Maps, Places, Custom Search)
+    GOOGLE_API_KEY: str = ""
+
+    # Additional LLM providers (routed via AI Gateway)
+    XAI_API_KEY: str = ""           # xAI Grok — https://x.ai/api
+    DEEPSEEK_API_KEY: str = ""      # DeepSeek — https://platform.deepseek.com
 
     # Custom Domain (E03)
     CUSTOM_DOMAIN_CNAME_TARGET: str = "custom.scr.io"
