@@ -13,13 +13,13 @@ logger = structlog.get_logger()
 @shared_task(name="tasks.check_upcoming_deadlines", bind=True, max_retries=3, default_retry_delay=300)
 def check_upcoming_deadlines(self) -> dict:
     """Send 30/14/7/1-day reminder notifications for upcoming compliance deadlines."""
-    from app.core.database import AsyncSessionLocal
+    from app.core.database import async_session_factory
     from app.modules.compliance.service import get_reminder_candidates, mark_reminder_sent
     from app.models.core import Notification
 
     async def _run() -> dict:
         sent = 0
-        async with AsyncSessionLocal() as db:
+        async with async_session_factory() as db:
             for days in [30, 14, 7, 1]:
                 deadlines = await get_reminder_candidates(db, days)
                 for deadline in deadlines:
@@ -41,7 +41,7 @@ def check_upcoming_deadlines(self) -> dict:
         return {"status": "ok", "reminders_sent": sent}
 
     try:
-        return asyncio.get_event_loop().run_until_complete(_run())
+        return asyncio.run(_run())
     except Exception as exc:
         raise self.retry(exc=exc)
 
@@ -49,15 +49,15 @@ def check_upcoming_deadlines(self) -> dict:
 @shared_task(name="tasks.flag_overdue_deadlines", bind=True, max_retries=3, default_retry_delay=300)
 def flag_overdue_deadlines(self) -> dict:
     """Mark past-due deadlines as overdue and notify assigned users."""
-    from app.core.database import AsyncSessionLocal
+    from app.core.database import async_session_factory
     from app.modules.compliance.service import flag_overdue
 
     async def _run() -> dict:
-        async with AsyncSessionLocal() as db:
+        async with async_session_factory() as db:
             count = await flag_overdue(db)
         return {"status": "ok", "flagged_overdue": count}
 
     try:
-        return asyncio.get_event_loop().run_until_complete(_run())
+        return asyncio.run(_run())
     except Exception as exc:
         raise self.retry(exc=exc)

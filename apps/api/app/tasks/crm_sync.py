@@ -18,28 +18,36 @@ def sync_crm_connections() -> dict:
 
 
 async def _run() -> dict:
-    from app.core.database import async_session_factory
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+    from app.core.config import settings
     from app.models.crm import CRMConnection
     from app.modules.crm_sync.service import CRMSyncService
 
-    async with async_session_factory() as db:
-        result = await db.execute(
-            select(CRMConnection).where(CRMConnection.is_active.is_(True))
-        )
-        connections = result.scalars().all()
-        synced = 0
-        for conn in connections:
-            try:
-                svc = CRMSyncService(db, conn.org_id)
-                await svc.trigger_sync(conn.id)
-                synced += 1
-            except Exception as e:
-                logger.warning(
-                    "crm_sync_connection_failed",
-                    connection_id=str(conn.id),
-                    org_id=str(conn.org_id),
-                    error=str(e),
-                )
-        await db.commit()
-        logger.info("crm_sync_complete", connections_synced=synced)
-        return {"connections_synced": synced}
+    # Create a fresh engine per invocation so it binds to the current event loop
+    engine = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True)
+    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    try:
+        async with session_factory() as db:
+            result = await db.execute(
+                select(CRMConnection).where(CRMConnection.is_active.is_(True))
+            )
+            connections = result.scalars().all()
+            synced = 0
+            for conn in connections:
+                try:
+                    svc = CRMSyncService(db, conn.org_id)
+                    await svc.trigger_sync(conn.id)
+                    synced += 1
+                except Exception as e:
+                    logger.warning(
+                        "crm_sync_connection_failed",
+                        connection_id=str(conn.id),
+                        org_id=str(conn.org_id),
+                        error=str(e),
+                    )
+            await db.commit()
+            logger.info("crm_sync_complete", connections_synced=synced)
+            return {"connections_synced": synced}
+    finally:
+        await engine.dispose()

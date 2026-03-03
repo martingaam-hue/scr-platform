@@ -16,11 +16,11 @@ def fetch_daily_fx_rates(self) -> dict:
 
     Scheduled by Celery Beat at 15:00 UTC (4pm CET / 3pm UTC in winter).
     """
-    from app.core.database import AsyncSessionLocal
+    from app.core.database import async_session_factory
     from app.modules.fx.service import fetch_ecb_rates
 
     async def _run() -> dict:
-        async with AsyncSessionLocal() as db:
+        async with async_session_factory() as db:
             try:
                 rates = await fetch_ecb_rates(db)
                 logger.info("fx_task.complete", currencies=len(rates))
@@ -30,6 +30,6 @@ def fetch_daily_fx_rates(self) -> dict:
                 raise
 
     try:
-        return asyncio.get_event_loop().run_until_complete(_run())
+        return asyncio.run(_run())
     except Exception as exc:
         raise self.retry(exc=exc)

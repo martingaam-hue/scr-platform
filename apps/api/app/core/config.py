@@ -57,9 +57,16 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://scr_user:scr_password@localhost:5432/scr_platform"
-    DATABASE_URL_SYNC: str = "postgresql://scr_user:scr_password@localhost:5432/scr_platform"
+    # Sync URL used by Celery tasks (sync SQLAlchemy). Derived from DATABASE_URL when not set.
+    DATABASE_URL_SYNC: str = ""
     # Optional read replica — if unset, all reads go to the primary
     DATABASE_URL_READ_REPLICA: str | None = None
+
+    @model_validator(mode="after")
+    def _compute_sync_url(self) -> "Settings":
+        if not self.DATABASE_URL_SYNC:
+            self.DATABASE_URL_SYNC = self.DATABASE_URL.replace("+asyncpg", "")
+        return self
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
