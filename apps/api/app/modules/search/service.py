@@ -47,6 +47,10 @@ async def search(
     documents: list[DocumentHit] = []
     total = 0
 
+    if client is None:
+        logger.info("search.skipped", reason="elasticsearch not configured", query=query)
+        return SearchResponse(query=query, total=0, projects=[], listings=[], documents=[])
+
     try:
         org_str = str(org_id)
 
@@ -211,6 +215,9 @@ async def reindex_all(db: AsyncSession) -> ReindexResponse:
     """Bulk reindex all projects, listings, and documents into ElasticSearch."""
     client = get_es_client()
     errors: list[str] = []
+    if client is None:
+        logger.warning("reindex.skipped", reason="elasticsearch not configured")
+        return ReindexResponse(indexed_projects=0, indexed_listings=0, indexed_documents=0, errors=["Elasticsearch not configured"])
     indexed_projects = 0
     indexed_listings = 0
     indexed_documents = 0

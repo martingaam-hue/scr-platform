@@ -258,11 +258,14 @@ async def health_check() -> dict:
     try:
         from app.core.elasticsearch import get_es_client
         es = get_es_client()
-        info = await asyncio.wait_for(es.info(), timeout=3.0)
-        checks["elasticsearch"] = {
-            "status": "healthy",
-            "version": info.get("version", {}).get("number", "unknown"),
-        }
+        if es is None:
+            checks["elasticsearch"] = {"status": "not_configured"}
+        else:
+            info = await asyncio.wait_for(es.info(), timeout=3.0)
+            checks["elasticsearch"] = {
+                "status": "healthy",
+                "version": info.get("version", {}).get("number", "unknown"),
+            }
     except Exception as exc:
         checks["elasticsearch"] = {"status": "unhealthy", "error": str(exc)}
 
@@ -276,7 +279,7 @@ async def health_check() -> dict:
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             region_name=settings.AWS_S3_REGION,
-            config=BotoConfig(connect_timeout=2, read_timeout=2),
+            config=BotoConfig(connect_timeout=2, read_timeout=2, max_attempts=1),
         )
         s3.head_bucket(Bucket=settings.AWS_S3_BUCKET)
         checks["s3"] = {"status": "healthy"}

@@ -1,0 +1,105 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "ai-gateway",
+      "image": "547279162499.dkr.ecr.eu-north-1.amazonaws.com/scr-ai-gateway:latest",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "containerPort": 8001,
+          "hostPort": 8001,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "APP_ENV",
+          "value": "staging"
+        }
+      ],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "secrets": [
+        {
+          "name": "AI_GATEWAY_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/AI_GATEWAY_API_KEY"
+        },
+        {
+          "name": "AI_GATEWAY_API_KEY_PREVIOUS",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/AI_GATEWAY_API_KEY_PREVIOUS"
+        },
+        {
+          "name": "REDIS_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/REDIS_URL"
+        },
+        {
+          "name": "SENTRY_DSN",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/SENTRY_DSN"
+        },
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/ANTHROPIC_API_KEY"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/OPENAI_API_KEY"
+        },
+        {
+          "name": "GOOGLE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/GOOGLE_API_KEY"
+        },
+        {
+          "name": "XAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/XAI_API_KEY"
+        },
+        {
+          "name": "DEEPSEEK_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/DEEPSEEK_API_KEY"
+        },
+        {
+          "name": "PINECONE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/PINECONE_API_KEY"
+        },
+        {
+          "name": "FRED_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/FRED_API_KEY"
+        },
+        {
+          "name": "ALPHA_VANTAGE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/ALPHA_VANTAGE_API_KEY"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/scr-staging/ai-gateway",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "gateway"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:8001/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3,
+        "startPeriod": 10
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "scr-ai-gateway-staging",
+  "taskRoleArn": "arn:aws:iam::547279162499:role/scr-staging-ecs-task",
+  "executionRoleArn": "arn:aws:iam::547279162499:role/scr-staging-ecs-exec",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024"
+}

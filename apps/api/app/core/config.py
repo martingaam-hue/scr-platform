@@ -65,8 +65,8 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"
 
-    # ElasticSearch
-    ELASTICSEARCH_URL: str = "http://localhost:9200"
+    # ElasticSearch — optional; when unset, search returns empty results gracefully
+    ELASTICSEARCH_URL: str | None = None
 
     # Auth (Clerk)
     CLERK_SECRET_KEY: str = ""

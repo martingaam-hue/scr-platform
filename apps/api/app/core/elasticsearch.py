@@ -74,9 +74,15 @@ _MAPPINGS: dict[str, dict] = {
 _client: AsyncElasticsearch | None = None
 
 
-def get_es_client() -> AsyncElasticsearch:
-    """Return the shared async ES client (lazy-initialised)."""
+def get_es_client() -> AsyncElasticsearch | None:
+    """Return the shared async ES client (lazy-initialised).
+
+    Returns None when ELASTICSEARCH_URL is not configured so callers can
+    skip search operations entirely rather than hitting localhost:9200.
+    """
     global _client
+    if settings.ELASTICSEARCH_URL is None:
+        return None
     if _client is None:
         _client = AsyncElasticsearch(
             hosts=[settings.ELASTICSEARCH_URL],
@@ -91,9 +97,12 @@ async def setup_indices() -> None:
     """Create indices with mappings if they don't exist.
 
     Called from the FastAPI lifespan handler at startup.  Errors are logged
-    but never raised — the app starts even if ES is down.
+    but never raised — the app starts even if ES is down or not configured.
     """
     client = get_es_client()
+    if client is None:
+        logger.info("es.skipped", reason="ELASTICSEARCH_URL not configured")
+        return
     try:
         for index_name, body in _MAPPINGS.items():
             exists = await client.indices.exists(index=index_name)
