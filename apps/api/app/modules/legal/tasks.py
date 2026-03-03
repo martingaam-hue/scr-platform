@@ -3,21 +3,11 @@
 import uuid
 
 import structlog
-from celery import Celery
 
+from app.core.celery_app import celery_app
 from app.core.config import settings
 
 logger = structlog.get_logger()
-
-celery_app = Celery("legal", broker=settings.CELERY_BROKER_URL)
-celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    task_track_started=True,
-    task_acks_late=True,
-    worker_prefetch_multiplier=1,
-)
 
 
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)

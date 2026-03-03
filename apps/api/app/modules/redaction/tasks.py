@@ -46,7 +46,7 @@ def _apply_redaction(job_id: str) -> None:
 
 # Register with the main Celery worker if available
 try:
-    from app.worker import celery_app
+    from app.core.celery_app import celery_app
 
     @celery_app.task(name="tasks.analyze_redaction_job", bind=True, max_retries=2, soft_time_limit=120, time_limit=180)  # type: ignore[misc]
     def analyze_redaction_job_task(self, job_id: str, document_text: str) -> None:  # type: ignore[misc]

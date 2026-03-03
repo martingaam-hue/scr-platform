@@ -3,21 +3,11 @@
 import uuid
 
 import structlog
-from celery import Celery
 
+from app.core.celery_app import celery_app
 from app.core.config import settings
 
 logger = structlog.get_logger()
-
-celery_app = Celery("projects", broker=settings.CELERY_BROKER_URL)
-celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    task_track_started=True,
-    task_acks_late=True,
-    worker_prefetch_multiplier=1,
-)
 
 ACTION_PROMPTS = {
     "executive_summary": (

@@ -5,79 +5,54 @@ Start worker:    celery -A app.worker worker --loglevel=info
 Start beat:      celery -A app.worker beat --loglevel=info
 Start both:      celery -A app.worker worker --beat --loglevel=info
 """
-from celery import Celery
 from celery.schedules import crontab
 
-from app.core.celery_config import (
-    CELERY_QUEUES,
-    CELERY_TASK_ANNOTATIONS,
-    CELERY_TASK_ROUTES,
-)
+from app.core.celery_app import celery_app
 from app.core.config import settings
 from app.core.sentry import init_sentry
 
 # Sentry must be initialised before Celery tasks are registered
 init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
 
-celery_app = Celery(
-    "scr_worker",
-    broker=settings.CELERY_BROKER_URL,
-    backend=settings.REDIS_URL,
-    include=[
-        "app.modules.signal_score.tasks",
-        "app.modules.deal_intelligence.tasks",
-        "app.modules.reporting.tasks",
-        "app.modules.matching.tasks",
-        "app.modules.projects.tasks",
-        "app.modules.risk.tasks",
-        "app.modules.due_diligence.tasks",
-        "app.modules.legal.tasks",
-        "app.modules.tax_credits.tasks",
-        "app.modules.valuation.tasks",
-        "app.modules.dataroom.tasks",
-        "app.worker_tasks",
-        "app.tasks.weekly_digest",
-        "app.tasks.fx_rates",
-        "app.tasks.compliance",
-        "app.tasks.watchlists",
-        "app.tasks.blockchain",
-        "app.tasks.benchmarks",
-        "app.tasks.qa_sla",
-        "app.tasks.monitoring",
-        "app.tasks.crm_sync",
-        "app.modules.expert_insights.tasks",
-        "app.modules.webhooks.tasks",
-        "app.modules.redaction.tasks",
-        "app.modules.market_data.tasks",
-        "app.tasks.backup",
-        "app.tasks.data_retention",
-        "app.tasks.partition_manager",
-        "app.tasks.external_data",
-        "app.tasks.stuck_docs",
-    ],
-)
-
-celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    timezone="UTC",
-    enable_utc=True,
-    task_track_started=True,
-    task_acks_late=True,
-    task_reject_on_worker_lost=True,  # Re-queue if worker is killed mid-task
-    worker_prefetch_multiplier=1,
-    result_expires=86400,  # 24h
-    # ── Queue topology ────────────────────────────────────────────────────────
-    task_queues=CELERY_QUEUES,
-    task_routes=CELERY_TASK_ROUTES,
-    task_annotations=CELERY_TASK_ANNOTATIONS,
-    task_default_queue="default",
-    task_default_exchange="default",
-    task_default_routing_key="default",
-)
+celery_app.conf.include = [
+    "app.modules.signal_score.tasks",
+    "app.modules.deal_intelligence.tasks",
+    "app.modules.reporting.tasks",
+    "app.modules.matching.tasks",
+    "app.modules.projects.tasks",
+    "app.modules.risk.tasks",
+    "app.modules.due_diligence.tasks",
+    "app.modules.legal.tasks",
+    "app.modules.tax_credits.tasks",
+    "app.modules.valuation.tasks",
+    "app.modules.dataroom.tasks",
+    "app.worker_tasks",
+    "app.tasks.weekly_digest",
+    "app.tasks.fx_rates",
+    "app.tasks.compliance",
+    "app.tasks.watchlists",
+    "app.tasks.blockchain",
+    "app.tasks.benchmarks",
+    "app.tasks.qa_sla",
+    "app.tasks.monitoring",
+    "app.tasks.crm_sync",
+    "app.modules.expert_insights.tasks",
+    "app.modules.webhooks.tasks",
+    "app.modules.redaction.tasks",
+    "app.modules.market_data.tasks",
+    "app.tasks.backup",
+    "app.tasks.data_retention",
+    "app.tasks.partition_manager",
+    "app.tasks.external_data",
+    "app.tasks.stuck_docs",
+]
 
 celery_app.conf.beat_schedule = {
+    # ── Matching score refresh ────────────────────────────────────────────────
+    "batch-match-refresh": {
+        "task": "app.modules.matching.tasks.batch_calculate_matches",
+        "schedule": crontab(hour=2, minute=0),  # daily 02:00 UTC
+    },
     # ── Stuck document cleanup ───────────────────────────────────────────────
     "cleanup-stuck-documents": {
         "task": "tasks.cleanup_stuck_documents",

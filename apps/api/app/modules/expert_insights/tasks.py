@@ -33,7 +33,7 @@ def enrich_expert_note_task_celery(note_id: str) -> None:
 
 # Register with the main Celery worker if available
 try:
-    from app.worker import celery_app
+    from app.core.celery_app import celery_app
 
     @celery_app.task(name="tasks.enrich_expert_note", bind=True, max_retries=3, soft_time_limit=120, time_limit=180)  # type: ignore[misc]
     def _enrich_expert_note_celery(self, note_id: str) -> None:  # type: ignore[misc]

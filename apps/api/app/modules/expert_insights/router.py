@@ -56,7 +56,7 @@ async def create_expert_note(
     # Fire-and-forget: try Celery first, fall back to BackgroundTask
     note_id_str = str(note.id)
     try:
-        from app.worker import celery_app
+        from app.core.celery_app import celery_app
 
         celery_app.send_task("tasks.enrich_expert_note", args=[note_id_str])
     except Exception:
@@ -177,7 +177,7 @@ async def enrich_expert_note(
 
     note_id_str = str(note.id)
     try:
-        from app.worker import celery_app
+        from app.core.celery_app import celery_app
 
         celery_app.send_task("tasks.enrich_expert_note", args=[note_id_str])
     except Exception:

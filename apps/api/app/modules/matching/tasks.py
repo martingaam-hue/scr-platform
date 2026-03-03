@@ -3,30 +3,11 @@
 import uuid
 
 import structlog
-from celery import Celery
-from celery.schedules import crontab
 
+from app.core.celery_app import celery_app
 from app.core.config import settings
 
 logger = structlog.get_logger()
-
-celery_app = Celery("matching", broker=settings.CELERY_BROKER_URL)
-celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    task_track_started=True,
-    task_acks_late=True,
-    worker_prefetch_multiplier=1,
-)
-
-# Daily at 02:00 UTC
-celery_app.conf.beat_schedule = {
-    "batch-match-refresh": {
-        "task": "app.modules.matching.tasks.batch_calculate_matches",
-        "schedule": crontab(hour=2, minute=0),
-    }
-}
 
 
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=60, soft_time_limit=120, time_limit=180)

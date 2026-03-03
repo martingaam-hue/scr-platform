@@ -7,20 +7,10 @@ import uuid
 
 import structlog
 
+from app.core.celery_app import celery_app
 from app.core.config import settings
-from celery import Celery
 
 logger = structlog.get_logger()
-
-_celery = Celery("dd_tasks", broker=settings.CELERY_BROKER_URL)
-_celery.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    task_track_started=True,
-    task_acks_late=True,
-    worker_prefetch_multiplier=1,
-)
 
 
 async def _async_review(
@@ -157,7 +147,7 @@ async def _async_review(
         )
 
 
-@_celery.task(name="tasks.review_dd_item", bind=True, max_retries=3, soft_time_limit=120, time_limit=180)
+@celery_app.task(name="tasks.review_dd_item", bind=True, max_retries=3, soft_time_limit=120, time_limit=180)
 def review_dd_item_task(self, item_status_id: str, document_id: str, criteria: str):
     """AI review of a document against a DD checklist item."""
     try:

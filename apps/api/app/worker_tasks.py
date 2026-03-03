@@ -5,22 +5,13 @@ All DB operations use SyncSession pattern (same as signal_score/tasks.py).
 """
 import structlog
 
+from app.core.celery_app import celery_app
+from app.core.config import settings
+
 logger = structlog.get_logger()
 
 
-def _get_celery_app():
-    from app.worker import celery_app
-    return celery_app
-
-
-# Lazy import celery_app to avoid circular imports
-from app.core.config import settings
-from celery import Celery
-
-_celery = Celery("scr_worker", broker=settings.CELERY_BROKER_URL)
-
-
-@_celery.task(name="app.worker_tasks.refresh_external_feed", bind=True, max_retries=2)
+@celery_app.task(name="app.worker_tasks.refresh_external_feed", bind=True, max_retries=2)
 def refresh_external_feed(self, feed_name: str) -> dict:
     """Trigger feed refresh in AI Gateway via HTTP."""
     import httpx
@@ -39,7 +30,7 @@ def refresh_external_feed(self, feed_name: str) -> dict:
         raise self.retry(exc=exc, countdown=60) from exc
 
 
-@_celery.task(name="app.worker_tasks.risk_monitoring_cycle", bind=True, max_retries=1)
+@celery_app.task(name="app.worker_tasks.risk_monitoring_cycle", bind=True, max_retries=1)
 def risk_monitoring_cycle(self) -> dict:
     """Run risk monitoring check for all active portfolios."""
     from sqlalchemy import create_engine, select
@@ -73,7 +64,7 @@ def risk_monitoring_cycle(self) -> dict:
         raise self.retry(exc=exc, countdown=300) from exc
 
 
-@_celery.task(name="app.worker_tasks.check_live_score_updates", bind=True, max_retries=1)
+@celery_app.task(name="app.worker_tasks.check_live_score_updates", bind=True, max_retries=1)
 def check_live_score_updates(self) -> dict:
     """Check for projects with live scoring enabled and trigger updates."""
     from sqlalchemy import create_engine, select

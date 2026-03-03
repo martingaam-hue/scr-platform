@@ -5,23 +5,13 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import structlog
-from celery import Celery
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.core.celery_app import celery_app
 from app.core.config import settings
 
 logger = structlog.get_logger()
-
-celery_app = Celery("dataroom", broker=settings.CELERY_BROKER_URL)
-celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    task_track_started=True,
-    task_acks_late=True,
-    worker_prefetch_multiplier=1,
-)
 
 
 # ── Document Processing Pipeline ────────────────────────────────────────────
