@@ -25,7 +25,13 @@ WORKDIR /app
 
 # Build-time env vars (NEXT_PUBLIC_* are baked into the JS bundle)
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=""
+ARG NEXT_PUBLIC_SENTRY_DSN=""
+ARG NEXT_PUBLIC_APP_ENV="staging"
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY \
+    NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
+    NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV
 
 # Restore the pnpm virtual store so the build can resolve workspace links
 COPY --from=deps /app/node_modules ./node_modules
@@ -71,8 +77,10 @@ COPY --from=builder /app/apps/web/public ./apps/web/public
 
 USER nextjs
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD wget -qO- http://localhost:3000/ || exit 1
+# Use 127.0.0.1 (not localhost) — BusyBox wget resolves localhost → ::1 (IPv6)
+# but Next.js only binds IPv4. /api/health returns 200 without auth.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME="0.0.0.0"

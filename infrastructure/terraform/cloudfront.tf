@@ -58,7 +58,7 @@ resource "aws_acm_certificate_validation" "wildcard" {
   validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
 }
 
-# ── ACM Certificate (eu-west-1 — required for ALB) ───────────────────────────
+# ── ACM Certificate (var.aws_region — required for ALB) ──────────────────────
 
 resource "aws_acm_certificate" "alb" {
   domain_name       = "*.${var.domain_name}"
