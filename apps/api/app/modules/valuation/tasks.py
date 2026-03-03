@@ -21,7 +21,7 @@ celery_app.conf.update(
 )
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
 def generate_valuation_report_task(self, report_id: str) -> dict:
     """Generate a valuation report as HTML and upload to S3.
 
@@ -165,17 +165,17 @@ def _generate_narrative_sync(
         "Do NOT use bullet points. Output plain prose only."
     )
     try:
-        resp = httpx.post(
-            f"{settings.AI_GATEWAY_URL}/v1/completions",
-            json={
-                "prompt": prompt,
-                "task_type": "analysis",
-                "max_tokens": 250,
-                "temperature": 0.4,
-            },
-            headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-            timeout=60.0,
-        )
+        with httpx.Client(timeout=60.0) as client:
+            resp = client.post(
+                f"{settings.AI_GATEWAY_URL}/v1/completions",
+                json={
+                    "prompt": prompt,
+                    "task_type": "analysis",
+                    "max_tokens": 250,
+                    "temperature": 0.4,
+                },
+                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+            )
         resp.raise_for_status()
         return resp.json().get("content", "").strip()
     except Exception:

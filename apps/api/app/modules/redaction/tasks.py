@@ -48,14 +48,14 @@ def _apply_redaction(job_id: str) -> None:
 try:
     from app.worker import celery_app
 
-    @celery_app.task(name="tasks.analyze_redaction_job", bind=True, max_retries=2)  # type: ignore[misc]
+    @celery_app.task(name="tasks.analyze_redaction_job", bind=True, max_retries=2, soft_time_limit=120, time_limit=180)  # type: ignore[misc]
     def analyze_redaction_job_task(self, job_id: str, document_text: str) -> None:  # type: ignore[misc]
         try:
             _analyze_redaction_job(job_id, document_text)
         except Exception as exc:
             raise self.retry(exc=exc, countdown=30)
 
-    @celery_app.task(name="tasks.apply_redaction", bind=True, max_retries=2)  # type: ignore[misc]
+    @celery_app.task(name="tasks.apply_redaction", bind=True, max_retries=2, soft_time_limit=120, time_limit=180)  # type: ignore[misc]
     def apply_redaction_task(self, job_id: str) -> None:  # type: ignore[misc]
         try:
             _apply_redaction(job_id)

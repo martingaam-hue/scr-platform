@@ -74,7 +74,7 @@ def _parse_json_from_content(content: str) -> dict:
 # ── Screen Deal Task ─────────────────────────────────────────────────────────
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
 def screen_deal_task(
     self,
     project_id: str,
@@ -280,15 +280,15 @@ def screen_deal_task(
                     _screening_payload["messages"] = _screening_messages
                 else:
                     _screening_payload["prompt"] = prompt
-                response = httpx.post(
-                    f"{settings.AI_GATEWAY_URL}/v1/completions",
-                    json=_screening_payload,
-                    headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-                    timeout=120.0,
-                )
+                with httpx.Client(timeout=120.0) as client:
+                    response = client.post(
+                        f"{settings.AI_GATEWAY_URL}/v1/completions",
+                        json=_screening_payload,
+                        headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                    )
                 response.raise_for_status()
                 resp_data = response.json()
-                content = resp_data.get("content") or resp_data.get("choices", [{}])[0].get("text", "")
+                content = resp_data.get("content") or resp_data.get("text", "")
 
                 parsed = _parse_json_from_content(content)
                 parsed["project_id"] = str(project_id)
@@ -353,7 +353,7 @@ def screen_deal_task(
 # ── Generate Memo Task ───────────────────────────────────────────────────────
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
 def generate_memo_task(
     self,
     project_id: str,
@@ -521,15 +521,15 @@ def generate_memo_task(
                 _memo_payload["messages"] = _memo_messages
             else:
                 _memo_payload["prompt"] = prompt
-            response = httpx.post(
-                f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json=_memo_payload,
-                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-                timeout=180.0,
-            )
+            with httpx.Client(timeout=180.0) as client:
+                response = client.post(
+                    f"{settings.AI_GATEWAY_URL}/v1/completions",
+                    json=_memo_payload,
+                    headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                )
             response.raise_for_status()
             resp_data = response.json()
-            content = resp_data.get("content") or resp_data.get("choices", [{}])[0].get("text", "")
+            content = resp_data.get("content") or resp_data.get("text", "")
 
             # Wrap in branded HTML
             now = datetime.now(timezone.utc)

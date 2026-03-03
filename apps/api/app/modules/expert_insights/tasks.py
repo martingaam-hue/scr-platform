@@ -35,7 +35,7 @@ def enrich_expert_note_task_celery(note_id: str) -> None:
 try:
     from app.worker import celery_app
 
-    @celery_app.task(name="tasks.enrich_expert_note", bind=True, max_retries=3)  # type: ignore[misc]
+    @celery_app.task(name="tasks.enrich_expert_note", bind=True, max_retries=3, soft_time_limit=120, time_limit=180)  # type: ignore[misc]
     def _enrich_expert_note_celery(self, note_id: str) -> None:  # type: ignore[misc]
         try:
             enrich_expert_note_task(note_id)

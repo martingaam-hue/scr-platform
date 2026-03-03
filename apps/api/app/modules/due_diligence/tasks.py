@@ -157,7 +157,7 @@ async def _async_review(
         )
 
 
-@_celery.task(name="tasks.review_dd_item", bind=True, max_retries=3)
+@_celery.task(name="tasks.review_dd_item", bind=True, max_retries=3, soft_time_limit=120, time_limit=180)
 def review_dd_item_task(self, item_status_id: str, document_id: str, criteria: str):
     """AI review of a document against a DD checklist item."""
     try:

@@ -11,7 +11,7 @@ from celery import shared_task
 logger = structlog.get_logger()
 
 
-@shared_task(name="tasks.deliver_webhook", bind=True, max_retries=0)
+@shared_task(name="tasks.deliver_webhook", bind=True, max_retries=0, soft_time_limit=120, time_limit=180)
 def deliver_webhook_task(self, delivery_id: str) -> dict:  # type: ignore[misc]
     """Deliver a single webhook event to the subscriber endpoint."""
 
@@ -28,7 +28,7 @@ def deliver_webhook_task(self, delivery_id: str) -> dict:  # type: ignore[misc]
     return {"delivery_id": delivery_id, "success": result}
 
 
-@shared_task(name="tasks.retry_pending_webhooks")
+@shared_task(name="tasks.retry_pending_webhooks", soft_time_limit=120, time_limit=180)
 def retry_pending_webhooks() -> dict:
     """Beat task: retry deliveries whose next_retry_at has passed."""
 

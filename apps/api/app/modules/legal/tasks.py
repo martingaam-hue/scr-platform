@@ -20,7 +20,7 @@ celery_app.conf.update(
 )
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
 def generate_legal_doc_task(
     self,
     doc_id: str,
@@ -121,12 +121,12 @@ def generate_legal_doc_task(
             else:
                 _legal_gen_payload["system"] = system_prompt
                 _legal_gen_payload["prompt"] = user_prompt
-            response = httpx.post(
-                f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json=_legal_gen_payload,
-                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-                timeout=120.0,
-            )
+            with httpx.Client(timeout=120.0) as client:
+                response = client.post(
+                    f"{settings.AI_GATEWAY_URL}/v1/completions",
+                    json=_legal_gen_payload,
+                    headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                )
             response.raise_for_status()
             data = response.json()
             content = data.get("content") or data.get("text") or filled_template
@@ -191,7 +191,7 @@ def generate_legal_doc_task(
             raise self.retry(exc=exc)
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
 def review_legal_doc_task(
     self,
     task_log_id: str,
@@ -294,12 +294,12 @@ def review_legal_doc_task(
             else:
                 _legal_rev_payload["system"] = system_prompt
                 _legal_rev_payload["prompt"] = user_prompt
-            response = httpx.post(
-                f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json=_legal_rev_payload,
-                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-                timeout=120.0,
-            )
+            with httpx.Client(timeout=120.0) as client:
+                response = client.post(
+                    f"{settings.AI_GATEWAY_URL}/v1/completions",
+                    json=_legal_rev_payload,
+                    headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                )
             response.raise_for_status()
             data = response.json()
             content = data.get("content") or data.get("text") or "{}"

@@ -147,7 +147,7 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
 # ── Report Generation Task ──────────────────────────────────────────────────
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60, soft_time_limit=120, time_limit=180)
 def generate_report_task(self, report_id: str) -> dict:
     """Generate a report asynchronously.
 

@@ -60,7 +60,7 @@ async def ai_summarize_changes(diff: dict[str, Any], doc_classification: str | N
             resp = await client.post(
                 f"{settings.AI_GATEWAY_URL}/v1/completions",
                 json={"task_type": "summarize_doc_changes", "context": context},
-                headers={"X-API-Key": settings.AI_GATEWAY_API_KEY},
+                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
             )
             resp.raise_for_status()
             data = resp.json()

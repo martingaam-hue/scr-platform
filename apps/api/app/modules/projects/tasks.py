@@ -53,7 +53,7 @@ ACTION_PROMPTS = {
 }
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
 def business_plan_task(
     self,
     project_id: str,

@@ -29,7 +29,7 @@ celery_app.conf.beat_schedule = {
 }
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=60, soft_time_limit=120, time_limit=180)
 def batch_calculate_matches(self) -> dict:
     """
     Daily batch task: refresh MatchResult scores for all active pairings.

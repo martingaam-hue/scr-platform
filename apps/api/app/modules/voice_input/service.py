@@ -36,7 +36,7 @@ async def extract_project_data(transcript: str) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(
             f"{settings.AI_GATEWAY_URL}/v1/completions",
-            headers={"X-API-Key": settings.AI_GATEWAY_API_KEY},
+            headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
             json={
                 "task_type": "extract_project_from_voice",
                 "context": {"transcript": transcript},

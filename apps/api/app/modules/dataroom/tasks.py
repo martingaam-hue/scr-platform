@@ -27,7 +27,7 @@ celery_app.conf.update(
 # ── Document Processing Pipeline ────────────────────────────────────────────
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60, soft_time_limit=120, time_limit=180)
 def process_document(self, document_id: str) -> dict:
     """Full document processing pipeline triggered after upload confirmation.
 
@@ -155,9 +155,10 @@ def _validate_checksum(doc) -> None:
     )
 
     response = s3.get_object(Bucket=doc.s3_bucket, Key=doc.s3_key)
-    body = response["Body"].read()
-
-    actual_hash = hashlib.sha256(body).hexdigest()
+    sha256 = hashlib.sha256()
+    for chunk in response["Body"].iter_chunks(chunk_size=65536):
+        sha256.update(chunk)
+    actual_hash = sha256.hexdigest()
     if actual_hash != doc.checksum_sha256:
         raise ValueError(
             f"Checksum mismatch: expected {doc.checksum_sha256}, got {actual_hash}"
@@ -178,8 +179,15 @@ def _extract_text(doc) -> str:
         config=BotoConfig(signature_version="s3v4"),
     )
 
+    _MAX_EXTRACT_BYTES = 50 * 1024 * 1024  # 50 MB cap to avoid OOM
     response = s3.get_object(Bucket=doc.s3_bucket, Key=doc.s3_key)
-    body = response["Body"].read()
+    body = response["Body"].read(_MAX_EXTRACT_BYTES)
+    if len(body) >= _MAX_EXTRACT_BYTES:
+        logger.warning(
+            "document_truncated_for_extraction",
+            document_id=str(doc.id),
+            limit_mb=50,
+        )
 
     if doc.file_type == "pdf":
         return _extract_pdf_text(body)
@@ -288,15 +296,15 @@ def _classify_document(doc, text_content: str) -> str:
 
     # Try AI Gateway classification
     try:
-        resp = httpx.post(
-            f"{settings.AI_GATEWAY_URL}/v1/completions/batch",
-            json={
-                "task_type": "classify_document",
-                "contexts": [{"filename": doc.name, "document_preview": (text_content or "")[:500]}],
-            },
-            headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-            timeout=15.0,
-        )
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.post(
+                f"{settings.AI_GATEWAY_URL}/v1/completions/batch",
+                json={
+                    "task_type": "classify_document",
+                    "contexts": [{"filename": doc.name, "document_preview": (text_content or "")[:500]}],
+                },
+                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+            )
         resp.raise_for_status()
         results = resp.json().get("results", [])
         if results and isinstance(results[0], dict):
@@ -345,18 +353,18 @@ def _call_ai_extraction(task_type: str, doc_name: str, text_content: str, timeou
     """Call AI Gateway for structured extraction. Returns validated_data dict or {} on failure."""
     import httpx
     try:
-        resp = httpx.post(
-            f"{settings.AI_GATEWAY_URL}/v1/completions",
-            json={
-                "task_type": task_type,
-                "context": {
-                    "document_name": doc_name,
-                    "document_text": text_content[:8000],
+        with httpx.Client(timeout=timeout) as client:
+            resp = client.post(
+                f"{settings.AI_GATEWAY_URL}/v1/completions",
+                json={
+                    "task_type": task_type,
+                    "context": {
+                        "document_name": doc_name,
+                        "document_text": text_content[:8000],
+                    },
                 },
-            },
-            headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-            timeout=timeout,
-        )
+                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+            )
         resp.raise_for_status()
         return resp.json().get("validated_data") or {}
     except Exception as exc:
@@ -428,7 +436,7 @@ def _extract_structured_data(session, doc, text_content: str, classification: st
 # ── Bulk Processing ─────────────────────────────────────────────────────────
 
 
-@celery_app.task
+@celery_app.task(soft_time_limit=120, time_limit=180)
 def process_bulk_upload(document_ids: list[str]) -> dict:
     """Batch-classify documents in one AI call, then queue individual processing tasks."""
     import httpx
@@ -451,12 +459,12 @@ def process_bulk_upload(document_ids: list[str]) -> dict:
             docs = [d for d in docs if d]
             if docs:
                 contexts = [{"filename": d.name, "document_preview": ""} for d in docs]
-                resp = httpx.post(
-                    f"{settings.AI_GATEWAY_URL}/v1/completions/batch",
-                    json={"task_type": "classify_document", "contexts": contexts},
-                    headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-                    timeout=60.0,
-                )
+                with httpx.Client(timeout=60.0) as client:
+                    resp = client.post(
+                        f"{settings.AI_GATEWAY_URL}/v1/completions/batch",
+                        json={"task_type": "classify_document", "contexts": contexts},
+                        headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                    )
                 resp.raise_for_status()
                 valid_values = {e.value for e in DocumentClassification}
                 for doc, result in zip(docs, resp.json().get("results", [])):
@@ -484,7 +492,7 @@ def process_bulk_upload(document_ids: list[str]) -> dict:
 # ── Cleanup ──────────────────────────────────────────────────────────────────
 
 
-@celery_app.task
+@celery_app.task(soft_time_limit=120, time_limit=180)
 def cleanup_orphaned_uploads() -> dict:
     """Clean up documents stuck in UPLOADING state for more than 24 hours.
 
@@ -539,7 +547,7 @@ def cleanup_orphaned_uploads() -> dict:
 # ── AI Re-extraction ────────────────────────────────────────────────────────
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
 def trigger_extraction(self, document_id: str, extraction_types: list[str] | None = None) -> dict:
     """Trigger AI extraction (or re-extraction) for specific extraction types.
 

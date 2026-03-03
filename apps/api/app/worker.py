@@ -53,6 +53,7 @@ celery_app = Celery(
         "app.tasks.data_retention",
         "app.tasks.partition_manager",
         "app.tasks.external_data",
+        "app.tasks.stuck_docs",
     ],
 )
 
@@ -77,6 +78,11 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
+    # ── Stuck document cleanup ───────────────────────────────────────────────
+    "cleanup-stuck-documents": {
+        "task": "tasks.cleanup_stuck_documents",
+        "schedule": crontab(minute="*/5"),  # every 5 minutes
+    },
     # ── External data feed refresh ──────────────────────────────────────────
     "refresh-fred-data": {
         "task": "app.worker_tasks.refresh_external_feed",
