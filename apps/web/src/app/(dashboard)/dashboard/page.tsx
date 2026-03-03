@@ -865,9 +865,9 @@ function ChartPlaceholder() {
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { user, isLoading } = useSCRUser();
+  const { user, isLoaded, isLoading } = useSCRUser();
 
-  if (isLoading) {
+  if (!isLoaded || isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />

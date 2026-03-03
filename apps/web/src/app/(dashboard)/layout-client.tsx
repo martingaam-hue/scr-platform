@@ -38,10 +38,22 @@ export function DashboardLayoutClient({
 
   useAuthenticatedApi();
 
+  // Wait for Clerk to finish loading before rendering any data-fetching
+  // components. Without this guard, hooks (BrandingProvider, NotificationBell,
+  // dashboard page hooks) fire before the auth token is available, causing
+  // every API request to be sent without Authorization → 403.
+  if (!isLoaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50 dark:bg-[hsl(220,56%,7%)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
+      </div>
+    );
+  }
+
   // Redirect to sign-in only when Clerk explicitly says not authenticated.
   // Do NOT redirect on API errors (e.g. 401/403 from /auth/me) — that would
   // create a redirect loop between /sign-in and /dashboard.
-  if (isLoaded && !isSignedIn) {
+  if (!isSignedIn) {
     router.replace("/sign-in");
     return null;
   }
