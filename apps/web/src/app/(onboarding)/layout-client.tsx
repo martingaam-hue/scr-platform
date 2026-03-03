@@ -15,6 +15,11 @@ export function OnboardingLayoutClient({
 
   useAuthenticatedApi();
 
+  if (isLoaded && !user) {
+    router.replace("/sign-in");
+    return null;
+  }
+
   if (isLoaded && user && isOnboardingComplete(user)) {
     router.replace("/dashboard");
     return null;
