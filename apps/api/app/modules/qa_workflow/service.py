@@ -188,22 +188,18 @@ class QAService:
         )
 
         try:
-            resp = httpx.post(
-                f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json={
-                    "task_type": "suggest_qa_answer",
-                    "messages": [{"role": "user", "content": prompt}],
-                },
-                headers={"X-API-Key": settings.AI_GATEWAY_API_KEY},
-                timeout=30,
-            )
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(
+                    f"{settings.AI_GATEWAY_URL}/v1/completions",
+                    json={
+                        "task_type": "general",
+                        "messages": [{"role": "user", "content": prompt}],
+                    },
+                    headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                )
             resp.raise_for_status()
             data = resp.json()
-            suggestion = (
-                data.get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", "")
-            )
+            suggestion = data.get("content", "")
             sources = data.get("sources", [])
             return {"suggestion": suggestion or "No suggestion returned.", "sources": sources}
         except Exception as exc:

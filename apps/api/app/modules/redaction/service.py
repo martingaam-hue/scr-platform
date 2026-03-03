@@ -73,18 +73,19 @@ class RedactionService:
         )
 
         try:
-            resp = httpx.post(
-                f"{settings.AI_GATEWAY_URL}/completions",
-                json={
-                    "prompt": prompt,
-                    "task_type": "document_redaction",
-                    "max_tokens": 2000,
-                },
-                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-                timeout=60.0,
-            )
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(
+                    f"{settings.AI_GATEWAY_URL}/v1/completions",
+                    json={
+                        "prompt": prompt,
+                        "task_type": "detect_redactable",
+                        "max_tokens": 2000,
+                    },
+                    headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                )
+            resp.raise_for_status()
             if resp.status_code == 200:
-                content = resp.json().get("content", resp.json().get("text", "[]"))
+                content = resp.json().get("content", "[]")
                 try:
                     start = content.find("[")
                     end = content.rfind("]") + 1

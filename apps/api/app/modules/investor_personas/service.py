@@ -188,17 +188,17 @@ async def generate_persona(
 
     extracted: dict[str, Any] = {}
     try:
-        resp = httpx.post(
-            f"{settings.AI_GATEWAY_URL}/v1/completions",
-            json={
-                "prompt": prompt,
-                "task_type": "analysis",
-                "max_tokens": 1000,
-                "temperature": 0.7,
-            },
-            headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-            timeout=60.0,
-        )
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                f"{settings.AI_GATEWAY_URL}/v1/completions",
+                json={
+                    "prompt": prompt,
+                    "task_type": "persona_extraction",
+                    "max_tokens": 1000,
+                    "temperature": 0.7,
+                },
+                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+            )
         resp.raise_for_status()
         data = resp.json()
         content = data.get("content", "")

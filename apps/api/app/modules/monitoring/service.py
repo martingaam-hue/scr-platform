@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
+import httpx
 import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -459,29 +460,27 @@ class MonitoringService:
         self, document_id: uuid.UUID, project_id: uuid.UUID
     ) -> dict:
         """AI extracts KPIs from uploaded document."""
-        import httpx
-
         from app.core.config import settings
 
         try:
-            resp = httpx.post(
-                f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json={
-                    "task_type": "extract_kpis",
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": (
-                                f"Extract all financial KPIs and their values from document "
-                                f"{document_id}. Return as JSON list of objects with fields: "
-                                f"name, value, unit, period."
-                            ),
-                        }
-                    ],
-                },
-                headers={"X-API-Key": settings.AI_GATEWAY_API_KEY},
-                timeout=30,
-            )
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(
+                    f"{settings.AI_GATEWAY_URL}/v1/completions",
+                    json={
+                        "task_type": "extract_kpis",
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": (
+                                    f"Extract all financial KPIs and their values from document "
+                                    f"{document_id}. Return as JSON list of objects with fields: "
+                                    f"name, value, unit, period."
+                                ),
+                            }
+                        ],
+                    },
+                    headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                )
             data = resp.json()
             kpis = data.get("result", {}).get("kpis", [])
             count = 0

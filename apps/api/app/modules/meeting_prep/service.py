@@ -147,7 +147,7 @@ async def _ai_generate_briefing(
             resp = await client.post(
                 f"{settings.AI_GATEWAY_URL}/v1/completions",
                 json=payload,
-                headers={"X-API-Key": settings.AI_GATEWAY_API_KEY},
+                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
             )
             resp.raise_for_status()
             data = resp.json()
