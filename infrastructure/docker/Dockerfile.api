@@ -11,9 +11,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     POETRY_VIRTUALENVS_CREATE=false \
     POETRY_NO_INTERACTION=1
 
-# curl for HEALTHCHECK
+# curl for HEALTHCHECK; libcairo2 needed at runtime by pycairo (xhtml2pdf → svglib)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
+        libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
@@ -22,6 +23,12 @@ RUN pip install --no-cache-dir poetry==${POETRY_VERSION}
 FROM base AS deps
 
 WORKDIR /build
+
+# libcairo2-dev + pkg-config needed to compile pycairo (xhtml2pdf → svglib)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libcairo2-dev \
+        pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY apps/api/pyproject.toml apps/api/poetry.lock ./
 
