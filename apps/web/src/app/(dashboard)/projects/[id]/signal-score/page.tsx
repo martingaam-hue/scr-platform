@@ -620,63 +620,66 @@ export default function SignalScorePage() {
         />
       ) : (
         <>
-          {/* Overall + dimension gauges */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-6">
-            <Card className="lg:col-span-2">
-              <CardContent className="flex flex-col items-center justify-center p-6">
-                <div className="flex items-center gap-2">
-                  <ScoreGauge
-                    score={details.overall_score}
-                    size={140}
-                    strokeWidth={12}
-                  />
-                  <LineagePanel
-                    entityType="project"
-                    entityId={id}
-                    fieldName="signal_score"
-                    fieldLabel="Signal Score"
-                  />
-                </div>
-                {/* B: Volatility badge inline with score */}
-                <div className="mt-2 flex items-center gap-2">
-                  <VolatilityBadge projectId={id} />
-                </div>
-                <p className="mt-2 text-xs text-neutral-400">
-                  v{details.version} · {details.model_used} ·{" "}
-                  {new Date(details.calculated_at).toLocaleDateString()}
-                </p>
-                <AIFeedback
-                  taskType="score_quality"
+          {/* ── Master score card — full-width, dominant ── */}
+          <Card>
+            <CardContent className="flex flex-col items-center py-8 px-6">
+              <div className="flex items-center gap-3">
+                <ScoreGauge
+                  score={details.overall_score}
+                  size={160}
+                  strokeWidth={14}
+                />
+                <LineagePanel
                   entityType="project"
                   entityId={id}
-                  compact
-                  className="mt-3"
+                  fieldName="signal_score"
+                  fieldLabel="Signal Score"
                 />
-                {/* Add aiTaskLogId from AI task log when available */}
-                <CitationBadges
-                  aiTaskLogId={undefined}
-                  className="mt-2"
-                />
-              </CardContent>
-            </Card>
+              </div>
+              {/* B: Volatility badge */}
+              <div className="mt-3 flex items-center gap-2">
+                <VolatilityBadge projectId={id} />
+              </div>
+              <p className="mt-2 text-xs text-neutral-400">
+                v{details.version} · {details.model_used} ·{" "}
+                {new Date(details.calculated_at).toLocaleDateString()}
+              </p>
+              <AIFeedback
+                taskType="score_quality"
+                entityType="project"
+                entityId={id}
+                compact
+                className="mt-3"
+              />
+              {/* Add aiTaskLogId from AI task log when available */}
+              <CitationBadges
+                aiTaskLogId={undefined}
+                className="mt-2"
+              />
+            </CardContent>
+          </Card>
 
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:col-span-4 lg:grid-cols-5">
-              {details.dimensions.map((dim) => (
-                <Card key={dim.id}>
-                  <CardContent className="flex flex-col items-center p-4">
-                    <ScoreGauge
-                      score={dim.score}
-                      size={72}
-                      strokeWidth={7}
-                      label={dim.name}
-                    />
-                    <p className="mt-1 text-xs text-neutral-400">
-                      {(dim.weight * 100).toFixed(0)}%
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          {/* ── Sub-metric grid — 2 cols mobile, 3 cols sm+ (2 rows × 3) ── */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {details.dimensions.map((dim) => (
+              <Card key={dim.id}>
+                <CardContent className="flex flex-col items-center p-5">
+                  {/* Gauge with no label inside — label rendered below */}
+                  <ScoreGauge
+                    score={dim.score}
+                    size={88}
+                    strokeWidth={8}
+                    label=""
+                  />
+                  <p className="mt-2 text-center text-sm font-medium leading-tight text-neutral-700">
+                    {dim.name}
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    {(dim.weight * 100).toFixed(0)}%
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Tabs */}
