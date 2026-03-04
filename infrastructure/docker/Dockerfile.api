@@ -24,8 +24,9 @@ FROM base AS deps
 
 WORKDIR /build
 
-# libcairo2-dev + pkg-config needed to compile pycairo (xhtml2pdf → svglib)
+# Build tools needed to compile pycairo (xhtml2pdf → svglib → pycairo)
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc \
         libcairo2-dev \
         pkg-config \
     && rm -rf /var/lib/apt/lists/*
