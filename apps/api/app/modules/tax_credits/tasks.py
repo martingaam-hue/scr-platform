@@ -24,9 +24,7 @@ def generate_transfer_doc_task(self, report_id: str) -> dict:
     """
     import json
 
-    import boto3
     import httpx
-    from botocore.config import Config as BotoConfig
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session as SyncSession
 
@@ -78,21 +76,10 @@ def generate_transfer_doc_task(self, report_id: str) -> dict:
                 org_id=report.org_id,
             )
 
-            s3_key = f"{report.org_id}/tax-credits/{report.id}.html"
-            s3 = boto3.client(
-                "s3",
-                endpoint_url=settings.AWS_S3_ENDPOINT_URL or None,
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION,
-                config=BotoConfig(signature_version="s3v4"),
-            )
-            s3.put_object(
-                Bucket=settings.AWS_S3_BUCKET,
-                Key=s3_key,
-                Body=html.encode("utf-8"),
-                ContentType="text/html; charset=utf-8",
-            )
+            from app.core.pdf_utils import convert_and_upload
+
+            s3_key = f"{report.org_id}/tax-credits/{report.id}.pdf"
+            pdf_bytes, _ = convert_and_upload(html, s3_key, filename=f"Tax Credit - {report.id}.pdf")
 
             report.status = ReportStatus.READY
             report.s3_key = s3_key

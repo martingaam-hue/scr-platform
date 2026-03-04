@@ -220,24 +220,36 @@ def generate_report_task(self, report_id: str) -> dict:
             file_bytes, content_type = generator.generate(data, sections)
 
             # Step 7: Upload to S3
-            ext_map = {"pdf": "html", "xlsx": "xlsx", "pptx": "pptx"}
-            ext = ext_map.get(output_format, "html")
+            from app.core.pdf_utils import convert_and_upload
+
+            ext_map = {"pdf": "pdf", "xlsx": "xlsx", "pptx": "pptx"}
+            ext = ext_map.get(output_format, "pdf")
             s3_key = f"{report.org_id}/reports/{report.id}_{report.title[:50]}.{ext}"
 
-            s3 = boto3.client(
-                "s3",
-                endpoint_url=settings.AWS_S3_ENDPOINT_URL or None,
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION,
-                config=BotoConfig(signature_version="s3v4"),
-            )
-            s3.put_object(
-                Bucket=settings.AWS_S3_BUCKET,
-                Key=s3_key,
-                Body=file_bytes,
-                ContentType=content_type,
-            )
+            if ext == "pdf" and content_type.startswith("text/html"):
+                # Convert HTML output to PDF
+                pdf_bytes, _ = convert_and_upload(
+                    file_bytes.decode("utf-8") if isinstance(file_bytes, bytes) else file_bytes,
+                    s3_key,
+                    filename=f"{report.title}.pdf",
+                )
+                file_bytes = pdf_bytes
+                content_type = "application/pdf"
+            else:
+                s3 = boto3.client(
+                    "s3",
+                    endpoint_url=settings.AWS_S3_ENDPOINT_URL or None,
+                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                    region_name=settings.AWS_S3_REGION,
+                    config=BotoConfig(signature_version="s3v4"),
+                )
+                s3.put_object(
+                    Bucket=settings.AWS_S3_BUCKET,
+                    Key=s3_key,
+                    Body=file_bytes,
+                    ContentType=content_type,
+                )
 
             # Step 8: Update report
             report.status = ReportStatus.READY

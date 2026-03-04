@@ -363,9 +363,7 @@ def generate_memo_task(
     """
     import time
 
-    import boto3
     import httpx
-    from botocore.config import Config as BotoConfig
     from sqlalchemy import select
 
     from app.core.celery_db import get_celery_db_session
@@ -529,24 +527,10 @@ def generate_memo_task(
                 year=now.year,
                 body=content,
             )
-            html_bytes = html.encode("utf-8")
+            from app.core.pdf_utils import convert_and_upload
 
-            # Upload to S3
-            s3_key = f"{investor_org_id}/memos/{report_id}.html"
-            s3 = boto3.client(
-                "s3",
-                endpoint_url=settings.AWS_S3_ENDPOINT_URL or None,
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION,
-                config=BotoConfig(signature_version="s3v4"),
-            )
-            s3.put_object(
-                Bucket=settings.AWS_S3_BUCKET,
-                Key=s3_key,
-                Body=html_bytes,
-                ContentType="text/html",
-            )
+            s3_key = f"{investor_org_id}/memos/{report_id}.pdf"
+            pdf_bytes, _ = convert_and_upload(html, s3_key, filename=f"{report.title}.pdf")
 
             report.status = ReportStatus.READY
             report.s3_key = s3_key
@@ -558,7 +542,7 @@ def generate_memo_task(
                 "generate_memo_task_completed",
                 project_id=project_id,
                 report_id=report_id,
-                size=len(html_bytes),
+                size=len(pdf_bytes),
             )
             return {"status": "success", "s3_key": s3_key}
 

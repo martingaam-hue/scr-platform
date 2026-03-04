@@ -21,8 +21,6 @@ def generate_legal_doc_task(
     import time
 
     import httpx
-    import boto3
-    from botocore.config import Config as BotoConfig
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session as SyncSession
 
@@ -122,37 +120,28 @@ def generate_legal_doc_task(
             content = data.get("content") or data.get("text") or filled_template
             model_used = data.get("model", "claude-sonnet-4")
 
-            # Build simple HTML document
-            html_content = (
-                f"<!DOCTYPE html><html><head>"
-                f"<meta charset='UTF-8'>"
-                f"<style>body{{font-family:Georgia,serif;max-width:800px;margin:60px auto;line-height:1.7;"
-                f"color:#1a1a1a;font-size:12pt;}}"
-                f"h1{{font-size:16pt;text-align:center;margin-bottom:8px;}}"
-                f"p{{margin-bottom:12px;white-space:pre-wrap;}}</style>"
-                f"</head><body>"
-                f"<h1>{doc.title}</h1>"
-                f"<p>{content.replace(chr(10), '</p><p>')}</p>"
-                f"</body></html>"
-            )
-            html_bytes = html_content.encode("utf-8")
+            from app.core.pdf_utils import convert_and_upload
 
-            # Upload to S3
-            s3 = boto3.client(
-                "s3",
-                endpoint_url=settings.AWS_S3_ENDPOINT_URL or None,
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION,
-                config=BotoConfig(signature_version="s3v4"),
+            # Build styled HTML for PDF
+            html_content = (
+                "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+                "<style>"
+                "@page { size: A4; margin: 2.5cm; }"
+                "body { font-family: Helvetica, Arial, sans-serif; font-size: 11pt; "
+                "line-height: 1.6; color: #1a1a1a; }"
+                "h1 { font-size: 16pt; text-align: center; border-bottom: 2px solid #333; "
+                "padding-bottom: 12px; margin-bottom: 8px; }"
+                "p { margin-bottom: 10px; text-align: justify; }"
+                ".meta { text-align: center; font-size: 9pt; color: #666; margin-bottom: 24px; }"
+                "</style></head><body>"
+                f"<h1>{doc.title}</h1>"
+                f"<p class='meta'>Generated on {time.strftime('%B %d, %Y')} | CONFIDENTIAL</p>"
+                f"<div>{''.join(f'<p>{line}</p>' if line.strip() else '<br/>' for line in content.split(chr(10)))}</div>"
+                "</body></html>"
             )
-            s3_key = f"{org_id}/legal/{doc_id}.html"
-            s3.put_object(
-                Bucket=settings.AWS_S3_BUCKET,
-                Key=s3_key,
-                Body=html_bytes,
-                ContentType="text/html",
-            )
+
+            s3_key = f"{org_id}/legal/{doc_id}.pdf"
+            pdf_bytes, _ = convert_and_upload(html_content, s3_key, filename=f"{doc.title}.pdf")
 
             elapsed_ms = int((time.time() - start_time) * 1000)
             doc.content = content[:5000]  # store preview in content field

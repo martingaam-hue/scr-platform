@@ -24,9 +24,7 @@ def generate_valuation_report_task(self, report_id: str) -> dict:
     """
     import json
 
-    import boto3
     import httpx
-    from botocore.config import Config as BotoConfig
     from sqlalchemy import create_engine, select
     from sqlalchemy.orm import Session as SyncSession
 
@@ -83,29 +81,17 @@ def generate_valuation_report_task(self, report_id: str) -> dict:
                 model_inputs=valuation.model_inputs or {},
             )
 
-            # Upload to S3
-            s3_key = f"{report.org_id}/valuations/{report.id}.html"
-            s3 = boto3.client(
-                "s3",
-                endpoint_url=settings.AWS_S3_ENDPOINT_URL or None,
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION,
-                config=BotoConfig(signature_version="s3v4"),
-            )
-            s3.put_object(
-                Bucket=settings.AWS_S3_BUCKET,
-                Key=s3_key,
-                Body=html_content.encode("utf-8"),
-                ContentType="text/html; charset=utf-8",
-            )
+            from app.core.pdf_utils import convert_and_upload
+
+            s3_key = f"{report.org_id}/valuations/{report.id}.pdf"
+            pdf_bytes, _ = convert_and_upload(html_content, s3_key, filename=f"Valuation - {project_name}.pdf")
 
             report.status = ReportStatus.READY
             report.s3_key = s3_key
             report.result_data = {
                 "content": html_content[:10_000],
                 "narrative": narrative,
-                "file_size": len(html_content),
+                "file_size": len(pdf_bytes),
             }
             report.completed_at = datetime.now(timezone.utc)
             session.commit()

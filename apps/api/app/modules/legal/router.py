@@ -104,7 +104,15 @@ async def list_documents(
 ):
     """List all legal documents for the current organisation."""
     docs, total = await service.list_documents(db, current_user.org_id, page, page_size)
-    items = [service._doc_to_response(d) for d in docs]
+    items = []
+    for d in docs:
+        url = None
+        if d.s3_key:
+            try:
+                url = await service.get_download_url(db, d.id, current_user.org_id)
+            except Exception:
+                pass
+        items.append(service._doc_to_response(d, url))
     return LegalDocumentListResponse(items=items, total=total)
 
 
