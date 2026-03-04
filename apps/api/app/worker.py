@@ -45,6 +45,10 @@ celery_app.conf.include = [
     "app.tasks.partition_manager",
     "app.tasks.external_data",
     "app.tasks.stuck_docs",
+    "app.modules.alley.signal_score.tasks",
+    "app.modules.alley.risk.tasks",
+    "app.modules.alley.advisor.tasks",
+    "app.modules.alley.score_performance.tasks",
 ]
 
 celery_app.conf.beat_schedule = {

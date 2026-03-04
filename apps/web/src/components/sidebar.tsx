@@ -55,6 +55,7 @@ import {
   TrendingDown,
   BarChart2,
   ArrowLeftRight,
+  Route,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -214,6 +215,17 @@ const allyNav: NavSection[] = [
       { label: "Q&A Workflow", href: "/qa", icon: MessageSquare },
       { label: "Engagement Analytics", href: "/engagement", icon: Activity },
       { label: "AI Citations", href: "/citations", icon: FileText },
+    ],
+  },
+  {
+    title: "Project Intelligence",
+    collapsible: true,
+    items: [
+      { label: "My Score", href: "/alley-score", icon: Sparkles },
+      { label: "My Risk Profile", href: "/alley-risk", icon: ShieldAlert },
+      { label: "Development Advisor", href: "/alley-advisor", icon: Lightbulb },
+      { label: "Pipeline Analytics", href: "/pipeline", icon: Route },
+      { label: "Score Journey", href: "/score-journey", icon: TrendingUp },
     ],
   },
   {

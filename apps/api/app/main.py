@@ -92,6 +92,11 @@ from app.modules.redaction.router import router as redaction_router
 from app.modules.market_data.router import router as market_data_router
 from app.modules.launch.router import router as launch_router
 from app.modules.custom_domain.router import router as custom_domain_router
+from app.modules.alley.signal_score.router import router as alley_signal_score_router
+from app.modules.alley.risk.router import router as alley_risk_router
+from app.modules.alley.advisor.router import router as alley_advisor_router
+from app.modules.alley.analytics.router import router as alley_analytics_router
+from app.modules.alley.score_performance.router import router as alley_score_performance_router
 from app.core.elasticsearch import setup_indices, close_es_client
 from app.core.sentry import init_sentry
 from app.core.errors import global_exception_handler, http_exception_handler
@@ -373,5 +378,10 @@ api_v1.include_router(redaction_router)
 api_v1.include_router(market_data_router)
 api_v1.include_router(launch_router)
 api_v1.include_router(custom_domain_router)
+api_v1.include_router(alley_signal_score_router)
+api_v1.include_router(alley_risk_router)
+api_v1.include_router(alley_advisor_router)
+api_v1.include_router(alley_analytics_router)
+api_v1.include_router(alley_score_performance_router)
 
 app.include_router(api_v1)

@@ -235,6 +235,9 @@ from app.models.custom_domain import CustomDomain
 # Digest History
 from app.models.digest_log import DigestLog
 
+# Alley-side models
+from app.models.alley import RiskMitigationStatus  # noqa: F401
+
 __all__ = [
     # Base
     "BaseModel",
@@ -398,4 +401,6 @@ __all__ = [
     "CustomDomain",
     # Digest History
     "DigestLog",
+    # Alley-side models
+    "RiskMitigationStatus",
 ]
