@@ -178,7 +178,7 @@
         "interval": 30,
         "timeout": 10,
         "retries": 3,
-        "startPeriod": 15
+        "startPeriod": 60
       },
       "systemControls": []
     }
@@ -193,5 +193,5 @@
     "FARGATE"
   ],
   "cpu": "512",
-  "memory": "1024"
+  "memory": "2048"
 }
