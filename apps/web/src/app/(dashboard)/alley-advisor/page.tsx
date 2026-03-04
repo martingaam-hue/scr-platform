@@ -452,7 +452,7 @@ export default function AlleyAdvisorPage() {
   const { data: scoresData, isLoading: loadingProjects } = useAlleyScores();
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
 
-  const projects = scoresData?.items ?? [];
+  const projects = scoresData?.projects ?? [];
 
   // Auto-select first project
   const effectiveProjectId =
@@ -492,7 +492,7 @@ export default function AlleyAdvisorPage() {
               >
                 {projects.map((p) => (
                   <option key={p.project_id} value={p.project_id}>
-                    {p.project_name} (Score: {p.overall_score.toFixed(1)})
+                    {p.project_name} (Score: {p.score.toFixed(1)})
                   </option>
                 ))}
               </select>

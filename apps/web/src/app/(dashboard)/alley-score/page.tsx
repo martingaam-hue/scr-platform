@@ -1,7 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, TrendingUp, TrendingDown, Minus, BarChart2, Target } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  BarChart2,
+  CheckCircle2,
+  ChevronRight,
+  FileUp,
+  Loader2,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import {
   Badge,
   Button,
@@ -12,342 +23,455 @@ import {
   cn,
 } from "@scr/ui";
 import {
-  useAlleyScores,
-  useAlleyScoreGaps,
-  useAlleyBenchmark,
-  scoreColor,
-  scoreBg,
-  priorityVariant,
-  type AlleyProjectScoreSummary,
+  dimensionBarColor,
+  scoreBadgeClass,
+  scoreLabelColor,
+  useGenerateScore,
+  usePortfolioOverview,
+  useTaskStatus,
+  type ProjectScoreListItem,
 } from "@/lib/alley-score";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-const DIMENSION_LABELS: Record<string, string> = {
-  project_viability_score: "Viability",
-  financial_planning_score: "Financial",
-  team_strength_score: "Team",
-  risk_assessment_score: "Risk",
-  esg_score: "ESG",
-  market_opportunity_score: "Market",
-};
+const DISMISS_KEY = "alley_score_banner_dismissed";
 
-const DIMENSION_KEYS = [
-  "project_viability_score",
-  "financial_planning_score",
-  "team_strength_score",
-  "risk_assessment_score",
-  "esg_score",
-  "market_opportunity_score",
-] as const;
+// ── Info Banner ───────────────────────────────────────────────────────────────
 
-function TrendBadge({ trend, change }: { trend: string; change: number }) {
-  if (trend === "new") {
-    return <Badge variant="neutral">New</Badge>;
+function InfoBanner() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setVisible(localStorage.getItem(DISMISS_KEY) !== "1");
+    }
+  }, []);
+
+  function dismiss() {
+    localStorage.setItem(DISMISS_KEY, "1");
+    setVisible(false);
   }
-  if (trend === "up") {
-    return (
-      <Badge variant="success" className="flex items-center gap-1">
-        <TrendingUp className="h-3 w-3" />
-        +{change.toFixed(1)}
-      </Badge>
-    );
-  }
-  if (trend === "down") {
-    return (
-      <Badge variant="error" className="flex items-center gap-1">
-        <TrendingDown className="h-3 w-3" />
-        {change.toFixed(1)}
-      </Badge>
-    );
-  }
-  return (
-    <Badge variant="neutral" className="flex items-center gap-1">
-      <Minus className="h-3 w-3" />
-      Stable
-    </Badge>
-  );
-}
 
-function DimensionBar({
-  label,
-  score,
-}: {
-  label: string;
-  score: number;
-}) {
-  const pct = Math.min(100, Math.max(0, score));
-  const barColor =
-    pct >= 75 ? "bg-green-500" : pct >= 50 ? "bg-amber-500" : "bg-red-500";
+  if (!visible) return null;
 
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="w-16 shrink-0 text-neutral-500">{label}</span>
-      <div className="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-        <div
-          className={cn("h-full rounded-full transition-all", barColor)}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="w-8 text-right font-medium text-neutral-700">
-        {pct.toFixed(0)}
+    <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+      <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+      <span className="flex-1">
+        Your <strong>Signal Score</strong> is an AI-calculated investment readiness rating (0–10).
+        Generate a score by uploading project documents below.
       </span>
+      <button onClick={dismiss} className="shrink-0 text-blue-400 hover:text-blue-600">
+        <X className="h-4 w-4" />
+      </button>
     </div>
   );
 }
 
-// ── Gap Analysis Panel ────────────────────────────────────────────────────────
+// ── Portfolio Stats ────────────────────────────────────────────────────────────
 
-function GapAnalysisPanel({ projectId }: { projectId: string }) {
-  const { data, isLoading } = useAlleyScoreGaps(projectId);
-  const benchmark = useAlleyBenchmark(projectId);
-
-  return (
-    <div className="border-t border-neutral-100 mt-0 bg-neutral-50 rounded-b-lg px-5 py-4 space-y-4">
-      {/* Benchmark row */}
-      {benchmark.data && (
-        <div className="flex flex-wrap items-center gap-4 text-sm">
-          <span className="font-medium text-neutral-700">Benchmark:</span>
-          <span className="text-neutral-500">
-            Your score:{" "}
-            <span className={cn("font-bold", scoreColor(benchmark.data.your_score))}>
-              {benchmark.data.your_score.toFixed(1)}
-            </span>
-          </span>
-          <span className="text-neutral-400">|</span>
-          <span className="text-neutral-500">
-            Platform median: <strong>{benchmark.data.platform_median.toFixed(1)}</strong>
-          </span>
-          <span className="text-neutral-500">
-            Top quartile: <strong>{benchmark.data.top_quartile.toFixed(1)}</strong>
-          </span>
-          <Badge variant="neutral">{benchmark.data.percentile}th percentile</Badge>
-          <span className="text-xs text-neutral-400">
-            vs {benchmark.data.peer_count} {benchmark.data.peer_asset_type} peers
-          </span>
-        </div>
-      )}
-
-      {/* Gap items */}
-      <div>
-        <h3 className="text-sm font-semibold text-neutral-800 mb-3">
-          Gap Analysis &amp; Action Items
-        </h3>
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
-          </div>
-        ) : !data?.gap_items?.length ? (
-          <p className="text-sm text-neutral-400 text-center py-6">
-            No gap items found for this project.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {data.gap_items.map((item, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 bg-white rounded-lg border border-neutral-100 px-4 py-3"
-              >
-                <div className="flex flex-col gap-1 min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-neutral-700">
-                      {item.dimension}
-                    </span>
-                    <span className="text-neutral-300">›</span>
-                    <span className="text-xs text-neutral-500">{item.criterion}</span>
-                    <Badge variant={priorityVariant(item.priority)} className="text-xs">
-                      {item.priority}
-                    </Badge>
-                    <Badge variant="neutral" className="text-xs">
-                      Effort: {item.effort}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-neutral-800">{item.action}</p>
-                  {item.document_types.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {item.document_types.map((dt) => (
-                        <span
-                          key={dt}
-                          className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded"
-                        >
-                          {dt}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-xs text-neutral-400">Score now</p>
-                  <p className="text-sm font-bold text-neutral-700">
-                    {item.current_score}/{item.max_score}
-                  </p>
-                  <p className="text-xs text-green-600 font-medium mt-0.5">
-                    +{item.estimated_impact} pts
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Project Score Card ────────────────────────────────────────────────────────
-
-function ProjectScoreCard({
-  project,
-  selected,
-  onSelect,
+function PortfolioMetrics({
+  avg,
+  total,
+  ready,
 }: {
-  project: AlleyProjectScoreSummary;
-  selected: boolean;
-  onSelect: () => void;
+  avg: number;
+  total: number;
+  ready: number;
 }) {
   return (
-    <div
-      className={cn(
-        "rounded-lg border bg-white transition-all cursor-pointer overflow-hidden",
-        selected
-          ? "border-blue-400 shadow-md ring-1 ring-blue-200"
-          : "border-neutral-200 hover:border-neutral-300 hover:shadow-sm"
-      )}
-    >
-      {/* Card header */}
-      <div className="px-5 pt-4 pb-3" onClick={onSelect}>
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-neutral-900 truncate">
-              {project.project_name}
-            </h3>
-            <p className="text-xs text-neutral-400 mt-0.5">
-              v{project.version} &middot;{" "}
-              {new Date(project.calculated_at).toLocaleDateString()}
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <span
-              className={cn(
-                "text-3xl font-bold tabular-nums",
-                scoreColor(project.overall_score)
-              )}
-            >
-              {project.overall_score.toFixed(1)}
-            </span>
-            <TrendBadge trend={project.trend} change={project.score_change} />
-          </div>
-        </div>
-
-        {/* Dimension bars */}
-        <div className="space-y-1.5">
-          {DIMENSION_KEYS.map((key) => (
-            <DimensionBar
-              key={key}
-              label={DIMENSION_LABELS[key]}
-              score={project[key]}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* View gap analysis button */}
-      <div className="px-5 pb-4 pt-1">
-        <Button
-          size="sm"
-          variant={selected ? "default" : "outline"}
-          onClick={onSelect}
-          className="w-full"
+    <div className="grid grid-cols-3 gap-4 sm:gap-6">
+      {[
+        { label: "Avg Score", value: avg.toFixed(1), sub: "out of 10.0" },
+        { label: "Projects Scored", value: total.toString(), sub: "total projects" },
+        { label: "Investment Ready", value: ready.toString(), sub: "score ≥ 7.0" },
+      ].map(({ label, value, sub }) => (
+        <div
+          key={label}
+          className="flex flex-col items-center justify-center rounded-xl border border-neutral-200 bg-white py-5 text-center shadow-sm"
         >
-          <Target className="h-3.5 w-3.5 mr-1.5" />
-          {selected ? "Hide" : "View"} Gap Analysis
-        </Button>
-      </div>
-
-      {/* Expanded gap panel */}
-      {selected && <GapAnalysisPanel projectId={project.project_id} />}
+          <span className="text-3xl font-bold text-[#1B2A4A]">{value}</span>
+          <span className="mt-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            {label}
+          </span>
+          <span className="text-xs text-neutral-400">{sub}</span>
+        </div>
+      ))}
     </div>
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// ── Dimension mini-bar ────────────────────────────────────────────────────────
 
-export default function AlleyScorePage() {
-  const { data, isLoading } = useAlleyScores();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null
-  );
+function MiniBar({ score }: { score: number }) {
+  const barRef = useRef<HTMLDivElement>(null);
 
-  function toggleProject(id: string) {
-    setSelectedProjectId((prev) => (prev === id ? null : id));
-  }
+  useEffect(() => {
+    if (barRef.current) {
+      barRef.current.style.transition = "width 700ms ease-out";
+      barRef.current.style.width = `${score}%`;
+    }
+  }, [score]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <BarChart2 className="h-6 w-6 text-blue-600" />
-        <div>
-          <h1 className="text-xl font-bold text-neutral-900">
-            My Signal Score
-          </h1>
-          <p className="text-sm text-neutral-500">
-            AI-calculated investment readiness scores for your projects
-          </p>
-        </div>
-      </div>
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+      <div
+        ref={barRef}
+        style={{ width: "0%" }}
+        className={cn("h-full rounded-full", dimensionBarColor(score))}
+      />
+    </div>
+  );
+}
 
-      {/* Summary strip */}
-      {data && data.total > 0 && (
-        <div className="flex items-center gap-4 text-sm text-neutral-500">
-          <span>
-            <strong className="text-neutral-800">{data.total}</strong>{" "}
-            project{data.total !== 1 ? "s" : ""} scored
+// ── Score Table Row ────────────────────────────────────────────────────────────
+
+function ScoreTableRow({ project }: { project: ProjectScoreListItem }) {
+  return (
+    <tr className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
+      <td className="py-3 pr-4">
+        <p className="font-medium text-neutral-900">{project.project_name}</p>
+        {project.sector && (
+          <p className="text-xs text-neutral-400">{project.sector}</p>
+        )}
+      </td>
+      <td className="hidden px-2 py-3 text-sm text-neutral-500 sm:table-cell">
+        {project.stage ?? "—"}
+      </td>
+      <td className="px-2 py-3">
+        <div className="flex items-center gap-2">
+          <span className={cn("text-xl font-bold", scoreLabelColor(project.score_label_color))}>
+            {project.score.toFixed(1)}
           </span>
-          {data.items.length > 0 && (
-            <span>
-              Avg score:{" "}
-              <strong className="text-neutral-800">
-                {(
-                  data.items.reduce((s, p) => s + p.overall_score, 0) /
-                  data.items.length
-                ).toFixed(1)}
-              </strong>
-            </span>
+          {project.trend === "up" && (
+            <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+          )}
+          {project.trend === "down" && (
+            <TrendingDown className="h-3.5 w-3.5 text-red-500" />
           )}
         </div>
-      )}
+        <p className="text-xs text-neutral-400">{project.score_label}</p>
+      </td>
+      <td className="px-2 py-3">
+        <span
+          className={cn(
+            "inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+            scoreBadgeClass(project.status)
+          )}
+        >
+          {project.status}
+        </span>
+      </td>
+      <td className="hidden px-2 py-3 text-xs text-neutral-400 sm:table-cell">
+        {new Date(project.calculated_at).toLocaleDateString()}
+      </td>
+      <td className="py-3 pl-2 text-right">
+        <Link
+          href={`/alley-score/${project.project_id}`}
+          className="inline-flex items-center gap-1 text-sm font-medium text-[#1B2A4A] hover:underline"
+        >
+          View <ChevronRight className="h-3.5 w-3.5" />
+        </Link>
+      </td>
+    </tr>
+  );
+}
 
-      {/* Content */}
+// Mobile card fallback for the table
+function ScoreCard({ project }: { project: ProjectScoreListItem }) {
+  return (
+    <div className="rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-semibold text-neutral-900">{project.project_name}</p>
+          <p className="text-xs text-neutral-400">{project.sector ?? project.stage ?? "—"}</p>
+        </div>
+        <div className="text-right">
+          <span className={cn("text-2xl font-bold", scoreLabelColor(project.score_label_color))}>
+            {project.score.toFixed(1)}
+          </span>
+          <p className="text-xs text-neutral-400">{project.score_label}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <span
+          className={cn(
+            "inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold",
+            scoreBadgeClass(project.status)
+          )}
+        >
+          {project.status}
+        </span>
+        <Link
+          href={`/alley-score/${project.project_id}`}
+          className="text-sm font-medium text-[#1B2A4A] hover:underline"
+        >
+          View Details →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ── Generate Score Card ────────────────────────────────────────────────────────
+
+function GenerateScoreCard() {
+  const [files, setFiles] = useState<File[]>([]);
+  const [summary, setSummary] = useState("");
+  const [projectId, setProjectId] = useState("");
+  const [taskId, setTaskId] = useState<string | undefined>();
+  const generate = useGenerateScore();
+  const taskStatus = useTaskStatus(taskId);
+
+  function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files) setFiles(Array.from(e.target.files));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const fd = new FormData();
+    fd.append("project_id", projectId);
+    if (summary) fd.append("project_summary", summary);
+    files.forEach((f) => fd.append("project_documents", f));
+    const result = await generate.mutateAsync(fd);
+    setTaskId(result.task_id);
+  }
+
+  const isRunning = taskStatus.data?.status === "pending" || taskStatus.data?.status === "running";
+  const isDone = taskStatus.data?.status === "completed";
+  const isFailed = taskStatus.data?.status === "failed";
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Sparkles className="h-4 w-4 text-[#1B2A4A]" />
+          Generate New Score
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isDone ? (
+          <div className="flex flex-col items-center gap-2 py-6 text-center">
+            <CheckCircle2 className="h-8 w-8 text-green-500" />
+            <p className="font-semibold text-neutral-800">Score generated successfully!</p>
+            <p className="text-sm text-neutral-500">Refresh the page to see your updated score.</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-neutral-600">
+                Project ID <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Paste your project UUID"
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                required
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/30"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-neutral-600">
+                Project Documents
+              </label>
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-neutral-300 px-4 py-6 text-sm text-neutral-500 hover:border-[#1B2A4A] hover:text-[#1B2A4A]">
+                <FileUp className="h-5 w-5" />
+                <span>
+                  {files.length > 0
+                    ? `${files.length} file${files.length > 1 ? "s" : ""} selected`
+                    : "Click to upload PDFs, pitch decks, financials"}
+                </span>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.pptx,.xlsx,.csv"
+                  onChange={handleFiles}
+                  className="sr-only"
+                />
+              </label>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-neutral-600">
+                Project Summary (optional)
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Brief description of your project, technology, and impact goals…"
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                className="w-full resize-none rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/30"
+              />
+            </div>
+
+            {isFailed && (
+              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                Score generation failed. Please try again.
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              disabled={generate.isPending || isRunning || !projectId}
+              className="w-full bg-[#1B2A4A] text-white hover:bg-[#243660]"
+            >
+              {generate.isPending || isRunning ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isRunning ? "Generating…" : "Submitting…"}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate Signal Score
+                </>
+              )}
+            </Button>
+          </form>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Improvement Guide ─────────────────────────────────────────────────────────
+
+function ImprovementGuide({
+  actions,
+}: {
+  actions: Array<{ action: string; dimension: string; priority: string; estimated_impact: number }>;
+}) {
+  if (!actions.length) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Understanding &amp; Improving Your Score</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-neutral-500">
+          These are the highest-impact actions across your portfolio to improve your investment readiness score:
+        </p>
+        <ul className="space-y-2">
+          {actions.map((item, i) => (
+            <li key={i} className="flex items-start gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#1B2A4A] text-xs font-bold text-white">
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-neutral-800">{item.action}</p>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">
+                    {item.dimension.replace(/_/g, " ")}
+                  </span>
+                  <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs text-neutral-600 capitalize">
+                    {item.priority} priority
+                  </span>
+                  <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">
+                    +{item.estimated_impact.toFixed(1)} pts
+                  </span>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default function AlleyScorePage() {
+  const { data, isLoading } = usePortfolioOverview();
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <BarChart2 className="h-6 w-6 text-[#1B2A4A]" />
+        <div>
+          <h1 className="text-xl font-bold text-neutral-900">My Signal Score</h1>
+          <p className="text-sm text-neutral-500">
+            AI-calculated investment readiness rating for your projects
+          </p>
+        </div>
+      </div>
+
+      <InfoBanner />
+
+      {/* Section 1 — Portfolio Overview */}
       {isLoading ? (
-        <div className="flex justify-center py-20">
+        <div className="flex justify-center py-10">
           <Loader2 className="h-7 w-7 animate-spin text-neutral-400" />
         </div>
-      ) : !data?.items?.length ? (
+      ) : data && data.stats.total_projects > 0 ? (
+        <PortfolioMetrics
+          avg={data.stats.avg_score}
+          total={data.stats.total_projects}
+          ready={data.stats.investment_ready_count}
+        />
+      ) : null}
+
+      {/* Section 2 — Project Scores Table */}
+      {data && data.projects.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Project Scores</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {/* Desktop table */}
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-400">
+                    <th className="px-6 py-3">Project</th>
+                    <th className="px-2 py-3">Stage</th>
+                    <th className="px-2 py-3">Score</th>
+                    <th className="px-2 py-3">Status</th>
+                    <th className="px-2 py-3">Date</th>
+                    <th className="px-2 py-3 text-right">Detail</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100 px-6">
+                  {data.projects.map((p) => (
+                    <tr key={p.project_id} className="px-6">
+                      <ScoreTableRow project={p} />
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Mobile cards */}
+            <div className="space-y-3 p-4 sm:hidden">
+              {data.projects.map((p) => (
+                <ScoreCard key={p.project_id} project={p} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Empty state */}
+      {!isLoading && (!data || data.projects.length === 0) && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-            <BarChart2 className="h-10 w-10 text-neutral-300 mb-3" />
-            <h3 className="text-base font-semibold text-neutral-700 mb-1">
-              No scores calculated yet
-            </h3>
-            <p className="text-sm text-neutral-400 max-w-xs">
-              Upload project documents and request a signal score calculation to
-              see your readiness scores here.
+            <BarChart2 className="mb-3 h-10 w-10 text-neutral-300" />
+            <h3 className="mb-1 text-base font-semibold text-neutral-700">No scores yet</h3>
+            <p className="max-w-xs text-sm text-neutral-400">
+              Generate your first signal score below by uploading project documents.
             </p>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid gap-5 sm:grid-cols-1 lg:grid-cols-2">
-          {data.items.map((project) => (
-            <ProjectScoreCard
-              key={project.project_id}
-              project={project}
-              selected={selectedProjectId === project.project_id}
-              onSelect={() => toggleProject(project.project_id)}
-            />
-          ))}
-        </div>
       )}
+
+      {/* Sections 3 & 4 — Generate + Improvement Guide (side by side on desktop) */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <GenerateScoreCard />
+        <ImprovementGuide actions={data?.improvement_actions ?? []} />
+      </div>
     </div>
   );
 }

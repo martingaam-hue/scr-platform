@@ -1,185 +1,218 @@
 /**
  * Alley Signal Score — types and React Query hooks.
- * Covers GET /alley/signal-score and related endpoints.
+ * All scores displayed as 0.0–10.0 (API stores 0–100, divides by 10).
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ── Portfolio Overview Types ───────────────────────────────────────────────────
 
-export interface AlleyProjectScoreSummary {
+export interface PortfolioStats {
+  avg_score: number;              // 0.0–10.0
+  total_projects: number;
+  investment_ready_count: number;
+}
+
+export interface ProjectScoreListItem {
   project_id: string;
   project_name: string;
-  overall_score: number;
-  project_viability_score: number;
-  financial_planning_score: number;
-  team_strength_score: number;
-  risk_assessment_score: number;
-  esg_score: number;
-  market_opportunity_score: number;
-  version: number;
+  sector: string | null;
+  stage: string | null;
+  score: number;                  // 0.0–10.0
+  score_label: string;            // Excellent | Strong | Good | Needs Review
+  score_label_color: string;      // green | yellow | amber | red
+  status: string;                 // Ready | Needs Review
   calculated_at: string;
   trend: "up" | "down" | "stable" | "new";
-  score_change: number;
 }
 
-export interface AlleyScoreListResponse {
-  items: AlleyProjectScoreSummary[];
-  total: number;
-}
-
-export interface GapActionItem {
+export interface ImprovementFactor {
   dimension: string;
-  criterion: string;
-  current_score: number;
-  max_score: number;
+  avg_score: number;
+}
+
+export interface ImprovementAction {
   action: string;
-  estimated_impact: number;
+  dimension: string;
   priority: string;
+  estimated_impact: number;
+}
+
+export interface PortfolioScoreResponse {
+  stats: PortfolioStats;
+  projects: ProjectScoreListItem[];
+  improvement_factors: ImprovementFactor[];
+  improvement_actions: ImprovementAction[];
+}
+
+// ── Project Detail Types ───────────────────────────────────────────────────────
+
+export interface DimensionDetail {
+  id: string;
+  label: string;
+  score: number;                  // 0–100 (raw, used as bar %)
+  description?: string;
+}
+
+export interface ReadinessIndicator {
+  label: string;
+  met: boolean;
+}
+
+export interface CriterionDetail {
+  id: string;
+  name: string;
+  status: "met" | "partial" | "not_met";
+  points_earned: number;
+  points_max: number;
+  evidence_note?: string;
+}
+
+export interface DimensionBreakdown {
+  dimension_id: string;
+  dimension_name: string;
+  score: number;
+  criteria: CriterionDetail[];
+}
+
+export interface GapAction {
+  dimension: string;
+  action: string;
   effort: string;
-  document_types: string[];
-}
-
-export interface GapAnalysisResponse {
-  project_id: string;
-  overall_score: number;
-  target_score: number;
-  gap_items: GapActionItem[];
-  generated_at: string;
-}
-
-export interface SimulateResponse {
-  current_score: number;
-  projected_score: number;
-  score_change: number;
-  dimension_changes: Record<string, number>;
+  timeline: string;
+  estimated_impact: number;       // 0.0–10.0 scale
 }
 
 export interface ScoreHistoryPoint {
-  version: number;
-  overall_score: number;
-  calculated_at: string;
-  project_viability_score: number;
-  financial_planning_score: number;
-  team_strength_score: number;
-  risk_assessment_score: number;
-  esg_score: number;
-  market_opportunity_score: number;
+  date: string;                   // "YYYY-MM-DD"
+  score: number;                  // 0.0–10.0
 }
 
-export interface ScoreHistoryResponse {
+export interface ProjectScoreDetailResponse {
   project_id: string;
-  history: ScoreHistoryPoint[];
+  project_name: string;
+  score: number;                  // 0.0–10.0
+  score_label: string;
+  score_label_color: string;
+  dimensions: DimensionDetail[];
+  readiness_indicators: ReadinessIndicator[];
+  criteria_breakdown: DimensionBreakdown[];
+  gap_analysis: GapAction[];
+  score_history: ScoreHistoryPoint[];
 }
 
-export interface BenchmarkResponse {
-  project_id: string;
-  your_score: number;
-  platform_median: number;
-  top_quartile: number;
-  percentile: number;
-  peer_asset_type: string;
-  peer_count: number;
+// ── Generate / Task Status ─────────────────────────────────────────────────────
+
+export interface GenerateScoreResponse {
+  task_id: string;
 }
 
-// ── Query key factory ──────────────────────────────────────────────────────
+export interface TaskStatusResponse {
+  task_id: string;
+  status: "pending" | "running" | "completed" | "failed";
+  progress_message?: string;
+  result?: Record<string, unknown>;
+}
+
+// ── Query key factory ──────────────────────────────────────────────────────────
 
 export const alleyScoreKeys = {
   all: ["alley-score"] as const,
+  portfolio: () => [...alleyScoreKeys.all, "portfolio"] as const,
+  detail: (id: string) => [...alleyScoreKeys.all, "detail", id] as const,
+  task: (id: string) => [...alleyScoreKeys.all, "task", id] as const,
+  // Legacy keys kept for existing usage
   list: () => [...alleyScoreKeys.all, "list"] as const,
   gaps: (id: string) => [...alleyScoreKeys.all, "gaps", id] as const,
   history: (id: string) => [...alleyScoreKeys.all, "history", id] as const,
   benchmark: (id: string) => [...alleyScoreKeys.all, "benchmark", id] as const,
 };
 
-// ── Hooks ──────────────────────────────────────────────────────────────────
+// ── Hooks ──────────────────────────────────────────────────────────────────────
 
-export function useAlleyScores() {
+export function usePortfolioOverview() {
   return useQuery({
-    queryKey: alleyScoreKeys.list(),
+    queryKey: alleyScoreKeys.portfolio(),
     queryFn: () =>
       api
-        .get<AlleyScoreListResponse>("/alley/signal-score")
+        .get<PortfolioScoreResponse>("/alley/signal-score")
         .then((r) => r.data),
   });
 }
 
-export function useAlleyScoreGaps(projectId: string | undefined) {
-  return useQuery({
-    queryKey: alleyScoreKeys.gaps(projectId ?? ""),
-    queryFn: () =>
-      api
-        .get<GapAnalysisResponse>(`/alley/signal-score/${projectId}/gaps`)
-        .then((r) => r.data),
-    enabled: !!projectId,
-  });
-}
+/** @deprecated Use usePortfolioOverview() instead */
+export const useAlleyScores = usePortfolioOverview;
 
-export function useAlleyScoreHistory(projectId: string | undefined) {
+export function useProjectScoreDetail(projectId: string | undefined) {
   return useQuery({
-    queryKey: alleyScoreKeys.history(projectId ?? ""),
+    queryKey: alleyScoreKeys.detail(projectId ?? ""),
     queryFn: () =>
       api
-        .get<ScoreHistoryResponse>(`/alley/signal-score/${projectId}/history`)
+        .get<ProjectScoreDetailResponse>(`/alley/signal-score/${projectId}`)
         .then((r) => r.data),
     enabled: !!projectId,
   });
 }
 
-export function useAlleyBenchmark(projectId: string | undefined) {
-  return useQuery({
-    queryKey: alleyScoreKeys.benchmark(projectId ?? ""),
-    queryFn: () =>
-      api
-        .get<BenchmarkResponse>(`/alley/signal-score/${projectId}/benchmark`)
-        .then((r) => r.data),
-    enabled: !!projectId,
-  });
-}
-
-export function useSimulateScore() {
+export function useGenerateScore() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      body,
-    }: {
-      id: string;
-      body: Record<string, unknown>;
-    }) =>
+    mutationFn: (formData: FormData) =>
       api
-        .post<SimulateResponse>(`/alley/signal-score/${id}/simulate`, body)
+        .post<GenerateScoreResponse>("/alley/signal-score/generate", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
         .then((r) => r.data),
-    onSuccess: (_data, { id }) => {
-      qc.invalidateQueries({ queryKey: alleyScoreKeys.gaps(id) });
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: alleyScoreKeys.portfolio() });
     },
   });
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-export function scoreColor(score: number): string {
-  if (score >= 75) return "text-green-600";
-  if (score >= 50) return "text-amber-600";
-  return "text-red-600";
+export function useTaskStatus(taskId: string | undefined) {
+  return useQuery({
+    queryKey: alleyScoreKeys.task(taskId ?? ""),
+    queryFn: () =>
+      api
+        .get<TaskStatusResponse>(`/alley/signal-score/tasks/${taskId}`)
+        .then((r) => r.data),
+    enabled: !!taskId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status === "completed" || status === "failed") return false;
+      return 2000;
+    },
+  });
 }
 
-export function scoreBg(score: number): string {
-  if (score >= 75) return "bg-green-50 border-green-200";
-  if (score >= 50) return "bg-amber-50 border-amber-200";
-  return "bg-red-50 border-red-200";
+// ── Display helpers ────────────────────────────────────────────────────────────
+
+export function scoreLabelColor(color: string): string {
+  switch (color) {
+    case "green":  return "text-green-600";
+    case "yellow": return "text-yellow-600";
+    case "amber":  return "text-amber-600";
+    default:       return "text-red-500";
+  }
 }
 
-export function priorityVariant(
-  priority: string
-): "error" | "warning" | "neutral" {
-  switch (priority.toLowerCase()) {
-    case "high":
-      return "error";
-    case "medium":
-      return "warning";
-    default:
-      return "neutral";
+export function scoreBadgeClass(status: string): string {
+  return status === "Ready"
+    ? "bg-green-800 text-white border-transparent"
+    : "border-orange-400 text-orange-600 bg-transparent";
+}
+
+export function dimensionBarColor(score: number): string {
+  if (score >= 75) return "bg-green-500";
+  if (score >= 60) return "bg-amber-500";
+  return "bg-red-400";
+}
+
+export function effortColor(effort: string): string {
+  switch (effort.toLowerCase()) {
+    case "low":    return "text-green-600 bg-green-50";
+    case "medium": return "text-amber-700 bg-amber-50";
+    default:       return "text-red-600 bg-red-50";
   }
 }
