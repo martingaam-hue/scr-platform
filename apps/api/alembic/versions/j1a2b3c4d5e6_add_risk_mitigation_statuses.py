@@ -1,7 +1,7 @@
 """add risk_mitigation_statuses table
 
 Revision ID: j1a2b3c4d5e6
-Revises: i1a2b3c4d5e6
+Revises: 8d141fa29a9e
 Create Date: 2026-03-04 12:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = 'j1a2b3c4d5e6'
-down_revision = 'i1a2b3c4d5e6'
+down_revision = '8d141fa29a9e'
 branch_labels = None
 depends_on = None
 
