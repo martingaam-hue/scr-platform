@@ -15,6 +15,8 @@ export interface ScoreGaugeProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: number;
   strokeWidth?: number;
   label?: string;
+  /** Optimise for dark/coloured backgrounds: white score text and label */
+  inverted?: boolean;
 }
 
 function ScoreGauge({
@@ -22,6 +24,7 @@ function ScoreGauge({
   size = 120,
   strokeWidth = 10,
   label = "Signal Score",
+  inverted = false,
   className,
   ...props
 }: ScoreGaugeProps) {
@@ -47,10 +50,10 @@ function ScoreGauge({
         <path
           d={describeArc(size / 2, size / 2, radius, 180, 360)}
           fill="none"
-          stroke="currentColor"
+          stroke={inverted ? "rgba(255,255,255,0.22)" : "currentColor"}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
-          className="text-neutral-200 dark:text-neutral-700"
+          className={inverted ? undefined : "text-neutral-200 dark:text-neutral-700"}
         />
         {/* Score arc */}
         <path
@@ -69,14 +72,20 @@ function ScoreGauge({
           y={size / 2 - 4}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="fill-neutral-900 font-bold dark:fill-neutral-100"
+          className={cn(
+            "font-bold",
+            inverted ? "fill-white" : "fill-neutral-900 dark:fill-neutral-100"
+          )}
           style={{ fontSize: size * 0.28 }}
         >
           {clamped}
         </text>
       </svg>
       {label && (
-        <p className="mt-1 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+        <p className={cn(
+          "mt-1 text-xs font-medium",
+          inverted ? "text-white/75" : "text-neutral-500 dark:text-neutral-400"
+        )}>
           {label}
         </p>
       )}

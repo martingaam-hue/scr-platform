@@ -620,14 +620,15 @@ export default function SignalScorePage() {
         />
       ) : (
         <>
-          {/* ── Master score card — full-width, dominant ── */}
-          <Card>
+          {/* ── Master score card — full-width, primary blue bg ── */}
+          <Card className="border-primary-700 bg-primary-600">
             <CardContent className="flex flex-col items-center py-8 px-6">
               <div className="flex items-center gap-3">
                 <ScoreGauge
                   score={details.overall_score}
                   size={160}
                   strokeWidth={14}
+                  inverted
                 />
                 <LineagePanel
                   entityType="project"
@@ -640,7 +641,7 @@ export default function SignalScorePage() {
               <div className="mt-3 flex items-center gap-2">
                 <VolatilityBadge projectId={id} />
               </div>
-              <p className="mt-2 text-xs text-neutral-400">
+              <p className="mt-2 text-xs text-white/60">
                 v{details.version} · {details.model_used} ·{" "}
                 {new Date(details.calculated_at).toLocaleDateString()}
               </p>
@@ -663,20 +664,24 @@ export default function SignalScorePage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {details.dimensions.map((dim) => (
               <Card key={dim.id}>
-                <CardContent className="flex flex-col items-center p-5">
-                  {/* Gauge with no label inside — label rendered below */}
+                {/* Horizontal: circle left, text block right */}
+                <CardContent className="flex items-center gap-4 px-5 py-4">
                   <ScoreGauge
                     score={dim.score}
-                    size={88}
-                    strokeWidth={8}
+                    size={72}
+                    strokeWidth={7}
                     label=""
+                    className="shrink-0"
                   />
-                  <p className="mt-2 text-center text-sm font-medium leading-tight text-neutral-700">
-                    {dim.name}
-                  </p>
-                  <p className="mt-1 text-xs text-neutral-400">
-                    {(dim.weight * 100).toFixed(0)}%
-                  </p>
+                  <div className="min-w-0">
+                    <p className="font-semibold leading-tight text-neutral-900">
+                      {dim.name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-neutral-400">
+                      Weight: {(dim.weight * 100).toFixed(0)}% · Completeness:{" "}
+                      {dim.completeness_score}% · Quality: {dim.quality_score}%
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             ))}
