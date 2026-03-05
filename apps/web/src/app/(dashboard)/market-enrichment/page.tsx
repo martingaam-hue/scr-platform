@@ -10,7 +10,6 @@ import {
   Clock,
   AlertTriangle,
   Activity,
-  FileText,
 } from "lucide-react";
 import {
   useMarketEnrichmentDashboard,
@@ -28,6 +27,7 @@ import {
   FETCH_STATUS_BADGE,
   type MarketDataSource,
   type MarketDataProcessed,
+  type ReviewQueueItem,
 } from "@/lib/market-enrichment";
 
 type Tab = "overview" | "data" | "sources" | "review";
@@ -739,7 +739,7 @@ function ReviewCard({
   onReject,
   isPending,
 }: {
-  item: import("@/lib/market-enrichment").ReviewQueueItem;
+  item: ReviewQueueItem;
   onApprove: () => void;
   onReject: () => void;
   isPending: boolean;
