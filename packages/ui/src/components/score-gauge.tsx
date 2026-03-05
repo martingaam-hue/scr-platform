@@ -17,6 +17,8 @@ export interface ScoreGaugeProps extends React.HTMLAttributes<HTMLDivElement> {
   label?: string;
   /** Optimise for dark/coloured backgrounds: white score text and label */
   inverted?: boolean;
+  /** Hide the score number rendered inside the arc (useful when the number is shown externally) */
+  showScore?: boolean;
 }
 
 function ScoreGauge({
@@ -25,6 +27,7 @@ function ScoreGauge({
   strokeWidth = 10,
   label = "Signal Score",
   inverted = false,
+  showScore = true,
   className,
   ...props
 }: ScoreGaugeProps) {
@@ -67,19 +70,21 @@ function ScoreGauge({
           }}
         />
         {/* Center text */}
-        <text
-          x={size / 2}
-          y={size / 2 - 4}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className={cn(
-            "font-bold",
-            inverted ? "fill-white" : "fill-neutral-900 dark:fill-neutral-100"
-          )}
-          style={{ fontSize: size * 0.28 }}
-        >
-          {clamped}
-        </text>
+        {showScore && (
+          <text
+            x={size / 2}
+            y={size / 2 - 4}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className={cn(
+              "font-bold",
+              inverted ? "fill-white" : "fill-neutral-900 dark:fill-neutral-100"
+            )}
+            style={{ fontSize: size * 0.28 }}
+          >
+            {clamped}
+          </text>
+        )}
       </svg>
       {label && (
         <p className={cn(

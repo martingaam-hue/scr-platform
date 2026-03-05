@@ -620,22 +620,28 @@ export default function SignalScorePage() {
         />
       ) : (
         <>
-          {/* ── Master score card — blue bg, [circle left][text right] ── */}
+          {/* ── Master score card — blue bg, [arc-only circle left][text right] ── */}
           <Card className="border-primary-700 bg-primary-600">
-            <CardContent className="flex flex-col items-center px-8 py-8">
-              {/* [circle left] [text right] row — mirrors sub-metric structure */}
+            <CardContent className="px-8 pt-8 pb-6">
+              {/* [arc-only circle left] [score number + label right] */}
               <div className="flex items-center gap-6">
                 <ScoreGauge
                   score={details.overall_score}
                   size={120}
                   strokeWidth={12}
                   inverted
+                  showScore={false}
                   label=""
                   className="shrink-0"
                 />
                 <div>
-                  <p className="text-3xl font-bold text-white">Signal Score</p>
-                  <div className="mt-2 flex items-center gap-2">
+                  <p className="text-5xl font-bold tabular-nums text-white leading-none">
+                    {details.overall_score}
+                  </p>
+                  <p className="mt-1 text-lg font-medium text-white/80">
+                    Signal Score
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
                     <VolatilityBadge projectId={id} />
                     <LineagePanel
                       entityType="project"
@@ -646,8 +652,8 @@ export default function SignalScorePage() {
                   </div>
                 </div>
               </div>
-              {/* mt-12 clears the arc overflow (arc extends ~42px below SVG box) */}
-              <div className="mt-12 flex flex-col items-center gap-2">
+              {/* Metadata row — sits below the arc overflow zone */}
+              <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
                 <p className="text-xs text-white/60">
                   v{details.version} · {details.model_used} ·{" "}
                   {new Date(details.calculated_at).toLocaleDateString()}
@@ -658,7 +664,6 @@ export default function SignalScorePage() {
                   entityId={id}
                   compact
                 />
-                {/* Add aiTaskLogId from AI task log when available */}
                 <CitationBadges aiTaskLogId={undefined} />
               </div>
             </CardContent>
@@ -668,11 +673,11 @@ export default function SignalScorePage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {details.dimensions.map((dim) => (
               <Card key={dim.id}>
-                {/* min-h-[7rem] ensures card is tall enough to contain the arc.
-                    The ScoreGauge SVG (size=72) reports 43px height but its arc
-                    extends to 68.5px via overflow-visible — min-h gives the
-                    needed clearance so nothing gets clipped. */}
-                <CardContent className="flex min-h-[7rem] items-center gap-4 px-5 py-5">
+                {/* pb-8 ensures arc overflow is not clipped.
+                    ScoreGauge SVG (size=72) reports 43px height but the arc
+                    extends ~25px lower via overflow-visible — extra bottom
+                    padding gives the needed clearance. */}
+                <CardContent className="flex items-center gap-4 px-5 pt-5 pb-8">
                   <ScoreGauge
                     score={dim.score}
                     size={72}
