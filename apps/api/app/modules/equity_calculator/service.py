@@ -227,7 +227,9 @@ async def compare_scenarios(
         except LookupError:
             continue
 
-        waterfall: list[dict[str, Any]] = list(scenario.waterfall_analysis) if scenario.waterfall_analysis else []
+        waterfall: list[dict[str, Any]] = (
+            list(scenario.waterfall_analysis) if scenario.waterfall_analysis else []
+        )
         # Find proceeds at 2x and 5x multiples
         proceeds_2x = next(
             (w["investor_proceeds"] for w in waterfall if w.get("multiple") == 2.0), 0.0

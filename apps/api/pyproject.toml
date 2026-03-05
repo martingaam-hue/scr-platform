@@ -67,7 +67,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "alembic/*" = ["E402", "F401", "N806", "UP035", "UP007"]
-"app/models/__init__.py" = ["F401"]
+"app/models/__init__.py" = ["F401", "RUF022"]
 "scripts/*" = ["E402", "F401", "F821", "N806"]
 "tests/*" = ["E402", "F401", "RUF012", "N806"]
 

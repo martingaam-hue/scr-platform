@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import io
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pptx import Presentation
 from pptx.util import Inches, Pt

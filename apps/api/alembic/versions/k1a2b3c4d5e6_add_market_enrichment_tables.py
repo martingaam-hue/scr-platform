@@ -91,18 +91,12 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["source_id"], ["market_data_sources.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["source_id"], ["market_data_sources.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_enrichment_fetch_log_org", "market_enrichment_fetch_logs", ["org_id"])
-    op.create_index(
-        "ix_enrichment_fetch_log_source", "market_enrichment_fetch_logs", ["source_id"]
-    )
-    op.create_index(
-        "ix_enrichment_fetch_log_status", "market_enrichment_fetch_logs", ["status"]
-    )
+    op.create_index("ix_enrichment_fetch_log_source", "market_enrichment_fetch_logs", ["source_id"])
+    op.create_index("ix_enrichment_fetch_log_status", "market_enrichment_fetch_logs", ["status"])
 
     # ── market_data_raw ───────────────────────────────────────────────────────
     op.create_table(
@@ -137,9 +131,7 @@ def upgrade() -> None:
             ["fetch_log_id"], ["market_enrichment_fetch_logs.id"], ondelete="SET NULL"
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "org_id", "source_id", "content_hash", name="uq_market_data_raw_dedup"
-        ),
+        sa.UniqueConstraint("org_id", "source_id", "content_hash", name="uq_market_data_raw_dedup"),
     )
     op.create_index("ix_market_data_raw_content_hash", "market_data_raw", ["content_hash"])
     op.create_index("ix_market_data_raw_source", "market_data_raw", ["source_id"])
@@ -167,9 +159,7 @@ def upgrade() -> None:
         sa.Column("unit", sa.String(50), nullable=True),
         sa.Column("confidence", sa.Numeric(3, 2), nullable=False, server_default="1.0"),
         sa.Column("source_url", sa.String(500), nullable=True),
-        sa.Column(
-            "review_status", sa.String(20), nullable=False, server_default="auto_accepted"
-        ),
+        sa.Column("review_status", sa.String(20), nullable=False, server_default="auto_accepted"),
         sa.Column("reviewed_by", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
@@ -188,9 +178,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["reviewed_by"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "ix_market_data_processed_data_type", "market_data_processed", ["data_type"]
-    )
+    op.create_index("ix_market_data_processed_data_type", "market_data_processed", ["data_type"])
     op.create_index(
         "ix_market_data_processed_effective_date", "market_data_processed", ["effective_date"]
     )
@@ -226,9 +214,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["processed_id"], ["market_data_processed.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["processed_id"], ["market_data_processed.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["assigned_to"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )

@@ -8,8 +8,8 @@ from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
-    DateTime,
     Date,
+    DateTime,
     ForeignKey,
     Index,
     Integer,

@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from celery import shared_task
@@ -54,7 +54,7 @@ def fetch_tier1_source(
                 log = db.get(MarketEnrichmentFetchLog, log_id)
                 if log:
                     log.status = "running"
-                    log.started_at = datetime.now(tz=timezone.utc)
+                    log.started_at = datetime.now(tz=UTC)
                     db.commit()
 
             # Fetch from source URL
@@ -69,14 +69,18 @@ def fetch_tier1_source(
             try:
                 response = httpx.get(url, headers=headers, params=params, timeout=30.0)
                 response.raise_for_status()
-                raw_data = response.json() if "json" in response.headers.get("content-type", "") else {"text": response.text}
+                raw_data = (
+                    response.json()
+                    if "json" in response.headers.get("content-type", "")
+                    else {"text": response.text}
+                )
             except Exception as fetch_exc:
                 if log_id:
                     log = db.get(MarketEnrichmentFetchLog, log_id)
                     if log:
                         log.status = "failed"
                         log.error_message = str(fetch_exc)
-                        log.completed_at = datetime.now(tz=timezone.utc)
+                        log.completed_at = datetime.now(tz=UTC)
                         db.commit()
                 raise self.retry(exc=fetch_exc) from fetch_exc
 
@@ -88,7 +92,11 @@ def fetch_tier1_source(
             for record in records:
                 # Apply field mappings if configured
                 if field_mappings:
-                    mapped = {target: record.get(src) for src, target in field_mappings.items() if record.get(src) is not None}
+                    mapped = {
+                        target: record.get(src)
+                        for src, target in field_mappings.items()
+                        if record.get(src) is not None
+                    }
                     if mapped:
                         record = {**record, **mapped}
 
@@ -114,7 +122,7 @@ def fetch_tier1_source(
                     fetch_log_id=log_id,
                     raw_content=record,
                     content_hash=content_hash,
-                    fetched_at=datetime.now(tz=timezone.utc),
+                    fetched_at=datetime.now(tz=UTC),
                 )
                 db.add(raw_record)
                 db.flush()
@@ -130,7 +138,7 @@ def fetch_tier1_source(
                     log.status = "success"
                     log.records_fetched = len(records)
                     log.records_new = new_count
-                    log.completed_at = datetime.now(tz=timezone.utc)
+                    log.completed_at = datetime.now(tz=UTC)
 
             db.commit()
             logger.info(
@@ -183,7 +191,7 @@ def fetch_tier2_rss(
                 log = db.get(MarketEnrichmentFetchLog, log_id)
                 if log:
                     log.status = "running"
-                    log.started_at = datetime.now(tz=timezone.utc)
+                    log.started_at = datetime.now(tz=UTC)
                     db.commit()
 
             url = source.base_url or ""
@@ -200,7 +208,7 @@ def fetch_tier2_rss(
                     if log:
                         log.status = "failed"
                         log.error_message = str(fetch_exc)
-                        log.completed_at = datetime.now(tz=timezone.utc)
+                        log.completed_at = datetime.now(tz=UTC)
                         db.commit()
                 raise self.retry(exc=fetch_exc) from fetch_exc
 
@@ -230,7 +238,7 @@ def fetch_tier2_rss(
                     fetch_log_id=log_id,
                     raw_content=entry,
                     content_hash=content_hash,
-                    fetched_at=datetime.now(tz=timezone.utc),
+                    fetched_at=datetime.now(tz=UTC),
                 )
                 db.add(raw_record)
                 db.flush()
@@ -256,7 +264,7 @@ def fetch_tier2_rss(
                     log.status = "success"
                     log.records_fetched = len(entries)
                     log.records_new = new_count
-                    log.completed_at = datetime.now(tz=timezone.utc)
+                    log.completed_at = datetime.now(tz=UTC)
 
             db.commit()
             logger.info(
@@ -284,22 +292,28 @@ def _parse_rss_feed(feed_text: str) -> list[dict]:
 
         # Atom feed
         for entry in root.findall("atom:entry", ns):
-            entries.append({
-                "title": entry.findtext("atom:title", namespaces=ns),
-                "summary": entry.findtext("atom:summary", namespaces=ns),
-                "link": entry.find("atom:link", ns).get("href") if entry.find("atom:link", ns) is not None else None,
-                "published": entry.findtext("atom:published", namespaces=ns),
-            })
+            entries.append(
+                {
+                    "title": entry.findtext("atom:title", namespaces=ns),
+                    "summary": entry.findtext("atom:summary", namespaces=ns),
+                    "link": entry.find("atom:link", ns).get("href")
+                    if entry.find("atom:link", ns) is not None
+                    else None,
+                    "published": entry.findtext("atom:published", namespaces=ns),
+                }
+            )
 
         # RSS 2.0
         if not entries:
             for item in root.iter("item"):
-                entries.append({
-                    "title": item.findtext("title"),
-                    "summary": item.findtext("description"),
-                    "link": item.findtext("link"),
-                    "published": item.findtext("pubDate"),
-                })
+                entries.append(
+                    {
+                        "title": item.findtext("title"),
+                        "summary": item.findtext("description"),
+                        "link": item.findtext("link"),
+                        "published": item.findtext("pubDate"),
+                    }
+                )
 
         return entries
     except Exception:
@@ -357,11 +371,15 @@ def extract_structured_data(self, raw_id: str, org_id: str) -> None:
                     except Exception:
                         content = {}
             except Exception as ai_exc:
-                logger.warning("market_enrichment_ai_extract_failed", raw_id=raw_id, error=str(ai_exc))
+                logger.warning(
+                    "market_enrichment_ai_extract_failed", raw_id=raw_id, error=str(ai_exc)
+                )
                 content = {}
 
             confidence = float(content.get("confidence", 0.5))
-            review_status = "auto_accepted" if confidence >= CONFIDENCE_THRESHOLD else "pending_review"
+            review_status = (
+                "auto_accepted" if confidence >= CONFIDENCE_THRESHOLD else "pending_review"
+            )
 
             processed = MarketDataProcessed(
                 org_id=raw.org_id,
@@ -409,6 +427,7 @@ def _parse_date(value: str | None):
         return None
     try:
         from datetime import date as _date
+
         return _date.fromisoformat(value[:10])
     except Exception:
         return None
@@ -443,11 +462,6 @@ def run_scheduled_fetches(
             dispatched = 0
 
             for source in sources:
-                task_name = (
-                    "market_enrichment.fetch_tier1_source"
-                    if source.tier == 1
-                    else "market_enrichment.fetch_tier2_rss"
-                )
                 fetch_tier1_source.apply_async(
                     kwargs={
                         "source_id": str(source.id),

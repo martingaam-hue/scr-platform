@@ -401,8 +401,7 @@ class RalphTools:
             ]
             table = (
                 "| Category | Type | Region | Date | Value |\n"
-                "|----------|------|--------|------|-------|\n"
-                + "\n".join(lines)
+                "|----------|------|--------|------|-------|\n" + "\n".join(lines)
             )
             return {"results": results, "summary": table}
         except Exception as e:

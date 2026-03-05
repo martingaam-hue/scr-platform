@@ -239,7 +239,9 @@ def generate_report_task(self, report_id: str) -> dict:
                 "xlsx": XLSXGenerator,
                 "pptx": PPTXGenerator,
             }
-            generator_cls: type[PDFGenerator] | type[XLSXGenerator] | type[PPTXGenerator] = generators.get(output_format, PDFGenerator)
+            generator_cls: type[PDFGenerator] | type[XLSXGenerator] | type[PPTXGenerator] = (
+                generators.get(output_format, PDFGenerator)
+            )
             generator = generator_cls(template_config, org_settings)
 
             # Normalize sections for generator

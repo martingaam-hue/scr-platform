@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.market_enrichment import (
     DataReviewQueue,
     MarketDataProcessed,
-    MarketDataRaw,
     MarketDataSource,
     MarketEnrichmentFetchLog,
 )
@@ -85,10 +84,8 @@ async def update_source(
     return source
 
 
-async def get_dashboard_stats(
-    db: AsyncSession, org_id: uuid.UUID
-) -> MarketEnrichmentDashboard:
-    today_start = datetime.now(tz=timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+async def get_dashboard_stats(db: AsyncSession, org_id: uuid.UUID) -> MarketEnrichmentDashboard:
+    today_start = datetime.now(tz=UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 
     sources_count_result = await db.execute(
         select(func.count()).where(MarketDataSource.org_id == org_id)
@@ -200,7 +197,7 @@ async def create_manual_entry(
         confidence=1.0,
         review_status="auto_accepted",
         reviewed_by=user_id,
-        reviewed_at=datetime.now(tz=timezone.utc),
+        reviewed_at=datetime.now(tz=UTC),
         **data.model_dump(),
     )
     db.add(entry)
@@ -222,7 +219,7 @@ async def review_entry(
 
     entry.review_status = "approved" if decision.action == "approve" else "rejected"
     entry.reviewed_by = user_id
-    entry.reviewed_at = datetime.now(tz=timezone.utc)
+    entry.reviewed_at = datetime.now(tz=UTC)
 
     # Mark review queue item as resolved
     queue_result = await db.execute(
@@ -233,7 +230,7 @@ async def review_entry(
     )
     queue_items = list(queue_result.scalars().all())
     for item in queue_items:
-        item.resolved_at = datetime.now(tz=timezone.utc)
+        item.resolved_at = datetime.now(tz=UTC)
 
     await db.commit()
     await db.refresh(entry)
