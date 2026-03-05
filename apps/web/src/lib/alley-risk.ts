@@ -18,6 +18,7 @@ export interface RiskItemSummary {
   guidance?: string;
   evidence_document_ids: string[];
   notes?: string;
+  source: "auto" | "logged";
 }
 
 export interface ProjectRiskSummary {
@@ -29,11 +30,17 @@ export interface ProjectRiskSummary {
   medium_count: number;
   low_count: number;
   mitigation_progress_pct: number;
+  overall_risk_score: number;
+  auto_identified_count: number;
+  logged_count: number;
 }
 
 export interface RiskListResponse {
   items: ProjectRiskSummary[];
   total: number;
+  portfolio_risk_score: number;
+  total_auto_identified: number;
+  total_logged: number;
 }
 
 export interface ProjectRiskDetailResponse {
@@ -43,6 +50,7 @@ export interface ProjectRiskDetailResponse {
   total_risks: number;
   addressed_risks: number;
   mitigation_progress_pct: number;
+  overall_risk_score: number;
 }
 
 export interface MitigationProgressResponse {
@@ -56,6 +64,26 @@ export interface MitigationProgressResponse {
   progress_pct: number;
 }
 
+export interface DomainRiskItem {
+  domain: string;
+  risk_score: number;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  total: number;
+}
+
+export interface DomainRiskResponse {
+  domains: DomainRiskItem[];
+  portfolio_risk_score: number;
+}
+
+export interface RunCheckResponse {
+  task_id: string;
+  message: string;
+}
+
 // ── Query key factory ──────────────────────────────────────────────────────
 
 export const alleyRiskKeys = {
@@ -63,6 +91,7 @@ export const alleyRiskKeys = {
   list: () => [...alleyRiskKeys.all, "list"] as const,
   detail: (id: string) => [...alleyRiskKeys.all, "detail", id] as const,
   progress: (id: string) => [...alleyRiskKeys.all, "progress", id] as const,
+  domains: () => [...alleyRiskKeys.all, "domains"] as const,
 };
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
@@ -94,6 +123,29 @@ export function useAlleyRiskProgress(projectId: string | undefined) {
         .get<MitigationProgressResponse>(`/alley/risk/${projectId}/progress`)
         .then((r) => r.data),
     enabled: !!projectId,
+  });
+}
+
+export function useRiskDomains() {
+  return useQuery({
+    queryKey: alleyRiskKeys.domains(),
+    queryFn: () =>
+      api.get<DomainRiskResponse>("/alley/risk/domains").then((r) => r.data),
+  });
+}
+
+export function useRunRiskCheck() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (projectId: string) =>
+      api
+        .post<RunCheckResponse>(`/alley/risk/${projectId}/check`)
+        .then((r) => r.data),
+    onSuccess: (_data, projectId) => {
+      qc.invalidateQueries({ queryKey: alleyRiskKeys.detail(projectId) });
+      qc.invalidateQueries({ queryKey: alleyRiskKeys.list() });
+      qc.invalidateQueries({ queryKey: alleyRiskKeys.domains() });
+    },
   });
 }
 
@@ -135,10 +187,7 @@ export function useAddEvidence() {
       body: Record<string, unknown>;
     }) =>
       api
-        .post(
-          `/alley/risk/${projectId}/items/${riskId}/evidence`,
-          body
-        )
+        .post(`/alley/risk/${projectId}/items/${riskId}/evidence`, body)
         .then((r) => r.data),
     onSuccess: (_data, { projectId }) => {
       qc.invalidateQueries({ queryKey: alleyRiskKeys.detail(projectId) });
@@ -148,6 +197,7 @@ export function useAddEvidence() {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+/** 4-tier severity → Badge variant */
 export function severityVariant(
   severity: string
 ): "error" | "warning" | "neutral" | "success" {
@@ -164,10 +214,65 @@ export function severityVariant(
   }
 }
 
+/** 4-tier severity color classes for custom styling */
+export function severityClasses(severity: string): {
+  dot: string;
+  bg: string;
+  text: string;
+  border: string;
+} {
+  switch (severity.toLowerCase()) {
+    case "critical":
+      return {
+        dot: "bg-black",
+        bg: "bg-black/10",
+        text: "text-black",
+        border: "border-black/20",
+      };
+    case "high":
+      return {
+        dot: "bg-red-500",
+        bg: "bg-red-50",
+        text: "text-red-700",
+        border: "border-red-200",
+      };
+    case "medium":
+      return {
+        dot: "bg-amber-400",
+        bg: "bg-amber-50",
+        text: "text-amber-700",
+        border: "border-amber-200",
+      };
+    default:
+      return {
+        dot: "bg-green-500",
+        bg: "bg-green-50",
+        text: "text-green-700",
+        border: "border-green-200",
+      };
+  }
+}
+
+/** Risk score 0–100 → color class (inverse of signal score: high risk = red) */
+export function riskScoreColor(score: number): string {
+  if (score >= 75) return "#C62828";  // Critical
+  if (score >= 50) return "#F57C00";  // High
+  if (score >= 25) return "#F59E0B";  // Medium
+  return "#4EB457";                    // Low
+}
+
 export const MITIGATION_STATUS_LABELS: Record<string, string> = {
   unaddressed: "Unaddressed",
   acknowledged: "Acknowledged",
   in_progress: "In Progress",
   mitigated: "Mitigated",
   accepted: "Accepted",
+};
+
+export const DOMAIN_LABELS: Record<string, string> = {
+  technical: "Technical",
+  financial: "Financial",
+  regulatory: "Regulatory",
+  esg: "ESG",
+  market: "Market",
 };
