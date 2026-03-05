@@ -1,5 +1,7 @@
 """Alley Pipeline Analytics API."""
+
 from __future__ import annotations
+
 import uuid
 
 import structlog

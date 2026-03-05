@@ -1,7 +1,5 @@
 """Smart Screener API router."""
 
-import uuid
-
 import structlog
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +8,6 @@ from app.auth.dependencies import get_current_user
 from app.core.database import get_db
 from app.modules.smart_screener import service
 from app.modules.smart_screener.schemas import (
-    ParsedFilters,
     SavedSearchResponse,
     SaveSearchRequest,
     ScreenerQuery,

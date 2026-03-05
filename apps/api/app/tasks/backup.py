@@ -10,16 +10,17 @@ Tasks:
   weekly_backup_test     — Sunday 5am: restore pg_dump to temp schema, verify table count,
                            check S3 DR replication, report pass/fail
 """
+
 from __future__ import annotations
 
+import contextlib
 import gzip
 import hashlib
-import io
 import json
 import os
 import subprocess
 import tempfile
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
 import boto3
@@ -32,6 +33,7 @@ from app.core.config import settings
 logger = structlog.get_logger()
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _s3_client(region: str | None = None) -> Any:
     return boto3.client(
@@ -55,10 +57,10 @@ def _rds_client() -> Any:
 def _parse_db_url(url: str) -> dict:
     """Parse DATABASE_URL into connection params."""
     url = url.replace("postgresql+asyncpg://", "").replace("postgresql://", "")
-    creds, host_db = (url.split("@", 1) if "@" in url else ("", url))
-    user, password = (creds.split(":", 1) if ":" in creds else (creds, ""))
-    host_port, dbname = (host_db.rsplit("/", 1) if "/" in host_db else (host_db, "postgres"))
-    host, port = (host_port.split(":", 1) if ":" in host_port else (host_port, "5432"))
+    creds, host_db = url.split("@", 1) if "@" in url else ("", url)
+    user, password = creds.split(":", 1) if ":" in creds else (creds, "")
+    host_port, dbname = host_db.rsplit("/", 1) if "/" in host_db else (host_db, "postgres")
+    host, port = host_port.split(":", 1) if ":" in host_port else (host_port, "5432")
     return {"user": user, "password": password, "host": host, "port": port, "dbname": dbname}
 
 
@@ -81,6 +83,7 @@ def _emit_metric(metric_name: str, value: float, unit: str = "Count") -> None:
 
 # ── Step 1: PostgreSQL logical backup ─────────────────────────────────────────
 
+
 def _run_pg_backup(timestamp: str, backup_bucket: str) -> dict:
     """pg_dump → gzip → S3 primary. Returns metadata dict."""
     db_url = getattr(settings, "DATABASE_URL", "") or getattr(settings, "DATABASE_URL_SYNC", "")
@@ -96,10 +99,19 @@ def _run_pg_backup(timestamp: str, backup_bucket: str) -> dict:
 
     cmd = [
         "pg_dump",
-        "-h", params["host"], "-p", params["port"],
-        "-U", params["user"], "-d", params["dbname"],
-        "--no-password", "--format=custom", "--compress=9",
-        "--no-owner", "--no-acl",
+        "-h",
+        params["host"],
+        "-p",
+        params["port"],
+        "-U",
+        params["user"],
+        "-d",
+        params["dbname"],
+        "--no-password",
+        "--format=custom",
+        "--compress=9",
+        "--no-owner",
+        "--no-acl",
     ]
     logger.info("backup.pg_dump.start", host=params["host"], db=params["dbname"])
 
@@ -140,7 +152,8 @@ def _run_pg_backup(timestamp: str, backup_bucket: str) -> dict:
                 tmp.flush()
                 chk = subprocess.run(
                     ["pg_restore", "--list", tmp.name],
-                    capture_output=True, timeout=60,
+                    capture_output=True,
+                    timeout=60,
                 )
                 verified = chk.returncode == 0
         except Exception as ve:
@@ -148,15 +161,19 @@ def _run_pg_backup(timestamp: str, backup_bucket: str) -> dict:
 
         logger.info("backup.pg_dump.complete", key=s3_key, size_mb=size_mb, verified=verified)
         return {
-            "status": "success", "s3_key": s3_key,
-            "size_mb": size_mb, "sha256": checksum, "verified": verified,
+            "status": "success",
+            "s3_key": s3_key,
+            "size_mb": size_mb,
+            "sha256": checksum,
+            "verified": verified,
         }
 
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("pg_dump timed out after 15 minutes")
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("pg_dump timed out after 15 minutes") from exc
 
 
 # ── Step 2: DR cross-region copy ───────────────────────────────────────────────
+
 
 def _copy_to_dr(s3_key: str, primary_bucket: str) -> dict:
     """Copy the backup to the DR region bucket."""
@@ -171,11 +188,18 @@ def _copy_to_dr(s3_key: str, primary_bucket: str) -> dict:
         s3_dr = _s3_client(region=dr_region)
         copy_source = {"Bucket": primary_bucket, "Key": s3_key}
         s3_dr.copy(
-            copy_source, dr_bucket, s3_key,
+            copy_source,
+            dr_bucket,
+            s3_key,
             ExtraArgs={"StorageClass": "STANDARD_IA"},
         )
         logger.info("backup.dr_copy.complete", dr_bucket=dr_bucket, key=s3_key, size_mb=size_mb)
-        return {"status": "success", "dr_bucket": dr_bucket, "dr_region": dr_region, "size_mb": size_mb}
+        return {
+            "status": "success",
+            "dr_bucket": dr_bucket,
+            "dr_region": dr_region,
+            "size_mb": size_mb,
+        }
     except ClientError as e:
         code = e.response["Error"]["Code"]
         if code in ("NoSuchBucket", "NoCredentialsError", "AccessDenied"):
@@ -185,6 +209,7 @@ def _copy_to_dr(s3_key: str, primary_bucket: str) -> dict:
 
 
 # ── Step 3: OpenSearch snapshot ────────────────────────────────────────────────
+
 
 def _run_opensearch_snapshot(timestamp: str, backup_bucket: str) -> dict:
     """Create an OpenSearch/Elasticsearch snapshot."""
@@ -201,12 +226,15 @@ def _run_opensearch_snapshot(timestamp: str, backup_bucket: str) -> dict:
         # Register snapshot repo (idempotent)
         httpx.put(
             f"{es_url}/_snapshot/{repo}",
-            json={"type": "s3", "settings": {
-                "bucket": backup_bucket,
-                "base_path": "opensearch",
-                "region": getattr(settings, "AWS_S3_REGION", "eu-west-1"),
-                "server_side_encryption": True,
-            }},
+            json={
+                "type": "s3",
+                "settings": {
+                    "bucket": backup_bucket,
+                    "base_path": "opensearch",
+                    "region": getattr(settings, "AWS_S3_REGION", "eu-west-1"),
+                    "server_side_encryption": True,
+                },
+            },
             timeout=30,
         ).raise_for_status()
 
@@ -222,7 +250,9 @@ def _run_opensearch_snapshot(timestamp: str, backup_bucket: str) -> dict:
         # Prune old snapshots — keep last 8
         try:
             all_snaps = httpx.get(f"{es_url}/_snapshot/{repo}/_all", timeout=15).json()
-            snaps = sorted(all_snaps.get("snapshots", []), key=lambda x: x.get("start_time_in_millis", 0))
+            snaps = sorted(
+                all_snaps.get("snapshots", []), key=lambda x: x.get("start_time_in_millis", 0)
+            )
             for snap in snaps[:-8]:
                 httpx.delete(f"{es_url}/_snapshot/{repo}/{snap['snapshot']}", timeout=10)
         except Exception:
@@ -237,6 +267,7 @@ def _run_opensearch_snapshot(timestamp: str, backup_bucket: str) -> dict:
 
 # ── Step 4: Secrets / config inventory ────────────────────────────────────────
 
+
 def _export_secrets_inventory(timestamp: str, backup_bucket: str) -> dict:
     """Export Secrets Manager secret *names* (NOT values) to S3 as an audit record."""
     try:
@@ -250,12 +281,18 @@ def _export_secrets_inventory(timestamp: str, backup_bucket: str) -> dict:
         paginator = sm.get_paginator("list_secrets")
         for page in paginator.paginate():
             for s in page.get("SecretList", []):
-                secrets.append({
-                    "name": s["Name"],
-                    "arn": s["ARN"],
-                    "last_rotated": s.get("LastRotatedDate", "").isoformat() if hasattr(s.get("LastRotatedDate", ""), "isoformat") else str(s.get("LastRotatedDate", "")),
-                    "created": s.get("CreatedDate", "").isoformat() if hasattr(s.get("CreatedDate", ""), "isoformat") else "",
-                })
+                secrets.append(
+                    {
+                        "name": s["Name"],
+                        "arn": s["ARN"],
+                        "last_rotated": s.get("LastRotatedDate", "").isoformat()
+                        if hasattr(s.get("LastRotatedDate", ""), "isoformat")
+                        else str(s.get("LastRotatedDate", "")),
+                        "created": s.get("CreatedDate", "").isoformat()
+                        if hasattr(s.get("CreatedDate", ""), "isoformat")
+                        else "",
+                    }
+                )
         inventory = {"timestamp": timestamp, "total": len(secrets), "secrets": secrets}
         data = json.dumps(inventory, indent=2, default=str).encode()
         s3 = _s3_client()
@@ -269,6 +306,7 @@ def _export_secrets_inventory(timestamp: str, backup_bucket: str) -> dict:
 
 
 # ── Step 5: RDS automated backup verification ──────────────────────────────────
+
 
 def _verify_rds_snapshots() -> dict:
     """Check that recent RDS automated backups exist and are available."""
@@ -288,7 +326,12 @@ def _verify_rds_snapshots() -> dict:
 
         latest_time = None
         if available:
-            latest = max(available, key=lambda b: b.get("SnapshotCreateTime") or b.get("InstanceCreateTime") or datetime.min.replace(tzinfo=UTC))
+            latest = max(
+                available,
+                key=lambda b: b.get("SnapshotCreateTime")
+                or b.get("InstanceCreateTime")
+                or datetime.min.replace(tzinfo=UTC),
+            )
             ts = latest.get("SnapshotCreateTime") or latest.get("InstanceCreateTime")
             if ts:
                 latest_time = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
@@ -297,19 +340,28 @@ def _verify_rds_snapshots() -> dict:
         if latest_time:
             try:
                 from dateutil import parser as dtparser
-                age_hours = round((datetime.now(UTC) - dtparser.parse(latest_time)).total_seconds() / 3600, 1)
+
+                age_hours = round(
+                    (datetime.now(UTC) - dtparser.parse(latest_time)).total_seconds() / 3600, 1
+                )
             except Exception:
                 pass
 
         ok = age_hours is not None and age_hours < 26  # within last 26 hours
         logger.info("backup.rds.verified", count=len(available), age_hours=age_hours, ok=ok)
-        return {"status": "ok" if ok else "stale", "snapshot_count": len(available), "latest": latest_time, "age_hours": age_hours}
+        return {
+            "status": "ok" if ok else "stale",
+            "snapshot_count": len(available),
+            "latest": latest_time,
+            "age_hours": age_hours,
+        }
     except Exception as e:
         logger.warning("backup.rds.verify_failed", error=str(e))
         return {"status": "skipped", "reason": str(e)}
 
 
 # ── Step 6: S3 replication status ─────────────────────────────────────────────
+
 
 def _check_s3_replication() -> dict:
     """Check that cross-region replication is enabled on critical buckets."""
@@ -323,13 +375,19 @@ def _check_s3_replication() -> dict:
             results[bucket] = "enabled"
         except ClientError as e:
             code = e.response["Error"]["Code"]
-            results[bucket] = "none" if code == "ReplicationConfigurationNotFoundError" else f"error:{code}"
+            results[bucket] = (
+                "none" if code == "ReplicationConfigurationNotFoundError" else f"error:{code}"
+            )
         except Exception as e:
             results[bucket] = f"skipped:{e}"
-    return {"status": "ok" if all(v == "enabled" for v in results.values()) else "partial", "buckets": results}
+    return {
+        "status": "ok" if all(v == "enabled" for v in results.values()) else "partial",
+        "buckets": results,
+    }
 
 
 # ── Step 7: Table count audit ──────────────────────────────────────────────────
+
 
 def _audit_table_count() -> dict:
     """Count public tables — automatically catches new tables added by future migrations."""
@@ -341,28 +399,40 @@ def _audit_table_count() -> dict:
             return {"status": "skipped"}
         params = _parse_db_url(db_url)
         conn = psycopg2.connect(
-            host=params["host"], port=int(params["port"]),
-            user=params["user"], password=params["password"], dbname=params["dbname"],
+            host=params["host"],
+            port=int(params["port"]),
+            user=params["user"],
+            password=params["password"],
+            dbname=params["dbname"],
             connect_timeout=10,
         )
         with conn.cursor() as cur:
-            cur.execute("SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")
+            cur.execute(
+                "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'"
+            )
             count = cur.fetchone()[0]
         conn.close()
 
         expected_min = 113
         ok = count >= expected_min
         if not ok:
-            logger.warning("backup.table_count.below_expected", count=count, expected_min=expected_min)
+            logger.warning(
+                "backup.table_count.below_expected", count=count, expected_min=expected_min
+            )
         else:
             logger.info("backup.table_count.ok", count=count)
-        return {"status": "ok" if ok else "warning", "table_count": count, "expected_min": expected_min}
+        return {
+            "status": "ok" if ok else "warning",
+            "table_count": count,
+            "expected_min": expected_min,
+        }
     except Exception as e:
         logger.warning("backup.table_count.failed", error=str(e))
         return {"status": "skipped", "reason": str(e)}
 
 
 # ── Step 8: Write health report to S3 ─────────────────────────────────────────
+
 
 def _write_health_report(timestamp: str, backup_bucket: str, report: dict) -> None:
     try:
@@ -381,8 +451,15 @@ def _write_health_report(timestamp: str, backup_bucket: str, report: dict) -> No
 
 # ── MASTER TASK: nightly_backup ────────────────────────────────────────────────
 
-@shared_task(name="tasks.nightly_backup", bind=True, max_retries=1,
-             queue="bulk", time_limit=3600, soft_time_limit=3300)
+
+@shared_task(
+    name="tasks.nightly_backup",
+    bind=True,
+    max_retries=1,
+    queue="bulk",
+    time_limit=3600,
+    soft_time_limit=3300,
+)
 def nightly_backup(self) -> dict:  # type: ignore[misc]
     """
     Master backup orchestrator — runs nightly at 02:00 UTC.
@@ -398,8 +475,9 @@ def nightly_backup(self) -> dict:  # type: ignore[misc]
       8. Emit CloudWatch metrics
     """
     timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-    backup_bucket = getattr(settings, "BACKUP_S3_BUCKET",
-                            f"scr-{getattr(settings, 'APP_ENV', 'production')}-backups")
+    backup_bucket = getattr(
+        settings, "BACKUP_S3_BUCKET", f"scr-{getattr(settings, 'APP_ENV', 'production')}-backups"
+    )
     report: dict[str, Any] = {"timestamp": timestamp, "backup_bucket": backup_bucket, "steps": {}}
     overall_ok = True
 
@@ -481,8 +559,15 @@ def nightly_backup(self) -> dict:  # type: ignore[misc]
 
 # ── WEEKLY RESTORE TEST ────────────────────────────────────────────────────────
 
-@shared_task(name="tasks.weekly_backup_test", bind=True, max_retries=0,
-             queue="bulk", time_limit=1800, soft_time_limit=1700)
+
+@shared_task(
+    name="tasks.weekly_backup_test",
+    bind=True,
+    max_retries=0,
+    queue="bulk",
+    time_limit=1800,
+    soft_time_limit=1700,
+)
 def weekly_backup_test(self) -> dict:  # type: ignore[misc]
     """
     Sunday 05:00 UTC — restore last backup to a temp schema and verify integrity.
@@ -496,8 +581,9 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
       6. Report pass/fail to CloudWatch
     """
     report: dict[str, Any] = {"started_at": datetime.now(UTC).isoformat(), "checks": {}}
-    backup_bucket = getattr(settings, "BACKUP_S3_BUCKET",
-                            f"scr-{getattr(settings, 'APP_ENV', 'production')}-backups")
+    backup_bucket = getattr(
+        settings, "BACKUP_S3_BUCKET", f"scr-{getattr(settings, 'APP_ENV', 'production')}-backups"
+    )
     passed = True
 
     logger.info("backup.restore_test.start")
@@ -513,7 +599,10 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
                     all_keys.append((obj["LastModified"], obj["Key"]))
 
         if not all_keys:
-            report["checks"]["find_backup"] = {"status": "failed", "reason": "No backups found in S3"}
+            report["checks"]["find_backup"] = {
+                "status": "failed",
+                "reason": "No backups found in S3",
+            }
             passed = False
         else:
             all_keys.sort(reverse=True)
@@ -521,8 +610,10 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
             latest_ts = all_keys[0][0].isoformat()
             age_hours = round((datetime.now(UTC) - all_keys[0][0]).total_seconds() / 3600, 1)
             report["checks"]["find_backup"] = {
-                "status": "ok", "key": latest_key,
-                "timestamp": latest_ts, "age_hours": age_hours,
+                "status": "ok",
+                "key": latest_key,
+                "timestamp": latest_ts,
+                "age_hours": age_hours,
             }
             if age_hours > 26:
                 report["checks"]["find_backup"]["status"] = "stale"
@@ -537,7 +628,9 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
     if latest_key:
         temp_schema = f"restore_test_{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
         try:
-            db_url = getattr(settings, "DATABASE_URL_SYNC", "") or getattr(settings, "DATABASE_URL", "")
+            db_url = getattr(settings, "DATABASE_URL_SYNC", "") or getattr(
+                settings, "DATABASE_URL", ""
+            )
             params = _parse_db_url(db_url)
             env = os.environ.copy()
             if params["password"]:
@@ -546,10 +639,7 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
             # Download backup
             obj = s3.get_object(Bucket=backup_bucket, Key=latest_key)
             raw_bytes = obj["Body"].read()
-            if latest_key.endswith(".gz"):
-                dump_bytes = gzip.decompress(raw_bytes)
-            else:
-                dump_bytes = raw_bytes
+            dump_bytes = gzip.decompress(raw_bytes) if latest_key.endswith(".gz") else raw_bytes
 
             with tempfile.NamedTemporaryFile(suffix=".dump", delete=False) as tmp:
                 tmp.write(dump_bytes)
@@ -558,10 +648,14 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
             try:
                 # Create temp schema and restore with --schema-only first for quick table count
                 import psycopg2
+
                 conn = psycopg2.connect(
-                    host=params["host"], port=int(params["port"]),
-                    user=params["user"], password=params["password"],
-                    dbname=params["dbname"], connect_timeout=10,
+                    host=params["host"],
+                    port=int(params["port"]),
+                    user=params["user"],
+                    password=params["password"],
+                    dbname=params["dbname"],
+                    connect_timeout=10,
                 )
                 conn.autocommit = True
                 with conn.cursor() as cur:
@@ -570,7 +664,10 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
 
                 # Restore schema only
                 restore_cmd = [
-                    "pg_restore", "--schema-only", "--no-owner", "--no-acl",
+                    "pg_restore",
+                    "--schema-only",
+                    "--no-owner",
+                    "--no-acl",
                     f"--schema={temp_schema}",
                     f"--dbname=postgresql://{params['user']}:{params['password']}@{params['host']}:{params['port']}/{params['dbname']}",
                     tmp_path,
@@ -580,9 +677,12 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
 
                 # Count tables restored
                 conn2 = psycopg2.connect(
-                    host=params["host"], port=int(params["port"]),
-                    user=params["user"], password=params["password"],
-                    dbname=params["dbname"], connect_timeout=10,
+                    host=params["host"],
+                    port=int(params["port"]),
+                    user=params["user"],
+                    password=params["password"],
+                    dbname=params["dbname"],
+                    connect_timeout=10,
                 )
                 with conn2.cursor() as cur:
                     cur.execute(
@@ -595,8 +695,10 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
 
                 restore_status = "ok" if restore_ok and restored_count >= 100 else "warning"
                 report["checks"]["restore_test"] = {
-                    "status": restore_status, "schema": temp_schema,
-                    "tables_restored": restored_count, "restore_exit_code": result.returncode,
+                    "status": restore_status,
+                    "schema": temp_schema,
+                    "tables_restored": restored_count,
+                    "restore_exit_code": result.returncode,
                 }
                 if restore_status != "ok":
                     passed = False
@@ -605,10 +707,14 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
                 # Cleanup temp schema
                 try:
                     import psycopg2
+
                     conn3 = psycopg2.connect(
-                        host=params["host"], port=int(params["port"]),
-                        user=params["user"], password=params["password"],
-                        dbname=params["dbname"], connect_timeout=10,
+                        host=params["host"],
+                        port=int(params["port"]),
+                        user=params["user"],
+                        password=params["password"],
+                        dbname=params["dbname"],
+                        connect_timeout=10,
                     )
                     conn3.autocommit = True
                     with conn3.cursor() as cur:
@@ -616,10 +722,8 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
                     conn3.close()
                 except Exception:
                     pass
-                try:
+                with contextlib.suppress(Exception):
                     os.unlink(tmp_path)
-                except Exception:
-                    pass
 
         except Exception as e:
             logger.warning("backup.restore_test.failed", error=str(e))
@@ -635,7 +739,8 @@ def weekly_backup_test(self) -> dict:  # type: ignore[misc]
         dr_has_objects = dr_resp.get("KeyCount", 0) > 0
         report["checks"]["dr_replication"] = {
             "status": "ok" if dr_has_objects else "empty",
-            "dr_bucket": dr_bucket, "has_objects": dr_has_objects,
+            "dr_bucket": dr_bucket,
+            "has_objects": dr_has_objects,
         }
         if not dr_has_objects:
             passed = False

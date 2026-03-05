@@ -1,7 +1,6 @@
 """External data feed service — FRED, World Bank, Yahoo Finance, NOAA, Regulations.gov."""
 from __future__ import annotations
 
-import asyncio
 import time
 from typing import Any
 

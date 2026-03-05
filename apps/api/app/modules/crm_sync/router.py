@@ -37,7 +37,7 @@ async def get_oauth_url(
     try:
         url = await svc.get_oauth_url(provider)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     return {"url": url}
 
 
@@ -56,17 +56,22 @@ async def oauth_callback(
     """
     try:
         org_id = uuid.UUID(state)
-    except (ValueError, AttributeError):
+    except (ValueError, AttributeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid state parameter",
-        )
+        ) from exc
 
     svc = CRMSyncService(db, org_id)
     try:
         conn = await svc.handle_oauth_callback(provider, code)
         await db.commit()
-        logger.info("crm_oauth_callback_success", provider=provider, org_id=str(org_id), connection_id=str(conn.id))
+        logger.info(
+            "crm_oauth_callback_success",
+            provider=provider,
+            org_id=str(org_id),
+            connection_id=str(conn.id),
+        )
     except Exception as e:
         await db.rollback()
         logger.error("crm_oauth_callback_error", provider=provider, error=str(e))
@@ -107,7 +112,7 @@ async def update_field_mappings(
         await db.commit()
         await db.refresh(conn)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     return CRMConnectionResponse.model_validate(conn)
 
 
@@ -123,14 +128,14 @@ async def trigger_sync(
         result = await svc.trigger_sync(connection_id)
         await db.commit()
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except Exception as e:
         await db.rollback()
         logger.error("crm_sync_trigger_error", connection_id=str(connection_id), error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Sync failed",
-        )
+        ) from e
     return result
 
 
@@ -146,7 +151,7 @@ async def get_sync_logs(
     try:
         logs = await svc.get_sync_logs(connection_id, limit)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     return [SyncLogResponse.model_validate(log) for log in logs]
 
 
@@ -162,7 +167,7 @@ async def disconnect(
         await svc.disconnect(connection_id)
         await db.commit()
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post("/connections/{connection_id}/test", response_model=TestConnectionResponse)
@@ -176,7 +181,7 @@ async def test_connection(
     try:
         result = await svc.test_connection(connection_id)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     return TestConnectionResponse(**result)
 
 
@@ -200,14 +205,14 @@ async def salesforce_sync(
         result = await svc.sync_salesforce(connection_id, body.project_ids)
         await db.commit()
     except (LookupError, ValueError) as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         await db.rollback()
         logger.error("salesforce_sync_error", connection_id=str(connection_id), error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Salesforce sync failed",
-        )
+        ) from e
     return SalesforceSyncResponse(**result)
 
 
@@ -227,12 +232,12 @@ async def salesforce_contacts(
         contacts = await svc.pull_salesforce_contacts(connection_id)
         await db.commit()
     except (LookupError, ValueError) as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         await db.rollback()
         logger.error("salesforce_contacts_error", connection_id=str(connection_id), error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch Salesforce contacts",
-        )
+        ) from e
     return [SalesforceContactResponse(**c) for c in contacts]

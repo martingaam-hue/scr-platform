@@ -1,7 +1,6 @@
 """Ecosystem service — stakeholder relationship mapping via AITaskLog storage."""
 
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -45,7 +44,7 @@ async def _build_initial_ecosystem(
     entity_id: uuid.UUID,
 ) -> dict[str, Any]:
     """Build initial ecosystem from real DB connections; fall back to synthetic if empty."""
-    from app.models.advisory import BoardAdvisorApplication, BoardAdvisorProfile
+    from app.models.advisory import BoardAdvisorApplication
     from app.models.deal_flow import DealStageTransition
     from app.models.enums import BoardAdvisorApplicationStatus
 
@@ -75,23 +74,27 @@ async def _build_initial_ecosystem(
     )
     for app in advisor_result.scalars().all():
         node_id = f"advisor-{str(app.id)[:8]}"
-        nodes.append({
-            "id": node_id,
-            "name": f"Board Advisor ({app.role_offered or 'Advisor'})",
-            "type": "advisor",
-            "sub_type": "board",
-            "relationship_strength": 4,
-            "engagement_status": "active",
-            "tags": ["board_advisor"],
-            "metadata": {"application_id": str(app.id)},
-        })
-        edges.append({
-            "source": org_node_id,
-            "target": node_id,
-            "relationship_type": "advisory",
-            "weight": 7,
-            "description": f"Board advisory: {app.role_offered or 'Advisor'}",
-        })
+        nodes.append(
+            {
+                "id": node_id,
+                "name": f"Board Advisor ({app.role_offered or 'Advisor'})",
+                "type": "advisor",
+                "sub_type": "board",
+                "relationship_strength": 4,
+                "engagement_status": "active",
+                "tags": ["board_advisor"],
+                "metadata": {"application_id": str(app.id)},
+            }
+        )
+        edges.append(
+            {
+                "source": org_node_id,
+                "target": node_id,
+                "relationship_type": "advisory",
+                "weight": 7,
+                "description": f"Board advisory: {app.role_offered or 'Advisor'}",
+            }
+        )
 
     # Unique investors from deal stage transitions
     trans_result = await db.execute(
@@ -105,23 +108,27 @@ async def _build_initial_ecosystem(
     )
     for i, (investor_id,) in enumerate(trans_result.all(), 1):
         node_id = f"investor-{str(investor_id)[:8]}"
-        nodes.append({
-            "id": node_id,
-            "name": f"Investor {i}",
-            "type": "investor",
-            "sub_type": "institutional",
-            "relationship_strength": 3,
-            "engagement_status": "active",
-            "tags": ["deal_pipeline"],
-            "metadata": {"investor_id": str(investor_id)},
-        })
-        edges.append({
-            "source": org_node_id,
-            "target": node_id,
-            "relationship_type": "investment",
-            "weight": 6,
-            "description": "Active deal pipeline investor",
-        })
+        nodes.append(
+            {
+                "id": node_id,
+                "name": f"Investor {i}",
+                "type": "investor",
+                "sub_type": "institutional",
+                "relationship_strength": 3,
+                "engagement_status": "active",
+                "tags": ["deal_pipeline"],
+                "metadata": {"investor_id": str(investor_id)},
+            }
+        )
+        edges.append(
+            {
+                "source": org_node_id,
+                "target": node_id,
+                "relationship_type": "investment",
+                "weight": 6,
+                "description": "Active deal pipeline investor",
+            }
+        )
 
     # If we got no real connections at all, fall back to synthetic
     if len(nodes) == 1:

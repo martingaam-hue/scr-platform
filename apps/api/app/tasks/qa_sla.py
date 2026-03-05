@@ -20,13 +20,17 @@ def check_qa_sla() -> dict:
 
         async with async_session_factory() as db:
             org_ids = (
-                await db.execute(
-                    select(distinct(QAQuestion.org_id)).where(
-                        QAQuestion.status.in_(["open", "assigned", "in_progress"]),
-                        QAQuestion.is_deleted.is_(False),
+                (
+                    await db.execute(
+                        select(distinct(QAQuestion.org_id)).where(
+                            QAQuestion.status.in_(["open", "assigned", "in_progress"]),
+                            QAQuestion.is_deleted.is_(False),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             total = 0
             for org_id in org_ids:

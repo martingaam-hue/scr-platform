@@ -67,7 +67,7 @@ async def get_pacing(
     try:
         result = await svc.get_pacing(portfolio_id)
     except LookupError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return result
 
 
@@ -102,7 +102,7 @@ async def update_actuals(
         row = await svc.update_actuals(assumption_id, body, scenario)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except Exception as exc:
         await db.rollback()
         logger.error(

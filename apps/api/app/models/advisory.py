@@ -7,22 +7,10 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Boolean, Date, Enum as SAEnum, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, Date, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-
-def _lc_enum(enum_cls, type_name: str, **kw):
-    """Create a mapped_column using lowercase enum values (matching the DB)."""
-    return mapped_column(
-        SAEnum(
-            enum_cls,
-            values_callable=lambda x: [e.value for e in x],
-            name=type_name,
-            create_type=False,
-        ),
-        **kw,
-    )
 
 from app.models.base import BaseModel
 from app.models.enums import (
@@ -39,6 +27,19 @@ from app.models.enums import (
     MonitoringAlertSeverity,
     MonitoringAlertType,
 )
+
+
+def _lc_enum(enum_cls, type_name: str, **kw):
+    """Create a mapped_column using lowercase enum values (matching the DB)."""
+    return mapped_column(
+        SAEnum(
+            enum_cls,
+            values_callable=lambda x: [e.value for e in x],
+            name=type_name,
+            create_type=False,
+        ),
+        **kw,
+    )
 
 
 class BoardAdvisorProfile(BaseModel):
@@ -65,12 +66,16 @@ class BoardAdvisorProfile(BaseModel):
     industry_experience: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     board_positions_held: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     availability_status: Mapped[AdvisorAvailabilityStatus] = _lc_enum(
-        AdvisorAvailabilityStatus, "advisoravailabilitystatus",
-        nullable=False, default=AdvisorAvailabilityStatus.AVAILABLE,
+        AdvisorAvailabilityStatus,
+        "advisoravailabilitystatus",
+        nullable=False,
+        default=AdvisorAvailabilityStatus.AVAILABLE,
     )
     compensation_preference: Mapped[AdvisorCompensationPreference] = _lc_enum(
-        AdvisorCompensationPreference, "advisorcompensationpreference",
-        nullable=False, default=AdvisorCompensationPreference.NEGOTIABLE,
+        AdvisorCompensationPreference,
+        "advisorcompensationpreference",
+        nullable=False,
+        default=AdvisorCompensationPreference.NEGOTIABLE,
     )
     bio: Mapped[str] = mapped_column(Text, nullable=False, default="")
     linkedin_url: Mapped[str | None] = mapped_column(String(512))
@@ -117,8 +122,10 @@ class BoardAdvisorApplication(BaseModel):
         nullable=False,
     )
     status: Mapped[BoardAdvisorApplicationStatus] = _lc_enum(
-        BoardAdvisorApplicationStatus, "boardadvisorapplicationstatus",
-        nullable=False, default=BoardAdvisorApplicationStatus.PENDING,
+        BoardAdvisorApplicationStatus,
+        "boardadvisorapplicationstatus",
+        nullable=False,
+        default=BoardAdvisorApplicationStatus.PENDING,
     )
     message: Mapped[str | None] = mapped_column(Text)
     role_offered: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -129,9 +136,7 @@ class BoardAdvisorApplication(BaseModel):
     ended_at: Mapped[datetime | None] = mapped_column()
 
     # Relationships
-    advisor_profile: Mapped["BoardAdvisorProfile"] = relationship(
-        back_populates="applications"
-    )
+    advisor_profile: Mapped["BoardAdvisorProfile"] = relationship(back_populates="applications")
 
     def __repr__(self) -> str:
         return f"<BoardAdvisorApplication(id={self.id}, status={self.status.value})>"
@@ -154,8 +159,10 @@ class InvestorPersona(BaseModel):
         Boolean, default=True, server_default="true", nullable=False
     )
     strategy_type: Mapped[InvestorPersonaStrategy] = _lc_enum(
-        InvestorPersonaStrategy, "investorpersonastrategy",
-        nullable=False, default=InvestorPersonaStrategy.MODERATE,
+        InvestorPersonaStrategy,
+        "investorpersonastrategy",
+        nullable=False,
+        default=InvestorPersonaStrategy.MODERATE,
     )
     target_irr_min: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
     target_irr_max: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
@@ -197,8 +204,10 @@ class EquityScenario(BaseModel):
     pre_money_valuation: Mapped[Decimal] = mapped_column(Numeric(19, 4), nullable=False)
     investment_amount: Mapped[Decimal] = mapped_column(Numeric(19, 4), nullable=False)
     security_type: Mapped[EquitySecurityType] = _lc_enum(
-        EquitySecurityType, "equitysecuritytype",
-        nullable=False, default=EquitySecurityType.COMMON_EQUITY,
+        EquitySecurityType,
+        "equitysecuritytype",
+        nullable=False,
+        default=EquitySecurityType.COMMON_EQUITY,
     )
     equity_percentage: Mapped[Decimal] = mapped_column(Numeric(10, 6), nullable=False)
     post_money_valuation: Mapped[Decimal] = mapped_column(Numeric(19, 4), nullable=False)
@@ -208,7 +217,8 @@ class EquityScenario(BaseModel):
     liquidation_preference: Mapped[Decimal | None] = mapped_column(Numeric(19, 4))
     participation_cap: Mapped[Decimal | None] = mapped_column(Numeric(19, 4))
     anti_dilution_type: Mapped[AntiDilutionType | None] = _lc_enum(
-        AntiDilutionType, "antidilutiontype",
+        AntiDilutionType,
+        "antidilutiontype",
     )
     conversion_terms: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     vesting_schedule: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
@@ -251,18 +261,14 @@ class CapitalEfficiencyMetrics(BaseModel):
     tax_credit_value_captured: Mapped[Decimal] = mapped_column(
         Numeric(19, 4), nullable=False, default=0
     )
-    time_saved_hours: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2), nullable=False, default=0
-    )
+    time_saved_hours: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     deals_screened: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     deals_closed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     avg_time_to_close_days: Mapped[Decimal] = mapped_column(
         Numeric(10, 2), nullable=False, default=0
     )
     portfolio_irr_improvement: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
-    industry_avg_dd_cost: Mapped[Decimal] = mapped_column(
-        Numeric(19, 4), nullable=False, default=0
-    )
+    industry_avg_dd_cost: Mapped[Decimal] = mapped_column(Numeric(19, 4), nullable=False, default=0)
     industry_avg_time_to_close: Mapped[Decimal] = mapped_column(
         Numeric(10, 2), nullable=False, default=0
     )
@@ -303,13 +309,19 @@ class MonitoringAlert(BaseModel):
         ForeignKey("portfolios.id", ondelete="SET NULL"),
     )
     alert_type: Mapped[MonitoringAlertType] = _lc_enum(
-        MonitoringAlertType, "monitoringalerttype", nullable=False,
+        MonitoringAlertType,
+        "monitoringalerttype",
+        nullable=False,
     )
     severity: Mapped[MonitoringAlertSeverity] = _lc_enum(
-        MonitoringAlertSeverity, "monitoringalertseverity", nullable=False,
+        MonitoringAlertSeverity,
+        "monitoringalertseverity",
+        nullable=False,
     )
     domain: Mapped[MonitoringAlertDomain] = _lc_enum(
-        MonitoringAlertDomain, "monitoringalertdomain", nullable=False,
+        MonitoringAlertDomain,
+        "monitoringalertdomain",
+        nullable=False,
     )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
@@ -363,7 +375,9 @@ class InvestorSignalScore(BaseModel):
     score_change: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
 
     def __repr__(self) -> str:
-        return f"<InvestorSignalScore(id={self.id}, org_id={self.org_id}, score={self.overall_score})>"
+        return (
+            f"<InvestorSignalScore(id={self.id}, org_id={self.org_id}, score={self.overall_score})>"
+        )
 
 
 class InsuranceQuote(BaseModel):
@@ -392,8 +406,10 @@ class InsuranceQuote(BaseModel):
     valid_until: Mapped[date | None] = mapped_column(Date)
     terms: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     side: Mapped[InsuranceSide] = _lc_enum(
-        InsuranceSide, "insuranceside",
-        nullable=False, default=InsuranceSide.INVESTOR,
+        InsuranceSide,
+        "insuranceside",
+        nullable=False,
+        default=InsuranceSide.INVESTOR,
     )
 
     # Relationships
@@ -437,21 +453,25 @@ class InsurancePolicy(BaseModel):
     coverage_amount: Mapped[Decimal] = mapped_column(Numeric(19, 4), nullable=False)
     premium_amount: Mapped[Decimal] = mapped_column(Numeric(19, 4), nullable=False)
     premium_frequency: Mapped[InsurancePremiumFrequency] = _lc_enum(
-        InsurancePremiumFrequency, "insurancepremiumfrequency", nullable=False,
+        InsurancePremiumFrequency,
+        "insurancepremiumfrequency",
+        nullable=False,
     )
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[InsurancePolicyStatus] = _lc_enum(
-        InsurancePolicyStatus, "insurancepolicystatus",
-        nullable=False, default=InsurancePolicyStatus.ACTIVE,
+        InsurancePolicyStatus,
+        "insurancepolicystatus",
+        nullable=False,
+        default=InsurancePolicyStatus.ACTIVE,
     )
-    risk_score_impact: Mapped[Decimal] = mapped_column(
-        Numeric(10, 4), nullable=False, default=0
-    )
+    risk_score_impact: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False, default=0)
     terms: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     side: Mapped[InsuranceSide] = _lc_enum(
-        InsuranceSide, "insuranceside",
-        nullable=False, default=InsuranceSide.INVESTOR,
+        InsuranceSide,
+        "insuranceside",
+        nullable=False,
+        default=InsuranceSide.INVESTOR,
     )
 
     # Relationships

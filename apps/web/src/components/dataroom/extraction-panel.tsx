@@ -17,14 +17,11 @@ import {
   TabsTrigger,
   TabsContent,
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
   MetricCard,
   Badge,
   Timeline,
   Button,
-  cn,
 } from "@scr/ui";
 import type { TimelineItem } from "@scr/ui";
 import type { ExtractionResponse, ExtractionType } from "@/lib/dataroom";

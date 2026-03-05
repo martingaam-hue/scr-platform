@@ -5,7 +5,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Date, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import Date, ForeignKey, Index, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -42,9 +42,7 @@ class Listing(BaseModel):
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     listing_type: Mapped[ListingType] = mapped_column(nullable=False)
-    status: Mapped[ListingStatus] = mapped_column(
-        nullable=False, default=ListingStatus.DRAFT
-    )
+    status: Mapped[ListingStatus] = mapped_column(nullable=False, default=ListingStatus.DRAFT)
     visibility: Mapped[ListingVisibility] = mapped_column(
         nullable=False, default=ListingVisibility.QUALIFIED_ONLY
     )
@@ -84,9 +82,7 @@ class RFQ(BaseModel):
     proposed_price: Mapped[Decimal] = mapped_column(Numeric(19, 4), nullable=False)
     proposed_terms: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
-    status: Mapped[RFQStatus] = mapped_column(
-        nullable=False, default=RFQStatus.SUBMITTED
-    )
+    status: Mapped[RFQStatus] = mapped_column(nullable=False, default=RFQStatus.SUBMITTED)
     message: Mapped[str] = mapped_column(Text, nullable=False, default="")
     counter_price: Mapped[Decimal | None] = mapped_column(Numeric(19, 4))
     counter_terms: Mapped[dict[str, Any] | None] = mapped_column(JSONB)

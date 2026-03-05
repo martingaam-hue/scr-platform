@@ -1,8 +1,9 @@
 """Alley-side Risk schemas — developer mitigation view."""
+
 from __future__ import annotations
+
 import uuid
-from datetime import datetime
-from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -12,7 +13,9 @@ class RiskItemSummary(BaseModel):
     description: str
     severity: str  # "critical" | "high" | "medium" | "low"
     dimension: str  # "technical" | "financial" | "regulatory" | "esg" | "market"
-    mitigation_status: str  # "unaddressed" | "acknowledged" | "in_progress" | "mitigated" | "accepted"
+    mitigation_status: (
+        str  # "unaddressed" | "acknowledged" | "in_progress" | "mitigated" | "accepted"
+    )
     guidance: str | None = None
     evidence_document_ids: list[uuid.UUID] = []
     notes: str | None = None
@@ -28,7 +31,7 @@ class ProjectRiskSummary(BaseModel):
     medium_count: int
     low_count: int
     mitigation_progress_pct: int
-    overall_risk_score: float = 0.0   # 0–100, severity-weighted, adjusted for mitigation
+    overall_risk_score: float = 0.0  # 0–100, severity-weighted, adjusted for mitigation
     auto_identified_count: int = 0
     logged_count: int = 0
 
@@ -53,7 +56,7 @@ class ProjectRiskDetailResponse(BaseModel):
 
 class DomainRiskItem(BaseModel):
     domain: str
-    risk_score: float       # 0–100
+    risk_score: float  # 0–100
     critical_count: int
     high_count: int
     medium_count: int

@@ -5,9 +5,10 @@ Revises: c0merge0c01c05
 Create Date: 2026-03-01 14:00:00.000000
 """
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB, UUID
+
+from alembic import op
 
 revision = "c8a2b3c4d5e6"
 down_revision = "c0merge0c01c05"
@@ -18,7 +19,9 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "industry_taxonomy",
-        sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+        ),
         sa.Column("code", sa.String(50), nullable=False, unique=True),
         sa.Column("parent_code", sa.String(50), nullable=True),
         sa.Column("name", sa.String(200), nullable=False),
@@ -36,9 +39,21 @@ def upgrade() -> None:
 
     op.create_table(
         "financial_templates",
-        sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("taxonomy_code", sa.String(50), sa.ForeignKey("industry_taxonomy.code", ondelete="CASCADE"), nullable=False),
-        sa.Column("org_id", UUID(as_uuid=True), sa.ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True),
+        sa.Column(
+            "id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")
+        ),
+        sa.Column(
+            "taxonomy_code",
+            sa.String(50),
+            sa.ForeignKey("industry_taxonomy.code", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "org_id",
+            UUID(as_uuid=True),
+            sa.ForeignKey("organizations.id", ondelete="CASCADE"),
+            nullable=True,
+        ),
         sa.Column("name", sa.String(200), nullable=False),
         sa.Column("description", sa.Text, nullable=True),
         sa.Column("assumptions", JSONB, nullable=False, server_default="{}"),

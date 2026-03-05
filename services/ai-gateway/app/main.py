@@ -1,6 +1,6 @@
 """AI Gateway — unified LLM access with routing, rate limiting, and RAG."""
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 import sentry_sdk
 import structlog
@@ -10,7 +10,7 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 
 from app.core.config import settings
-from app.routers import completions, embeddings, search, feeds
+from app.routers import completions, embeddings, feeds, search
 
 logger = structlog.get_logger()
 

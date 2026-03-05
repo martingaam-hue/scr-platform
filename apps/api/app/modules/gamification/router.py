@@ -43,12 +43,14 @@ async def get_quests(
     db: AsyncSession = Depends(get_db),
 ):
     from sqlalchemy import select
+
     from app.models.gamification import ImprovementQuest
+
     result = await db.execute(
         select(ImprovementQuest).where(
             ImprovementQuest.project_id == project_id,
             ImprovementQuest.status == "active",
-            ImprovementQuest.is_deleted == False,
+            ImprovementQuest.is_deleted is False,
         )
     )
     quests = result.scalars().all()
@@ -63,9 +65,12 @@ async def complete_quest(
     current_user: CurrentUser = Depends(require_permission("view", "project")),
     db: AsyncSession = Depends(get_db),
 ):
-    from sqlalchemy import select
-    from app.models.gamification import ImprovementQuest
     from datetime import datetime
+
+    from sqlalchemy import select
+
+    from app.models.gamification import ImprovementQuest
+
     result = await db.execute(select(ImprovementQuest).where(ImprovementQuest.id == quest_id))
     quest = result.scalar_one_or_none()
     if not quest:
@@ -82,20 +87,26 @@ async def leaderboard(
     db: AsyncSession = Depends(get_db),
 ) -> list[dict[str, Any]]:
     from sqlalchemy import select
+
     from app.models.projects import Project, SignalScore
+
     # Only opt-in projects (leaderboard_opt_in field)
     try:
         result = await db.execute(
             select(Project, SignalScore)
             .join(SignalScore, SignalScore.project_id == Project.id)
-            .where(Project.is_deleted == False)
+            .where(Project.is_deleted is False)
             .order_by(SignalScore.overall_score.desc())
             .limit(20)
         )
         rows = result.all()
         return [
-            {"rank": i + 1, "project_name": p.name, "project_type": p.project_type,
-             "score": s.overall_score}
+            {
+                "rank": i + 1,
+                "project_name": p.name,
+                "project_type": p.project_type,
+                "score": s.overall_score,
+            }
             for i, (p, s) in enumerate(rows)
         ]
     except Exception:

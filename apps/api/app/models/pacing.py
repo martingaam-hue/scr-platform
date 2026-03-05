@@ -9,12 +9,12 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, ForeignKey, Numeric, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.models.investors import Portfolio
+    pass
 
 
 class CashflowAssumption(BaseModel):

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
 from decimal import Decimal
 
 import pytest
@@ -121,9 +120,7 @@ async def cc_project_with_credit(
 async def cc_client(db: AsyncSession, cc_user: User) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: CC_CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
@@ -135,9 +132,7 @@ async def cc_client(db: AsyncSession, cc_user: User) -> AsyncClient:
 class TestCarbonStaticEndpoints:
     """Tests for static data endpoints that require no project data."""
 
-    async def test_get_pricing_trends_200(
-        self, cc_client: AsyncClient, cc_user: User
-    ) -> None:
+    async def test_get_pricing_trends_200(self, cc_client: AsyncClient, cc_user: User) -> None:
         """GET /v1/carbon/pricing-trends returns a list of trend points."""
         resp = await cc_client.get("/v1/carbon/pricing-trends")
         assert resp.status_code == 200
@@ -150,9 +145,7 @@ class TestCarbonStaticEndpoints:
         assert "gold_standard_price" in first
         assert "eu_ets_price" in first
 
-    async def test_get_methodologies_200(
-        self, cc_client: AsyncClient, cc_user: User
-    ) -> None:
+    async def test_get_methodologies_200(self, cc_client: AsyncClient, cc_user: User) -> None:
         """GET /v1/carbon/methodologies returns a non-empty list."""
         resp = await cc_client.get("/v1/carbon/methodologies")
         assert resp.status_code == 200
@@ -171,8 +164,8 @@ class TestCarbonStaticEndpoints:
         resp = await cc_client.get("/v1/carbon/pricing-trends")
         assert resp.status_code == 200
         for point in resp.json():
-            assert isinstance(point["vcs_price"], (int, float))
-            assert isinstance(point["eu_ets_price"], (int, float))
+            assert isinstance(point["vcs_price"], int | float)
+            assert isinstance(point["eu_ets_price"], int | float)
 
 
 class TestCarbonEstimate:

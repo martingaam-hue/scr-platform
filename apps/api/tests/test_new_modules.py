@@ -4,11 +4,12 @@ field encryption, digest trigger, and connector ingest."""
 from __future__ import annotations
 
 import uuid
+from datetime import UTC
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
@@ -85,6 +86,7 @@ async def ensure_meeting_scheduled_enum():
 def _override_auth(user: CurrentUser):
     async def _override():
         return user
+
     return _override
 
 
@@ -97,9 +99,13 @@ async def seed_org_and_project(db: AsyncSession):
     org = Organization(id=ORG_ID, name="Test Org", slug="test-org", type=OrgType.ALLY)
     db.add(org)
     user = User(
-        id=USER_ID, org_id=ORG_ID, email="admin@example.com",
-        full_name="Admin User", role=UserRole.ADMIN,
-        external_auth_id="user_test_admin", is_active=True,
+        id=USER_ID,
+        org_id=ORG_ID,
+        email="admin@example.com",
+        full_name="Admin User",
+        role=UserRole.ADMIN,
+        external_auth_id="user_test_admin",
+        is_active=True,
     )
     db.add(user)
     project = Project(
@@ -127,9 +133,13 @@ async def seed_match(db: AsyncSession, seed_org_and_project):
     )
     db.add(investor_org)
     investor_user = User(
-        id=INVESTOR_USER_ID, org_id=INVESTOR_ORG_ID, email="investor@example.com",
-        full_name="Investor", role=UserRole.ADMIN,
-        external_auth_id="user_test_investor", is_active=True,
+        id=INVESTOR_USER_ID,
+        org_id=INVESTOR_ORG_ID,
+        email="investor@example.com",
+        full_name="Investor",
+        role=UserRole.ADMIN,
+        external_auth_id="user_test_investor",
+        is_active=True,
     )
     db.add(investor_user)
 
@@ -202,6 +212,7 @@ class TestInsuranceFallbackRecommendations:
 
     def _recs(self, project_type="solar", stage="development", geography="Germany"):
         from app.modules.insurance.service import _build_fallback_recommendations
+
         return _build_fallback_recommendations(project_type, stage, geography)
 
     def test_construction_stage_includes_car(self):
@@ -268,6 +279,7 @@ class TestInsuranceFinancialImpact:
 
     def _compute(self, total_investment, annual_premium_pct, **kw):
         from app.modules.insurance.service import _compute_financial_impact
+
         return _compute_financial_impact(total_investment, annual_premium_pct, **kw)
 
     def test_irr_impact_is_negative(self):
@@ -299,10 +311,12 @@ class TestInsuranceFinancialImpact:
 
     def test_geo_premium_multiplier_kenya(self):
         from app.modules.insurance.service import _geo_premium_multiplier
+
         assert _geo_premium_multiplier("Kenya") == 1.40
 
     def test_geo_premium_multiplier_germany(self):
         from app.modules.insurance.service import _geo_premium_multiplier
+
         assert _geo_premium_multiplier("Germany") == 1.0
 
 
@@ -379,6 +393,7 @@ class TestInsuranceAPI:
     ):
         """Kenya (high-risk geo) should have a higher premium than a low-risk geography."""
         from app.modules.insurance.service import _BASE_PREMIUM_PCT, _geo_premium_multiplier
+
         base = _BASE_PREMIUM_PCT.get("solar", 0.50)
         kenya_pct = base * _geo_premium_multiplier("Kenya")
         germany_pct = base * _geo_premium_multiplier("Germany")
@@ -401,8 +416,8 @@ class TestMatchingDealRoomAutoCreate:
     _mock_room_id = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000001")
     _match_id = uuid.UUID("bbbbbbbb-0000-0000-0000-000000000001")
 
-    def _make_mock_match(self, status: "MatchStatus") -> "MagicMock":
-        from datetime import datetime, timezone
+    def _make_mock_match(self, status: MatchStatus) -> MagicMock:
+        from datetime import datetime
         from unittest.mock import MagicMock
 
         m = MagicMock()
@@ -413,10 +428,10 @@ class TestMatchingDealRoomAutoCreate:
         m.investor_notes = ""
         m.ally_notes = ""
         m.is_deleted = False
-        m.updated_at = datetime.now(timezone.utc)
+        m.updated_at = datetime.now(UTC)
         return m
 
-    def _make_mock_db(self, match_mock: "MagicMock") -> "AsyncMock":
+    def _make_mock_db(self, match_mock: MagicMock) -> AsyncMock:
         from unittest.mock import MagicMock
 
         execute_result = MagicMock()
@@ -503,8 +518,9 @@ class TestMatchingDealRoomAutoCreate:
 
     @pytest.mark.anyio
     async def test_update_match_not_found_raises(self):
-        from app.modules.matching import service as matching_service
         from unittest.mock import MagicMock
+
+        from app.modules.matching import service as matching_service
 
         # scalar_one_or_none returns None → match not found
         execute_result = MagicMock()
@@ -559,9 +575,7 @@ class TestMatchingDealRoomAutoCreate:
 
 class TestDigestEndpoints:
     @pytest.mark.anyio
-    async def test_preview_returns_200(
-        self, client: AsyncClient, db: AsyncSession
-    ):
+    async def test_preview_returns_200(self, client: AsyncClient, db: AsyncSession):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
 
@@ -586,9 +600,7 @@ class TestDigestEndpoints:
                 app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_trigger_returns_summary(
-        self, client: AsyncClient, db: AsyncSession
-    ):
+    async def test_trigger_returns_summary(self, client: AsyncClient, db: AsyncSession):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
 
@@ -710,9 +722,7 @@ class TestConnectorIngest:
                 app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_ingest_fetch_failure_returns_502(
-        self, client: AsyncClient, db: AsyncSession
-    ):
+    async def test_ingest_fetch_failure_returns_502(self, client: AsyncClient, db: AsyncSession):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
 
@@ -795,9 +805,7 @@ class TestConnectorEncryptionIntegration:
         captured: dict = {}
         mock_db = self._make_connector_mock_db(captured)
 
-        await conn_service.enable_connector(
-            mock_db, ORG_ID, uuid.uuid4(), api_key=None, config={}
-        )
+        await conn_service.enable_connector(mock_db, ORG_ID, uuid.uuid4(), api_key=None, config={})
 
         assert "cfg" in captured, "OrgConnectorConfig was never passed to db.add()"
         assert captured["cfg"].api_key_encrypted is None

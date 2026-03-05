@@ -8,7 +8,7 @@ import structlog
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db
 from app.modules.expert_insights.schemas import (
     CreateExpertNoteRequest,

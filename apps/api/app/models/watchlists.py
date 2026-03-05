@@ -40,7 +40,10 @@ class WatchlistAlert(TimestampedModel):
     __tablename__ = "watchlist_alerts"
 
     watchlist_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("watchlists.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("watchlists.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     alert_type: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -52,6 +55,4 @@ class WatchlistAlert(TimestampedModel):
     data: Mapped[dict] = mapped_column(JSONB, default=dict)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
-    __table_args__ = (
-        Index("ix_watchlist_alert_user_created", "user_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_watchlist_alert_user_created", "user_id", "created_at"),)

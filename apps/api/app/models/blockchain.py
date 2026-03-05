@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy import DateTime, Index, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,7 +24,7 @@ class BlockchainAnchor(BaseModel):
     entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
     # Cryptographic proof
-    data_hash: Mapped[str] = mapped_column(String(66), nullable=False)   # SHA-256 hex
+    data_hash: Mapped[str] = mapped_column(String(66), nullable=False)  # SHA-256 hex
     merkle_root: Mapped[str | None] = mapped_column(String(66), nullable=True)
     merkle_proof: Mapped[str | None] = mapped_column(String(4000), nullable=True)  # JSON proof path
 
@@ -35,7 +35,9 @@ class BlockchainAnchor(BaseModel):
     anchored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Batch grouping
-    batch_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    batch_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )
     status: Mapped[str] = mapped_column(
         String(20), default="pending", server_default="pending"
     )  # pending, anchored, failed

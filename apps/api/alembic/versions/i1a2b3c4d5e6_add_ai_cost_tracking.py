@@ -10,8 +10,8 @@ Adds:
   - ai_task_logs.tokens_output    INTEGER       — output tokens
   - organizations.ai_monthly_budget DOUBLE PRECISION — per-org USD cap (NULL = tier default)
 """
+
 from alembic import op
-import sqlalchemy as sa
 
 revision = "i1a2b3c4d5e6"
 down_revision = "h2a2b3c4d5e6"
@@ -24,7 +24,9 @@ def upgrade() -> None:
     op.execute("ALTER TABLE ai_task_logs ADD COLUMN IF NOT EXISTS cost_usd NUMERIC(12, 6)")
     op.execute("ALTER TABLE ai_task_logs ADD COLUMN IF NOT EXISTS tokens_input INTEGER")
     op.execute("ALTER TABLE ai_task_logs ADD COLUMN IF NOT EXISTS tokens_output INTEGER")
-    op.execute("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS ai_monthly_budget DOUBLE PRECISION")
+    op.execute(
+        "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS ai_monthly_budget DOUBLE PRECISION"
+    )
 
 
 def downgrade() -> None:

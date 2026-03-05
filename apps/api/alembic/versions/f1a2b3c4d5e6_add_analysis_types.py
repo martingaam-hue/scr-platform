@@ -7,16 +7,17 @@ Create Date: 2026-02-28 14:00:00.000000
 Adds new extraction_type enum values for the cross-module document analysis cache.
 Enum additions are additive-only in PostgreSQL and cannot be rolled back.
 """
+
 from __future__ import annotations
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from alembic import op
 
 revision: str = "f1a2b3c4d5e6"
-down_revision: Union[str, None] = "d5e6f7a8b9c0"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "d5e6f7a8b9c0"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

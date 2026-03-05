@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { Upload, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, CheckCircle, Loader2 } from "lucide-react";
 import {
   Modal,
   ModalContent,
@@ -12,7 +12,6 @@ import {
   ModalClose,
   Button,
   FileUploader,
-  cn,
 } from "@scr/ui";
 import type { FileItem } from "@scr/ui";
 import {

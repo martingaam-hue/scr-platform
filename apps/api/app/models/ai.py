@@ -1,12 +1,11 @@
 """AI models: AIConversation, AIMessage, AITaskLog."""
 
 import uuid
-from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy import ForeignKey, Index, Integer, Numeric, String, Text
-from decimal import Decimal
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -89,16 +88,16 @@ class AITaskLog(TimestampedModel):
     agent_type: Mapped[AIAgentType] = mapped_column(nullable=False)
     entity_type: Mapped[str | None] = mapped_column(String(100))
     entity_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
-    status: Mapped[AITaskStatus] = mapped_column(
-        nullable=False, default=AITaskStatus.PENDING
-    )
+    status: Mapped[AITaskStatus] = mapped_column(nullable=False, default=AITaskStatus.PENDING)
     input_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     output_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     error_message: Mapped[str | None] = mapped_column(Text)
     model_used: Mapped[str | None] = mapped_column(String(100))
     tokens_input: Mapped[int | None] = mapped_column(Integer)
     tokens_output: Mapped[int | None] = mapped_column(Integer)
-    tokens_used: Mapped[int | None] = mapped_column(Integer)  # legacy total; prefer tokens_input+tokens_output
+    tokens_used: Mapped[int | None] = mapped_column(
+        Integer
+    )  # legacy total; prefer tokens_input+tokens_output
     cost_usd: Mapped[Decimal | None] = mapped_column(Numeric(12, 6))
     triggered_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
@@ -126,7 +125,9 @@ class PromptTemplate(BaseModel):
 
     system_prompt: Mapped[str | None] = mapped_column(Text)
     user_prompt_template: Mapped[str] = mapped_column(Text, nullable=False)
-    variables_schema: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    variables_schema: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default="{}"
+    )
     output_format_instruction: Mapped[str | None] = mapped_column(Text)
 
     model_override: Mapped[str | None] = mapped_column(String(100))
@@ -134,7 +135,9 @@ class PromptTemplate(BaseModel):
     max_tokens_override: Mapped[int | None] = mapped_column(Integer)
 
     is_active: Mapped[bool] = mapped_column(default=True, server_default="true", nullable=False)
-    traffic_percentage: Mapped[int] = mapped_column(Integer, default=100, server_default="100", nullable=False)
+    traffic_percentage: Mapped[int] = mapped_column(
+        Integer, default=100, server_default="100", nullable=False
+    )
 
     total_uses: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     avg_confidence: Mapped[float | None] = mapped_column()
@@ -194,7 +197,9 @@ class AIOutputFeedback(TimestampedModel):
     edit_distance_pct: Mapped[float | None] = mapped_column()
 
     # Acceptance: was the output directly used without modification?
-    was_accepted: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
+    was_accepted: Mapped[bool] = mapped_column(
+        default=False, server_default="false", nullable=False
+    )
 
     # Free-text comment from user
     comment: Mapped[str | None] = mapped_column(Text)

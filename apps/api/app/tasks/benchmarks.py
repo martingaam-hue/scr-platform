@@ -1,11 +1,7 @@
 """Nightly Celery tasks for benchmark computation and daily metric snapshots."""
 
-import uuid
-
 import structlog
 from celery import shared_task
-
-from app.core.config import settings
 
 logger = structlog.get_logger()
 
@@ -14,13 +10,11 @@ logger = structlog.get_logger()
 def compute_nightly_benchmarks() -> dict:
     """Run at 3am daily. Aggregates all snapshots into benchmark stats."""
     import asyncio
-    from sqlalchemy import create_engine
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-    from sqlalchemy.orm import sessionmaker
 
     async def _run():
         from app.core.database import async_session_factory
         from app.modules.metrics.benchmark_service import BenchmarkService
+
         async with async_session_factory() as db:
             svc = BenchmarkService(db)
             return await svc.compute_benchmarks()
@@ -36,11 +30,11 @@ def record_daily_snapshots() -> dict:
     import asyncio
 
     async def _run():
+        from sqlalchemy import select
+
         from app.core.database import async_session_factory
         from app.models.projects import Project, SignalScore
-        from app.models.investors import Portfolio, PortfolioMetrics
         from app.modules.metrics.snapshot_service import MetricSnapshotService
-        from sqlalchemy import select
 
         snapshots_recorded = 0
 

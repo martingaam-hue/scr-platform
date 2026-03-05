@@ -199,10 +199,10 @@ async def seed_catalog(db: AsyncSession) -> None:
 
 def _get_connector_instance(name: str, api_key: str | None, config: dict | None) -> Any:
     """Instantiate the correct connector class by name."""
-    from app.modules.connectors.implementations.entso_e import ENTSOEConnector
     from app.modules.connectors.implementations.companies_house import CompaniesHouseConnector
-    from app.modules.connectors.implementations.open_weather import OpenWeatherConnector
     from app.modules.connectors.implementations.ecb_connector import ECBConnector
+    from app.modules.connectors.implementations.entso_e import ENTSOEConnector
+    from app.modules.connectors.implementations.open_weather import OpenWeatherConnector
 
     registry = {
         "entso_e": ENTSOEConnector,
@@ -213,22 +213,27 @@ def _get_connector_instance(name: str, api_key: str | None, config: dict | None)
     cls = registry.get(name)
     if not cls:
         raise ValueError(f"Unknown connector: {name}")
-    return cls(api_key=api_key, config=config)
+    connector_factory: Any = cls
+    return connector_factory(api_key=api_key, config=config)
 
 
 async def list_connectors(db: AsyncSession) -> list[DataConnector]:
     result = await db.execute(
-        select(DataConnector).where(DataConnector.is_deleted == False, DataConnector.is_available == True)
+        select(DataConnector).where(
+            DataConnector.is_deleted is False, DataConnector.is_available is True
+        )
     )
     return list(result.scalars().all())
 
 
-async def get_org_config(db: AsyncSession, org_id: uuid.UUID, connector_id: uuid.UUID) -> OrgConnectorConfig | None:
+async def get_org_config(
+    db: AsyncSession, org_id: uuid.UUID, connector_id: uuid.UUID
+) -> OrgConnectorConfig | None:
     result = await db.execute(
         select(OrgConnectorConfig).where(
             OrgConnectorConfig.org_id == org_id,
             OrgConnectorConfig.connector_id == connector_id,
-            OrgConnectorConfig.is_deleted == False,
+            OrgConnectorConfig.is_deleted is False,
         )
     )
     return result.scalar_one_or_none()
@@ -237,14 +242,18 @@ async def get_org_config(db: AsyncSession, org_id: uuid.UUID, connector_id: uuid
 async def list_org_configs(db: AsyncSession, org_id: uuid.UUID) -> list[OrgConnectorConfig]:
     result = await db.execute(
         select(OrgConnectorConfig).where(
-            OrgConnectorConfig.org_id == org_id, OrgConnectorConfig.is_deleted == False
+            OrgConnectorConfig.org_id == org_id, OrgConnectorConfig.is_deleted is False
         )
     )
     return list(result.scalars().all())
 
 
 async def enable_connector(
-    db: AsyncSession, org_id: uuid.UUID, connector_id: uuid.UUID, api_key: str | None, config: dict | None
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    connector_id: uuid.UUID,
+    api_key: str | None,
+    config: dict | None,
 ) -> OrgConnectorConfig:
     from app.services.encryption import encrypt_field
 
@@ -279,7 +288,9 @@ async def disable_connector(db: AsyncSession, org_id: uuid.UUID, connector_id: u
         await db.commit()
 
 
-async def test_connector(db: AsyncSession, org_id: uuid.UUID, connector_id: uuid.UUID) -> dict[str, Any]:
+async def test_connector(
+    db: AsyncSession, org_id: uuid.UUID, connector_id: uuid.UUID
+) -> dict[str, Any]:
     result = await db.execute(select(DataConnector).where(DataConnector.id == connector_id))
     connector_row = result.scalar_one_or_none()
     if not connector_row:
@@ -287,23 +298,34 @@ async def test_connector(db: AsyncSession, org_id: uuid.UUID, connector_id: uuid
 
     cfg = await get_org_config(db, org_id, connector_id)
     from app.services.encryption import decrypt_field
+
     api_key = decrypt_field(cfg.api_key_encrypted) if cfg else None
 
     instance = _get_connector_instance(connector_row.name, api_key, cfg.config if cfg else {})
     try:
         result_data = await instance.test()
         # Log successful call
-        db.add(DataFetchLog(
-            org_id=org_id, connector_id=connector_id,
-            endpoint="test", status_code=200, response_time_ms=0,
-        ))
+        db.add(
+            DataFetchLog(
+                org_id=org_id,
+                connector_id=connector_id,
+                endpoint="test",
+                status_code=200,
+                response_time_ms=0,
+            )
+        )
         await db.commit()
         return result_data
     except Exception as exc:
-        db.add(DataFetchLog(
-            org_id=org_id, connector_id=connector_id,
-            endpoint="test", status_code=500, error_message=str(exc)[:500],
-        ))
+        db.add(
+            DataFetchLog(
+                org_id=org_id,
+                connector_id=connector_id,
+                endpoint="test",
+                status_code=500,
+                error_message=str(exc)[:500],
+            )
+        )
         await db.commit()
         raise
 
@@ -344,6 +366,7 @@ async def ingest_to_dataroom(
         raise ValueError("Connector is not enabled for this organisation")
 
     from app.services.encryption import decrypt_field
+
     api_key = decrypt_field(cfg.api_key_encrypted) if cfg else None
     instance = _get_connector_instance(connector_row.name, api_key, cfg.config if cfg else {})
 
@@ -352,15 +375,25 @@ async def ingest_to_dataroom(
     try:
         data = await instance.fetch(endpoint, params)
         elapsed_ms = int((_dt.utcnow() - start_ts).total_seconds() * 1000)
-        db.add(DataFetchLog(
-            org_id=org_id, connector_id=connector_id,
-            endpoint=endpoint, status_code=200, response_time_ms=elapsed_ms,
-        ))
+        db.add(
+            DataFetchLog(
+                org_id=org_id,
+                connector_id=connector_id,
+                endpoint=endpoint,
+                status_code=200,
+                response_time_ms=elapsed_ms,
+            )
+        )
     except Exception as exc:
-        db.add(DataFetchLog(
-            org_id=org_id, connector_id=connector_id,
-            endpoint=endpoint, status_code=500, error_message=str(exc)[:500],
-        ))
+        db.add(
+            DataFetchLog(
+                org_id=org_id,
+                connector_id=connector_id,
+                endpoint=endpoint,
+                status_code=500,
+                error_message=str(exc)[:500],
+            )
+        )
         await db.commit()
         raise RuntimeError(f"Connector fetch failed: {exc}") from exc
 
@@ -442,6 +475,7 @@ async def ingest_to_dataroom(
 
 async def get_usage_stats(db: AsyncSession, org_id: uuid.UUID) -> list[dict[str, Any]]:
     from sqlalchemy import func
+
     result = await db.execute(
         select(
             DataFetchLog.connector_id,
@@ -452,5 +486,12 @@ async def get_usage_stats(db: AsyncSession, org_id: uuid.UUID) -> list[dict[str,
         .where(DataFetchLog.org_id == org_id)
         .group_by(DataFetchLog.connector_id)
     )
-    return [{"connector_id": str(r.connector_id), "total_calls": r.total_calls,
-             "error_count": r.error_count or 0, "avg_response_ms": float(r.avg_ms or 0)} for r in result.all()]
+    return [
+        {
+            "connector_id": str(r.connector_id),
+            "total_calls": r.total_calls,
+            "error_count": r.error_count or 0,
+            "avg_response_ms": float(r.avg_ms or 0),
+        }
+        for r in result.all()
+    ]

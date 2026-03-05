@@ -2,12 +2,10 @@
 
 import uuid
 
-import pytest
 from sqlalchemy import select
 
 from app.middleware.tenant import tenant_filter
 from app.models.projects import Project
-from app.models.enums import ProjectType, ProjectStatus
 
 
 class TestTenantFilter:

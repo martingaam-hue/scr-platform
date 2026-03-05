@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   AlertTriangle,
   CheckCircle2,
-  Clock,
   Download,
   FileText,
   XCircle,
@@ -26,7 +25,6 @@ import {
   useMemo,
   recommendationColor,
   type ScreeningReport,
-  type MemoAcceptedResponse,
 } from "@/lib/deals";
 import { AIFeedback } from "@/components/ai-feedback";
 import { CitationBadges } from "@/components/citations/citation-badges";

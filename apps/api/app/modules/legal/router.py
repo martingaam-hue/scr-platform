@@ -1,5 +1,6 @@
 """Legal Document Manager API router."""
 
+import contextlib
 import uuid
 
 import structlog
@@ -27,7 +28,6 @@ from app.modules.legal.schemas import (
 from app.modules.legal.templates import (
     REVIEW_MODES,
     SUPPORTED_JURISDICTIONS,
-    SYSTEM_TEMPLATES,
 )
 from app.schemas.auth import CurrentUser
 
@@ -91,7 +91,7 @@ async def create_document(
     try:
         doc = await service.create_document(db, current_user.org_id, current_user.user_id, body)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return service._doc_to_response(doc)
 
 
@@ -108,10 +108,8 @@ async def list_documents(
     for d in docs:
         url = None
         if d.s3_key:
-            try:
+            with contextlib.suppress(Exception):
                 url = await service.get_download_url(db, d.id, current_user.org_id)
-            except Exception:
-                pass
         items.append(service._doc_to_response(d, url))
     return LegalDocumentListResponse(items=items, total=total)
 
@@ -126,7 +124,7 @@ async def get_document(
     try:
         doc = await service.get_document(db, document_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     download_url = await service.get_download_url(db, document_id, current_user.org_id)
     return service._doc_to_response(doc, download_url)
 
@@ -144,7 +142,7 @@ async def update_document(
             db, document_id, current_user.org_id, body.questionnaire_answers
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return service._doc_to_response(doc)
 
 
@@ -165,7 +163,7 @@ async def generate_document(
             db, document_id, current_user.org_id, current_user.user_id, body.format
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return GenerateDocumentResponse(
         document_id=doc.id,
         status="accepted",
@@ -183,7 +181,7 @@ async def download_document(
     try:
         url = await service.get_download_url(db, document_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     if not url:
         raise HTTPException(status_code=404, detail="Document not yet generated")
     return {"download_url": url}
@@ -203,7 +201,7 @@ async def send_document(
     try:
         await service.get_document(db, document_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     logger.info(
         "legal_doc_send_requested",
@@ -283,5 +281,5 @@ async def compare_documents(
             db, body.document_id_a, body.document_id_b, current_user.org_id
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return result

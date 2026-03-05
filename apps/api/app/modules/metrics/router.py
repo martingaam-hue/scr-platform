@@ -2,10 +2,9 @@
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
@@ -13,7 +12,6 @@ from app.core.database import get_db, get_readonly_db
 from app.modules.metrics.benchmark_service import BenchmarkService
 from app.modules.metrics.schemas import (
     BenchmarkAggregateResponse,
-    BenchmarkComparison,
     ChangeEvent,
     PacingProjection,
     TrendPoint,
@@ -30,8 +28,8 @@ async def get_trend(
     entity_type: str,
     entity_id: uuid.UUID,
     metric_name: str,
-    from_date: Optional[datetime] = Query(None),
-    to_date: Optional[datetime] = Query(None),
+    from_date: datetime | None = Query(None),
+    to_date: datetime | None = Query(None),
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_readonly_db),
 ):
@@ -55,14 +53,16 @@ async def get_changes(
     entity_type: str,
     entity_id: uuid.UUID,
     metric_name: str,
-    from_date: Optional[datetime] = Query(None),
-    to_date: Optional[datetime] = Query(None),
+    from_date: datetime | None = Query(None),
+    to_date: datetime | None = Query(None),
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_readonly_db),
 ):
     """Get change explanations for a metric with trigger events."""
     svc = MetricSnapshotService(db)
-    changes = await svc.get_change_explanation(entity_type, entity_id, metric_name, from_date, to_date)
+    changes = await svc.get_change_explanation(
+        entity_type, entity_id, metric_name, from_date, to_date
+    )
     return [
         ChangeEvent(
             date=c["date"],
@@ -90,13 +90,18 @@ async def get_percentile_rank(
     rank = await svc.get_percentile_rank(entity_type, entity_id, metric_name)
     if rank is None:
         return {"percentile": None, "message": "Insufficient data for ranking"}
-    return {"entity_type": entity_type, "entity_id": str(entity_id), "metric_name": metric_name, "percentile": rank}
+    return {
+        "entity_type": entity_type,
+        "entity_id": str(entity_id),
+        "metric_name": metric_name,
+        "percentile": rank,
+    }
 
 
 @router.get("/benchmark/compare/{project_id}")
 async def compare_to_benchmark(
     project_id: uuid.UUID,
-    metrics: Optional[str] = Query(None, description="Comma-separated metric names"),
+    metrics: str | None = Query(None, description="Comma-separated metric names"),
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_readonly_db),
 ):
@@ -106,7 +111,7 @@ async def compare_to_benchmark(
     try:
         return await svc.compare_to_benchmark(project_id, current_user.org_id, metric_list)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/benchmark/list", response_model=list[BenchmarkAggregateResponse])
@@ -166,4 +171,4 @@ async def get_quartile_chart(
     try:
         return await svc.get_quartile_chart_data(project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

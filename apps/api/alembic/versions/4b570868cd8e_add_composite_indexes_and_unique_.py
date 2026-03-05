@@ -8,7 +8,6 @@ Create Date: 2026-03-01 15:12:19.914634
 
 from __future__ import annotations
 
-import sqlalchemy as sa
 from alembic import op
 
 revision: str = "4b570868cd8e"
@@ -89,7 +88,9 @@ def downgrade() -> None:
     op.drop_index("ix_signal_scores_project_time", table_name="signal_scores", if_exists=True)
     op.drop_index("ix_ai_task_logs_org_status_time", table_name="ai_task_logs", if_exists=True)
     op.drop_index("ix_doc_access_logs_doc_time", table_name="document_access_logs", if_exists=True)
-    op.drop_index("ix_webhook_deliveries_status_retry", table_name="webhook_deliveries", if_exists=True)
+    op.drop_index(
+        "ix_webhook_deliveries_status_retry", table_name="webhook_deliveries", if_exists=True
+    )
     op.drop_index("ix_usage_events_org_type_time", table_name="usage_events", if_exists=True)
     op.drop_index("ix_audit_logs_org_time", table_name="audit_logs", if_exists=True)
     op.drop_index("ix_metric_snapshots_lookup", table_name="metric_snapshots", if_exists=True)

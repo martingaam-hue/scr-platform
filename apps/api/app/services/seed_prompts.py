@@ -40,7 +40,7 @@ SEED_PROMPTS: list[dict] = [
             "First 2000 characters:\n{document_preview}"
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"classification": "<category>", "confidence": <float 0-1>}'
         ),
         "variables_schema": {"filename": "str", "document_preview": "str"},
@@ -61,7 +61,7 @@ SEED_PROMPTS: list[dict] = [
             "Document text:\n{document_text}"
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"kpis": [{"name": "<str>", "value": "<str>", "unit": "<str>", '
             '"period": "<str>", "confidence": <float 0-1>}, ...]}'
         ),
@@ -90,14 +90,17 @@ SEED_PROMPTS: list[dict] = [
             "Project context:\n{project_context}"
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"score": <int 0-100>, "reasoning": "<2-3 sentences>", '
             '"strengths": ["<str>", ...], "weaknesses": ["<str>", ...], '
             '"recommendation": "<specific action>"}'
         ),
         "variables_schema": {
-            "criterion": "str", "project_type": "str", "geography": "str",
-            "document_text": "str", "project_context": "dict",
+            "criterion": "str",
+            "project_type": "str",
+            "geography": "str",
+            "document_text": "str",
+            "project_context": "dict",
         },
         "traffic_percentage": 100,
         "is_active": True,
@@ -117,7 +120,7 @@ SEED_PROMPTS: list[dict] = [
             "INVESTOR MANDATE:\n{mandate_data}"
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"fit_score": <int 0-100>, "recommendation": "<proceed|pass|need_more_info>", '
             '"executive_summary": "<3-5 sentences>", "strengths": [...], "risks": [...], '
             '"questions_to_ask": [...]}'
@@ -141,14 +144,17 @@ SEED_PROMPTS: list[dict] = [
             "Context:\n{project_context}"
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"discount_rate": <float>, "growth_rate": <float>, '
             '"terminal_multiple": <float>, "risk_premium": <float>, '
             '"reasoning": "<2-4 sentences>"}'
         ),
         "variables_schema": {
-            "project_type": "str", "geography": "str",
-            "stage": "str", "currency": "str", "project_context": "dict",
+            "project_type": "str",
+            "geography": "str",
+            "stage": "str",
+            "currency": "str",
+            "project_context": "dict",
         },
         "traffic_percentage": 100,
         "is_active": True,
@@ -193,14 +199,16 @@ SEED_PROMPTS: list[dict] = [
             "Document text:\n{document_text}"
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"risk_score": <int 0-100>, "summary": "<3-5 sentences>", '
             '"clause_analyses": [{"clause": "<str>", "risk_level": "<low|medium|high|critical>", "analysis": "<str>"},...], '
             '"missing_clauses": [...], "recommendations": [...]}'
         ),
         "variables_schema": {
-            "document_type": "str", "review_mode": "str",
-            "jurisdiction": "str", "document_text": "str",
+            "document_type": "str",
+            "review_mode": "str",
+            "jurisdiction": "str",
+            "document_text": "str",
         },
         "traffic_percentage": 100,
         "is_active": True,
@@ -251,12 +259,14 @@ SEED_PROMPTS: list[dict] = [
             "Investor mandate:\n{mandate}"
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
-            '{"content": "<full memo in markdown format>"}'
+            "Respond with ONLY a JSON object:\n" '{"content": "<full memo in markdown format>"}'
         ),
         "variables_schema": {
-            "project_data": "dict", "signal_score": "dict",
-            "risk_assessment": "dict", "valuation": "dict", "mandate": "dict",
+            "project_data": "dict",
+            "signal_score": "dict",
+            "risk_assessment": "dict",
+            "valuation": "dict",
+            "mandate": "dict",
         },
         "traffic_percentage": 100,
         "is_active": True,
@@ -272,13 +282,17 @@ SEED_PROMPTS: list[dict] = [
             "DOCUMENT ({document_name}):\n{document_text}"
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"satisfied": true/false, "confidence": 0.0-1.0, '
             '"summary": "<what the document covers>", '
             '"gaps": ["<missing element 1>", ...], '
             '"recommendation": "<what to do next>"}'
         ),
-        "variables_schema": {"item_criteria": "str", "document_name": "str", "document_text": "str"},
+        "variables_schema": {
+            "item_criteria": "str",
+            "document_name": "str",
+            "document_text": "str",
+        },
         "traffic_percentage": 100,
         "is_active": True,
     },
@@ -301,7 +315,7 @@ SEED_PROMPTS: list[dict] = [
             "SFDR Article={sfdr_article}, SDG contributions={sdg_contributions}"
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"narrative": "<3-4 paragraph ESG narrative>", '
             '"key_achievements": ["<achievement1>", "<achievement2>"], '
             '"areas_for_improvement": ["<area1>", "<area2>"]}'
@@ -337,7 +351,7 @@ SEED_PROMPTS: list[dict] = [
             "market_outlook, esg_highlights"
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"executive_summary": "<2-3 para summary>", '
             '"portfolio_commentary": "<detailed commentary>", '
             '"market_outlook": "<market context and outlook>", '
@@ -368,7 +382,7 @@ SEED_PROMPTS: list[dict] = [
             "Return ONLY a JSON object with a ranked_comps array."
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"ranked_comps": [{"comp_id": "<id>", "similarity_score": <0-100>, "rationale": "<why similar/different>"}]}'
         ),
         "variables_schema": {"project": "dict", "comps": "list"},
@@ -391,7 +405,7 @@ SEED_PROMPTS: list[dict] = [
             "Return ONLY a JSON object with summary, significance, and key_changes."
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"summary": "<plain text summary>", '
             '"significance": "minor|moderate|major|critical", '
             '"key_changes": ["<change1>", "<change2>"]}'
@@ -429,7 +443,7 @@ SEED_PROMPTS: list[dict] = [
             "Return ONLY a JSON object."
         ),
         "output_format_instruction": (
-            'Respond with ONLY a JSON object:\n'
+            "Respond with ONLY a JSON object:\n"
             '{"executive_summary": "...", "key_metrics": {}, "risk_flags": [], '
             '"dd_progress": {}, "talking_points": [], "questions_to_ask": [], '
             '"changes_since_last": []}'

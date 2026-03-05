@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef, useState, useEffect, KeyboardEvent } from "react";
+import React, { useRef, useState, useEffect } from "react";
+import type { KeyboardEvent } from "react";
 import { Send, Square, ChevronDown } from "lucide-react";
 import { cn } from "@scr/ui";
 

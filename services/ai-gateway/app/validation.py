@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import re
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -22,14 +22,14 @@ class ConfidenceLevel(str, Enum):
 
 
 class ValidatedResponse(BaseModel):
-    data: Optional[dict] = None
+    data: dict | None = None
     raw_text: str
     confidence: float          # 0.0 to 1.0
     confidence_level: ConfidenceLevel
     validated: bool
     repairs_applied: list[str] = []   # What was fixed
     warnings: list[str] = []          # Issues detected but not fixable
-    error: Optional[str] = None
+    error: str | None = None
 
 
 # ── Validation schemas — one per task_type in MODEL_ROUTING ──────────────────
@@ -513,7 +513,7 @@ class AIOutputValidator:
 
     # ── JSON parsing (5 strategies) ───────────────────────────────────────────
 
-    def _robust_json_parse(self, text: str) -> tuple[Optional[dict], list[str]]:
+    def _robust_json_parse(self, text: str) -> tuple[dict | None, list[str]]:
         repairs: list[str] = []
 
         # Strategy 1: Direct parse
@@ -564,11 +564,11 @@ class AIOutputValidator:
 
     def _validate_field(
         self, name: str, value: Any, rules: dict
-    ) -> tuple[Any, Optional[str]]:
+    ) -> tuple[Any, str | None]:
         expected_type = rules.get("type")
 
         if expected_type == "int":
-            if not isinstance(value, (int, float)):
+            if not isinstance(value, int | float):
                 try:
                     value = int(float(str(value).replace(",", "")))
                     return self._clamp_int(name, value, rules), f"Coerced {name} to int"
@@ -581,7 +581,7 @@ class AIOutputValidator:
             return value, None
 
         elif expected_type == "float":
-            if not isinstance(value, (int, float)):
+            if not isinstance(value, int | float):
                 try:
                     value = float(str(value).replace("%", "").replace(",", ""))
                     return self._clamp_float(name, value, rules), f"Coerced {name} to float"
@@ -673,7 +673,7 @@ class AIOutputValidator:
             or parsed.get("overall_score")
             or parsed.get("risk_score")
         )
-        if isinstance(score, (int, float)):
+        if isinstance(score, int | float):
             if score in (0, 50, 100):
                 confidence -= 0.08
             elif score in (25, 75):

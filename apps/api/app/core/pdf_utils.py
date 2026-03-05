@@ -4,9 +4,9 @@ Used by: legal, deal_intelligence, tax_credits, valuation, reporting.
 """
 
 import io
-import structlog
 
 import boto3
+import structlog
 from botocore.config import Config as BotoConfig
 from xhtml2pdf import pisa
 

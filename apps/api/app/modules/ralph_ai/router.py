@@ -9,10 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import get_current_user
 from app.core.database import get_db
-from app.services.ai_budget import enforce_ai_budget
-from app.schemas.auth import CurrentUser
 from app.modules.ralph_ai import service
 from app.modules.ralph_ai.agent import RalphAgent
 from app.modules.ralph_ai.schemas import (
@@ -23,6 +21,8 @@ from app.modules.ralph_ai.schemas import (
     MessageResponse,
     SendMessageResponse,
 )
+from app.schemas.auth import CurrentUser
+from app.services.ai_budget import enforce_ai_budget
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/ralph", tags=["ralph-ai"])
@@ -32,7 +32,13 @@ _agent = RalphAgent()
 
 # ── Conversation CRUD ─────────────────────────────────────────────────────────
 
-@router.post("/conversations", summary="Create conversation", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/conversations",
+    summary="Create conversation",
+    response_model=ConversationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_conversation(
     body: ConversationCreate,
     current_user: CurrentUser = Depends(get_current_user),
@@ -45,19 +51,23 @@ async def create_conversation(
     return ConversationResponse.model_validate(conversation)
 
 
-@router.get("/conversations", summary="List conversations", response_model=list[ConversationResponse])
+@router.get(
+    "/conversations", summary="List conversations", response_model=list[ConversationResponse]
+)
 async def list_conversations(
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[ConversationResponse]:
     """List all conversations for the current user."""
-    conversations = await service.list_conversations(
-        db, current_user.org_id, current_user.user_id
-    )
+    conversations = await service.list_conversations(db, current_user.org_id, current_user.user_id)
     return [ConversationResponse.model_validate(c) for c in conversations]
 
 
-@router.get("/conversations/{conversation_id}", summary="Get conversation with messages", response_model=ConversationDetailResponse)
+@router.get(
+    "/conversations/{conversation_id}",
+    summary="Get conversation with messages",
+    response_model=ConversationDetailResponse,
+)
 async def get_conversation(
     conversation_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
@@ -80,21 +90,32 @@ async def get_conversation(
     )
 
 
-@router.delete("/conversations/{conversation_id}", summary="Delete conversation", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/conversations/{conversation_id}",
+    summary="Delete conversation",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 async def delete_conversation(
     conversation_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Soft-delete a conversation."""
-    deleted = await service.delete_conversation(db, conversation_id, current_user.org_id, current_user.user_id)
+    deleted = await service.delete_conversation(
+        db, conversation_id, current_user.org_id, current_user.user_id
+    )
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
 
 # ── Messaging ─────────────────────────────────────────────────────────────────
 
-@router.post("/conversations/{conversation_id}/message", summary="Send message to Ralph", response_model=SendMessageResponse)
+
+@router.post(
+    "/conversations/{conversation_id}/message",
+    summary="Send message to Ralph",
+    response_model=SendMessageResponse,
+)
 async def send_message(
     conversation_id: uuid.UUID,
     body: MessageCreate,

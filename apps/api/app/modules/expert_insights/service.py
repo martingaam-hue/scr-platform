@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import uuid
 
@@ -84,9 +85,7 @@ class ExpertInsightsService:
     async def get_note_by_id(self, note_id: uuid.UUID) -> ExpertNote | None:
         """Internal lookup without org scope — used during async enrichment."""
         stmt = (
-            select(ExpertNote)
-            .where(ExpertNote.id == note_id)
-            .where(ExpertNote.is_deleted == False)  # noqa: E712
+            select(ExpertNote).where(ExpertNote.id == note_id).where(ExpertNote.is_deleted == False)  # noqa: E712
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
@@ -185,10 +184,8 @@ Respond ONLY with valid JSON (no markdown, no extra text)."""
                         json_str = content.split("```")[1]
                         if json_str.startswith("json"):
                             json_str = json_str[4:]
-                        try:
+                        with contextlib.suppress(json.JSONDecodeError):
                             parsed = json.loads(json_str.strip())
-                        except json.JSONDecodeError:
-                            pass
 
                 note.ai_summary = parsed.get("summary")
                 note.key_takeaways = parsed.get("key_takeaways", [])

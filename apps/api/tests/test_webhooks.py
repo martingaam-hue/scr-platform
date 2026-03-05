@@ -1,8 +1,8 @@
 """Tests for webhook subscription, delivery, and validation."""
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
 
 # ── Subscriptions ───────────────────────────────────────────────────────────
 

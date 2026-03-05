@@ -18,6 +18,7 @@ class GenerateBriefingRequest(BaseModel):
 
 class UpdateBriefingRequest(BaseModel):
     """Save user edits as custom_overrides."""
+
     custom_overrides: dict[str, Any]
 
 

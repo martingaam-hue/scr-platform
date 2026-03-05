@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@scr/ui";
 import { api } from "@/lib/api";
 

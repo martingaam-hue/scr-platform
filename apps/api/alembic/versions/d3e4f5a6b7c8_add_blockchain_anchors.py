@@ -5,11 +5,13 @@ Revises: e2f3a4b5c6d7
 Create Date: 2026-02-28 01:05:00.000000
 
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "d3e4f5a6b7c8"
 down_revision = "e2f3a4b5c6d7"
@@ -20,7 +22,12 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "blockchain_anchors",
-        sa.Column("id", postgresql.UUID(as_uuid=True), server_default=sa.text("gen_random_uuid()"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            server_default=sa.text("gen_random_uuid()"),
+            nullable=False,
+        ),
         sa.Column("org_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("event_type", sa.String(50), nullable=False),
         sa.Column("entity_type", sa.String(50), nullable=False),
@@ -34,8 +41,18 @@ def upgrade() -> None:
         sa.Column("anchored_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("batch_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("status", sa.String(20), server_default="pending", nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("is_deleted", sa.Boolean, server_default="false", nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )

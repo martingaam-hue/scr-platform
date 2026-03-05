@@ -38,7 +38,7 @@ async def get_inventory(
     try:
         return await service.get_inventory(db, portfolio_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post(
@@ -57,7 +57,7 @@ async def identify_credits(
         await db.commit()
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/model", response_model=OptimizationResult)
@@ -70,7 +70,7 @@ async def run_optimization(
     try:
         return await service.model_optimization(db, body, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post(
@@ -90,6 +90,7 @@ async def generate_transfer_docs(
         await db.refresh(report)
 
         from app.modules.tax_credits.tasks import generate_transfer_doc_task
+
         generate_transfer_doc_task.delay(str(report.id))
 
         return TransferDocResponse(
@@ -98,7 +99,7 @@ async def generate_transfer_docs(
             message="Transfer documentation queued for generation.",
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/summary/{entity_id}", response_model=TaxCreditSummaryResponse)
@@ -111,4 +112,4 @@ async def get_summary(
     try:
         return await service.get_summary(db, entity_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

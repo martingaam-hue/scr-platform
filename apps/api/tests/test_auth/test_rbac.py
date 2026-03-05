@@ -2,11 +2,9 @@
 
 import uuid
 
-import pytest
-
 from app.auth.rbac import (
-    Action,
     PERMISSION_MATRIX,
+    Action,
     Resource,
     check_permission,
     get_permissions_for_role,
@@ -37,19 +35,13 @@ class TestPermissionMatrix:
         assert manager_count < admin_count
 
     def test_viewer_is_subset_of_analyst(self):
-        assert PERMISSION_MATRIX[UserRole.VIEWER].issubset(
-            PERMISSION_MATRIX[UserRole.ANALYST]
-        )
+        assert PERMISSION_MATRIX[UserRole.VIEWER].issubset(PERMISSION_MATRIX[UserRole.ANALYST])
 
     def test_analyst_is_subset_of_manager(self):
-        assert PERMISSION_MATRIX[UserRole.ANALYST].issubset(
-            PERMISSION_MATRIX[UserRole.MANAGER]
-        )
+        assert PERMISSION_MATRIX[UserRole.ANALYST].issubset(PERMISSION_MATRIX[UserRole.MANAGER])
 
     def test_manager_is_subset_of_admin(self):
-        assert PERMISSION_MATRIX[UserRole.MANAGER].issubset(
-            PERMISSION_MATRIX[UserRole.ADMIN]
-        )
+        assert PERMISSION_MATRIX[UserRole.MANAGER].issubset(PERMISSION_MATRIX[UserRole.ADMIN])
 
 
 class TestCheckPermission:

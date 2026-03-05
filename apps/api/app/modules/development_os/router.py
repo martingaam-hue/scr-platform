@@ -32,7 +32,7 @@ async def get_development_overview(
     try:
         return await service.get_development_overview(db, current_user.org_id, project_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/{project_id}/milestones", response_model=list[MilestoneResponse])
@@ -45,7 +45,7 @@ async def list_milestones(
     try:
         return await service.list_milestones(db, current_user.org_id, project_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post(
@@ -65,10 +65,10 @@ async def create_milestone(
         await db.commit()
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("development_os.create_milestone.error", error=str(exc))
-        raise HTTPException(status_code=500, detail="Failed to create milestone")
+        raise HTTPException(status_code=500, detail="Failed to create milestone") from exc
 
 
 @router.put("/milestones/{milestone_id}", response_model=MilestoneResponse)
@@ -84,10 +84,12 @@ async def update_milestone(
         await db.commit()
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
-        logger.error("development_os.update_milestone.error", milestone_id=str(milestone_id), error=str(exc))
-        raise HTTPException(status_code=500, detail="Failed to update milestone")
+        logger.error(
+            "development_os.update_milestone.error", milestone_id=str(milestone_id), error=str(exc)
+        )
+        raise HTTPException(status_code=500, detail="Failed to update milestone") from exc
 
 
 @router.delete("/milestones/{milestone_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -101,7 +103,9 @@ async def delete_milestone(
         await service.delete_milestone(db, current_user.org_id, milestone_id)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
-        logger.error("development_os.delete_milestone.error", milestone_id=str(milestone_id), error=str(exc))
-        raise HTTPException(status_code=500, detail="Failed to delete milestone")
+        logger.error(
+            "development_os.delete_milestone.error", milestone_id=str(milestone_id), error=str(exc)
+        )
+        raise HTTPException(status_code=500, detail="Failed to delete milestone") from exc

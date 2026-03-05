@@ -8,8 +8,9 @@ Create Date: 2026-03-01 00:00:00.000000
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "g2a2b3c4d5e6"
 down_revision = "g1a2b3c4d5e6"
@@ -164,12 +165,8 @@ def downgrade() -> None:
     op.drop_index("ix_usage_events_org_id", table_name="usage_events")
     op.drop_table("usage_events")
 
-    op.drop_index(
-        "ix_feature_flag_overrides_flag_name", table_name="feature_flag_overrides"
-    )
-    op.drop_index(
-        "ix_feature_flag_overrides_org_id", table_name="feature_flag_overrides"
-    )
+    op.drop_index("ix_feature_flag_overrides_flag_name", table_name="feature_flag_overrides")
+    op.drop_index("ix_feature_flag_overrides_org_id", table_name="feature_flag_overrides")
     op.drop_table("feature_flag_overrides")
 
     op.drop_index("ix_feature_flags_name", table_name="feature_flags")

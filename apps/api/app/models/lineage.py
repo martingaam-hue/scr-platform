@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import DateTime, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -14,6 +14,7 @@ from app.models.base import ModelMixin
 
 class DataLineage(Base, ModelMixin):
     """Traces any computed value back to its source."""
+
     __tablename__ = "data_lineage"
     __table_args__ = (
         Index("ix_lineage_entity", "entity_type", "entity_id", "field_name"),
@@ -21,8 +22,10 @@ class DataLineage(Base, ModelMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
-        server_default=func.gen_random_uuid()
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=func.gen_random_uuid(),
     )
     org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
@@ -37,7 +40,9 @@ class DataLineage(Base, ModelMixin):
     source_detail: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     source_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    source_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     computation_chain: Mapped[list[Any] | None] = mapped_column(JSONB, nullable=True)
 

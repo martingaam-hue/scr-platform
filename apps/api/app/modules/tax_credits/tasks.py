@@ -1,7 +1,7 @@
 """Celery tasks for tax credit transfer document generation."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -11,7 +11,9 @@ from app.core.config import settings
 logger = structlog.get_logger()
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
+@celery_app.task(
+    bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180
+)
 def generate_transfer_doc_task(self, report_id: str) -> dict:
     """Generate tax credit transfer election documentation as HTML.
 
@@ -22,9 +24,7 @@ def generate_transfer_doc_task(self, report_id: str) -> dict:
       4. Build branded HTML document
       5. Upload to S3 → READY
     """
-    import json
 
-    import httpx
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session as SyncSession
 
@@ -79,7 +79,9 @@ def generate_transfer_doc_task(self, report_id: str) -> dict:
             from app.core.pdf_utils import convert_and_upload
 
             s3_key = f"{report.org_id}/tax-credits/{report.id}.pdf"
-            pdf_bytes, _ = convert_and_upload(html, s3_key, filename=f"Tax Credit - {report.id}.pdf")
+            pdf_bytes, _ = convert_and_upload(
+                html, s3_key, filename=f"Tax Credit - {report.id}.pdf"
+            )
 
             report.status = ReportStatus.READY
             report.s3_key = s3_key
@@ -88,7 +90,7 @@ def generate_transfer_doc_task(self, report_id: str) -> dict:
                 "credit_type": credit_type,
                 "project_name": project_name,
             }
-            report.completed_at = datetime.now(timezone.utc)
+            report.completed_at = datetime.now(UTC)
             session.commit()
 
             logger.info("transfer_doc_generated", report_id=report_id)
@@ -103,7 +105,7 @@ def generate_transfer_doc_task(self, report_id: str) -> dict:
                     err_report.error_message = str(exc)[:1000]
                     err_session.commit()
             logger.error("transfer_doc_failed", report_id=report_id, error=str(exc))
-            raise self.retry(exc=exc)
+            raise self.retry(exc=exc) from exc
 
 
 def _generate_transfer_language(
@@ -171,7 +173,7 @@ def _build_transfer_html(
     doc_content: str,
     org_id: uuid.UUID,
 ) -> str:
-    today = datetime.now(timezone.utc).strftime("%B %d, %Y")
+    today = datetime.now(UTC).strftime("%B %d, %Y")
     price_display = (
         f"{currency} {float(transfer_price):,.2f}" if transfer_price else "To be determined"
     )

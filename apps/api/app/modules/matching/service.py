@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from decimal import Decimal
 
 import structlog
-from sqlalchemy import and_, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.core import Organization
@@ -20,10 +18,10 @@ from app.modules.matching.schemas import (
     AlignmentBreakdownResponse,
     AllyRecommendationsResponse,
     InvestorRecommendationsResponse,
-    MatchMessageResponse,
-    MatchingInvestorResponse,
-    MatchStatusResponse,
     MandateResponse,
+    MatchingInvestorResponse,
+    MatchMessageResponse,
+    MatchStatusResponse,
     MessagesResponse,
     RecommendedProjectResponse,
 )
@@ -36,9 +34,7 @@ _algo = MatchingAlgorithm()
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-async def _latest_signal_score(
-    db: AsyncSession, project_id: uuid.UUID
-) -> SignalScore | None:
+async def _latest_signal_score(db: AsyncSession, project_id: uuid.UUID) -> SignalScore | None:
     stmt = (
         select(SignalScore)
         .where(SignalScore.project_id == project_id)
@@ -172,7 +168,8 @@ async def get_investor_recommendations(
     elif sort_by == "recency":
         scored.sort(
             key=lambda x: existing_by_project[x[0].id].updated_at
-            if x[0].id in existing_by_project else x[0].created_at,
+            if x[0].id in existing_by_project
+            else x[0].created_at,
             reverse=True,
         )
     else:  # alignment (default)
@@ -384,12 +381,13 @@ async def request_intro(
 
 async def _auto_create_deal_room(
     db: AsyncSession,
-    match: "MatchResult",  # noqa: F821
+    match: MatchResult,
     user_id: uuid.UUID,
     org_id: uuid.UUID,
 ) -> uuid.UUID:
     """Create a deal room (no intermediate commit) when match reaches meeting_scheduled."""
     from datetime import datetime as _dt
+
     from app.models.deal_rooms import DealRoom, DealRoomActivity, DealRoomMember
     from app.models.projects import Project
 
@@ -406,23 +404,30 @@ async def _auto_create_deal_room(
     db.add(room)
     await db.flush()  # get room.id
 
-    db.add(DealRoomMember(
-        room_id=room.id,
-        user_id=user_id,
-        role="owner",
-        permissions={
-            "can_upload": True, "can_download": True, "can_comment": True,
-            "can_view_financials": True, "can_invite": True,
-        },
-        invited_at=_dt.utcnow(),
-        joined_at=_dt.utcnow(),
-    ))
-    db.add(DealRoomActivity(
-        room_id=room.id,
-        user_id=user_id,
-        activity_type="room_created",
-        description=f"Deal room auto-created from match (status: meeting_scheduled)",
-    ))
+    db.add(
+        DealRoomMember(
+            room_id=room.id,
+            user_id=user_id,
+            role="owner",
+            permissions={
+                "can_upload": True,
+                "can_download": True,
+                "can_comment": True,
+                "can_view_financials": True,
+                "can_invite": True,
+            },
+            invited_at=_dt.utcnow(),
+            joined_at=_dt.utcnow(),
+        )
+    )
+    db.add(
+        DealRoomActivity(
+            room_id=room.id,
+            user_id=user_id,
+            activity_type="room_created",
+            description="Deal room auto-created from match (status: meeting_scheduled)",
+        )
+    )
     logger.info(
         "deal_room_auto_created",
         match_id=str(match.id),
@@ -442,8 +447,8 @@ async def update_match_status(
 ) -> MatchStatusResponse:
     try:
         new_status = MatchStatus(status)
-    except ValueError:
-        raise ValueError(f"Invalid status: {status}")
+    except ValueError as exc:
+        raise ValueError(f"Invalid status: {status}") from exc
 
     match = await _get_match_or_raise(db, match_id, org_id)
     old_status = match.status.value
@@ -477,17 +482,18 @@ async def update_match_status(
         try:
             from app.models.core import User
             from app.modules.gamification import service as _gami
+
             ally_user_result = await db.execute(
-                select(User).where(
+                select(User)
+                .where(
                     User.org_id == match.ally_org_id,
                     User.is_active.is_(True),
-                ).limit(1)
+                )
+                .limit(1)
             )
             ally_user = ally_user_result.scalar_one_or_none()
             if ally_user:
-                await _gami.evaluate_badges(
-                    db, ally_user.id, match.project_id, "investor_match"
-                )
+                await _gami.evaluate_badges(db, ally_user.id, match.project_id, "investor_match")
         except Exception:
             logger.debug("gamification_investor_match_failed", match_id=str(match_id))
 
@@ -571,9 +577,7 @@ async def send_message(
 # ── Mandate CRUD ──────────────────────────────────────────────────────────────
 
 
-async def list_mandates(
-    db: AsyncSession, org_id: uuid.UUID
-) -> list[InvestorMandate]:
+async def list_mandates(db: AsyncSession, org_id: uuid.UUID) -> list[InvestorMandate]:
     stmt = (
         select(InvestorMandate)
         .where(
@@ -593,8 +597,8 @@ async def create_mandate(
 ) -> InvestorMandate:
     try:
         risk_tolerance = RiskTolerance(data.risk_tolerance)
-    except ValueError:
-        raise ValueError(f"Invalid risk_tolerance: {data.risk_tolerance}")
+    except ValueError as exc:
+        raise ValueError(f"Invalid risk_tolerance: {data.risk_tolerance}") from exc
 
     mandate = InvestorMandate(
         org_id=org_id,

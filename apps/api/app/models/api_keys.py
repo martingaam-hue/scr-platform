@@ -68,13 +68,9 @@ class OrgApiKey(Base, ModelMixin):
         Boolean, nullable=False, default=True, server_default="true"
     )
     # Stamped on every successful authentication (best-effort)
-    last_used_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # NULL means the key never expires
-    expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     def __repr__(self) -> str:
         return f"<OrgApiKey(id={self.id}, prefix={self.key_prefix!r}, org={self.org_id})>"

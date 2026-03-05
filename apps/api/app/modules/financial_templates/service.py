@@ -13,6 +13,7 @@ from app.models.financial_templates import FinancialTemplate
 
 try:
     import numpy_financial as npf
+
     _HAS_NPF = True
 except ImportError:
     _HAS_NPF = False
@@ -101,7 +102,9 @@ class FinancialTemplateService:
             return float(assumptions["capacity_mwh"]) * float(assumptions["capex_per_mwh"])
         return 0.0
 
-    def _build_cashflows(self, assumptions: dict, template: FinancialTemplate, years: int, capex: float) -> list[float]:
+    def _build_cashflows(
+        self, assumptions: dict, template: FinancialTemplate, years: int, capex: float
+    ) -> list[float]:
         """Build year 0..N cashflow list. Year 0 = -capex, years 1..N = revenue - opex."""
         cashflows = [-capex]  # year 0 capex outflow
 
@@ -110,7 +113,11 @@ class FinancialTemplateService:
         # Opex
         capacity_mw = float(assumptions.get("capacity_mw", assumptions.get("capacity_mwh", 1)))
         opex_field = next((k for k in assumptions if "opex" in k), None)
-        annual_opex = float(assumptions.get(opex_field, 0)) * capacity_mw if opex_field else base_revenue * 0.1
+        annual_opex = (
+            float(assumptions.get(opex_field, 0)) * capacity_mw
+            if opex_field
+            else base_revenue * 0.1
+        )
 
         degradation = float(assumptions.get("degradation_pct_yr", 0.005))
 
@@ -124,21 +131,41 @@ class FinancialTemplateService:
     def _compute_annual_revenue(self, assumptions: dict) -> float:
         """Simple heuristic-based revenue from assumptions dict."""
         # Solar utility: capacity_mw * 1000 * irradiance / 1000 * performance_ratio * ppa_price
-        if all(k in assumptions for k in ["capacity_mw", "p50_irradiance_kwh_m2", "performance_ratio", "ppa_price_eur_mwh"]):
-            return (float(assumptions["capacity_mw"]) * 1000
-                    * float(assumptions["p50_irradiance_kwh_m2"]) / 1000
-                    * float(assumptions["performance_ratio"])
-                    * float(assumptions["ppa_price_eur_mwh"]))
+        if all(
+            k in assumptions
+            for k in [
+                "capacity_mw",
+                "p50_irradiance_kwh_m2",
+                "performance_ratio",
+                "ppa_price_eur_mwh",
+            ]
+        ):
+            return (
+                float(assumptions["capacity_mw"])
+                * 1000
+                * float(assumptions["p50_irradiance_kwh_m2"])
+                / 1000
+                * float(assumptions["performance_ratio"])
+                * float(assumptions["ppa_price_eur_mwh"])
+            )
         # Wind: capacity_mw * 8760 * capacity_factor * ppa_price
         if all(k in assumptions for k in ["capacity_mw", "capacity_factor", "ppa_price_eur_mwh"]):
-            return (float(assumptions["capacity_mw"]) * 8760
-                    * float(assumptions["capacity_factor"])
-                    * float(assumptions["ppa_price_eur_mwh"]))
+            return (
+                float(assumptions["capacity_mw"])
+                * 8760
+                * float(assumptions["capacity_factor"])
+                * float(assumptions["ppa_price_eur_mwh"])
+            )
         # BESS: capacity_mwh * cycles_per_day * 365 * revenue_per_mwh_cycle
-        if all(k in assumptions for k in ["capacity_mwh", "cycles_per_day", "revenue_per_mwh_cycle"]):
-            return (float(assumptions["capacity_mwh"])
-                    * float(assumptions["cycles_per_day"]) * 365
-                    * float(assumptions["revenue_per_mwh_cycle"]))
+        if all(
+            k in assumptions for k in ["capacity_mwh", "cycles_per_day", "revenue_per_mwh_cycle"]
+        ):
+            return (
+                float(assumptions["capacity_mwh"])
+                * float(assumptions["cycles_per_day"])
+                * 365
+                * float(assumptions["revenue_per_mwh_cycle"])
+            )
         return 0.0
 
     def _annuity(self, principal: float, rate: float, years: int) -> float:
@@ -157,6 +184,7 @@ class FinancialTemplateService:
             try:
                 val = npf.irr(cashflows)
                 import math
+
                 if math.isnan(val) or math.isinf(val):
                     return None
                 return float(val)

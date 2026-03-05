@@ -16,7 +16,6 @@ from app.modules.carbon_credits.schemas import (
     CarbonEstimateResult,
 )
 
-
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 
@@ -103,6 +102,7 @@ async def estimate_credits(
     existing = (await db.execute(stmt)).scalar_one_or_none()
 
     import datetime
+
     if existing:
         cc = existing
         cc.registry = "Verra (estimated)"
@@ -197,8 +197,8 @@ async def update_verification_status(
     cc = await _get_cc_or_raise(db, project_id, org_id)
     try:
         cc.verification_status = CarbonVerificationStatus(new_status)
-    except ValueError:
-        raise ValueError(f"Invalid verification_status: {new_status}")
+    except ValueError as exc:
+        raise ValueError(f"Invalid verification_status: {new_status}") from exc
     if verification_body:
         cc.verification_body = verification_body
     await db.flush()
@@ -233,16 +233,19 @@ async def list_on_marketplace(
 def get_pricing_trends() -> list[dict]:
     """Return synthetic pricing trend data (replace with real API in production)."""
     import datetime
+
     trends = []
     base_date = datetime.date(2023, 1, 1)
     for i in range(24):
         d = base_date.replace(month=(i % 12) + 1, year=base_date.year + (i // 12))
-        trends.append({
-            "date": d.isoformat(),
-            "vcs_price": round(8.5 + i * 0.3 + (i % 3) * 0.5, 2),
-            "gold_standard_price": round(12.0 + i * 0.4 + (i % 5) * 0.6, 2),
-            "eu_ets_price": round(55.0 + i * 0.8 + (i % 4) * 2.0, 2),
-        })
+        trends.append(
+            {
+                "date": d.isoformat(),
+                "vcs_price": round(8.5 + i * 0.3 + (i % 3) * 0.5, 2),
+                "gold_standard_price": round(12.0 + i * 0.4 + (i % 5) * 0.6, 2),
+                "eu_ets_price": round(55.0 + i * 0.8 + (i % 4) * 2.0, 2),
+            }
+        )
     return trends
 
 

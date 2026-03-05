@@ -44,7 +44,7 @@ async def get_project_ecosystem(
         await db.commit()
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/{project_id}/stakeholders", response_model=EcosystemMapResponse)
@@ -60,10 +60,10 @@ async def add_stakeholder(
         await db.commit()
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("ecosystem.add_stakeholder.error", project_id=str(project_id), error=str(exc))
-        raise HTTPException(status_code=500, detail="Failed to add stakeholder")
+        raise HTTPException(status_code=500, detail="Failed to add stakeholder") from exc
 
 
 @router.post("/{project_id}/relationships", response_model=EcosystemMapResponse)
@@ -79,7 +79,7 @@ async def add_relationship(
         await db.commit()
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("ecosystem.add_relationship.error", project_id=str(project_id), error=str(exc))
-        raise HTTPException(status_code=500, detail="Failed to add relationship")
+        raise HTTPException(status_code=500, detail="Failed to add relationship") from exc

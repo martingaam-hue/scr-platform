@@ -31,7 +31,6 @@ logger = structlog.get_logger()
 #   verification_criteria, priority, sort_order, estimated_time_hours, regulatory_reference
 
 TEMPLATES: list[dict] = [
-
     # ── Solar / full_dd / EU ─────────────────────────────────────────────────
     {
         "asset_type": "solar",
@@ -300,7 +299,6 @@ TEMPLATES: list[dict] = [
             },
         ],
     },
-
     # ── Wind / full_dd / EU ──────────────────────────────────────────────────
     {
         "asset_type": "wind",
@@ -581,7 +579,6 @@ TEMPLATES: list[dict] = [
             },
         ],
     },
-
     # ── Real Estate / full_dd / global ───────────────────────────────────────
     {
         "asset_type": "real_estate",
@@ -838,7 +835,6 @@ TEMPLATES: list[dict] = [
             },
         ],
     },
-
     # ── Private Credit / full_dd / global ────────────────────────────────────
     {
         "asset_type": "private_credit",
@@ -1071,7 +1067,6 @@ TEMPLATES: list[dict] = [
             },
         ],
     },
-
     # ── Infrastructure / full_dd / global ────────────────────────────────────
     {
         "asset_type": "infrastructure",
@@ -1304,7 +1299,6 @@ TEMPLATES: list[dict] = [
             },
         ],
     },
-
     # ── Solar / screening / global ───────────────────────────────────────────
     {
         "asset_type": "solar",
@@ -1435,7 +1429,6 @@ TEMPLATES: list[dict] = [
             },
         ],
     },
-
     # ── Wind / screening / global ────────────────────────────────────────────
     {
         "asset_type": "wind",

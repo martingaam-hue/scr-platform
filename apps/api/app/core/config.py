@@ -3,7 +3,7 @@ import sys
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_DEFAULT_SECRET = "change-this-to-a-random-string-in-production"  # noqa: S105
+_DEFAULT_SECRET = "change-this-to-a-random-string-in-production"
 
 
 class Settings(BaseSettings):
@@ -30,25 +30,26 @@ class Settings(BaseSettings):
     def _validate_production_secrets(self) -> "Settings":
         if self.APP_ENV == "production":
             if self.SECRET_KEY == _DEFAULT_SECRET:
-                print(  # noqa: T201
+                print(
                     "FATAL: SECRET_KEY must be changed before running in production.",
                     file=sys.stderr,
                 )
                 sys.exit(1)
             if len(self.SECRET_KEY) < 32:
-                print(  # noqa: T201
+                print(
                     "FATAL: SECRET_KEY must be at least 32 characters in production.",
                     file=sys.stderr,
                 )
                 sys.exit(1)
             if not self.CLERK_SECRET_KEY:
-                print(  # noqa: T201
+                print(
                     "FATAL: CLERK_SECRET_KEY is required in production.",
                     file=sys.stderr,
                 )
                 sys.exit(1)
             if not self.SENTRY_DSN:
                 import warnings
+
                 warnings.warn(
                     "SENTRY_DSN not set in production — errors will be invisible",
                     stacklevel=2,
@@ -100,27 +101,31 @@ class Settings(BaseSettings):
     SALESFORCE_REDIRECT_URI: str = ""
 
     # External Market Data
-    FRED_API_KEY: str = ""                  # St. Louis Fed FRED — https://fred.stlouisfed.org/docs/api/api_key.html
-    ALPHA_VANTAGE_API_KEY: str = ""         # Alpha Vantage — https://www.alphavantage.co/support/#api-key
+    FRED_API_KEY: str = ""  # St. Louis Fed FRED — https://fred.stlouisfed.org/docs/api/api_key.html
+    ALPHA_VANTAGE_API_KEY: str = ""  # Alpha Vantage — https://www.alphavantage.co/support/#api-key
     # New external data connectors (free / public — add key to activate live data)
-    COMPANIES_HOUSE_API_KEY: str = ""       # UK Companies House — https://developer.company-information.service.gov.uk/
-    ENTSOE_API_KEY: str = ""                # ENTSOE Transparency — https://transparency.entsoe.eu/usrm/user/createPublicUser
-    OPENWEATHER_API_KEY: str = ""           # OpenWeather — https://openweathermap.org/api
-    EMBER_API_KEY: str = ""                 # Ember EU ETS carbon data — https://ember-climate.org/data/apis/
-    EIA_API_KEY: str = ""                   # US Energy Information Administration — https://www.eia.gov/opendata/
+    COMPANIES_HOUSE_API_KEY: str = (
+        ""  # UK Companies House — https://developer.company-information.service.gov.uk/
+    )
+    ENTSOE_API_KEY: str = (
+        ""  # ENTSOE Transparency — https://transparency.entsoe.eu/usrm/user/createPublicUser
+    )
+    OPENWEATHER_API_KEY: str = ""  # OpenWeather — https://openweathermap.org/api
+    EMBER_API_KEY: str = ""  # Ember EU ETS carbon data — https://ember-climate.org/data/apis/
+    EIA_API_KEY: str = ""  # US Energy Information Administration — https://www.eia.gov/opendata/
     # New external data connectors (subscription required — leave empty until keys are configured)
-    IEA_API_KEY: str = ""                   # International Energy Agency — subscription required
-    SP_GLOBAL_API_KEY: str = ""             # S&P Global Market Intelligence — subscription required
-    BNEF_API_KEY: str = ""                  # Bloomberg NEF — subscription required
-    MSCI_ESG_API_KEY: str = ""              # MSCI ESG Research — subscription required
-    PREQIN_API_KEY: str = ""                # Preqin Pro — subscription required
+    IEA_API_KEY: str = ""  # International Energy Agency — subscription required
+    SP_GLOBAL_API_KEY: str = ""  # S&P Global Market Intelligence — subscription required
+    BNEF_API_KEY: str = ""  # Bloomberg NEF — subscription required
+    MSCI_ESG_API_KEY: str = ""  # MSCI ESG Research — subscription required
+    PREQIN_API_KEY: str = ""  # Preqin Pro — subscription required
 
     # Google (Maps, Places, Custom Search)
     GOOGLE_API_KEY: str = ""
 
     # Additional LLM providers (routed via AI Gateway)
-    XAI_API_KEY: str = ""           # xAI Grok — https://x.ai/api
-    DEEPSEEK_API_KEY: str = ""      # DeepSeek — https://platform.deepseek.com
+    XAI_API_KEY: str = ""  # xAI Grok — https://x.ai/api
+    DEEPSEEK_API_KEY: str = ""  # DeepSeek — https://platform.deepseek.com
 
     # Custom Domain (E03)
     CUSTOM_DOMAIN_CNAME_TARGET: str = "custom.scr.io"

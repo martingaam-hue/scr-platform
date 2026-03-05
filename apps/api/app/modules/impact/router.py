@@ -6,7 +6,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db
 from app.modules.impact import service
 from app.modules.impact.schemas import (
@@ -68,7 +68,7 @@ async def create_carbon_credit(
         cc = await service.create_carbon_credit(db, current_user.org_id, body)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return service._credit_to_response(cc)
 
 
@@ -84,7 +84,7 @@ async def update_carbon_credit(
         cc = await service.update_carbon_credit(db, current_user.org_id, credit_id, body)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return service._credit_to_response(cc)
 
 
@@ -101,7 +101,7 @@ async def get_project_impact(
     try:
         return await service.get_project_impact(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.put("/projects/{project_id}/kpis", response_model=ProjectImpactResponse)
@@ -113,13 +113,11 @@ async def update_kpis(
 ):
     """Update impact KPI values for a project."""
     try:
-        result = await service.update_impact_kpis(
-            db, project_id, current_user.org_id, body.kpis
-        )
+        result = await service.update_impact_kpis(db, project_id, current_user.org_id, body.kpis)
         await db.commit()
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/projects/{project_id}/sdg", response_model=SDGSummary)
@@ -132,7 +130,7 @@ async def get_sdg_mapping(
     try:
         return await service.get_sdg_summary(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.put("/projects/{project_id}/sdg", response_model=SDGSummary)
@@ -144,18 +142,14 @@ async def update_sdg_mapping(
 ):
     """Update SDG goal mapping for a project."""
     try:
-        result = await service.update_sdg_mapping(
-            db, project_id, current_user.org_id, body
-        )
+        result = await service.update_sdg_mapping(db, project_id, current_user.org_id, body)
         await db.commit()
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get(
-    "/projects/{project_id}/additionality", response_model=AdditionalityResponse
-)
+@router.get("/projects/{project_id}/additionality", response_model=AdditionalityResponse)
 async def get_additionality(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "impact")),
@@ -165,4 +159,4 @@ async def get_additionality(
     try:
         return await service.get_additionality(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

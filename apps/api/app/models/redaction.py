@@ -29,9 +29,7 @@ class RedactionJob(Base, ModelMixin):
     )
     org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     document_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    created_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True
-    )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     # pending | analyzing | review | applying | done | failed
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="pending", server_default="pending"
@@ -52,9 +50,5 @@ class RedactionJob(Base, ModelMixin):
     approved_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default="now()"
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default="now()"
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default="now()")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default="now()")

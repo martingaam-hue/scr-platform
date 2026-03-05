@@ -3,6 +3,7 @@
 These run in the Celery beat worker, not in the FastAPI process.
 All DB operations use SyncSession pattern (same as signal_score/tasks.py).
 """
+
 import structlog
 
 from app.core.celery_app import celery_app
@@ -40,6 +41,7 @@ def risk_monitoring_cycle(self) -> dict:
         engine = create_engine(settings.DATABASE_URL_SYNC)
         with Session(engine) as session:
             from app.models.projects import Portfolio  # type: ignore[attr-defined]
+
             stmt = select(Portfolio).where(Portfolio.is_deleted.is_(False))  # type: ignore[attr-defined]
             portfolios = session.execute(stmt).scalars().all()
 
@@ -48,6 +50,7 @@ def risk_monitoring_cycle(self) -> dict:
                 try:
                     # Trigger risk monitoring for each portfolio
                     import httpx
+
                     with httpx.Client(timeout=10.0) as client:
                         client.post(
                             f"{settings.API_BASE_URL if hasattr(settings, 'API_BASE_URL') else 'http://localhost:8000'}/risk/monitoring/{portfolio.id}/trigger",
@@ -55,7 +58,9 @@ def risk_monitoring_cycle(self) -> dict:
                         )
                     count += 1
                 except Exception as e:
-                    logger.warning("portfolio_monitoring_failed", portfolio_id=str(portfolio.id), error=str(e))
+                    logger.warning(
+                        "portfolio_monitoring_failed", portfolio_id=str(portfolio.id), error=str(e)
+                    )
 
         logger.info("risk_monitoring_cycle_complete", portfolios_checked=count)
         return {"portfolios_checked": count}
@@ -74,6 +79,7 @@ def check_live_score_updates(self) -> dict:
         engine = create_engine(settings.DATABASE_URL_SYNC)
         with Session(engine) as session:
             from app.models.projects import SignalScore
+
             stmt = select(SignalScore).where(SignalScore.is_live.is_(True))
             scores = session.execute(stmt).scalars().all()
 
@@ -81,10 +87,13 @@ def check_live_score_updates(self) -> dict:
             for score in scores[:50]:  # Limit per cycle to avoid overload
                 try:
                     from app.modules.signal_score.tasks import calculate_signal_score_task
+
                     calculate_signal_score_task.delay(str(score.project_id))
                     updated += 1
                 except Exception as e:
-                    logger.warning("live_score_update_failed", project_id=str(score.project_id), error=str(e))
+                    logger.warning(
+                        "live_score_update_failed", project_id=str(score.project_id), error=str(e)
+                    )
 
         logger.info("live_score_updates_triggered", count=updated)
         return {"updated": updated}

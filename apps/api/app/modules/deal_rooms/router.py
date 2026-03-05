@@ -20,7 +20,6 @@ from app.modules.deal_rooms.schemas import (
     RoomResponse,
     SendMessage,
     ShareDocument,
-    UpdateMember,
 )
 from app.schemas.auth import CurrentUser
 
@@ -60,7 +59,9 @@ async def get_room(
     return RoomResponse.model_validate(room)
 
 
-@router.post("/{room_id}/invite", response_model=MemberResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{room_id}/invite", response_model=MemberResponse, status_code=status.HTTP_201_CREATED
+)
 async def invite_member(
     room_id: uuid.UUID,
     body: InviteMember,
@@ -78,7 +79,7 @@ async def share_document(
     current_user: CurrentUser = Depends(require_permission("manage", "project")),
     db: AsyncSession = Depends(get_db),
 ):
-    doc = await service.share_document(db, room_id, body.document_id, current_user.user_id)
+    await service.share_document(db, room_id, body.document_id, current_user.user_id)
     return {"room_id": str(room_id), "document_id": str(body.document_id)}
 
 
@@ -92,7 +93,9 @@ async def get_activity(
     return [ActivityResponse.model_validate(a) for a in activities]
 
 
-@router.post("/{room_id}/messages", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{room_id}/messages", response_model=MessageResponse, status_code=status.HTTP_201_CREATED
+)
 async def send_message(
     room_id: uuid.UUID,
     body: SendMessage,

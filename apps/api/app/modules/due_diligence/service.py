@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
-from sqlalchemy import and_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.dataroom import Document
@@ -22,7 +22,6 @@ from app.models.projects import Project
 from app.modules.due_diligence.schemas import (
     DDChecklistItemFull,
     DDChecklistResponse,
-    DDTemplateResponse,
 )
 
 logger = structlog.get_logger()
@@ -111,13 +110,51 @@ async def _find_best_template(
     """Find best matching template: jurisdiction-specific > global."""
     # Determine jurisdiction group from country (simplified EU mapping)
     eu_countries = {
-        "DE", "FR", "ES", "IT", "PL", "NL", "BE", "SE", "PT", "FI",
-        "DK", "AT", "IE", "GR", "CZ", "RO", "HU", "SK", "BG", "HR",
-        "LT", "LV", "EE", "SI", "LU", "MT", "CY",
+        "DE",
+        "FR",
+        "ES",
+        "IT",
+        "PL",
+        "NL",
+        "BE",
+        "SE",
+        "PT",
+        "FI",
+        "DK",
+        "AT",
+        "IE",
+        "GR",
+        "CZ",
+        "RO",
+        "HU",
+        "SK",
+        "BG",
+        "HR",
+        "LT",
+        "LV",
+        "EE",
+        "SI",
+        "LU",
+        "MT",
+        "CY",
         # Country names
-        "Germany", "France", "Spain", "Italy", "Poland", "Netherlands",
-        "Belgium", "Sweden", "Portugal", "Finland", "Denmark", "Austria",
-        "Ireland", "Greece", "Czech Republic", "Romania", "Hungary",
+        "Germany",
+        "France",
+        "Spain",
+        "Italy",
+        "Poland",
+        "Netherlands",
+        "Belgium",
+        "Sweden",
+        "Portugal",
+        "Finland",
+        "Denmark",
+        "Austria",
+        "Ireland",
+        "Greece",
+        "Czech Republic",
+        "Romania",
+        "Hungary",
     }
     jurisdiction_group: str | None = None
     if country and country in eu_countries:
@@ -125,26 +162,34 @@ async def _find_best_template(
 
     # Try jurisdiction-specific first
     if jurisdiction_group:
-        stmt = select(DDChecklistTemplate).where(
-            DDChecklistTemplate.asset_type == asset_type,
-            DDChecklistTemplate.deal_stage == dd_stage,
-            DDChecklistTemplate.jurisdiction_group == jurisdiction_group,
-            DDChecklistTemplate.is_active.is_(True),
-            DDChecklistTemplate.is_deleted.is_(False),
-        ).limit(1)
+        stmt = (
+            select(DDChecklistTemplate)
+            .where(
+                DDChecklistTemplate.asset_type == asset_type,
+                DDChecklistTemplate.deal_stage == dd_stage,
+                DDChecklistTemplate.jurisdiction_group == jurisdiction_group,
+                DDChecklistTemplate.is_active.is_(True),
+                DDChecklistTemplate.is_deleted.is_(False),
+            )
+            .limit(1)
+        )
         result = await db.execute(stmt)
         tpl = result.scalar_one_or_none()
         if tpl:
             return tpl
 
     # Fall back to global (jurisdiction_group IS NULL)
-    stmt = select(DDChecklistTemplate).where(
-        DDChecklistTemplate.asset_type == asset_type,
-        DDChecklistTemplate.deal_stage == dd_stage,
-        DDChecklistTemplate.jurisdiction_group.is_(None),
-        DDChecklistTemplate.is_active.is_(True),
-        DDChecklistTemplate.is_deleted.is_(False),
-    ).limit(1)
+    stmt = (
+        select(DDChecklistTemplate)
+        .where(
+            DDChecklistTemplate.asset_type == asset_type,
+            DDChecklistTemplate.deal_stage == dd_stage,
+            DDChecklistTemplate.jurisdiction_group.is_(None),
+            DDChecklistTemplate.is_active.is_(True),
+            DDChecklistTemplate.is_deleted.is_(False),
+        )
+        .limit(1)
+    )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -170,24 +215,30 @@ async def generate_checklist(
     template = await _find_best_template(db, asset_type, dd_stage, country)
     if not template:
         # Try broader fallback: just asset_type with any stage
-        stmt = select(DDChecklistTemplate).where(
-            DDChecklistTemplate.asset_type == asset_type,
-            DDChecklistTemplate.is_active.is_(True),
-            DDChecklistTemplate.is_deleted.is_(False),
-        ).limit(1)
+        stmt = (
+            select(DDChecklistTemplate)
+            .where(
+                DDChecklistTemplate.asset_type == asset_type,
+                DDChecklistTemplate.is_active.is_(True),
+                DDChecklistTemplate.is_deleted.is_(False),
+            )
+            .limit(1)
+        )
         result = await db.execute(stmt)
         template = result.scalar_one_or_none()
 
     if not template:
-        raise LookupError(
-            f"No DD template found for asset_type={asset_type}, stage={dd_stage}"
-        )
+        raise LookupError(f"No DD template found for asset_type={asset_type}, stage={dd_stage}")
 
     # Load template items
-    items_stmt = select(DDChecklistItem).where(
-        DDChecklistItem.template_id == template.id,
-        DDChecklistItem.is_deleted.is_(False),
-    ).order_by(DDChecklistItem.sort_order)
+    items_stmt = (
+        select(DDChecklistItem)
+        .where(
+            DDChecklistItem.template_id == template.id,
+            DDChecklistItem.is_deleted.is_(False),
+        )
+        .order_by(DDChecklistItem.sort_order)
+    )
     items_result = await db.execute(items_stmt)
     items = items_result.scalars().all()
 
@@ -366,7 +417,7 @@ async def update_item_status(
     if document_id is not None:
         item_status.satisfied_by_document_id = document_id
     if status in ("satisfied", "partially_met", "not_met", "waived"):
-        item_status.reviewed_at = datetime.now(timezone.utc)
+        item_status.reviewed_at = datetime.now(UTC)
 
     await db.flush()
     await _update_completion_percentage(db, checklist_id)
@@ -396,7 +447,7 @@ async def add_custom_item(
         "description": description,
         "priority": priority,
         "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
 
     current_items = list(checklist.custom_items or [])
@@ -505,13 +556,10 @@ async def auto_match_documents(
             class_to_doc[cls_value] = doc
 
     # Load pending item statuses
-    statuses_stmt = (
-        select(DDItemStatus)
-        .where(
-            DDItemStatus.checklist_id == checklist_id,
-            DDItemStatus.status == "pending",
-            DDItemStatus.is_deleted.is_(False),
-        )
+    statuses_stmt = select(DDItemStatus).where(
+        DDItemStatus.checklist_id == checklist_id,
+        DDItemStatus.status == "pending",
+        DDItemStatus.is_deleted.is_(False),
     )
     statuses_result = await db.execute(statuses_stmt)
     statuses = statuses_result.scalars().all()

@@ -39,12 +39,8 @@ class Project(BaseModel):
     slug: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     project_type: Mapped[ProjectType] = mapped_column(nullable=False)
-    status: Mapped[ProjectStatus] = mapped_column(
-        nullable=False, default=ProjectStatus.DRAFT
-    )
-    stage: Mapped[ProjectStage] = mapped_column(
-        nullable=False, default=ProjectStage.CONCEPT
-    )
+    status: Mapped[ProjectStatus] = mapped_column(nullable=False, default=ProjectStatus.DRAFT)
+    stage: Mapped[ProjectStage] = mapped_column(nullable=False, default=ProjectStage.CONCEPT)
     geography_country: Mapped[str] = mapped_column(String(100), nullable=False)
     geography_region: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     geography_coordinates: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
@@ -99,9 +95,7 @@ class ProjectMilestone(BaseModel):
 
 class ProjectBudgetItem(BaseModel):
     __tablename__ = "project_budget_items"
-    __table_args__ = (
-        Index("ix_project_budget_items_project_id", "project_id"),
-    )
+    __table_args__ = (Index("ix_project_budget_items_project_id", "project_id"),)
 
     project_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -157,9 +151,7 @@ class SignalScore(TimestampedModel):
     improvement_guidance: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     score_factors: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     data_sources_used: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    is_live: Mapped[bool] = mapped_column(
-        default=True, server_default="true", nullable=False
-    )
+    is_live: Mapped[bool] = mapped_column(default=True, server_default="true", nullable=False)
 
     model_used: Mapped[str] = mapped_column(String(100), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)

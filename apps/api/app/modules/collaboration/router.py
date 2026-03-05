@@ -118,13 +118,14 @@ async def create_comment(
             entity_type=body.entity_type,
             entity_id=body.entity_id,
             action="comment_added",
-            description=f"Added a comment",
+            description="Added a comment",
         )
         await db.commit()
 
         # Build response with user info
-        from app.models.core import User
         from sqlalchemy import select
+
+        from app.models.core import User
 
         user_result = await db.execute(select(User).where(User.id == current_user.user_id))
         user = user_result.scalar_one_or_none()
@@ -132,7 +133,7 @@ async def create_comment(
 
         return _comment_to_response(comment, user_map)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.get(
@@ -167,9 +168,7 @@ async def update_comment(
 ):
     """Update a comment. Author only, within 15 minutes."""
     try:
-        comment = await service.update_comment(
-            db, comment_id, current_user.user_id, body.content
-        )
+        comment = await service.update_comment(db, comment_id, current_user.user_id, body.content)
         if not comment:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
         await db.commit()
@@ -181,9 +180,9 @@ async def update_comment(
         user_map_for_resp = {comment.user_id: user_map.get(comment.user_id)}
         return _comment_to_response(comment, user_map_for_resp)
     except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.delete(
@@ -204,7 +203,7 @@ async def delete_comment(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
         await db.commit()
     except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
 
 
 @router.post(
@@ -224,8 +223,9 @@ async def resolve_comment(
     await db.commit()
 
     # Build response
-    from app.models.core import User
     from sqlalchemy import select
+
+    from app.models.core import User
 
     user_result = await db.execute(select(User).where(User.id == comment.user_id))
     user = user_result.scalar_one_or_none()

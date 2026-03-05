@@ -1,5 +1,7 @@
 """Alley Score Performance (Score Journey) API."""
+
 from __future__ import annotations
+
 import uuid
 
 import structlog
@@ -22,7 +24,11 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/alley/score-performance", tags=["alley-score-performance"])
 
 
-@router.get("", response_model=ScorePerformanceListResponse, summary="Score journey overview for all projects")
+@router.get(
+    "",
+    response_model=ScorePerformanceListResponse,
+    summary="Score journey overview for all projects",
+)
 async def list_performance(
     current_user: CurrentUser = Depends(require_permission("view", "project")),
     db: AsyncSession = Depends(get_db),
@@ -31,7 +37,11 @@ async def list_performance(
     return ScorePerformanceListResponse(items=items, total=len(items))
 
 
-@router.get("/{project_id}", response_model=ScoreJourneyResponse, summary="Full score journey for one project")
+@router.get(
+    "/{project_id}",
+    response_model=ScoreJourneyResponse,
+    summary="Full score journey for one project",
+)
 async def get_journey(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -40,10 +50,14 @@ async def get_journey(
     try:
         return await service.get_score_journey(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/{project_id}/dimensions", response_model=DimensionTrendsResponse, summary="Per-dimension score trends")
+@router.get(
+    "/{project_id}/dimensions",
+    response_model=DimensionTrendsResponse,
+    summary="Per-dimension score trends",
+)
 async def get_dimension_trends(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -52,10 +66,14 @@ async def get_dimension_trends(
     try:
         return await service.get_dimension_trends(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/{project_id}/insights", response_model=ScoreInsightsResponse, summary="AI-generated improvement insights")
+@router.get(
+    "/{project_id}/insights",
+    response_model=ScoreInsightsResponse,
+    summary="AI-generated improvement insights",
+)
 async def get_insights(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -64,4 +82,4 @@ async def get_insights(
     try:
         return await service.get_score_insights(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

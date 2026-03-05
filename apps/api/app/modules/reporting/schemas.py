@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 from app.models.enums import ReportCategory, ReportFrequency, ReportStatus
 
-
 # ── Enums (request-only) ────────────────────────────────────────────────────
 
 

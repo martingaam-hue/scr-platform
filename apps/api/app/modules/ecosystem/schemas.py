@@ -10,10 +10,10 @@ from pydantic import BaseModel
 class StakeholderNode(BaseModel):
     id: str
     name: str
-    type: str           # investor, ally, advisor, regulator, partner, supplier, community
+    type: str  # investor, ally, advisor, regulator, partner, supplier, community
     sub_type: str | None
     relationship_strength: int  # 1–5
-    engagement_status: str      # active, passive, at_risk, churned
+    engagement_status: str  # active, passive, at_risk, churned
     tags: list[str]
     metadata: dict[str, Any] | None
 
@@ -22,7 +22,7 @@ class StakeholderEdge(BaseModel):
     source: str
     target: str
     relationship_type: str  # investment, partnership, advisory, regulatory, supply_chain
-    weight: int             # 1–10
+    weight: int  # 1–10
     description: str | None
 
 
@@ -31,7 +31,7 @@ class EcosystemMapResponse(BaseModel):
     org_id: uuid.UUID
     nodes: list[StakeholderNode]
     edges: list[StakeholderEdge]
-    summary: dict[str, Any]     # {total_stakeholders, by_type, avg_strength}
+    summary: dict[str, Any]  # {total_stakeholders, by_type, avg_strength}
     last_updated: datetime
 
 

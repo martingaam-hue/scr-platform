@@ -3,17 +3,16 @@
 import uuid
 
 import pytest
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.core import Organization, User
 from app.models.dataroom import DocumentFolder
-from app.models.enums import OrgType, PortfolioStrategy, RiskTolerance, UserRole
+from app.models.enums import OrgType, PortfolioStrategy, RiskTolerance
 from app.models.investors import InvestorMandate, Portfolio
 from app.models.projects import Project
 from app.modules.onboarding.service import complete_onboarding
 from app.schemas.auth import CurrentUser
-from tests.conftest import SAMPLE_CLERK_ID, SAMPLE_ORG_ID, SAMPLE_USER_ID
+from tests.conftest import SAMPLE_ORG_ID, SAMPLE_USER_ID
 
 pytestmark = pytest.mark.anyio
 
@@ -284,9 +283,7 @@ class TestOnboardingIdempotent:
 class TestOnboardingEndpoint:
     """Test PUT /onboarding/complete via the HTTP client."""
 
-    async def test_complete_investor(
-        self, authenticated_client, sample_user
-    ):
+    async def test_complete_investor(self, authenticated_client, sample_user):
         response = await authenticated_client.put(
             "/v1/onboarding/complete",
             json={
@@ -305,9 +302,7 @@ class TestOnboardingEndpoint:
         assert "mandate_id" in body["created_entities"]
         assert len(body["created_entities"]["folder_ids"]) == 3
 
-    async def test_complete_ally_with_project(
-        self, authenticated_client, sample_user
-    ):
+    async def test_complete_ally_with_project(self, authenticated_client, sample_user):
         response = await authenticated_client.put(
             "/v1/onboarding/complete",
             json={
@@ -329,9 +324,7 @@ class TestOnboardingEndpoint:
         assert body["redirect_to"] == "/dashboard/projects"
         assert "project_id" in body["created_entities"]
 
-    async def test_complete_ally_without_project(
-        self, authenticated_client, sample_user
-    ):
+    async def test_complete_ally_without_project(self, authenticated_client, sample_user):
         response = await authenticated_client.put(
             "/v1/onboarding/complete",
             json={
@@ -346,9 +339,7 @@ class TestOnboardingEndpoint:
         assert "project_id" not in body["created_entities"]
         assert len(body["created_entities"]["folder_ids"]) == 3
 
-    async def test_missing_org_name_returns_422(
-        self, authenticated_client, sample_user
-    ):
+    async def test_missing_org_name_returns_422(self, authenticated_client, sample_user):
         response = await authenticated_client.put(
             "/v1/onboarding/complete",
             json={
@@ -358,9 +349,7 @@ class TestOnboardingEndpoint:
         )
         assert response.status_code == 422
 
-    async def test_invalid_org_type_returns_422(
-        self, authenticated_client, sample_user
-    ):
+    async def test_invalid_org_type_returns_422(self, authenticated_client, sample_user):
         response = await authenticated_client.put(
             "/v1/onboarding/complete",
             json={
@@ -382,9 +371,7 @@ class TestOnboardingEndpoint:
         )
         assert response.status_code == 403
 
-    async def test_empty_org_name_returns_422(
-        self, authenticated_client, sample_user
-    ):
+    async def test_empty_org_name_returns_422(self, authenticated_client, sample_user):
         response = await authenticated_client.put(
             "/v1/onboarding/complete",
             json={

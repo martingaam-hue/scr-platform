@@ -5,11 +5,13 @@ Revises: ("aa1122334455", "f1a2b3c4d5e6")
 Create Date: 2026-03-01 14:00:00.000000
 
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "c3a2b3c4d5e6"
 down_revision = ("aa1122334455", "f1a2b3c4d5e6")
@@ -75,22 +77,14 @@ def upgrade() -> None:
         sa.Column("is_deleted", sa.Boolean, server_default="false", nullable=False),
         sa.ForeignKeyConstraint(["org_id"], ["organizations.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
-            ["portfolio_id"], ["portfolios.id"], ondelete="SET NULL"
-        ),
-        sa.ForeignKeyConstraint(
-            ["waived_by"], ["users.id"], ondelete="SET NULL"
-        ),
-        sa.ForeignKeyConstraint(
-            ["source_document_id"], ["documents.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["portfolio_id"], ["portfolios.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["waived_by"], ["users.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["source_document_id"], ["documents.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_covenants_org_id", "covenants", ["org_id"])
     op.create_index("ix_covenants_project_id", "covenants", ["project_id"])
-    op.create_index(
-        "ix_covenants_org_project", "covenants", ["org_id", "project_id"]
-    )
+    op.create_index("ix_covenants_org_project", "covenants", ["org_id", "project_id"])
     op.create_index("ix_covenants_status", "covenants", ["status"])
 
     op.create_table(
@@ -131,22 +125,14 @@ def upgrade() -> None:
         sa.Column("is_deleted", sa.Boolean, server_default="false", nullable=False),
         sa.ForeignKeyConstraint(["org_id"], ["organizations.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
-            ["source_document_id"], ["documents.id"], ondelete="SET NULL"
-        ),
-        sa.ForeignKeyConstraint(
-            ["entered_by"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["source_document_id"], ["documents.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["entered_by"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_kpi_actuals_org_id", "kpi_actuals", ["org_id"])
     op.create_index("ix_kpi_actuals_project_id", "kpi_actuals", ["project_id"])
-    op.create_index(
-        "ix_kpi_actuals_project_kpi", "kpi_actuals", ["project_id", "kpi_name"]
-    )
-    op.create_index(
-        "ix_kpi_actuals_project_period", "kpi_actuals", ["project_id", "period"]
-    )
+    op.create_index("ix_kpi_actuals_project_kpi", "kpi_actuals", ["project_id", "kpi_name"])
+    op.create_index("ix_kpi_actuals_project_period", "kpi_actuals", ["project_id", "period"])
 
     op.create_table(
         "kpi_targets",
@@ -192,12 +178,8 @@ def upgrade() -> None:
     )
     op.create_index("ix_kpi_targets_org_id", "kpi_targets", ["org_id"])
     op.create_index("ix_kpi_targets_project_id", "kpi_targets", ["project_id"])
-    op.create_index(
-        "ix_kpi_targets_project_kpi", "kpi_targets", ["project_id", "kpi_name"]
-    )
-    op.create_index(
-        "ix_kpi_targets_project_period", "kpi_targets", ["project_id", "period"]
-    )
+    op.create_index("ix_kpi_targets_project_kpi", "kpi_targets", ["project_id", "kpi_name"])
+    op.create_index("ix_kpi_targets_project_period", "kpi_targets", ["project_id", "period"])
 
 
 def downgrade() -> None:

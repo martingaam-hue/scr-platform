@@ -8,15 +8,14 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # ── Risk Assessment ───────────────────────────────────────────────────────────
 
 
 class RiskAssessmentCreate(BaseModel):
     entity_type: str  # RiskEntityType value
     entity_id: uuid.UUID
-    risk_type: str    # RiskType value
-    severity: str     # RiskSeverity value
+    risk_type: str  # RiskType value
+    severity: str  # RiskSeverity value
     probability: str  # RiskProbability value
     description: str
     mitigation: str | None = None
@@ -42,8 +41,8 @@ class RiskAssessmentResponse(BaseModel):
 
 
 class HeatmapCell(BaseModel):
-    severity: str       # low|medium|high|critical
-    probability: str    # unlikely|possible|likely|very_likely
+    severity: str  # low|medium|high|critical
+    probability: str  # unlikely|possible|likely|very_likely
     count: int
     risk_ids: list[uuid.UUID]
 
@@ -58,8 +57,8 @@ class RiskHeatmapResponse(BaseModel):
 
 class ConcentrationItem(BaseModel):
     label: str
-    value: float        # invested amount
-    pct: float          # % of total
+    value: float  # invested amount
+    pct: float  # % of total
     is_concentrated: bool
 
 
@@ -90,7 +89,7 @@ class RiskTrendPoint(BaseModel):
 
 class RiskDashboardResponse(BaseModel):
     portfolio_id: uuid.UUID
-    overall_risk_score: float       # 0-100, weighted
+    overall_risk_score: float  # 0-100, weighted
     heatmap: RiskHeatmapResponse
     top_risks: list[RiskAssessmentResponse]
     auto_identified: list[AutoRiskItem]
@@ -163,12 +162,12 @@ class PAIIndicator(BaseModel):
     category: str
     value: str | None
     unit: str
-    status: str   # met|not_met|not_applicable|needs_data
+    status: str  # met|not_met|not_applicable|needs_data
 
 
 class DNSHCheck(BaseModel):
     objective: str
-    status: str   # compliant|non_compliant|needs_assessment
+    status: str  # compliant|non_compliant|needs_assessment
     notes: str
 
 
@@ -185,13 +184,13 @@ class TaxonomyResult(BaseModel):
 
 class ComplianceStatusResponse(BaseModel):
     portfolio_id: uuid.UUID
-    sfdr_classification: str            # article_6|article_8|article_9|not_applicable
+    sfdr_classification: str  # article_6|article_8|article_9|not_applicable
     sustainable_investment_pct: float
     taxonomy_eligible_pct: float
     taxonomy_aligned_pct: float
     pai_indicators: list[PAIIndicator]
     taxonomy_results: list[TaxonomyResult]
-    overall_status: str                 # compliant|needs_attention|non_compliant
+    overall_status: str  # compliant|needs_attention|non_compliant
     last_assessed: datetime
 
 
@@ -200,8 +199,8 @@ class ComplianceStatusResponse(BaseModel):
 
 class RiskDomainScore(BaseModel):
     domain: str  # market|climate|regulatory|technology|liquidity
-    score: float | None       # 0–100 (higher = more risk)
-    label: str                # Low | Medium | High | Critical
+    score: float | None  # 0–100 (higher = more risk)
+    label: str  # Low | Medium | High | Critical
     details: dict[str, Any] | None = None
     mitigation: dict[str, Any] | None = None
 

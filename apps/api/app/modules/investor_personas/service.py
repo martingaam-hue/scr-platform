@@ -1,4 +1,6 @@
 """Investor Persona service."""
+
+import contextlib
 import json
 import uuid
 from decimal import Decimal
@@ -54,9 +56,7 @@ def _list_to_jsonb(values: list[str] | None) -> dict[str, bool] | None:
     return {v: True for v in values}
 
 
-async def _get_latest_signal_score(
-    db: AsyncSession, project_id: uuid.UUID
-) -> SignalScore | None:
+async def _get_latest_signal_score(db: AsyncSession, project_id: uuid.UUID) -> SignalScore | None:
     stmt = (
         select(SignalScore)
         .where(SignalScore.project_id == project_id)
@@ -112,10 +112,9 @@ def _calc_persona_alignment(
         if t_min <= investment <= t_max:
             score += 20
             reasons.append("Investment size within ticket range")
-    elif t_min is not None:
-        if investment >= t_min:
-            score += 20
-            reasons.append("Investment size above minimum ticket")
+    elif t_min is not None and investment >= t_min:
+        score += 20
+        reasons.append("Investment size above minimum ticket")
 
     # Signal score >= 60: 10 pts
     if signal_score and signal_score.overall_score >= 60:
@@ -146,14 +145,24 @@ async def create_persona(
         persona_name=body.persona_name,
         is_active=True,
         strategy_type=strategy,
-        target_irr_min=Decimal(str(body.target_irr_min)) if body.target_irr_min is not None else None,
-        target_irr_max=Decimal(str(body.target_irr_max)) if body.target_irr_max is not None else None,
-        target_moic_min=Decimal(str(body.target_moic_min)) if body.target_moic_min is not None else None,
+        target_irr_min=Decimal(str(body.target_irr_min))
+        if body.target_irr_min is not None
+        else None,
+        target_irr_max=Decimal(str(body.target_irr_max))
+        if body.target_irr_max is not None
+        else None,
+        target_moic_min=Decimal(str(body.target_moic_min))
+        if body.target_moic_min is not None
+        else None,
         preferred_asset_types=_list_to_jsonb(body.preferred_asset_types),
         preferred_geographies=_list_to_jsonb(body.preferred_geographies),
         preferred_stages=_list_to_jsonb(body.preferred_stages),
-        ticket_size_min=Decimal(str(body.ticket_size_min)) if body.ticket_size_min is not None else None,
-        ticket_size_max=Decimal(str(body.ticket_size_max)) if body.ticket_size_max is not None else None,
+        ticket_size_min=Decimal(str(body.ticket_size_min))
+        if body.ticket_size_min is not None
+        else None,
+        ticket_size_max=Decimal(str(body.ticket_size_max))
+        if body.ticket_size_max is not None
+        else None,
         esg_requirements=body.esg_requirements,
         risk_tolerance=body.risk_tolerance,
         co_investment_preference=body.co_investment_preference,
@@ -206,9 +215,7 @@ async def generate_persona(
         # Strip markdown code fences if present
         if "```" in content:
             lines = content.split("\n")
-            json_lines = [
-                ln for ln in lines if not ln.strip().startswith("```")
-            ]
+            json_lines = [ln for ln in lines if not ln.strip().startswith("```")]
             content = "\n".join(json_lines)
 
         extracted = json.loads(content.strip())
@@ -225,9 +232,7 @@ async def generate_persona(
     persona_name = extracted.get("persona_name") or description[:200]
 
     try:
-        strategy = InvestorPersonaStrategy(
-            (extracted.get("strategy_type") or "moderate").lower()
-        )
+        strategy = InvestorPersonaStrategy((extracted.get("strategy_type") or "moderate").lower())
     except ValueError:
         strategy = InvestorPersonaStrategy.MODERATE
 
@@ -311,10 +316,8 @@ async def update_persona(
         persona.persona_name = updates["persona_name"]
 
     if "strategy_type" in updates and updates["strategy_type"] is not None:
-        try:
+        with contextlib.suppress(ValueError):
             persona.strategy_type = InvestorPersonaStrategy(updates["strategy_type"].lower())
-        except ValueError:
-            pass
 
     if "target_irr_min" in updates:
         val = updates["target_irr_min"]
@@ -386,9 +389,7 @@ async def get_persona_matches(
     matches: list[PersonaMatchResponse] = []
     for project in projects:
         signal_score = await _get_latest_signal_score(db, project.id)
-        alignment_score, alignment_reasons = _calc_persona_alignment(
-            project, persona, signal_score
-        )
+        alignment_score, alignment_reasons = _calc_persona_alignment(project, persona, signal_score)
 
         matches.append(
             PersonaMatchResponse(

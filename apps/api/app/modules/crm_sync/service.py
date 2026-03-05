@@ -1,7 +1,7 @@
 """CRM Sync service — business logic for managing CRM connections and sync operations."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import httpx
 from sqlalchemy import select
@@ -29,7 +29,7 @@ class CRMSyncService:
                 f"https://app.hubspot.com/oauth/authorize"
                 f"?client_id={client_id}&redirect_uri={redirect_uri}"
                 f"&scope=crm.objects.deals.read+crm.objects.deals.write"
-                f"&state={str(self.org_id)}"
+                f"&state={self.org_id!s}"
             )
         elif provider == "salesforce":
             from app.modules.crm_sync.salesforce_service import SalesforceService
@@ -61,7 +61,7 @@ class CRMSyncService:
                 provider=provider,
                 access_token=tokens.get("access_token", ""),
                 refresh_token=tokens.get("refresh_token"),
-                token_expires_at=datetime.now(timezone.utc)
+                token_expires_at=datetime.now(UTC)
                 + timedelta(seconds=tokens.get("expires_in", 3600)),
                 portal_id=str(tokens.get("hub_id", "")),
             )
@@ -73,12 +73,16 @@ class CRMSyncService:
             from app.modules.crm_sync.salesforce_service import SalesforceService
 
             # Stub connection used only to call exchange_code (no DB access needed)
-            stub_conn = type("_Stub", (), {
-                "instance_url": None,
-                "org_id": self.org_id,
-                "access_token": "",
-                "refresh_token": None,
-            })()
+            stub_conn = type(
+                "_Stub",
+                (),
+                {
+                    "instance_url": None,
+                    "org_id": self.org_id,
+                    "access_token": "",
+                    "refresh_token": None,
+                },
+            )()
             svc = SalesforceService(self.db, stub_conn)  # type: ignore[arg-type]
             tokens = await svc.exchange_code(code)
             conn = CRMConnection(
@@ -86,7 +90,7 @@ class CRMSyncService:
                 provider=provider,
                 access_token=tokens.get("access_token", ""),
                 refresh_token=tokens.get("refresh_token"),
-                token_expires_at=datetime.now(timezone.utc)
+                token_expires_at=datetime.now(UTC)
                 + timedelta(seconds=tokens.get("expires_in", 7200)),
                 instance_url=tokens.get("instance_url"),
             )
@@ -109,8 +113,8 @@ class CRMSyncService:
         self,
         connection_id: uuid.UUID,
         field_mappings: dict,
-        sync_frequency: str = None,
-        sync_direction: str = None,
+        sync_frequency: str | None = None,
+        sync_direction: str | None = None,
     ) -> CRMConnection:
         conn = await self._get_conn(connection_id)
         conn.field_mappings = field_mappings
@@ -129,15 +133,19 @@ class CRMSyncService:
 
         svc = HubSpotService(self.db, conn)
         projects = (
-            await self.db.execute(
-                select(Project)
-                .where(
-                    Project.org_id == self.org_id,
-                    Project.is_deleted.is_(False),
+            (
+                await self.db.execute(
+                    select(Project)
+                    .where(
+                        Project.org_id == self.org_id,
+                        Project.is_deleted.is_(False),
+                    )
+                    .limit(50)
                 )
-                .limit(50)
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         pushed = 0
         for p in projects:
@@ -148,7 +156,7 @@ class CRMSyncService:
                 pass
 
         pulled = await svc.pull_deal_updates()
-        conn.last_sync_at = datetime.now(timezone.utc)
+        conn.last_sync_at = datetime.now(UTC)
         await self.db.flush()
         return {"pushed": pushed, "pulled": pulled}
 
@@ -193,7 +201,7 @@ class CRMSyncService:
 
         svc = SalesforceService(self.db, conn)
         result = await svc.sync_projects_to_deals(project_ids)
-        conn.last_sync_at = datetime.now(timezone.utc)
+        conn.last_sync_at = datetime.now(UTC)
         await self.db.flush()
         return result
 

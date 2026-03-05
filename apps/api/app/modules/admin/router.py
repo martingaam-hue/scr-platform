@@ -4,35 +4,33 @@ All endpoints require UserRole.ADMIN and OrgType.ADMIN.
 These are cross-org queries with no multi-tenant scoping.
 """
 
+import contextlib
 import uuid
 from datetime import UTC, datetime
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_role
+from app.auth.dependencies import require_role
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.core import Organization
 from app.models.enums import OrgType, SubscriptionStatus, SubscriptionTier, UserRole
-from app.schemas.auth import CurrentUser
-from sqlalchemy import select
-
 from app.modules.admin import service
 from app.modules.admin.schemas import (
     AICostReport,
     AuditLogPage,
     BackupStatus,
     OrgDetail,
-    OrgSummary,
+    PlatformAnalytics,
     SystemHealthResponse,
     UpdateOrgStatusRequest,
     UpdateOrgTierRequest,
     UpdateUserStatusRequest,
-    UserSummary,
-    PlatformAnalytics,
 )
+from app.schemas.auth import CurrentUser
 
 logger = structlog.get_logger()
 
@@ -193,14 +191,14 @@ async def get_ai_budget_overview(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Return per-org AI spend vs. budget for the current calendar month."""
-    from datetime import datetime, timezone
-    from sqlalchemy import func, text
+    from datetime import datetime
+
+    from sqlalchemy import func
 
     from app.models.ai import AITaskLog
-    from app.models.enums import SubscriptionTier
     from app.services.ai_budget import _TIER_BUDGETS
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     first_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     # Aggregate spend per org for current month
@@ -217,6 +215,7 @@ async def get_ai_budget_overview(
 
     # Fetch org budgets + tiers in one query
     from app.models.core import Organization as Org
+
     org_ids = [r.org_id for r in rows]
     if org_ids:
         org_stmt = select(Org.id, Org.name, Org.subscription_tier, Org.ai_monthly_budget).where(
@@ -230,16 +229,22 @@ async def get_ai_budget_overview(
     for r in rows:
         org = org_rows.get(r.org_id)
         tier = org.subscription_tier if org else SubscriptionTier.FOUNDATION
-        budget = float(org.ai_monthly_budget) if org and org.ai_monthly_budget is not None else _TIER_BUDGETS.get(tier, 50.0)
-        items.append({
-            "org_id": str(r.org_id),
-            "org_name": org.name if org else "unknown",
-            "tier": tier.value if org else "foundation",
-            "spend_usd": float(r.spend_usd),
-            "budget_usd": budget,
-            "utilisation_pct": round(float(r.spend_usd) / budget * 100, 1) if budget else 0,
-            "call_count": r.call_count,
-        })
+        budget = (
+            float(org.ai_monthly_budget)
+            if org and org.ai_monthly_budget is not None
+            else _TIER_BUDGETS.get(tier, 50.0)
+        )
+        items.append(
+            {
+                "org_id": str(r.org_id),
+                "org_name": org.name if org else "unknown",
+                "tier": tier.value if org else "foundation",
+                "spend_usd": float(r.spend_usd),
+                "budget_usd": budget,
+                "utilisation_pct": round(float(r.spend_usd) / budget * 100, 1) if budget else 0,
+                "call_count": r.call_count,
+            }
+        )
 
     # Sort by utilisation desc
     items.sort(key=lambda x: x["utilisation_pct"], reverse=True)
@@ -325,9 +330,11 @@ async def send_digest_test(
 ) -> dict:
     """Trigger a test digest email for a specific user (platform admin only)."""
     from datetime import datetime, timedelta
+
+    from sqlalchemy import select
+
     from app.models.core import Organization, User
     from app.modules.digest import service as digest_service
-    from sqlalchemy import select
 
     stmt = (
         select(User, Organization.name.label("org_name"))
@@ -347,6 +354,7 @@ async def send_digest_test(
     summary = await digest_service.generate_digest_summary(activity, org_name)
 
     from app.tasks.weekly_digest import _send_digest_email
+
     await _send_digest_email(user.email, user.full_name, org_name, activity, summary)
 
     return {"status": "sent", "email": user.email, "activity": activity}
@@ -361,11 +369,11 @@ async def get_backup_status(
 ) -> BackupStatus:
     """Read the latest backup health report from S3 and return structured status."""
     import json
+
     import boto3
     from botocore.exceptions import ClientError
 
-    backup_bucket = getattr(settings, "BACKUP_S3_BUCKET",
-                            f"scr-{settings.APP_ENV}-backups")
+    backup_bucket = getattr(settings, "BACKUP_S3_BUCKET", f"scr-{settings.APP_ENV}-backups")
 
     # Try to read latest health report from S3
     try:
@@ -384,10 +392,8 @@ async def get_backup_status(
         last_run = None
         ts = data.get("timestamp")
         if ts:
-            try:
+            with contextlib.suppress(Exception):
                 last_run = datetime.strptime(ts, "%Y%m%d_%H%M%S").replace(tzinfo=UTC)
-            except Exception:
-                pass
 
         # Parse restore test from a separate key (written by weekly_backup_test)
         last_restore_test = None
@@ -422,11 +428,16 @@ async def get_backup_status(
             return BackupStatus(
                 overall="unknown",
                 last_run=None,
-                postgresql=None, dr_copy=None, opensearch=None,
-                secrets_inventory=None, rds_snapshots=None,
-                s3_replication=None, table_audit=None,
-                last_restore_test=None, restore_test_result=None,
+                postgresql=None,
+                dr_copy=None,
+                opensearch=None,
+                secrets_inventory=None,
+                rds_snapshots=None,
+                s3_replication=None,
+                table_audit=None,
+                last_restore_test=None,
+                restore_test_result=None,
             )
-        raise HTTPException(status_code=503, detail="Backup status unavailable")
+        raise HTTPException(status_code=503, detail="Backup status unavailable") from e
     except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Backup status error: {exc}")
+        raise HTTPException(status_code=503, detail=f"Backup status error: {exc}") from exc

@@ -5,11 +5,13 @@ Revises: ("aa1122334455", "f1a2b3c4d5e6")
 Create Date: 2026-03-01 12:00:00.000000
 
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "c1a2b3c4d5e6"
 down_revision = ("aa1122334455", "f1a2b3c4d5e6")
@@ -103,9 +105,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("is_deleted", sa.Boolean, server_default="false", nullable=False),
-        sa.ForeignKeyConstraint(
-            ["question_id"], ["qa_questions.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["question_id"], ["qa_questions.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["answered_by"], ["users.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["approved_by"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),

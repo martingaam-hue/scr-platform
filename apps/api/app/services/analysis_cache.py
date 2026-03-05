@@ -19,6 +19,7 @@ Usage from any module:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import re
 from datetime import datetime
@@ -31,7 +32,6 @@ from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.dataroom import Document, DocumentExtraction
-from app.models.enums import DocumentStatus
 
 logger = structlog.get_logger()
 
@@ -57,7 +57,12 @@ class AsyncGatewayClient:
             async with httpx.AsyncClient(timeout=60.0) as client:
                 resp = await client.post(
                     f"{self._url}/v1/completions",
-                    json={"prompt": prompt, "task_type": task_type, "max_tokens": 800, "temperature": 0.3},
+                    json={
+                        "prompt": prompt,
+                        "task_type": task_type,
+                        "max_tokens": 800,
+                        "temperature": 0.3,
+                    },
                     headers={"Authorization": f"Bearer {self._key}"},
                 )
                 resp.raise_for_status()
@@ -67,10 +72,8 @@ class AsyncGatewayClient:
                 validated: dict[str, Any] | None = None
                 match = re.search(r"\{.*\}", content, re.DOTALL)
                 if match:
-                    try:
+                    with contextlib.suppress(Exception):
                         validated = json.loads(match.group())
-                    except Exception:
-                        pass
                 return {
                     "content": content,
                     "validated_data": validated,
@@ -89,14 +92,16 @@ class AsyncGatewayClient:
             }
 
 
-def make_analysis_cache(db: AsyncSession) -> "DocumentAnalysisCache":
+def make_analysis_cache(db: AsyncSession) -> DocumentAnalysisCache:
     """Factory: builds a ready-to-use cache with the async gateway client."""
     from app.core.config import settings
+
     client = AsyncGatewayClient(
         gateway_url=settings.AI_GATEWAY_URL or "",
         gateway_key=settings.AI_GATEWAY_API_KEY or "",
     )
     return DocumentAnalysisCache(db, client)
+
 
 # Maps cross-module analysis_type → AI Gateway task_type
 ANALYSIS_TASK_MAPPING: dict[str, str] = {
@@ -115,8 +120,12 @@ ANALYSIS_TASK_MAPPING: dict[str, str] = {
 
 # Cross-module types that the cache manages (not S5 originals)
 CROSS_MODULE_TYPES = {
-    "quality_assessment", "risk_flags", "deal_relevance",
-    "completeness_check", "key_figures", "entity_extraction",
+    "quality_assessment",
+    "risk_flags",
+    "deal_relevance",
+    "completeness_check",
+    "key_figures",
+    "entity_extraction",
 }
 
 
@@ -154,7 +163,9 @@ class DocumentAnalysisCache:
         if not force_refresh:
             cached = await self._get_cached(document_id, analysis_type)
             if cached:
-                logger.debug("analysis_cache.hit", document_id=str(document_id), analysis_type=analysis_type)
+                logger.debug(
+                    "analysis_cache.hit", document_id=str(document_id), analysis_type=analysis_type
+                )
                 return {
                     "result": cached.result,
                     "confidence": cached.confidence_score,
@@ -163,7 +174,9 @@ class DocumentAnalysisCache:
                     "model_used": cached.model_used,
                 }
 
-        logger.info("analysis_cache.miss", document_id=str(document_id), analysis_type=analysis_type)
+        logger.info(
+            "analysis_cache.miss", document_id=str(document_id), analysis_type=analysis_type
+        )
         result = await self._run_analysis(document_id, analysis_type, context)
         await self._store(document_id, analysis_type, result)
 
@@ -187,7 +200,11 @@ class DocumentAnalysisCache:
 
         by_type: dict[str, dict[str, Any]] = {}
         for ext in extractions:
-            et = ext.extraction_type.value if hasattr(ext.extraction_type, "value") else str(ext.extraction_type)
+            et = (
+                ext.extraction_type.value
+                if hasattr(ext.extraction_type, "value")
+                else str(ext.extraction_type)
+            )
             if et not in by_type:
                 by_type[et] = {
                     "result": ext.result,
@@ -222,14 +239,20 @@ class DocumentAnalysisCache:
 
         if to_analyze:
             tasks = [
-                self.get_or_analyze(doc_id, analysis_type, shared_context)
-                for doc_id in to_analyze
+                self.get_or_analyze(doc_id, analysis_type, shared_context) for doc_id in to_analyze
             ]
             analyzed = await asyncio.gather(*tasks, return_exceptions=True)
-            for doc_id, result in zip(to_analyze, analyzed):
+            for doc_id, result in zip(to_analyze, analyzed, strict=False):
                 if isinstance(result, Exception):
-                    logger.warning("batch_analyze.error", document_id=str(doc_id), error=str(result))
-                    results[str(doc_id)] = {"result": None, "confidence": 0, "cached": False, "error": str(result)}
+                    logger.warning(
+                        "batch_analyze.error", document_id=str(doc_id), error=str(result)
+                    )
+                    results[str(doc_id)] = {
+                        "result": None,
+                        "confidence": 0,
+                        "cached": False,
+                        "error": str(result),
+                    }
                 else:
                     results[str(doc_id)] = result  # type: ignore[assignment]
 
@@ -252,18 +275,16 @@ class DocumentAnalysisCache:
 
     async def get_cache_stats(self) -> dict[str, Any]:
         """Cache statistics for the admin dashboard."""
-        from sqlalchemy import func, case
+        from sqlalchemy import case, func
 
         result = await self._db.execute(
             select(
                 func.count(DocumentExtraction.id).label("total_cached"),
-                func.count(
-                    case((DocumentExtraction.confidence_score > 0, 1))
-                ).label("valid_cached"),
+                func.count(case((DocumentExtraction.confidence_score > 0, 1))).label(
+                    "valid_cached"
+                ),
                 func.coalesce(func.sum(DocumentExtraction.tokens_used), 0).label("total_tokens"),
-            ).where(
-                DocumentExtraction.extraction_type.in_(list(CROSS_MODULE_TYPES))
-            )
+            ).where(DocumentExtraction.extraction_type.in_(list(CROSS_MODULE_TYPES)))
         )
         row = result.one()
         estimated_savings = float(row.valid_cached or 0) * 0.02  # ~$0.02 per Sonnet call
@@ -287,12 +308,14 @@ class DocumentAnalysisCache:
 
         result = await self._db.execute(
             select(DocumentExtraction)
-            .where(and_(
-                DocumentExtraction.document_id == document_id,
-                DocumentExtraction.extraction_type == analysis_type,
-                DocumentExtraction.confidence_score > 0,
-                DocumentExtraction.created_at >= doc_updated,
-            ))
+            .where(
+                and_(
+                    DocumentExtraction.document_id == document_id,
+                    DocumentExtraction.extraction_type == analysis_type,
+                    DocumentExtraction.confidence_score > 0,
+                    DocumentExtraction.created_at >= doc_updated,
+                )
+            )
             .order_by(DocumentExtraction.created_at.desc())
             .limit(1)
         )
@@ -301,9 +324,7 @@ class DocumentAnalysisCache:
     async def _run_analysis(
         self, document_id: UUID, analysis_type: str, context: dict[str, Any]
     ) -> dict[str, Any]:
-        doc_result = await self._db.execute(
-            select(Document).where(Document.id == document_id)
-        )
+        doc_result = await self._db.execute(select(Document).where(Document.id == document_id))
         document = doc_result.scalar_one()
         doc_text = await self._get_document_text(document)
 
@@ -337,10 +358,12 @@ class DocumentAnalysisCache:
         # Check for existing summary extraction
         result = await self._db.execute(
             select(DocumentExtraction.result)
-            .where(and_(
-                DocumentExtraction.document_id == document.id,
-                DocumentExtraction.extraction_type == "summary",
-            ))
+            .where(
+                and_(
+                    DocumentExtraction.document_id == document.id,
+                    DocumentExtraction.extraction_type == "summary",
+                )
+            )
             .order_by(DocumentExtraction.created_at.desc())
             .limit(1)
         )

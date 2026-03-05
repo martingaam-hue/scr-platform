@@ -12,7 +12,6 @@ from app.modules.carbon_credits import service
 from app.modules.carbon_credits.schemas import (
     CarbonCreditResponse,
     CarbonCreditUpdate,
-    CarbonEstimateResult,
     MethodologyResponse,
     PricingTrendPoint,
     VerificationStatusUpdate,
@@ -54,11 +53,9 @@ async def estimate_carbon_credits(
 ):
     """Deterministic carbon credit estimation based on project type and capacity."""
     try:
-        estimate, cc = await service.estimate_credits(
-            db, project_id, current_user.org_id
-        )
+        estimate, cc = await service.estimate_credits(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return {"estimate": estimate.model_dump(), "credit_record": cc.model_dump()}
 
 
@@ -72,7 +69,7 @@ async def get_carbon_credit(
     try:
         return await service.get_carbon_credit(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.put("/{project_id}", response_model=CarbonCreditResponse)
@@ -84,11 +81,9 @@ async def update_carbon_credit(
 ):
     """Update carbon credit record fields."""
     try:
-        return await service.update_carbon_credit(
-            db, project_id, current_user.org_id, body
-        )
+        return await service.update_carbon_credit(db, project_id, current_user.org_id, body)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.put("/{project_id}/verification-status", response_model=CarbonCreditResponse)
@@ -101,12 +96,11 @@ async def update_verification_status(
     """Update verification status of a carbon credit."""
     try:
         return await service.update_verification_status(
-            db, project_id, current_user.org_id,
-            body.verification_status, body.verification_body
+            db, project_id, current_user.org_id, body.verification_status, body.verification_body
         )
     except (LookupError, ValueError) as exc:
         status_code = 404 if isinstance(exc, LookupError) else 422
-        raise HTTPException(status_code=status_code, detail=str(exc))
+        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
 
 
 @router.post("/{project_id}/submit-verification", status_code=status.HTTP_202_ACCEPTED)
@@ -121,7 +115,7 @@ async def submit_verification(
             db, project_id, current_user.org_id, "submitted", None
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return {
         "status": "accepted",
         "message": "Verification submission initiated",
@@ -139,6 +133,6 @@ async def list_on_marketplace(
     try:
         return await service.list_on_marketplace(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

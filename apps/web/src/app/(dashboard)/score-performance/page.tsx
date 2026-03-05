@@ -38,8 +38,6 @@ import {
   useDealOutcomes,
   useRunBacktest,
   useRecordOutcome,
-  type BacktestRun,
-  type DealOutcome,
   type BacktestRunRequest,
   type RecordOutcomeRequest,
 } from "@/lib/backtesting";

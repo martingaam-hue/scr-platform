@@ -49,7 +49,9 @@ async def list_connectors(
     db: AsyncSession = Depends(get_db),
 ):
     connectors = await service.list_connectors(db)
-    org_configs = {c.connector_id: c for c in await service.list_org_configs(db, current_user.org_id)}
+    org_configs = {
+        c.connector_id: c for c in await service.list_org_configs(db, current_user.org_id)
+    }
     result = []
     for conn in connectors:
         cfg = org_configs.get(conn.id)
@@ -68,7 +70,7 @@ async def enable_connector(
     current_user: CurrentUser = Depends(require_permission("manage", "admin")),
     db: AsyncSession = Depends(get_db),
 ):
-    cfg = await service.enable_connector(db, current_user.org_id, connector_id, body.api_key, body.config)
+    await service.enable_connector(db, current_user.org_id, connector_id, body.api_key, body.config)
     return {"status": "enabled", "connector_id": str(connector_id)}
 
 
@@ -92,9 +94,9 @@ async def test_connector(
         result = await service.test_connector(db, current_user.org_id, connector_id)
         return result
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 class IngestRequest(BaseModel):
@@ -128,9 +130,9 @@ async def ingest_to_dataroom(
         )
         return result
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/usage")

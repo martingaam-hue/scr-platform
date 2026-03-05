@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import Depends, Header, HTTPException
 from sqlalchemy import select
@@ -33,7 +33,7 @@ async def verify_api_key(
     key_hash = hashlib.sha256(x_scr_api_key.encode()).hexdigest()
 
     # Import here to avoid circular imports at module load time.
-    from app.models.api_keys import OrgApiKey  # noqa: PLC0415
+    from app.models.api_keys import OrgApiKey
 
     stmt = select(OrgApiKey).where(
         OrgApiKey.key_hash == key_hash,
@@ -49,7 +49,7 @@ async def verify_api_key(
     # here does not abort the outer transaction (and therefore the response).
     try:
         async with db.begin_nested():
-            key_row.last_used_at = datetime.now(timezone.utc)
+            key_row.last_used_at = datetime.now(UTC)
     except Exception:
         pass
 

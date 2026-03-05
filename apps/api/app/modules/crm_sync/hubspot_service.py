@@ -1,7 +1,7 @@
 """HubSpot API integration service for CRM sync operations."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import httpx
 from sqlalchemy import select
@@ -18,7 +18,7 @@ class HubSpotService:
         self.db = db
         self.connection = connection
 
-    async def _api_call(self, method: str, path: str, body: dict = None) -> dict:
+    async def _api_call(self, method: str, path: str, body: dict | None = None) -> dict:
         """Make authenticated HubSpot API call. Refresh token if expired."""
         headers = {
             "Authorization": f"Bearer {self.connection.access_token}",
@@ -51,7 +51,7 @@ class HubSpotService:
             )
         tokens = resp.json()
         self.connection.access_token = tokens.get("access_token", self.connection.access_token)
-        self.connection.token_expires_at = datetime.now(timezone.utc) + timedelta(
+        self.connection.token_expires_at = datetime.now(UTC) + timedelta(
             seconds=tokens.get("expires_in", 3600)
         )
         await self.db.flush()
@@ -103,7 +103,7 @@ class HubSpotService:
         crm_id,
         action: str,
         status: str,
-        error: str = None,
+        error: str | None = None,
     ):
         log = CRMSyncLog(
             connection_id=self.connection.id,

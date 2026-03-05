@@ -4,8 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
-  Search,
-  SlidersHorizontal,
   Sun,
   Wind,
   Droplets,
@@ -17,7 +15,6 @@ import {
   Gauge,
   TreePine,
   Boxes,
-  ArrowUpDown,
   TrendingUp,
   DollarSign,
   FolderKanban,
@@ -43,7 +40,7 @@ import {
   type ColumnDef,
   cn,
 } from "@scr/ui";
-import { useSCRUser, usePermission } from "@/lib/auth";
+import { usePermission } from "@/lib/auth";
 import {
   useProjects,
   useProjectStats,

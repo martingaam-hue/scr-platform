@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Layers, LayoutDashboard, Search, X } from "lucide-react";
-import { cn } from "@scr/ui";
 import { useSearch } from "@/lib/search";
 import { useSearchStore } from "@/lib/store";
 

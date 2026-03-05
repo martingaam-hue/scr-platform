@@ -29,9 +29,7 @@ class MonitoringService:
 
     # ── Covenants ─────────────────────────────────────────────────────────────
 
-    async def create_covenant(
-        self, project_id: uuid.UUID, body: CovenantCreate
-    ) -> Covenant:
+    async def create_covenant(self, project_id: uuid.UUID, body: CovenantCreate) -> Covenant:
         covenant = Covenant(
             org_id=self.org_id,
             project_id=project_id,
@@ -66,9 +64,7 @@ class MonitoringService:
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
-    async def update_covenant(
-        self, covenant_id: uuid.UUID, body: CovenantUpdate
-    ) -> Covenant:
+    async def update_covenant(self, covenant_id: uuid.UUID, body: CovenantUpdate) -> Covenant:
         result = await self.db.execute(
             select(Covenant).where(
                 Covenant.id == covenant_id,
@@ -114,9 +110,7 @@ class MonitoringService:
         await self.db.refresh(covenant)
         return covenant
 
-    async def check_covenants(
-        self, project_id: uuid.UUID | None = None
-    ) -> list[dict]:
+    async def check_covenants(self, project_id: uuid.UUID | None = None) -> list[dict]:
         """Check all non-waived covenants. Returns list of status changes."""
         stmt = select(Covenant).where(
             Covenant.org_id == self.org_id,
@@ -166,6 +160,7 @@ class MonitoringService:
                 if covenant.status == "breach" and old_status != "breach":
                     try:
                         from app.modules.webhooks.service import WebhookService
+
                         wh = WebhookService(self.db)
                         await wh.fire_event(
                             self.org_id,
@@ -191,6 +186,8 @@ class MonitoringService:
         """Check if value violates the covenant threshold."""
         comp = covenant.comparison
         t = covenant.threshold_value
+        if t is None:
+            return False
         if comp == ">=":
             return value < t
         elif comp == "<=":
@@ -198,7 +195,8 @@ class MonitoringService:
         elif comp == "==":
             return abs(value - t) > 0.001
         elif comp == "between":
-            return value < t or value > covenant.threshold_upper
+            upper = covenant.threshold_upper
+            return value < t or (upper is not None and value > upper)
         elif comp == "not_null":
             return value is None
         return False
@@ -302,9 +300,7 @@ class MonitoringService:
         )
         if period is not None:
             actuals_stmt = actuals_stmt.where(KPIActual.period == period)
-        actuals_result = await self.db.execute(
-            actuals_stmt.order_by(KPIActual.created_at.desc())
-        )
+        actuals_result = await self.db.execute(actuals_stmt.order_by(KPIActual.created_at.desc()))
         actuals = actuals_result.scalars().all()
 
         # Load targets
@@ -363,9 +359,7 @@ class MonitoringService:
 
         return items
 
-    async def get_kpi_trend(
-        self, project_id: uuid.UUID, kpi_name: str
-    ) -> list[dict]:
+    async def get_kpi_trend(self, project_id: uuid.UUID, kpi_name: str) -> list[dict]:
         """Load all KPIActuals for project + kpi_name, ordered by period."""
         stmt = (
             select(KPIActual)
@@ -391,9 +385,7 @@ class MonitoringService:
             for a in sorted(seen.values(), key=lambda x: x.period)
         ]
 
-    async def get_portfolio_dashboard(
-        self, portfolio_id: uuid.UUID
-    ) -> list[dict]:
+    async def get_portfolio_dashboard(self, portfolio_id: uuid.UUID) -> list[dict]:
         """Load portfolio holdings and return per-project covenant status."""
         from app.models.investors import PortfolioHolding
         from app.models.projects import Project
@@ -456,9 +448,7 @@ class MonitoringService:
 
         return items
 
-    async def auto_extract_kpis(
-        self, document_id: uuid.UUID, project_id: uuid.UUID
-    ) -> dict:
+    async def auto_extract_kpis(self, document_id: uuid.UUID, project_id: uuid.UUID) -> dict:
         """AI extracts KPIs from uploaded document."""
         from app.core.config import settings
 

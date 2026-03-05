@@ -1,6 +1,6 @@
 """Signal Score criteria definitions: 6 dimensions with detailed scoring rubric."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

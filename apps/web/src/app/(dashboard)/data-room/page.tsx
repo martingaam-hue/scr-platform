@@ -5,25 +5,17 @@ import {
   Upload,
   LayoutGrid,
   List,
-  Search,
-  Filter,
   Trash2,
-  FolderInput,
   Download,
-  MoreHorizontal,
   FileText,
   Image as ImageIcon,
   Table2,
   File,
   Presentation,
-  Share2,
   Brain,
   Eye,
-  Pencil,
   X,
-  Plus,
   Loader2,
-  ChevronDown,
 } from "lucide-react";
 import {
   Button,
@@ -47,9 +39,8 @@ import {
   cn,
 } from "@scr/ui";
 import type { ColumnDef } from "@scr/ui";
-import { useQueryClient } from "@tanstack/react-query";
 
-import { useSCRUser, usePermission } from "@/lib/auth";
+import { usePermission } from "@/lib/auth";
 import {
   useDocuments,
   useDocument,
@@ -61,10 +52,8 @@ import {
   useUpdateFolder,
   useDeleteFolder,
   useBulkDelete,
-  useBulkMove,
   useTriggerExtraction,
   useExtractions,
-  dataroomKeys,
   formatFileSize,
   fileTypeLabel,
   classificationLabel,
@@ -72,7 +61,6 @@ import {
   type DocumentResponse,
   type DocumentListParams,
   type FolderTreeNode,
-  type DocumentClassification,
   type DocumentStatus,
 } from "@/lib/dataroom";
 import { useProjects, type ProjectResponse } from "@/lib/projects";
@@ -320,7 +308,7 @@ function DetailDrawer({
   documentId: string;
   onClose: () => void;
   canEdit: boolean;
-  projects: import("@/lib/projects").ProjectResponse[];
+  projects: ProjectResponse[];
 }) {
   const { data: doc, isLoading } = useDocument(documentId);
   const download = useDocumentDownload();
@@ -336,12 +324,6 @@ function DetailDrawer({
     const result = await download.mutateAsync(documentId);
     window.open(result.download_url, "_blank");
   }, [download, documentId]);
-
-  const handlePreview = useCallback(async () => {
-    if (previewUrl) return;
-    const result = await download.mutateAsync(documentId);
-    setPreviewUrl(result.download_url);
-  }, [download, documentId, previewUrl]);
 
   // Auto-fetch preview URL on mount
   React.useEffect(() => {
@@ -571,7 +553,6 @@ function FolderTreeSkeleton() {
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function DataRoomPage() {
-  const { user } = useSCRUser();
   const canUpload = usePermission("upload", "document");
   const canEdit = usePermission("edit", "document");
   const canDelete = usePermission("delete", "document");
@@ -596,14 +577,13 @@ export default function DataRoomPage() {
     folderId?: string;
   }>({ open: false, title: "", initialValue: "", parentId: null });
   const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState("created_at");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [sortBy] = useState("created_at");
+  const [sortOrder] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState<DocumentStatus | undefined>();
 
   // ── Projects (for selector) ────────────────────────────────────────────
   const { data: projectList } = useProjects({ page_size: 100 });
   const projects: ProjectResponse[] = projectList?.items ?? [];
-  const activeProject = projects.find((p) => p.id === projectId);
 
   const isUnassigned = projectId === "UNASSIGNED";
 
@@ -636,9 +616,7 @@ export default function DataRoomPage() {
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
   const bulkDelete = useBulkDelete();
-  const bulkMove = useBulkMove();
   const columns = useTableColumns();
-  const qc = useQueryClient();
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const handleSelectDoc = useCallback((id: string) => {

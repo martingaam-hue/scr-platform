@@ -305,7 +305,9 @@ async def get_quality_report(
                 positive_rate=round(positive / total, 4) if total else 0.0,
                 edit_rate=round(edited / total, 4) if total else 0.0,
                 accept_rate=round(accepted / total, 4) if total else 0.0,
-                avg_edit_distance_pct=round(float(row.avg_edit_dist), 4) if row.avg_edit_dist else None,
+                avg_edit_distance_pct=round(float(row.avg_edit_dist), 4)
+                if row.avg_edit_dist
+                else None,
             )
         )
 
@@ -344,9 +346,7 @@ async def list_corrections(
     if task_type:
         filters.append(AIOutputFeedback.task_type == task_type)
 
-    count_result = await db.execute(
-        select(func.count(AIOutputFeedback.id)).where(and_(*filters))
-    )
+    count_result = await db.execute(select(func.count(AIOutputFeedback.id)).where(and_(*filters)))
     total = count_result.scalar_one()
 
     result = await db.execute(

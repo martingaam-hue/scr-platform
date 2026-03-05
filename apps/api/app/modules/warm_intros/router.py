@@ -6,14 +6,13 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db
 from app.modules.warm_intros import service
 from app.modules.warm_intros.schemas import (
     ConnectionCreateRequest,
     ConnectionResponse,
     ConnectionUpdateRequest,
-    IntroPathResponse,
     IntroRequestCreateRequest,
     IntroRequestResponse,
     IntroRequestStatusUpdateRequest,
@@ -56,9 +55,7 @@ async def list_connections(
     db: AsyncSession = Depends(get_db),
 ):
     """List all professional connections for the current user."""
-    connections = await service.get_connections(
-        db, current_user.user_id, current_user.org_id
-    )
+    connections = await service.get_connections(db, current_user.user_id, current_user.org_id)
     return [_conn_to_response(c) for c in connections]
 
 
@@ -74,12 +71,10 @@ async def add_connection(
 ):
     """Add a new professional connection."""
     try:
-        conn = await service.create_connection(
-            db, current_user.user_id, current_user.org_id, body
-        )
+        conn = await service.create_connection(db, current_user.user_id, current_user.org_id, body)
         await db.commit()
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return _conn_to_response(conn)
 
 
@@ -97,9 +92,9 @@ async def update_connection(
         )
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return _conn_to_response(conn)
 
 
@@ -119,7 +114,7 @@ async def delete_connection(
         )
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Introduction paths ────────────────────────────────────────────────────────
@@ -149,9 +144,7 @@ async def get_warm_intro_suggestions(
     suggestions = await service.suggest_warm_intros(
         db, project_id, current_user.org_id, current_user.user_id, limit=limit
     )
-    return SuggestionsResponse(
-        project_id=project_id, items=suggestions, total=len(suggestions)
-    )
+    return SuggestionsResponse(project_id=project_id, items=suggestions, total=len(suggestions))
 
 
 # ── Introduction requests ─────────────────────────────────────────────────────
@@ -202,12 +195,10 @@ async def update_introduction_request_status(
 ):
     """Update introduction request status (connector accepts or declines)."""
     try:
-        req = await service.update_request_status(
-            db, current_user.org_id, request_id, body.status
-        )
+        req = await service.update_request_status(db, current_user.org_id, request_id, body.status)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return service._intro_request_to_response(req)

@@ -1,6 +1,5 @@
 """Comprehensive tests for the AI output validator."""
-import pytest
-from app.validation import AIOutputValidator, ConfidenceLevel, VALIDATION_SCHEMAS
+from app.validation import VALIDATION_SCHEMAS, AIOutputValidator, ConfidenceLevel
 
 validator = AIOutputValidator()
 

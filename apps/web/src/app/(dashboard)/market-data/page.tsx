@@ -10,7 +10,6 @@ import {
   Minus,
 } from "lucide-react";
 import {
-  Badge,
   Button,
   Card,
   CardContent,

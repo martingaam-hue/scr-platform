@@ -6,10 +6,8 @@ import {
   Plus,
   TrendingUp,
   Users,
-  DollarSign,
   BarChart3,
   ArrowRightLeft,
-  ChevronDown,
 } from "lucide-react";
 import {
   Badge,

@@ -23,7 +23,6 @@ import {
   CardTitle,
   DataTable,
   EmptyState,
-  ScoreGauge,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -826,7 +825,7 @@ function ValuationResultCard({
               <SensitivityHeatmap matrix={sensitivity} />
             ) : (
               <p className="text-sm text-neutral-400 text-center py-4">
-                Click "Run" to generate discount rate × growth rate matrix
+                Click &quot;Run&quot; to generate discount rate × growth rate matrix
               </p>
             )}
           </CardContent>

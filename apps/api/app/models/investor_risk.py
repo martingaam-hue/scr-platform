@@ -1,10 +1,8 @@
 """InvestorRiskProfile model."""
 
 import uuid
-from datetime import datetime
 from typing import Any
 
-import sqlalchemy as sa
 from sqlalchemy import ForeignKey, Index, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column

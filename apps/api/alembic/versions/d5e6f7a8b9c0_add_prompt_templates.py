@@ -4,18 +4,20 @@ Revision ID: d5e6f7a8b9c0
 Revises: e8f9a1b2c3d4
 Create Date: 2026-02-28 13:00:00.000000
 """
+
 from __future__ import annotations
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
+from alembic import op
+
 revision: str = "d5e6f7a8b9c0"
-down_revision: Union[str, None] = "e8f9a1b2c3d4"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "e8f9a1b2c3d4"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -55,8 +57,10 @@ def upgrade() -> None:
     op.add_column("ai_task_logs", sa.Column("prompt_version", sa.Integer(), nullable=True))
     op.create_foreign_key(
         "fk_ai_task_logs_prompt_template",
-        "ai_task_logs", "prompt_templates",
-        ["prompt_template_id"], ["id"],
+        "ai_task_logs",
+        "prompt_templates",
+        ["prompt_template_id"],
+        ["id"],
         ondelete="SET NULL",
     )
 

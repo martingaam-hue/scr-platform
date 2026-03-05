@@ -20,8 +20,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   DataTable,
   EmptyState,
   ScoreGauge,

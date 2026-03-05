@@ -75,7 +75,9 @@ def _score_risk_management(mandate) -> tuple[float, list[str], list[str]]:
         score += 30
     else:
         gaps.append("Preferred investment stages not set")
-        recs.append("Define target investment stages (e.g. development, construction-ready) to narrow deal funnel")
+        recs.append(
+            "Define target investment stages (e.g. development, construction-ready) to narrow deal funnel"
+        )
 
     # geographies (30 pts)
     geos = getattr(mandate, "geographies", None) or []
@@ -153,14 +155,18 @@ def _score_esg_commitment(mandate) -> tuple[float, list[str], list[str]]:
         score += 60
     else:
         gaps.append("ESG requirements not defined")
-        recs.append("Define ESG requirements to attract impact-aligned projects and improve investor credibility")
+        recs.append(
+            "Define ESG requirements to attract impact-aligned projects and improve investor credibility"
+        )
 
     exclusions = getattr(mandate, "exclusions", None)
     if exclusions and (isinstance(exclusions, dict) and len(exclusions) > 0):
         score += 40
     else:
         gaps.append("ESG exclusion criteria not set")
-        recs.append("Add ESG exclusions (e.g. fossil fuels, controversial weapons) to strengthen your impact mandate")
+        recs.append(
+            "Add ESG exclusions (e.g. fossil fuels, controversial weapons) to strengthen your impact mandate"
+        )
 
     return min(100.0, score), gaps, recs
 
@@ -255,7 +261,4 @@ def score_investor(mandate, portfolio_data: dict | None = None) -> dict:
 
 def compute_overall(dimension_scores: dict[str, float]) -> float:
     """Weighted average across all 6 dimensions."""
-    return sum(
-        dimension_scores.get(dim, 0.0) * weight
-        for dim, weight in DIMENSION_WEIGHTS.items()
-    )
+    return sum(dimension_scores.get(dim, 0.0) * weight for dim, weight in DIMENSION_WEIGHTS.items())

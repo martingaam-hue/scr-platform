@@ -5,10 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-
-
 from app.models.enums import OrgType, SubscriptionStatus, SubscriptionTier, UserRole
-
 
 # ── Organization ──────────────────────────────────────────────────────────────
 
@@ -154,6 +151,7 @@ class SystemHealthResponse(BaseModel):
 
 
 # ── Backup Status ─────────────────────────────────────────────────────────────
+
 
 class BackupStepStatus(BaseModel):
     status: str  # "ok" | "success" | "failed" | "skipped" | "warning" | "partial"

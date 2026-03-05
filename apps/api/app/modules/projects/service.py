@@ -9,9 +9,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.middleware.tenant import tenant_filter
-from app.models.dataroom import Document
+from app.models.ai import AITaskLog
 from app.models.enums import (
-    BudgetItemStatus,
     MilestoneStatus,
     ProjectStage,
     ProjectStatus,
@@ -19,7 +18,6 @@ from app.models.enums import (
 )
 from app.models.projects import Project, ProjectBudgetItem, ProjectMilestone, SignalScore
 from app.schemas.auth import CurrentUser
-
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -35,9 +33,7 @@ def _slugify(name: str) -> str:
 async def _get_project_or_raise(
     db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID
 ) -> Project:
-    stmt = select(Project).where(
-        Project.id == project_id, Project.is_deleted.is_(False)
-    )
+    stmt = select(Project).where(Project.id == project_id, Project.is_deleted.is_(False))
     stmt = tenant_filter(stmt, org_id, Project)
     result = await db.execute(stmt)
     project = result.scalar_one_or_none()
@@ -46,9 +42,7 @@ async def _get_project_or_raise(
     return project
 
 
-async def get_latest_signal_score(
-    db: AsyncSession, project_id: uuid.UUID
-) -> SignalScore | None:
+async def get_latest_signal_score(db: AsyncSession, project_id: uuid.UUID) -> SignalScore | None:
     stmt = (
         select(SignalScore)
         .where(SignalScore.project_id == project_id)
@@ -111,9 +105,7 @@ async def list_projects(
             )
             .subquery()
         )
-        base = base.join(
-            score_sub, Project.id == score_sub.c.project_id, isouter=True
-        )
+        base = base.join(score_sub, Project.id == score_sub.c.project_id, isouter=True)
         if score_min is not None:
             base = base.where(score_sub.c.overall_score >= score_min)
         if score_max is not None:
@@ -135,9 +127,7 @@ async def list_projects(
     return list(result.scalars().all()), total
 
 
-async def get_project(
-    db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID
-) -> Project:
+async def get_project(db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID) -> Project:
     return await _get_project_or_raise(db, project_id, org_id)
 
 
@@ -210,18 +200,14 @@ async def update_project(
     return project
 
 
-async def delete_project(
-    db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID
-) -> None:
+async def delete_project(db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID) -> None:
     project = await _get_project_or_raise(db, project_id, org_id)
     project.is_deleted = True
     await db.flush()
     await db.commit()
 
 
-async def publish_project(
-    db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID
-) -> Project:
+async def publish_project(db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID) -> Project:
     project = await _get_project_or_raise(db, project_id, org_id)
 
     # Validate completeness
@@ -247,17 +233,11 @@ async def publish_project(
     return project
 
 
-async def get_project_stats(
-    db: AsyncSession, org_id: uuid.UUID
-) -> dict:
-    base = select(Project).where(
-        Project.is_deleted.is_(False), Project.org_id == org_id
-    )
+async def get_project_stats(db: AsyncSession, org_id: uuid.UUID) -> dict:
+    base = select(Project).where(Project.is_deleted.is_(False), Project.org_id == org_id)
 
     # Total projects
-    total = (
-        await db.execute(select(func.count()).select_from(base.subquery()))
-    ).scalar_one()
+    total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
 
     # Active fundraising
     fundraising = (
@@ -275,8 +255,7 @@ async def get_project_stats(
     # Total funding needed
     funding = (
         await db.execute(
-            select(func.coalesce(func.sum(Project.total_investment_required), 0))
-            .where(
+            select(func.coalesce(func.sum(Project.total_investment_required), 0)).where(
                 Project.org_id == org_id,
                 Project.is_deleted.is_(False),
             )
@@ -295,8 +274,7 @@ async def get_project_stats(
         .subquery()
     )
     avg_score_result = await db.execute(
-        select(func.avg(SignalScore.overall_score))
-        .join(
+        select(func.avg(SignalScore.overall_score)).join(
             latest_scores_sub,
             (SignalScore.project_id == latest_scores_sub.c.project_id)
             & (SignalScore.version == latest_scores_sub.c.max_ver),
@@ -382,6 +360,7 @@ async def update_milestone(
     # Auto-complete if status set to COMPLETED
     if kwargs.get("status") == MilestoneStatus.COMPLETED and not milestone.completed_date:
         from datetime import date as date_type
+
         milestone.completed_date = date_type.today()
         milestone.completion_pct = 100
 
@@ -513,9 +492,8 @@ async def create_business_plan_task(
     org_id: uuid.UUID,
     user_id: uuid.UUID,
     action_type: str,
-) -> "AITaskLog":  # type: ignore[name-defined]
+) -> AITaskLog:
     """Create an AITaskLog and enqueue the business plan Celery task."""
-    from app.models.ai import AITaskLog
     from app.models.enums import AIAgentType, AITaskStatus
     from app.modules.projects.tasks import business_plan_task
 

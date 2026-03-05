@@ -91,8 +91,8 @@ class ValuationEngine:
         by_multiple: dict[str, MultipleResult] = {}
 
         subject_map = {
-            "ev_ebitda":  params.subject_ebitda,
-            "ev_mw":      params.subject_capacity_mw,
+            "ev_ebitda": params.subject_ebitda,
+            "ev_mw": params.subject_capacity_mw,
             "ev_revenue": params.subject_revenue,
         }
 

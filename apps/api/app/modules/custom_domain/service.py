@@ -2,7 +2,7 @@
 
 import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 import structlog
@@ -58,7 +58,7 @@ class CustomDomainService:
         if not record:
             return False, "No domain configured"
 
-        record.last_checked_at = datetime.now(timezone.utc)
+        record.last_checked_at = datetime.now(UTC)
         record.status = "verifying"
 
         # Try DNS-over-HTTPS (Cloudflare) to check CNAME
@@ -91,8 +91,7 @@ class CustomDomainService:
                     txt_data = txt_resp.json()
                     txt_answers = txt_data.get("Answer", [])
                     txt_ok = any(
-                        record.verification_token in (a.get("data", "") or "")
-                        for a in txt_answers
+                        record.verification_token in (a.get("data", "") or "") for a in txt_answers
                     )
         except Exception as exc:
             logger.warning("custom_domain.dns_check_failed", error=str(exc))
@@ -101,9 +100,9 @@ class CustomDomainService:
 
         if cname_ok and txt_ok:
             record.status = "verified"
-            record.verified_at = datetime.now(timezone.utc)
+            record.verified_at = datetime.now(UTC)
             # In production, this would trigger SSL cert provisioning
-            record.ssl_provisioned_at = datetime.now(timezone.utc)
+            record.ssl_provisioned_at = datetime.now(UTC)
             record.error_message = None
             await self.db.flush()
             return True, "Domain verified successfully"
@@ -112,9 +111,7 @@ class CustomDomainService:
         if not cname_ok:
             hints.append(f"CNAME {record.domain} -> {record.cname_target} not found")
         if not txt_ok:
-            hints.append(
-                f"TXT _scr-verify.{record.domain} = {record.verification_token} not found"
-            )
+            hints.append(f"TXT _scr-verify.{record.domain} = {record.verification_token} not found")
 
         record.status = "failed"
         record.error_message = "; ".join(hints) if hints else "DNS check failed"

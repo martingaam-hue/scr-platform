@@ -362,19 +362,6 @@ const adminNav: NavSection[] = [
   },
 ];
 
-function getNavForRole(orgType?: string): NavSection[] {
-  switch (orgType) {
-    case "investor":
-      return investorNav;
-    case "ally":
-      return allyNav;
-    case "admin":
-      return adminNav;
-    default:
-      return allyNav;
-  }
-}
-
 // ── Mode switcher ────────────────────────────────────────────────────────
 
 function ModeSwitcher({

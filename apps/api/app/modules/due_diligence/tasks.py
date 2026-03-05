@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from datetime import UTC
 
 import structlog
 
@@ -110,7 +111,8 @@ async def _async_review(
             new_status = "not_met"
 
         # 5. Update DDItemStatus
-        from datetime import datetime, timezone
+        from datetime import datetime
+
         item_status = session.get(DDItemStatus, item_status_uuid)
         if not item_status:
             logger.error("dd_review.item_status_not_found", item_status_id=item_status_id)
@@ -118,7 +120,7 @@ async def _async_review(
 
         item_status.ai_review_result = ai_result
         item_status.status = new_status
-        item_status.reviewed_at = datetime.now(timezone.utc)
+        item_status.reviewed_at = datetime.now(UTC)
         session.flush()
 
         # 6. Update completion percentage
@@ -132,7 +134,9 @@ async def _async_review(
             done_statuses = {"satisfied", "partially_met", "waived"}
             completed = sum(1 for s in all_statuses if s.status in done_statuses)
             total = len(all_statuses)
-            checklist.completion_percentage = round((completed / total * 100) if total > 0 else 0.0, 1)
+            checklist.completion_percentage = round(
+                (completed / total * 100) if total > 0 else 0.0, 1
+            )
             checklist.completed_items = completed
             checklist.total_items = total
             if checklist.completion_percentage >= 100:
@@ -147,7 +151,9 @@ async def _async_review(
         )
 
 
-@celery_app.task(name="tasks.review_dd_item", bind=True, max_retries=3, soft_time_limit=120, time_limit=180)
+@celery_app.task(
+    name="tasks.review_dd_item", bind=True, max_retries=3, soft_time_limit=120, time_limit=180
+)
 def review_dd_item_task(self, item_status_id: str, document_id: str, criteria: str):
     """AI review of a document against a DD checklist item."""
     try:

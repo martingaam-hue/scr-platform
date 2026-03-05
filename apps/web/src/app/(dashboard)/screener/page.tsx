@@ -3,7 +3,7 @@
 import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bookmark, Search, X, SlidersHorizontal, Loader2 } from "lucide-react";
-import { Badge, Button, Card, CardContent, EmptyState } from "@scr/ui";
+import { Button, Card, CardContent, EmptyState } from "@scr/ui";
 import { cn } from "@scr/ui";
 import {
   useSavedSearches,
@@ -12,7 +12,6 @@ import {
   type ParsedFilters,
   type ScreenerResult,
   type ScreenerResponse,
-  type SavedSearch,
 } from "@/lib/screener";
 
 // ── Signal score badge ────────────────────────────────────────────────────

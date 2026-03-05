@@ -1,6 +1,8 @@
 """Board Advisor service."""
+
+import contextlib
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import structlog
@@ -107,19 +109,15 @@ async def update_profile(
     if body.board_positions_held is not None:
         profile.board_positions_held = body.board_positions_held
     if body.availability_status is not None:
-        try:
+        with contextlib.suppress(ValueError):
             profile.availability_status = AdvisorAvailabilityStatus(
                 body.availability_status.lower()
             )
-        except ValueError:
-            pass
     if body.compensation_preference is not None:
-        try:
+        with contextlib.suppress(ValueError):
             profile.compensation_preference = AdvisorCompensationPreference(
                 body.compensation_preference.lower()
             )
-        except ValueError:
-            pass
     if body.bio is not None:
         profile.bio = body.bio
     if body.linkedin_url is not None:
@@ -299,13 +297,13 @@ async def update_application_status(
 
     try:
         new_status = BoardAdvisorApplicationStatus(body.status.lower())
-    except ValueError:
-        raise ValueError(f"Invalid application status: {body.status}")
+    except ValueError as exc:
+        raise ValueError(f"Invalid application status: {body.status}") from exc
 
     application.status = new_status
 
     if new_status == BoardAdvisorApplicationStatus.ACCEPTED and application.started_at is None:
-        application.started_at = datetime.now(timezone.utc)
+        application.started_at = datetime.now(UTC)
 
     await db.flush()
     await db.refresh(application)

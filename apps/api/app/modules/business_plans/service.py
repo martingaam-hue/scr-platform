@@ -16,9 +16,7 @@ class BusinessPlanService:
         self.db = db
         self.org_id = org_id
 
-    async def create(
-        self, user_id: uuid.UUID, data: BusinessPlanCreate
-    ) -> BusinessPlan:
+    async def create(self, user_id: uuid.UUID, data: BusinessPlanCreate) -> BusinessPlan:
         plan = BusinessPlan(
             org_id=self.org_id,
             project_id=data.project_id,
@@ -38,9 +36,7 @@ class BusinessPlanService:
         await self.db.refresh(plan)
         return plan
 
-    async def list(
-        self, project_id: uuid.UUID | None = None
-    ) -> list[BusinessPlan]:
+    async def list(self, project_id: uuid.UUID | None = None) -> list[BusinessPlan]:
         stmt = select(BusinessPlan).where(
             BusinessPlan.org_id == self.org_id,
             BusinessPlan.is_deleted.is_(False),
@@ -60,9 +56,7 @@ class BusinessPlanService:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def update(
-        self, plan_id: uuid.UUID, data: BusinessPlanUpdate
-    ) -> BusinessPlan | None:
+    async def update(self, plan_id: uuid.UUID, data: BusinessPlanUpdate) -> BusinessPlan | None:
         plan = await self.get(plan_id)
         if not plan:
             return None

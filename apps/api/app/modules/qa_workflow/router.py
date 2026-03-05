@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.core.database import get_db
-from app.schemas.auth import CurrentUser
 from app.modules.qa_workflow.schemas import (
     QAAnswerCreate,
     QAAnswerResponse,
@@ -18,6 +17,7 @@ from app.modules.qa_workflow.schemas import (
     QAStatsResponse,
 )
 from app.modules.qa_workflow.service import QAService
+from app.schemas.auth import CurrentUser
 
 logger = structlog.get_logger()
 
@@ -29,6 +29,7 @@ def _svc(db: AsyncSession, current_user: CurrentUser) -> QAService:
 
 
 # ── Per-project endpoints ──────────────────────────────────────────────────────
+
 
 @router.post(
     "/projects/{project_id}/questions",
@@ -65,7 +66,9 @@ async def list_questions(
 ) -> list[QAQuestionResponse]:
     """List questions for a project with optional filters."""
     svc = _svc(db, current_user)
-    questions = await svc.list_questions(project_id, status=status, category=category, skip=skip, limit=limit)
+    questions = await svc.list_questions(
+        project_id, status=status, category=category, skip=skip, limit=limit
+    )
     return [QAQuestionResponse.model_validate(q) for q in questions]
 
 
@@ -102,6 +105,7 @@ async def export_qa_log(
 
 
 # ── Per-question endpoints ─────────────────────────────────────────────────────
+
 
 @router.get(
     "/questions/{question_id}",

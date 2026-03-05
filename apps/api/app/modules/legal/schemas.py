@@ -6,7 +6,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # ── Templates ─────────────────────────────────────────────────────────────────
 
 
@@ -30,7 +29,7 @@ class Questionnaire(BaseModel):
 
 
 class TemplateListItem(BaseModel):
-    id: str                # slug-based system template id
+    id: str  # slug-based system template id
     name: str
     doc_type: str
     description: str

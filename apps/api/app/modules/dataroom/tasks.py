@@ -2,11 +2,11 @@
 
 import hashlib
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 import structlog
-from sqlalchemy import select, update
-from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.core.celery_app import celery_app
 from app.core.config import settings
@@ -17,7 +17,9 @@ logger = structlog.get_logger()
 # ── Document Processing Pipeline ────────────────────────────────────────────
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60, soft_time_limit=120, time_limit=180)
+@celery_app.task(
+    bind=True, max_retries=3, default_retry_delay=60, soft_time_limit=120, time_limit=180
+)
 def process_document(self, document_id: str) -> dict:
     """Full document processing pipeline triggered after upload confirmation.
 
@@ -66,33 +68,39 @@ def process_document(self, document_id: str) -> dict:
             else:
                 classification = _classify_document(doc, text_content)
                 cls_model = "ai-gateway"
-            session.add(DocumentExtraction(
-                document_id=doc.id,
-                extraction_type=ExtractionType.CLASSIFICATION,
-                result={"classification": classification, "source_name": doc.name},
-                model_used=cls_model,
-                confidence_score=0.8,
-                tokens_used=0,
-                processing_time_ms=50,
-            ))
+            session.add(
+                DocumentExtraction(
+                    document_id=doc.id,
+                    extraction_type=ExtractionType.CLASSIFICATION,
+                    result={"classification": classification, "source_name": doc.name},
+                    model_used=cls_model,
+                    confidence_score=0.8,
+                    tokens_used=0,
+                    processing_time_ms=50,
+                )
+            )
 
             # Step 4: Extract structured data based on classification
             _extract_structured_data(session, doc, text_content, classification)
 
             # Step 5: Generate summary
-            session.add(DocumentExtraction(
-                document_id=doc.id,
-                extraction_type=ExtractionType.SUMMARY,
-                result={
-                    "summary": f"Document '{doc.name}' ({doc.file_type}) classified as {classification}.",
-                    "word_count": len(text_content.split()) if text_content else 0,
-                    "page_count_estimate": max(1, len(text_content) // 3000) if text_content else 1,
-                },
-                model_used="rule-based",
-                confidence_score=0.7,
-                tokens_used=0,
-                processing_time_ms=30,
-            ))
+            session.add(
+                DocumentExtraction(
+                    document_id=doc.id,
+                    extraction_type=ExtractionType.SUMMARY,
+                    result={
+                        "summary": f"Document '{doc.name}' ({doc.file_type}) classified as {classification}.",
+                        "word_count": len(text_content.split()) if text_content else 0,
+                        "page_count_estimate": max(1, len(text_content) // 3000)
+                        if text_content
+                        else 1,
+                    },
+                    model_used="rule-based",
+                    confidence_score=0.7,
+                    tokens_used=0,
+                    processing_time_ms=30,
+                )
+            )
 
             # Step 6: Index in vector store for RAG search
             _index_in_vector_store(doc, text_content, classification)
@@ -127,7 +135,7 @@ def process_document(self, document_id: str) -> dict:
                 document_id=document_id,
                 error=str(exc),
             )
-            raise self.retry(exc=exc)
+            raise self.retry(exc=exc) from exc
 
 
 def _validate_checksum(doc) -> None:
@@ -150,9 +158,7 @@ def _validate_checksum(doc) -> None:
         sha256.update(chunk)
     actual_hash = sha256.hexdigest()
     if actual_hash != doc.checksum_sha256:
-        raise ValueError(
-            f"Checksum mismatch: expected {doc.checksum_sha256}, got {actual_hash}"
-        )
+        raise ValueError(f"Checksum mismatch: expected {doc.checksum_sha256}, got {actual_hash}")
 
 
 def _extract_text(doc) -> str:
@@ -169,10 +175,10 @@ def _extract_text(doc) -> str:
         config=BotoConfig(signature_version="s3v4"),
     )
 
-    _MAX_EXTRACT_BYTES = 50 * 1024 * 1024  # 50 MB cap to avoid OOM
+    _max_extract_bytes = 50 * 1024 * 1024  # 50 MB cap to avoid OOM
     response = s3.get_object(Bucket=doc.s3_bucket, Key=doc.s3_key)
-    body = response["Body"].read(_MAX_EXTRACT_BYTES)
-    if len(body) >= _MAX_EXTRACT_BYTES:
+    body = response["Body"].read(_max_extract_bytes)
+    if len(body) >= _max_extract_bytes:
         logger.warning(
             "document_truncated_for_extraction",
             document_id=str(doc.id),
@@ -223,7 +229,9 @@ def _extract_docx_text(docx_bytes: bytes) -> str:
     """Extract text from DOCX using python-docx."""
     try:
         import io
+
         from docx import Document as DocxDocument
+
         doc = DocxDocument(io.BytesIO(docx_bytes))
         parts = [p.text for p in doc.paragraphs if p.text.strip()]
         for table in doc.tables:
@@ -241,7 +249,9 @@ def _extract_xlsx_text(xlsx_bytes: bytes) -> str:
     """Extract text from XLSX using openpyxl."""
     try:
         import io
+
         import openpyxl
+
         wb = openpyxl.load_workbook(io.BytesIO(xlsx_bytes), data_only=True)
         parts = []
         for sheet in wb.worksheets:
@@ -260,7 +270,9 @@ def _extract_pptx_text(pptx_bytes: bytes) -> str:
     """Extract text from PPTX using python-pptx."""
     try:
         import io
+
         from pptx import Presentation
+
         prs = Presentation(io.BytesIO(pptx_bytes))
         parts = []
         for slide_num, slide in enumerate(prs.slides, 1):
@@ -280,6 +292,7 @@ def _extract_pptx_text(pptx_bytes: bytes) -> str:
 def _classify_document(doc, text_content: str) -> str:
     """Classify document type via AI Gateway batch endpoint, falling back to rule-based."""
     import httpx
+
     from app.models.enums import DocumentClassification
 
     valid_values = {e.value for e in DocumentClassification}
@@ -291,7 +304,9 @@ def _classify_document(doc, text_content: str) -> str:
                 f"{settings.AI_GATEWAY_URL}/v1/completions/batch",
                 json={
                     "task_type": "classify_document",
-                    "contexts": [{"filename": doc.name, "document_preview": (text_content or "")[:500]}],
+                    "contexts": [
+                        {"filename": doc.name, "document_preview": (text_content or "")[:500]}
+                    ],
                 },
                 headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
             )
@@ -339,9 +354,12 @@ def _classify_document(doc, text_content: str) -> str:
     return "other"
 
 
-def _call_ai_extraction(task_type: str, doc_name: str, text_content: str, timeout: float = 30.0) -> dict:
+def _call_ai_extraction(
+    task_type: str, doc_name: str, text_content: str, timeout: float = 30.0
+) -> dict:
     """Call AI Gateway for structured extraction. Returns validated_data dict or {} on failure."""
     import httpx
+
     try:
         with httpx.Client(timeout=timeout) as client:
             resp = client.post(
@@ -365,6 +383,7 @@ def _call_ai_extraction(task_type: str, doc_name: str, text_content: str, timeou
 def _extract_structured_data(session, doc, text_content: str, classification: str) -> None:
     """Extract KPIs, deadlines, financial data and clauses via AI Gateway."""
     import time
+
     from app.models.dataroom import DocumentExtraction
     from app.models.enums import ExtractionType
 
@@ -372,55 +391,63 @@ def _extract_structured_data(session, doc, text_content: str, classification: st
         t0 = time.time()
         result = _call_ai_extraction("extract_financial_metrics", doc.name, text_content)
         ms = int((time.time() - t0) * 1000)
-        session.add(DocumentExtraction(
-            document_id=doc.id,
-            extraction_type=ExtractionType.FINANCIAL,
-            result=result if result else {"metrics_found": [], "source": doc.name},
-            model_used="ai_gateway" if result else "fallback",
-            confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
-            tokens_used=int(result.get("tokens_used", 0)) if result else 0,
-            processing_time_ms=ms,
-        ))
+        session.add(
+            DocumentExtraction(
+                document_id=doc.id,
+                extraction_type=ExtractionType.FINANCIAL,
+                result=result if result else {"metrics_found": [], "source": doc.name},
+                model_used="ai_gateway" if result else "fallback",
+                confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
+                tokens_used=int(result.get("tokens_used", 0)) if result else 0,
+                processing_time_ms=ms,
+            )
+        )
 
     if classification in ("legal_agreement", "permit"):
         t0 = time.time()
         result = _call_ai_extraction("extract_deadlines", doc.name, text_content)
         ms = int((time.time() - t0) * 1000)
-        session.add(DocumentExtraction(
-            document_id=doc.id,
-            extraction_type=ExtractionType.DEADLINE,
-            result=result if result else {"deadlines_found": [], "source": doc.name},
-            model_used="ai_gateway" if result else "fallback",
-            confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
-            tokens_used=int(result.get("tokens_used", 0)) if result else 0,
-            processing_time_ms=ms,
-        ))
+        session.add(
+            DocumentExtraction(
+                document_id=doc.id,
+                extraction_type=ExtractionType.DEADLINE,
+                result=result if result else {"deadlines_found": [], "source": doc.name},
+                model_used="ai_gateway" if result else "fallback",
+                confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
+                tokens_used=int(result.get("tokens_used", 0)) if result else 0,
+                processing_time_ms=ms,
+            )
+        )
         t0 = time.time()
         result = _call_ai_extraction("extract_clauses", doc.name, text_content)
         ms = int((time.time() - t0) * 1000)
-        session.add(DocumentExtraction(
-            document_id=doc.id,
-            extraction_type=ExtractionType.CLAUSE,
-            result=result if result else {"clauses_found": [], "source": doc.name},
-            model_used="ai_gateway" if result else "fallback",
-            confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
-            tokens_used=int(result.get("tokens_used", 0)) if result else 0,
-            processing_time_ms=ms,
-        ))
+        session.add(
+            DocumentExtraction(
+                document_id=doc.id,
+                extraction_type=ExtractionType.CLAUSE,
+                result=result if result else {"clauses_found": [], "source": doc.name},
+                model_used="ai_gateway" if result else "fallback",
+                confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
+                tokens_used=int(result.get("tokens_used", 0)) if result else 0,
+                processing_time_ms=ms,
+            )
+        )
 
     # Always extract KPIs
     t0 = time.time()
     result = _call_ai_extraction("extract_kpis", doc.name, text_content)
     ms = int((time.time() - t0) * 1000)
-    session.add(DocumentExtraction(
-        document_id=doc.id,
-        extraction_type=ExtractionType.KPI,
-        result=result if result else {"kpis_found": [], "source": doc.name},
-        model_used="ai_gateway" if result else "fallback",
-        confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
-        tokens_used=int(result.get("tokens_used", 0)) if result else 0,
-        processing_time_ms=ms,
-    ))
+    session.add(
+        DocumentExtraction(
+            document_id=doc.id,
+            extraction_type=ExtractionType.KPI,
+            result=result if result else {"kpis_found": [], "source": doc.name},
+            model_used="ai_gateway" if result else "fallback",
+            confidence_score=float(result.get("confidence", 0.7)) if result else 0.0,
+            tokens_used=int(result.get("tokens_used", 0)) if result else 0,
+            processing_time_ms=ms,
+        )
+    )
 
 
 # ── Bulk Processing ─────────────────────────────────────────────────────────
@@ -457,7 +484,7 @@ def process_bulk_upload(document_ids: list[str]) -> dict:
                     )
                 resp.raise_for_status()
                 valid_values = {e.value for e in DocumentClassification}
-                for doc, result in zip(docs, resp.json().get("results", [])):
+                for doc, result in zip(docs, resp.json().get("results", []), strict=False):
                     if isinstance(result, dict):
                         cls = result.get("classification", "")
                         if cls in valid_values:
@@ -489,17 +516,16 @@ def cleanup_orphaned_uploads() -> dict:
     These are records where the client requested a pre-signed URL but never
     confirmed the upload. Marks them as deleted and removes S3 objects.
     """
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session as SyncSession
-
     import boto3
     from botocore.config import Config as BotoConfig
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session as SyncSession
 
     from app.models.dataroom import Document
     from app.models.enums import DocumentStatus
 
     engine = create_engine(settings.DATABASE_URL_SYNC)
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    cutoff = datetime.now(UTC) - timedelta(hours=24)
 
     s3 = boto3.client(
         "s3",
@@ -537,7 +563,9 @@ def cleanup_orphaned_uploads() -> dict:
 # ── AI Re-extraction ────────────────────────────────────────────────────────
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
+@celery_app.task(
+    bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180
+)
 def trigger_extraction(self, document_id: str, extraction_types: list[str] | None = None) -> dict:
     """Trigger AI extraction (or re-extraction) for specific extraction types.
 
@@ -554,9 +582,7 @@ def trigger_extraction(self, document_id: str, extraction_types: list[str] | Non
     doc_uuid = uuid.UUID(document_id)
 
     types_to_run = (
-        [ExtractionType(t) for t in extraction_types]
-        if extraction_types
-        else list(ExtractionType)
+        [ExtractionType(t) for t in extraction_types] if extraction_types else list(ExtractionType)
     )
 
     with SyncSession(engine) as session:
@@ -573,32 +599,39 @@ def trigger_extraction(self, document_id: str, extraction_types: list[str] | Non
             for ext_type in types_to_run:
                 if ext_type == ExtractionType.CLASSIFICATION:
                     classification = _classify_document(doc, text_content)
-                    session.add(DocumentExtraction(
-                        document_id=doc.id,
-                        extraction_type=ExtractionType.CLASSIFICATION,
-                        result={"classification": classification, "source_name": doc.name},
-                        model_used="rule-based",
-                        confidence_score=0.8,
-                        tokens_used=0,
-                        processing_time_ms=50,
-                    ))
+                    session.add(
+                        DocumentExtraction(
+                            document_id=doc.id,
+                            extraction_type=ExtractionType.CLASSIFICATION,
+                            result={"classification": classification, "source_name": doc.name},
+                            model_used="rule-based",
+                            confidence_score=0.8,
+                            tokens_used=0,
+                            processing_time_ms=50,
+                        )
+                    )
                 elif ext_type == ExtractionType.SUMMARY:
-                    session.add(DocumentExtraction(
-                        document_id=doc.id,
-                        extraction_type=ExtractionType.SUMMARY,
-                        result={
-                            "summary": f"Re-extracted summary for '{doc.name}'.",
-                            "word_count": len(text_content.split()) if text_content else 0,
-                        },
-                        model_used="rule-based",
-                        confidence_score=0.7,
-                        tokens_used=0,
-                        processing_time_ms=30,
-                    ))
+                    session.add(
+                        DocumentExtraction(
+                            document_id=doc.id,
+                            extraction_type=ExtractionType.SUMMARY,
+                            result={
+                                "summary": f"Re-extracted summary for '{doc.name}'.",
+                                "word_count": len(text_content.split()) if text_content else 0,
+                            },
+                            model_used="rule-based",
+                            confidence_score=0.7,
+                            tokens_used=0,
+                            processing_time_ms=30,
+                        )
+                    )
                 else:
-                    _AI_TASK_MAP = {
+                    _ai_task_map = {
                         ExtractionType.KPI: ("extract_kpis", {"kpis_found": []}),
-                        ExtractionType.FINANCIAL: ("extract_financial_metrics", {"metrics_found": []}),
+                        ExtractionType.FINANCIAL: (
+                            "extract_financial_metrics",
+                            {"metrics_found": []},
+                        ),
                         ExtractionType.CLAUSE: ("extract_clauses", {"clauses_found": []}),
                         ExtractionType.DEADLINE: ("extract_deadlines", {"deadlines_found": []}),
                         ExtractionType.QUALITY_ASSESSMENT: ("quality_assessment", {"issues": []}),
@@ -609,30 +642,44 @@ def trigger_extraction(self, document_id: str, extraction_types: list[str] | Non
                         ExtractionType.ENTITY_EXTRACTION: ("entity_extraction", {"entities": []}),
                     }
                     import time as _time
-                    task_type, fallback_result = _AI_TASK_MAP.get(ext_type, (None, {"source": doc.name}))
+
+                    task_type, _fallback_raw = _ai_task_map.get(
+                        ext_type, (None, {"source": doc.name})
+                    )
+                    fallback_result: dict[str, Any] = cast(dict[str, Any], _fallback_raw)
                     if task_type and text_content:
                         t0 = _time.time()
                         ai_result = _call_ai_extraction(task_type, doc.name, text_content)
                         ms = int((_time.time() - t0) * 1000)
-                        session.add(DocumentExtraction(
-                            document_id=doc.id,
-                            extraction_type=ext_type,
-                            result=ai_result if ai_result else {**fallback_result, "source": doc.name},
-                            model_used="ai_gateway" if ai_result else "fallback",
-                            confidence_score=float(ai_result.get("confidence", 0.7)) if ai_result else 0.0,
-                            tokens_used=int(ai_result.get("tokens_used", 0)) if ai_result else 0,
-                            processing_time_ms=ms,
-                        ))
+                        session.add(
+                            DocumentExtraction(
+                                document_id=doc.id,
+                                extraction_type=ext_type,
+                                result=ai_result
+                                if ai_result
+                                else {**fallback_result, "source": doc.name},
+                                model_used="ai_gateway" if ai_result else "fallback",
+                                confidence_score=float(ai_result.get("confidence", 0.7))
+                                if ai_result
+                                else 0.0,
+                                tokens_used=int(ai_result.get("tokens_used", 0))
+                                if ai_result
+                                else 0,
+                                processing_time_ms=ms,
+                            )
+                        )
                     else:
-                        session.add(DocumentExtraction(
-                            document_id=doc.id,
-                            extraction_type=ext_type,
-                            result={**fallback_result, "source": doc.name},
-                            model_used="fallback",
-                            confidence_score=0.0,
-                            tokens_used=0,
-                            processing_time_ms=0,
-                        ))
+                        session.add(
+                            DocumentExtraction(
+                                document_id=doc.id,
+                                extraction_type=ext_type,
+                                result={**fallback_result, "source": doc.name},
+                                model_used="fallback",
+                                confidence_score=0.0,
+                                tokens_used=0,
+                                processing_time_ms=0,
+                            )
+                        )
 
             session.commit()
             return {"status": "success", "extractions": len(types_to_run)}
@@ -640,7 +687,7 @@ def trigger_extraction(self, document_id: str, extraction_types: list[str] | Non
         except Exception as exc:
             session.rollback()
             logger.error("extraction_failed", document_id=document_id, error=str(exc))
-            raise self.retry(exc=exc)
+            raise self.retry(exc=exc) from exc
 
 
 # ── Vector Store Indexing ────────────────────────────────────────────────────

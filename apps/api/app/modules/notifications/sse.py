@@ -1,7 +1,7 @@
 """SSE (Server-Sent Events) connection manager for real-time notifications."""
 
 import asyncio
-import json
+import contextlib
 import uuid
 
 import structlog
@@ -27,10 +27,8 @@ class SSEManager:
     def disconnect(self, user_id: uuid.UUID, queue: asyncio.Queue) -> None:
         """Remove an SSE connection for a user."""
         if user_id in self._connections:
-            try:
+            with contextlib.suppress(ValueError):
                 self._connections[user_id].remove(queue)
-            except ValueError:
-                pass
             if not self._connections[user_id]:
                 del self._connections[user_id]
         logger.info("sse_disconnected", user_id=str(user_id))

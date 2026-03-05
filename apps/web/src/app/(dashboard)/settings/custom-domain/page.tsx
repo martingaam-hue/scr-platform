@@ -9,7 +9,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  EmptyState,
 } from "@scr/ui";
 import {
   useCustomDomain,

@@ -75,6 +75,7 @@ Respond ONLY with valid JSON in this exact structure:
         if db is not None:
             try:
                 from app.services.prompt_registry import PromptRegistry
+
                 _reg = PromptRegistry(db)
                 _registry_messages, _template_id, _ = await _reg.render(
                     "suggest_assumptions",
@@ -116,25 +117,27 @@ Respond ONLY with valid JSON in this exact structure:
                 terminal_method=str(raw.get("terminal_method", "gordon")),
                 projection_years=int(raw.get("projection_years", 20)),
                 comparable_multiples={
-                    k: float(v)
-                    for k, v in raw.get("comparable_multiples", {}).items()
+                    k: float(v) for k, v in raw.get("comparable_multiples", {}).items()
                 },
-                reasoning={
-                    k: str(v) for k, v in raw.get("reasoning", {}).items()
-                },
+                reasoning={k: str(v) for k, v in raw.get("reasoning", {}).items()},
             )
         except Exception as exc:
             logger.warning("suggest_assumptions_parse_failed", error=str(exc))
             return self._fallback_assumptions(project_type, geography)
 
-    def _fallback_assumptions(
-        self, project_type: str, geography: str
-    ) -> AssumptionSuggestion:
+    def _fallback_assumptions(self, project_type: str, geography: str) -> AssumptionSuggestion:
         """Rule-based fallback when AI Gateway is unavailable."""
         # High-risk geographies get a country risk premium
         high_risk = {
-            "Nigeria", "Kenya", "Ethiopia", "Tanzania", "Bangladesh",
-            "Pakistan", "Cambodia", "Myanmar", "Haiti",
+            "Nigeria",
+            "Kenya",
+            "Ethiopia",
+            "Tanzania",
+            "Bangladesh",
+            "Pakistan",
+            "Cambodia",
+            "Myanmar",
+            "Haiti",
         }
         base_dr = 0.14 if geography in high_risk else 0.10
 
@@ -224,6 +227,7 @@ Do NOT use bullet points. Output plain prose only."""
         if db is not None:
             try:
                 from sqlalchemy import or_, select
+
                 from app.models.comps import ComparableTransaction
 
                 stmt = (
@@ -250,7 +254,8 @@ Do NOT use bullet points. Output plain prose only."""
                             "ev_revenue": None,
                             "geography": c.geography,
                             "transaction_date": str(c.close_year) if c.close_year else None,
-                            "notes": c.description or f"{c.stage_at_close or ''} {c.offtake_type or ''}".strip(),
+                            "notes": c.description
+                            or f"{c.stage_at_close or ''} {c.offtake_type or ''}".strip(),
                             "source": c.source,
                             "data_quality": c.data_quality,
                         }
@@ -303,17 +308,44 @@ Respond ONLY with valid JSON array:
     def _fallback_comparables(self, project_type: str) -> list[dict[str, Any]]:
         defaults: dict[str, list[dict[str, Any]]] = {
             "solar": [
-                {"name": "SunPower Corp", "ev_ebitda": 12.0, "ev_mw": 950.0,
-                 "geography": "USA", "transaction_date": "2023", "notes": "Utility-scale solar"},
-                {"name": "First Solar", "ev_ebitda": 14.0, "ev_mw": 1100.0,
-                 "geography": "USA", "transaction_date": "2023", "notes": "Module manufacturer + IPP"},
+                {
+                    "name": "SunPower Corp",
+                    "ev_ebitda": 12.0,
+                    "ev_mw": 950.0,
+                    "geography": "USA",
+                    "transaction_date": "2023",
+                    "notes": "Utility-scale solar",
+                },
+                {
+                    "name": "First Solar",
+                    "ev_ebitda": 14.0,
+                    "ev_mw": 1100.0,
+                    "geography": "USA",
+                    "transaction_date": "2023",
+                    "notes": "Module manufacturer + IPP",
+                },
             ],
             "wind": [
-                {"name": "Vestas Wind", "ev_ebitda": 11.0, "ev_mw": 1200.0,
-                 "geography": "Europe", "transaction_date": "2023", "notes": "Onshore wind"},
+                {
+                    "name": "Vestas Wind",
+                    "ev_ebitda": 11.0,
+                    "ev_mw": 1200.0,
+                    "geography": "Europe",
+                    "transaction_date": "2023",
+                    "notes": "Onshore wind",
+                },
             ],
         }
-        return defaults.get(project_type, [
-            {"name": "Generic Renewable Asset", "ev_ebitda": 10.0, "ev_mw": 1000.0,
-             "geography": "Global", "transaction_date": None, "notes": "Market median estimate"},
-        ])
+        return defaults.get(
+            project_type,
+            [
+                {
+                    "name": "Generic Renewable Asset",
+                    "ev_ebitda": 10.0,
+                    "ev_mw": 1000.0,
+                    "geography": "Global",
+                    "transaction_date": None,
+                    "notes": "Market median estimate",
+                },
+            ],
+        )

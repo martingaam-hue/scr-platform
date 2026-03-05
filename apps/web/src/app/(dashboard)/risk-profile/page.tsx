@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { CheckCircle, ChevronRight, Loader2, ShieldCheck } from "lucide-react";
 import {
-  Badge,
   Button,
   Card,
   CardContent,

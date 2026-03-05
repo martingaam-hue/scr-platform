@@ -88,17 +88,7 @@ async def route_completion(
                 and "parse JSON" in validation.error
                 and not tools
             ):
-                retry_messages = messages + [
-                    {"role": "assistant", "content": content},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Your response could not be parsed as JSON. "
-                            "Please respond with ONLY a valid JSON object, "
-                            "no markdown fences, no explanation."
-                        ),
-                    },
-                ]
+                retry_messages = [*messages, {"role": "assistant", "content": content}, {"role": "user", "content": "Your response could not be parsed as JSON. " "Please respond with ONLY a valid JSON object, " "no markdown fences, no explanation."}]
                 retry_response = await litellm.acompletion(
                     model=model,
                     messages=retry_messages,

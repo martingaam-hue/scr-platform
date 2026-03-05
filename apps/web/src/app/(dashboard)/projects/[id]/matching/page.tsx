@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import {
   Badge,
-  Button,
   Card,
   CardContent,
   EmptyState,
@@ -117,7 +116,7 @@ function MandateFit({ investor }: { investor: MatchingInvestor }) {
 
 function InvestorCard({
   investor,
-  projectId,
+  projectId: _projectId,
 }: {
   investor: MatchingInvestor;
   projectId: string;

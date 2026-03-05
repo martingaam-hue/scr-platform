@@ -1,5 +1,7 @@
 """Alley Risk API — project holder view of project risks with mitigation tracking."""
+
 from __future__ import annotations
+
 import uuid
 
 import structlog
@@ -33,7 +35,11 @@ async def list_risks(
     return await service.list_risk_summaries(db, current_user.org_id)
 
 
-@router.get("/domains", response_model=DomainRiskResponse, summary="5-domain risk breakdown across portfolio")
+@router.get(
+    "/domains",
+    response_model=DomainRiskResponse,
+    summary="5-domain risk breakdown across portfolio",
+)
 async def get_domain_breakdown(
     current_user: CurrentUser = Depends(require_permission("view", "project")),
     db: AsyncSession = Depends(get_db),
@@ -41,7 +47,11 @@ async def get_domain_breakdown(
     return await service.get_domain_breakdown(db, current_user.org_id)
 
 
-@router.get("/{project_id}", response_model=ProjectRiskDetailResponse, summary="Full risk detail for my project")
+@router.get(
+    "/{project_id}",
+    response_model=ProjectRiskDetailResponse,
+    summary="Full risk detail for my project",
+)
 async def get_risk_detail(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -50,10 +60,14 @@ async def get_risk_detail(
     try:
         return await service.get_project_risk_detail(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/{project_id}/check", response_model=RunCheckResponse, summary="Run new risk check for a project")
+@router.post(
+    "/{project_id}/check",
+    response_model=RunCheckResponse,
+    summary="Run new risk check for a project",
+)
 async def run_risk_check(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("edit", "project")),
@@ -62,7 +76,7 @@ async def run_risk_check(
     try:
         return await service.run_risk_check(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.patch("/{project_id}/items/{risk_id}", summary="Update mitigation status for a risk item")
@@ -79,10 +93,13 @@ async def update_mitigation(
         )
         return {"id": str(rec.id), "status": rec.status}
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/{project_id}/items/{risk_id}/evidence", summary="Link document as evidence for risk mitigation")
+@router.post(
+    "/{project_id}/items/{risk_id}/evidence",
+    summary="Link document as evidence for risk mitigation",
+)
 async def add_evidence(
     project_id: uuid.UUID,
     risk_id: uuid.UUID,
@@ -96,10 +113,14 @@ async def add_evidence(
         )
         return {"id": str(rec.id), "evidence_count": len(rec.evidence_document_ids or [])}
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/{project_id}/progress", response_model=MitigationProgressResponse, summary="Risk mitigation progress")
+@router.get(
+    "/{project_id}/progress",
+    response_model=MitigationProgressResponse,
+    summary="Risk mitigation progress",
+)
 async def get_progress(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -108,4 +129,4 @@ async def get_progress(
     try:
         return await service.get_mitigation_progress(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

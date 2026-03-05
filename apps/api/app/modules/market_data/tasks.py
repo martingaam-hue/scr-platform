@@ -10,7 +10,9 @@ from celery import shared_task
 logger = structlog.get_logger()
 
 
-@shared_task(name="tasks.fetch_market_data", bind=True, max_retries=3, soft_time_limit=120, time_limit=180)
+@shared_task(
+    name="tasks.fetch_market_data", bind=True, max_retries=3, soft_time_limit=120, time_limit=180
+)
 def fetch_market_data_task(self) -> dict:  # type: ignore[type-arg]
     """Fetch FRED + World Bank data and upsert into external_data_points."""
     try:

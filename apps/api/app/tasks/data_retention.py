@@ -16,12 +16,12 @@ logger = structlog.get_logger()
 
 # (table_name, retain_days, archive_instead_of_delete)
 _POLICIES: list[tuple[str, int, bool]] = [
-    ("audit_logs",            365, True),   # Keep 1 year, archive older rows
-    ("document_access_logs",  365, True),   # Keep 1 year, archive
-    ("ai_task_logs",           90, True),   # Keep 90 days, archive
-    ("digest_logs",            90, False),  # Keep 90 days, delete
-    ("usage_events",          180, False),  # Keep 6 months, delete
-    ("webhook_deliveries",     30, False),  # Keep 30 days (delivered), delete
+    ("audit_logs", 365, True),  # Keep 1 year, archive older rows
+    ("document_access_logs", 365, True),  # Keep 1 year, archive
+    ("ai_task_logs", 90, True),  # Keep 90 days, archive
+    ("digest_logs", 90, False),  # Keep 90 days, delete
+    ("usage_events", 180, False),  # Keep 6 months, delete
+    ("webhook_deliveries", 30, False),  # Keep 30 days (delivered), delete
 ]
 
 _BATCH = 10_000  # rows per DELETE to avoid long locks
@@ -46,7 +46,7 @@ def data_retention_cleanup(self) -> dict:  # type: ignore[misc]
             cutoff = datetime.utcnow() - timedelta(days=days)
             try:
                 count_row = session.execute(
-                    text(f"SELECT COUNT(*) FROM {table} WHERE created_at < :cutoff"),  # noqa: S608
+                    text(f"SELECT COUNT(*) FROM {table} WHERE created_at < :cutoff"),
                     {"cutoff": cutoff},
                 ).scalar()
                 count: int = count_row or 0
@@ -75,7 +75,7 @@ def data_retention_cleanup(self) -> dict:  # type: ignore[misc]
                                     WHERE created_at < :cutoff
                                     LIMIT :batch
                                 )
-                            """),  # noqa: S608
+                            """),
                             {"cutoff": cutoff, "batch": _BATCH},
                         )
                         deleted = result.rowcount
@@ -86,7 +86,7 @@ def data_retention_cleanup(self) -> dict:  # type: ignore[misc]
                     logger.info("retention_cleanup", table=table, deleted=total)
                     results[table] = {"status": "cleaned", "deleted": total}
 
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.error("retention_error", table=table, error=str(exc))
                 session.rollback()
                 results[table] = {"status": "failed", "error": str(exc)}
@@ -98,7 +98,9 @@ def data_retention_cleanup(self) -> dict:  # type: ignore[misc]
 def cleanup_org_rag_namespace(org_id: str) -> None:
     """Delete all RAG vectors for a deleted organization's namespace."""
     import httpx
+
     from app.core.config import settings
+
     ai_gateway_url = getattr(settings, "AI_GATEWAY_URL", "http://localhost:8001")
     api_key = getattr(settings, "AI_GATEWAY_API_KEY", "")
     try:

@@ -1,11 +1,9 @@
 """Matching models: MatchResult, MatchMessage."""
 
 import uuid
-from datetime import datetime
-from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import ForeignKey, Index, Integer, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -45,9 +43,7 @@ class MatchResult(BaseModel):
     )
     overall_score: Mapped[int] = mapped_column(Integer, nullable=False)
     score_breakdown: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    status: Mapped[MatchStatus] = mapped_column(
-        nullable=False, default=MatchStatus.SUGGESTED
-    )
+    status: Mapped[MatchStatus] = mapped_column(nullable=False, default=MatchStatus.SUGGESTED)
     initiated_by: Mapped[MatchInitiator] = mapped_column(
         nullable=False, default=MatchInitiator.SYSTEM
     )
@@ -64,7 +60,9 @@ class MatchResult(BaseModel):
     messages: Mapped[list["MatchMessage"]] = relationship(back_populates="match_result")
 
     def __repr__(self) -> str:
-        return f"<MatchResult(id={self.id}, score={self.overall_score}, status={self.status.value})>"
+        return (
+            f"<MatchResult(id={self.id}, score={self.overall_score}, status={self.status.value})>"
+        )
 
 
 class MatchMessage(TimestampedModel):
@@ -85,9 +83,7 @@ class MatchMessage(TimestampedModel):
         nullable=False,
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    is_system: Mapped[bool] = mapped_column(
-        default=False, server_default="false", nullable=False
-    )
+    is_system: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
 
     # Relationships
     match_result: Mapped["MatchResult"] = relationship(back_populates="messages")

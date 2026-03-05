@@ -6,7 +6,6 @@ import {
   Calendar,
   DollarSign,
   Link2,
-  TrendingUp,
 } from "lucide-react";
 import {
   Badge,
@@ -14,10 +13,6 @@ import {
   Card,
   CardContent,
   EmptyState,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
   cn,
 } from "@scr/ui";
 import {

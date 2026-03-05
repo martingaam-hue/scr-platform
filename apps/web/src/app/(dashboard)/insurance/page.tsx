@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   AlertTriangle,
-  CheckCircle2,
   DollarSign,
   Info,
   Loader2,

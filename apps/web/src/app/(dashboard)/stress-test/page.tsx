@@ -4,10 +4,8 @@ import { useState } from "react";
 import {
   Activity,
   AlertTriangle,
-  BarChart3,
   Loader2,
   Play,
-  TrendingDown,
 } from "lucide-react";
 import {
   Badge,

@@ -8,7 +8,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db
 from app.modules.risk import service
 from app.modules.risk.schemas import (
@@ -118,7 +118,7 @@ async def get_risk_dashboard(
     try:
         return await service.get_risk_dashboard(db, portfolio_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post(
@@ -138,7 +138,7 @@ async def create_risk_assessment(
         )
         await db.commit()
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return service._assessment_to_response(assessment)
 
@@ -170,7 +170,7 @@ async def run_scenario(
             db, portfolio_id, current_user.org_id, body.scenario_type, body.parameters
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/concentration/{portfolio_id}", response_model=ConcentrationAnalysisResponse)
@@ -181,11 +181,9 @@ async def get_concentration(
 ):
     """Concentration analysis by sector, geography, counterparty, currency."""
     try:
-        return await service.get_concentration_analysis(
-            db, portfolio_id, current_user.org_id
-        )
+        return await service.get_concentration_analysis(db, portfolio_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/compliance/{portfolio_id}", response_model=ComplianceStatusResponse)
@@ -196,11 +194,9 @@ async def get_compliance(
 ):
     """SFDR / EU Taxonomy compliance status for a portfolio."""
     try:
-        return await service.get_compliance_status(
-            db, portfolio_id, current_user.org_id
-        )
+        return await service.get_compliance_status(db, portfolio_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── 5-Domain Risk Framework ───────────────────────────────────────────────────
@@ -214,11 +210,9 @@ async def get_domain_scores(
 ):
     """Get 5-domain risk scores (market, climate, regulatory, technology, liquidity)."""
     try:
-        return await service.get_five_domain_scores(
-            db, portfolio_id, current_user.org_id
-        )
+        return await service.get_five_domain_scores(db, portfolio_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/domains/{portfolio_id}/mitigation", response_model=MitigationResponse)
@@ -237,7 +231,7 @@ async def generate_mitigation(
             db, portfolio_id, current_user.org_id, body.domain
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Monitoring Alerts ─────────────────────────────────────────────────────────
@@ -251,9 +245,7 @@ async def list_alerts(
     db: AsyncSession = Depends(get_db),
 ):
     """List monitoring alerts for the current organisation."""
-    return await service.get_monitoring_alerts(
-        db, current_user.org_id, portfolio_id, unread_only
-    )
+    return await service.get_monitoring_alerts(db, current_user.org_id, portfolio_id, unread_only)
 
 
 @router.post(
@@ -267,11 +259,9 @@ async def trigger_monitoring_check(
 ):
     """Trigger a real-time monitoring check to generate fresh alerts."""
     try:
-        result = await service.trigger_monitoring_check(
-            db, portfolio_id, current_user.org_id
-        )
+        result = await service.trigger_monitoring_check(db, portfolio_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return result
 
 
@@ -284,11 +274,9 @@ async def resolve_alert(
 ):
     """Mark a monitoring alert as resolved with an action note."""
     try:
-        alert = await service.resolve_alert(
-            db, alert_id, current_user.org_id, body.action_taken
-        )
+        alert = await service.resolve_alert(db, alert_id, current_user.org_id, body.action_taken)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return MonitoringAlertResponse(
         id=alert.id,
         org_id=alert.org_id,

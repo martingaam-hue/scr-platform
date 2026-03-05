@@ -62,7 +62,7 @@ async def excel_signal_score(
     ``financial_planning``, ``team_strength``, ``risk_assessment``, ``esg``,
     ``market_opportunity``.
     """
-    from app.models.projects import Project, SignalScore  # noqa: PLC0415
+    from app.models.projects import Project, SignalScore
 
     # Verify project belongs to org
     proj_stmt = select(Project).where(
@@ -128,8 +128,8 @@ async def excel_valuation(
     Supported metrics: ``enterprise_value``, ``equity_value``, ``irr``,
     ``moic``, ``npv``, ``ev_per_mw``.
     """
-    from app.models.financial import Valuation  # noqa: PLC0415
-    from app.models.projects import Project  # noqa: PLC0415
+    from app.models.financial import Valuation
+    from app.models.projects import Project
 
     # Verify project belongs to org
     proj_stmt = select(Project).where(
@@ -220,7 +220,7 @@ async def excel_benchmark(
 
     ``percentile``: ``p10``, ``p25``, ``p50`` (default), ``p75``, ``p90``.
     """
-    from app.models.metrics import BenchmarkAggregate  # noqa: PLC0415
+    from app.models.metrics import BenchmarkAggregate
 
     pct_field = _PERCENTILE_FIELDS.get(percentile.lower())
     if not pct_field:
@@ -264,7 +264,7 @@ async def excel_fx(
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     """Return the most recent FX rate for the given currency pair."""
-    from app.models.fx import FXRate  # noqa: PLC0415
+    from app.models.fx import FXRate
 
     stmt = (
         select(FXRate)
@@ -305,8 +305,8 @@ async def excel_kpi(
 
     Optional ``period`` filter: e.g. ``2026-Q1``, ``2026-01``.
     """
-    from app.models.monitoring import KPIActual  # noqa: PLC0415
-    from app.models.projects import Project  # noqa: PLC0415
+    from app.models.monitoring import KPIActual
+    from app.models.projects import Project
 
     # Verify project belongs to org
     proj_stmt = select(Project).where(
@@ -332,9 +332,8 @@ async def excel_kpi(
     result = await db.execute(stmt)
     row = result.scalar_one_or_none()
     if not row:
-        detail = (
-            f"No KPI '{kpi_name}' found for project"
-            + (f" in period '{period}'" if period else "")
+        detail = f"No KPI '{kpi_name}' found for project" + (
+            f" in period '{period}'" if period else ""
         )
         raise HTTPException(status_code=404, detail=detail)
 
@@ -349,7 +348,7 @@ async def excel_kpi(
 
 _PORTFOLIO_METRIC_MAP: dict[str, str] = {
     "nav": "total_value",
-    "irr": "irr_net",      # prefer net IRR; fall back to gross if absent
+    "irr": "irr_net",  # prefer net IRR; fall back to gross if absent
     "irr_gross": "irr_gross",
     "moic": "moic",
     "tvpi": "tvpi",
@@ -368,7 +367,7 @@ async def excel_portfolio(
 
     Supported metrics: ``nav``, ``irr``, ``moic``, ``tvpi``, ``dpi``.
     """
-    from app.models.investors import Portfolio, PortfolioMetrics  # noqa: PLC0415
+    from app.models.investors import Portfolio, PortfolioMetrics
 
     # Verify portfolio belongs to org
     port_stmt = select(Portfolio).where(
@@ -385,10 +384,7 @@ async def excel_portfolio(
     if not field:
         raise HTTPException(
             status_code=422,
-            detail=(
-                f"Unknown metric '{metric}'. "
-                "Valid: nav, irr, irr_gross, moic, tvpi, dpi"
-            ),
+            detail=(f"Unknown metric '{metric}'. " "Valid: nav, irr, irr_gross, moic, tvpi, dpi"),
         )
 
     metrics_stmt = (
@@ -418,7 +414,7 @@ async def excel_portfolio(
 _COMP_FIELD_MAP: dict[str, str] = {
     "irr": "equity_irr",
     "project_irr": "project_irr",
-    "moic": "ebitda_multiple",   # closest available field
+    "moic": "ebitda_multiple",  # closest available field
     "ev_per_mw": "ev_per_mw",
     "deal_size": "deal_size_eur",
     "equity_value": "equity_value_eur",
@@ -438,7 +434,7 @@ async def excel_comp(
     Includes both public (``org_id IS NULL``) and org-private comps.
     Optional ``geography`` filter narrows the comparable set.
     """
-    from app.models.comps import ComparableTransaction  # noqa: PLC0415
+    from app.models.comps import ComparableTransaction
 
     field = _COMP_FIELD_MAP.get(metric.lower())
     if not field:
@@ -450,7 +446,7 @@ async def excel_comp(
             ),
         )
 
-    from sqlalchemy import or_  # noqa: PLC0415
+    from sqlalchemy import or_
 
     stmt = select(ComparableTransaction).where(
         ComparableTransaction.asset_type == asset_class,
@@ -466,11 +462,7 @@ async def excel_comp(
     result = await db.execute(stmt)
     rows = result.scalars().all()
 
-    values = [
-        float(getattr(r, field))
-        for r in rows
-        if getattr(r, field) is not None
-    ]
+    values = [float(getattr(r, field)) for r in rows if getattr(r, field) is not None]
 
     if not values:
         raise HTTPException(

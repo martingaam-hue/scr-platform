@@ -4,11 +4,13 @@ Revision ID: e3a2b3c4d5e6
 Revises: e6a2b3c4d5e6
 Create Date: 2026-03-01 17:00:00.000000
 """
+
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "e3a2b3c4d5e6"
 down_revision = "e6a2b3c4d5e6"
@@ -65,19 +67,11 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["org_id"], ["organizations.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["created_by"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["org_id"], ["organizations.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["created_by"], ["users.id"], ondelete="SET NULL"),
     )
-    op.create_index(
-        "ix_redaction_jobs_org_id", "redaction_jobs", ["org_id"]
-    )
-    op.create_index(
-        "ix_redaction_jobs_document_id", "redaction_jobs", ["document_id"]
-    )
+    op.create_index("ix_redaction_jobs_org_id", "redaction_jobs", ["org_id"])
+    op.create_index("ix_redaction_jobs_document_id", "redaction_jobs", ["document_id"])
 
 
 def downgrade() -> None:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import String, Text, UniqueConstraint
+from sqlalchemy import String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,7 +18,9 @@ class IndustryTaxonomy(BaseModel):
     parent_code: Mapped[str | None] = mapped_column(String(50), index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
-    level: Mapped[int] = mapped_column(nullable=False, default=1)  # 1=sector, 2=industry, 3=sub-industry
+    level: Mapped[int] = mapped_column(
+        nullable=False, default=1
+    )  # 1=sector, 2=industry, 3=sub-industry
     is_leaf: Mapped[bool] = mapped_column(default=False)
     nace_code: Mapped[str | None] = mapped_column(String(20))
     gics_code: Mapped[str | None] = mapped_column(String(20))

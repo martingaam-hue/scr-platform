@@ -11,7 +11,7 @@ import {
   ToggleRight,
   Zap,
 } from "lucide-react";
-import { Badge, Button, Card, CardContent, EmptyState, cn } from "@scr/ui";
+import { Badge, Button, Card, CardContent, EmptyState } from "@scr/ui";
 import {
   useAdminPrompts,
   useActivatePrompt,

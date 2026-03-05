@@ -10,7 +10,6 @@ from pydantic import BaseModel, EmailStr, field_validator
 
 from app.models.enums import OrgType, SubscriptionStatus, SubscriptionTier, UserRole
 
-
 # ── Organization ────────────────────────────────────────────────────────────
 
 
@@ -72,7 +71,7 @@ class ToggleUserStatusRequest(BaseModel):
 class ApiKeyItem(BaseModel):
     id: str
     name: str
-    prefix: str        # first 8 chars of key, for display
+    prefix: str  # first 8 chars of key, for display
     is_active: bool
     created_at: str
     last_used_at: str | None
@@ -95,9 +94,10 @@ class ApiKeyCreateRequest(BaseModel):
 
 class ApiKeyCreatedResponse(BaseModel):
     """Returned once only — key is never retrievable again."""
+
     id: str
     name: str
-    key: str           # full key shown only at creation
+    key: str  # full key shown only at creation
     created_at: str
 
 

@@ -44,10 +44,10 @@ async def create_tokenization(
         await db.commit()
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("tokenization.create.error", error=str(exc))
-        raise HTTPException(status_code=500, detail="Failed to create tokenization")
+        raise HTTPException(status_code=500, detail="Failed to create tokenization") from exc
 
 
 @router.get("/{project_id}", response_model=TokenizationResponse)
@@ -76,7 +76,7 @@ async def add_transfer(
         await db.commit()
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("tokenization.transfer.error", project_id=str(project_id), error=str(exc))
-        raise HTTPException(status_code=500, detail="Failed to record transfer")
+        raise HTTPException(status_code=500, detail="Failed to record transfer") from exc

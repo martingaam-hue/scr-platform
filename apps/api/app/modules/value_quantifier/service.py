@@ -64,9 +64,7 @@ async def calculate_value(
     energy_mwh_annual = capacity_mw * capacity_factor * 8760  # MW * CF * hours/year
 
     capex = (
-        req.capex_usd
-        or float(project.total_investment_required or 0)
-        or capacity_mw * 1_200_000
+        req.capex_usd or float(project.total_investment_required or 0) or capacity_mw * 1_200_000
     )
     opex_annual = req.opex_annual_usd or capex * 0.015  # 1.5% of capex
 
@@ -129,25 +127,29 @@ async def calculate_value(
             irr_quality = "warning"
         else:
             irr_quality = "bad"
-    kpis.append(ValueKPI(
-        label="IRR",
-        value=f"{irr:.1f}%" if irr is not None else "N/A",
-        raw_value=irr,
-        unit="%",
-        description="Internal Rate of Return — annualised % return on investment",
-        quality=irr_quality,
-    ))
+    kpis.append(
+        ValueKPI(
+            label="IRR",
+            value=f"{irr:.1f}%" if irr is not None else "N/A",
+            raw_value=irr,
+            unit="%",
+            description="Internal Rate of Return — annualised % return on investment",
+            quality=irr_quality,
+        )
+    )
 
     # NPV
     npv_quality = "good" if npv > 0 else "bad"
-    kpis.append(ValueKPI(
-        label="NPV",
-        value=_fmt_currency(npv),
-        raw_value=round(npv, 2),
-        unit="USD",
-        description=f"Net Present Value at {req.discount_rate * 100:.0f}% discount rate",
-        quality=npv_quality,
-    ))
+    kpis.append(
+        ValueKPI(
+            label="NPV",
+            value=_fmt_currency(npv),
+            raw_value=round(npv, 2),
+            unit="USD",
+            description=f"Net Present Value at {req.discount_rate * 100:.0f}% discount rate",
+            quality=npv_quality,
+        )
+    )
 
     # Payback
     payback_quality = "neutral"
@@ -158,14 +160,16 @@ async def calculate_value(
             payback_quality = "warning"
         else:
             payback_quality = "bad"
-    kpis.append(ValueKPI(
-        label="Payback Period",
-        value=f"{payback:.1f} yrs" if payback is not None else "N/A",
-        raw_value=payback,
-        unit="years",
-        description="Simple payback period (CAPEX / annual net cash flow)",
-        quality=payback_quality,
-    ))
+    kpis.append(
+        ValueKPI(
+            label="Payback Period",
+            value=f"{payback:.1f} yrs" if payback is not None else "N/A",
+            raw_value=payback,
+            unit="years",
+            description="Simple payback period (CAPEX / annual net cash flow)",
+            quality=payback_quality,
+        )
+    )
 
     # DSCR
     dscr_quality = "neutral"
@@ -176,14 +180,16 @@ async def calculate_value(
             dscr_quality = "warning"
         else:
             dscr_quality = "bad"
-    kpis.append(ValueKPI(
-        label="DSCR",
-        value=f"{dscr:.2f}x" if dscr is not None else "N/A",
-        raw_value=dscr,
-        unit="x",
-        description="Debt Service Coverage Ratio — EBITDA / annual debt service",
-        quality=dscr_quality,
-    ))
+    kpis.append(
+        ValueKPI(
+            label="DSCR",
+            value=f"{dscr:.2f}x" if dscr is not None else "N/A",
+            raw_value=dscr,
+            unit="x",
+            description="Debt Service Coverage Ratio — EBITDA / annual debt service",
+            quality=dscr_quality,
+        )
+    )
 
     # LCOE ($/MWh)
     lcoe_quality = "neutral"
@@ -195,24 +201,28 @@ async def calculate_value(
             lcoe_quality = "warning"
         else:
             lcoe_quality = "bad"
-    kpis.append(ValueKPI(
-        label="LCOE",
-        value=f"${lcoe_mwh:.1f}/MWh" if lcoe_mwh is not None else "N/A",
-        raw_value=lcoe_mwh,
-        unit="$/MWh",
-        description="Levelized Cost of Energy — lifetime discounted cost per MWh produced",
-        quality=lcoe_quality,
-    ))
+    kpis.append(
+        ValueKPI(
+            label="LCOE",
+            value=f"${lcoe_mwh:.1f}/MWh" if lcoe_mwh is not None else "N/A",
+            raw_value=lcoe_mwh,
+            unit="$/MWh",
+            description="Levelized Cost of Energy — lifetime discounted cost per MWh produced",
+            quality=lcoe_quality,
+        )
+    )
 
     # Carbon savings
-    kpis.append(ValueKPI(
-        label="Carbon Savings",
-        value=f"{carbon_savings:,.0f} tCO₂e/yr",
-        raw_value=carbon_savings,
-        unit="tCO₂e/yr",
-        description="Annual greenhouse gas emissions avoided vs. grid baseline",
-        quality="good" if carbon_savings > 0 else "neutral",
-    ))
+    kpis.append(
+        ValueKPI(
+            label="Carbon Savings",
+            value=f"{carbon_savings:,.0f} tCO₂e/yr",
+            raw_value=carbon_savings,
+            unit="tCO₂e/yr",
+            description="Annual greenhouse gas emissions avoided vs. grid baseline",
+            quality="good" if carbon_savings > 0 else "neutral",
+        )
+    )
 
     # 9. Assumptions summary
     assumptions: dict[str, float | int | str] = {

@@ -1,17 +1,17 @@
 """Celery tasks for async Signal Score calculation."""
 
 import uuid
-from datetime import datetime, timezone
 
 import structlog
 
 from app.core.celery_app import celery_app
-from app.core.config import settings
 
 logger = structlog.get_logger()
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
+@celery_app.task(
+    bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180
+)
 def calculate_signal_score_task(
     self,
     project_id: str,
@@ -70,6 +70,7 @@ def calculate_signal_score_task(
             # Invalidate HTTP response cache so next GET fetches fresh data
             try:
                 import asyncio
+
                 from app.services.response_cache import invalidate as cache_invalidate
 
                 async def _invalidate_cache() -> None:
@@ -81,8 +82,8 @@ def calculate_signal_score_task(
 
             # Record metric snapshot
             try:
-                from app.modules.metrics.snapshot_service import MetricSnapshotService
                 from app.core.database import async_session_factory
+                from app.modules.metrics.snapshot_service import MetricSnapshotService
 
                 async def _record_snapshot() -> None:
                     async with async_session_factory() as async_db:
@@ -114,9 +115,10 @@ def calculate_signal_score_task(
 
             # Evaluate certification after score update
             try:
-                from app.modules.certification import service as cert_service
-                from app.core.database import async_session_factory
                 import asyncio
+
+                from app.core.database import async_session_factory
+                from app.modules.certification import service as cert_service
 
                 async def _run_cert_eval() -> None:
                     async with async_session_factory() as async_db:
@@ -132,9 +134,10 @@ def calculate_signal_score_task(
 
             # Award gamification badges after score update
             try:
-                from app.modules.gamification import service as gamification_service
-                from app.core.database import async_session_factory
                 import asyncio
+
+                from app.core.database import async_session_factory
+                from app.modules.gamification import service as gamification_service
 
                 async def _run_badge_eval() -> None:
                     async with async_session_factory() as async_db:
@@ -155,12 +158,14 @@ def calculate_signal_score_task(
 
             # Fire webhook event for signal_score.computed
             try:
-                from app.core.database import async_session_factory
                 import asyncio
+
+                from app.core.database import async_session_factory
 
                 async def _fire_webhook() -> None:
                     async with async_session_factory() as async_db:
                         from app.modules.webhooks.service import WebhookService
+
                         wh = WebhookService(async_db)
                         await wh.fire_event(
                             uuid.UUID(org_id),
@@ -197,9 +202,7 @@ def calculate_signal_score_task(
                 if err_log:
                     err_log.status = AITaskStatus.FAILED
                     err_log.error_message = str(exc)[:1000]
-                    err_log.processing_time_ms = int(
-                        (time.time() - start_time) * 1000
-                    )
+                    err_log.processing_time_ms = int((time.time() - start_time) * 1000)
                     err_session.commit()
 
             logger.error(
@@ -208,4 +211,4 @@ def calculate_signal_score_task(
                 task_log_id=task_log_id,
                 error=str(exc),
             )
-            raise self.retry(exc=exc)
+            raise self.retry(exc=exc) from exc

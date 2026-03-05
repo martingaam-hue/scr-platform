@@ -4,11 +4,13 @@ Revision ID: e6a2b3c4d5e6
 Revises: e4a2b3c4d5e6
 Create Date: 2026-03-01 16:00:00.000000
 """
+
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "e6a2b3c4d5e6"
 down_revision = "e4a2b3c4d5e6"
@@ -66,16 +68,10 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["org_id"], ["organizations.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["created_by"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["org_id"], ["organizations.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["created_by"], ["users.id"], ondelete="SET NULL"),
     )
-    op.create_index(
-        "ix_document_annotations_org_id", "document_annotations", ["org_id"]
-    )
+    op.create_index("ix_document_annotations_org_id", "document_annotations", ["org_id"])
     op.create_index(
         "ix_document_annotations_document_id",
         "document_annotations",
@@ -89,13 +85,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "ix_document_annotations_created_by", table_name="document_annotations"
-    )
-    op.drop_index(
-        "ix_document_annotations_document_id", table_name="document_annotations"
-    )
-    op.drop_index(
-        "ix_document_annotations_org_id", table_name="document_annotations"
-    )
+    op.drop_index("ix_document_annotations_created_by", table_name="document_annotations")
+    op.drop_index("ix_document_annotations_document_id", table_name="document_annotations")
+    op.drop_index("ix_document_annotations_org_id", table_name="document_annotations")
     op.drop_table("document_annotations")

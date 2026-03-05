@@ -6,13 +6,12 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db
-from app.models.enums import OrgType, SubscriptionStatus, SubscriptionTier
 from app.modules.settings import service
 from app.modules.settings.schemas import (
-    ApiKeyCreateRequest,
     ApiKeyCreatedResponse,
+    ApiKeyCreateRequest,
     ApiKeyListResponse,
     BrandingResponse,
     BrandingUpdateRequest,
@@ -45,7 +44,7 @@ async def get_org(
     try:
         org = await service.get_org(db, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return OrgResponse(
         id=org.id,
         name=org.name,
@@ -74,7 +73,7 @@ async def update_org(
         org = await service.update_org(db, current_user.org_id, body)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return OrgResponse(
         id=org.id,
         name=org.name,
@@ -130,7 +129,7 @@ async def invite_user(
         user = await service.invite_user(db, current_user.org_id, body)
         await db.commit()
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return TeamMember(
         id=user.id,
         email=user.email,
@@ -153,12 +152,10 @@ async def update_role(
 ):
     """Change a team member's role."""
     try:
-        user = await service.update_user_role(
-            db, current_user.org_id, user_id, body.role
-        )
+        user = await service.update_user_role(db, current_user.org_id, user_id, body.role)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return TeamMember(
         id=user.id,
         email=user.email,
@@ -181,12 +178,10 @@ async def toggle_status(
 ):
     """Activate or deactivate a team member."""
     try:
-        user = await service.toggle_user_status(
-            db, current_user.org_id, user_id, body.is_active
-        )
+        user = await service.toggle_user_status(db, current_user.org_id, user_id, body.is_active)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return TeamMember(
         id=user.id,
         email=user.email,
@@ -212,7 +207,7 @@ async def list_api_keys(
     try:
         org = await service.get_org(db, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ApiKeyListResponse(items=service.list_api_keys(org))
 
 
@@ -230,7 +225,7 @@ async def create_api_key(
     try:
         org = await service.get_org(db, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     result = service.create_api_key(org, body.name)
     await db.commit()
     return result
@@ -248,7 +243,7 @@ async def revoke_api_key(
         service.revoke_api_key(org, key_id)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Preferences ──────────────────────────────────────────────────────────────
@@ -263,7 +258,7 @@ async def get_preferences(
     try:
         return await service.get_user_preferences(db, current_user.user_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.put("/preferences", response_model=PreferencesResponse)
@@ -280,7 +275,7 @@ async def update_preferences(
         await db.commit()
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Branding ──────────────────────────────────────────────────────────────────
@@ -295,7 +290,7 @@ async def get_branding(
     try:
         branding = await service.get_branding(db, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return BrandingResponse(org_id=current_user.org_id, **branding.model_dump())
 
 
@@ -310,5 +305,5 @@ async def update_branding(
         branding = await service.update_branding(db, current_user.org_id, body)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return BrandingResponse(org_id=current_user.org_id, **branding.model_dump())

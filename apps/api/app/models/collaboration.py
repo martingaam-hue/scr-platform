@@ -37,9 +37,7 @@ class Comment(TimestampedModel):
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     mentions: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    is_resolved: Mapped[bool] = mapped_column(
-        default=False, server_default="false", nullable=False
-    )
+    is_resolved: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
 
     def __repr__(self) -> str:
         return f"<Comment(id={self.id}, entity_type={self.entity_type!r})>"

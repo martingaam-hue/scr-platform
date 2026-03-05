@@ -14,14 +14,11 @@ from app.core.database import get_db
 from app.main import app
 from app.models.core import Organization, User
 from app.models.enums import (
-    LegalDocumentStatus,
-    LegalDocumentType,
     OrgType,
     ProjectStatus,
     ProjectType,
     UserRole,
 )
-from app.models.legal import LegalDocument
 from app.models.projects import Project
 from app.schemas.auth import CurrentUser
 
@@ -98,9 +95,7 @@ async def lg_project(db: AsyncSession, lg_org: Organization) -> Project:
 async def lg_client(db: AsyncSession, lg_user: User) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: LG_CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
@@ -112,9 +107,7 @@ async def lg_client(db: AsyncSession, lg_user: User) -> AsyncClient:
 class TestLegalTemplates:
     """Tests for /v1/legal/templates and /v1/legal/jurisdictions."""
 
-    async def test_list_templates_returns_200(
-        self, lg_client: AsyncClient, lg_user: User
-    ) -> None:
+    async def test_list_templates_returns_200(self, lg_client: AsyncClient, lg_user: User) -> None:
         """GET /v1/legal/templates returns a non-empty list of templates."""
         resp = await lg_client.get("/v1/legal/templates")
         assert resp.status_code == 200
@@ -128,18 +121,14 @@ class TestLegalTemplates:
         assert "description" in first
         assert "estimated_pages" in first
 
-    async def test_list_templates_includes_nda(
-        self, lg_client: AsyncClient, lg_user: User
-    ) -> None:
+    async def test_list_templates_includes_nda(self, lg_client: AsyncClient, lg_user: User) -> None:
         """Template list includes the standard NDA template."""
         resp = await lg_client.get("/v1/legal/templates")
         assert resp.status_code == 200
         ids = [t["id"] for t in resp.json()]
         assert "nda_standard" in ids
 
-    async def test_get_template_detail_200(
-        self, lg_client: AsyncClient, lg_user: User
-    ) -> None:
+    async def test_get_template_detail_200(self, lg_client: AsyncClient, lg_user: User) -> None:
         """GET /v1/legal/templates/{id} for a known template returns 200 with questionnaire."""
         resp = await lg_client.get("/v1/legal/templates/nda_standard")
         assert resp.status_code == 200
@@ -155,9 +144,7 @@ class TestLegalTemplates:
         resp = await lg_client.get("/v1/legal/templates/nonexistent_template_xyz")
         assert resp.status_code == 404
 
-    async def test_list_jurisdictions_200(
-        self, lg_client: AsyncClient, lg_user: User
-    ) -> None:
+    async def test_list_jurisdictions_200(self, lg_client: AsyncClient, lg_user: User) -> None:
         """GET /v1/legal/jurisdictions returns a list of jurisdiction strings."""
         resp = await lg_client.get("/v1/legal/jurisdictions")
         assert resp.status_code == 200
@@ -180,9 +167,7 @@ class TestLegalDocuments:
         assert "total" in data
         assert isinstance(data["items"], list)
 
-    async def test_create_document_201(
-        self, lg_client: AsyncClient, lg_user: User
-    ) -> None:
+    async def test_create_document_201(self, lg_client: AsyncClient, lg_user: User) -> None:
         """POST /v1/legal/documents with valid template_id and title returns 201."""
         resp = await lg_client.post(
             "/v1/legal/documents",
@@ -231,18 +216,12 @@ class TestLegalDocuments:
         assert data["id"] == doc_id
         assert data["title"] == "Test Term Sheet"
 
-    async def test_get_document_not_found_404(
-        self, lg_client: AsyncClient, lg_user: User
-    ) -> None:
+    async def test_get_document_not_found_404(self, lg_client: AsyncClient, lg_user: User) -> None:
         """GET /v1/legal/documents/{id} for an unknown ID returns 404."""
-        resp = await lg_client.get(
-            "/v1/legal/documents/00000000-0000-0000-0000-000000000099"
-        )
+        resp = await lg_client.get("/v1/legal/documents/00000000-0000-0000-0000-000000000099")
         assert resp.status_code == 404
 
-    async def test_update_document_answers_200(
-        self, lg_client: AsyncClient, lg_user: User
-    ) -> None:
+    async def test_update_document_answers_200(self, lg_client: AsyncClient, lg_user: User) -> None:
         """PUT /v1/legal/documents/{id} updates questionnaire answers and returns 200."""
         create_resp = await lg_client.post(
             "/v1/legal/documents",
@@ -362,11 +341,7 @@ class TestLegalReview:
         assert "status" in data
         assert "clause_analyses" in data
 
-    async def test_get_review_not_found_404(
-        self, lg_client: AsyncClient, lg_user: User
-    ) -> None:
+    async def test_get_review_not_found_404(self, lg_client: AsyncClient, lg_user: User) -> None:
         """GET /v1/legal/review/{id} for unknown review returns 404."""
-        resp = await lg_client.get(
-            f"/v1/legal/review/{uuid.uuid4()}"
-        )
+        resp = await lg_client.get(f"/v1/legal/review/{uuid.uuid4()}")
         assert resp.status_code == 404

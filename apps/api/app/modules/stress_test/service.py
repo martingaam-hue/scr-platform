@@ -15,7 +15,9 @@ from app.modules.stress_test.engine import PREDEFINED_SCENARIOS, run_monte_carlo
 logger = structlog.get_logger()
 
 
-async def _get_portfolio_projects(db: AsyncSession, portfolio_id: uuid.UUID, org_id: uuid.UUID) -> list[dict[str, Any]]:
+async def _get_portfolio_projects(
+    db: AsyncSession, portfolio_id: uuid.UUID, org_id: uuid.UUID
+) -> list[dict[str, Any]]:
     """Load holdings with project financial data for simulation."""
     from app.models.investors import Portfolio, PortfolioHolding
     from app.models.projects import Project
@@ -27,23 +29,25 @@ async def _get_portfolio_projects(db: AsyncSession, portfolio_id: uuid.UUID, org
         .where(
             PortfolioHolding.portfolio_id == portfolio_id,
             Portfolio.org_id == org_id,
-            PortfolioHolding.is_deleted == False,
-            Project.is_deleted == False,
+            PortfolioHolding.is_deleted is False,
+            Project.is_deleted is False,
         )
     )
     rows = result.all()
 
     projects: list[dict[str, Any]] = []
     for holding, project in rows:
-        projects.append({
-            "id": str(holding.id),
-            "name": project.name,
-            "current_value": float(holding.current_value or holding.investment_amount or 0),
-            "project_type": project.project_type or "general",
-            "stage": project.stage or "operational",
-            "currency": getattr(project, "project_currency", "EUR") or "EUR",
-            "leverage_ratio": float(getattr(holding, "leverage_ratio", 0.5) or 0.5),
-        })
+        projects.append(
+            {
+                "id": str(holding.id),
+                "name": project.name,
+                "current_value": float(holding.current_value or holding.investment_amount or 0),
+                "project_type": project.project_type or "general",
+                "stage": project.stage or "operational",
+                "currency": getattr(project, "project_currency", "EUR") or "EUR",
+                "leverage_ratio": float(getattr(holding, "leverage_ratio", 0.5) or 0.5),
+            }
+        )
     return projects
 
 
@@ -73,7 +77,9 @@ async def run_stress_test(
     if not projects:
         raise ValueError("Portfolio has no holdings to stress test")
 
-    logger.info("stress_test.running", portfolio_id=str(portfolio_id), scenario=scenario_key, n=simulations)
+    logger.info(
+        "stress_test.running", portfolio_id=str(portfolio_id), scenario=scenario_key, n=simulations
+    )
     results = run_monte_carlo(projects, params, simulations)
 
     run = StressTestRun(
@@ -100,7 +106,7 @@ async def list_stress_tests(
         .where(
             StressTestRun.org_id == org_id,
             StressTestRun.portfolio_id == portfolio_id,
-            StressTestRun.is_deleted == False,
+            StressTestRun.is_deleted is False,
         )
         .order_by(StressTestRun.created_at.desc())
     )
@@ -114,7 +120,7 @@ async def get_stress_test(
         select(StressTestRun).where(
             StressTestRun.id == run_id,
             StressTestRun.org_id == org_id,
-            StressTestRun.is_deleted == False,
+            StressTestRun.is_deleted is False,
         )
     )
     return result.scalar_one_or_none()

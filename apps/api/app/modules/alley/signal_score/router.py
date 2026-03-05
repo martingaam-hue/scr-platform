@@ -1,5 +1,7 @@
 """Alley Signal Score API — project holder view of their own project scores."""
+
 from __future__ import annotations
+
 import uuid
 
 import structlog
@@ -29,6 +31,7 @@ router = APIRouter(prefix="/alley/signal-score", tags=["alley-signal-score"])
 
 # ── New portfolio overview endpoint ────────────────────────────────────────────
 
+
 @router.get(
     "",
     response_model=PortfolioScoreResponse,
@@ -42,6 +45,7 @@ async def get_portfolio_overview(
 
 
 # ── Generate score (async) ─────────────────────────────────────────────────────
+
 
 @router.post(
     "/generate",
@@ -60,10 +64,11 @@ async def generate_score(
     try:
         return await service.trigger_generate(db, current_user.org_id, project_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Task status — MUST be registered before /{project_id} ─────────────────────
+
 
 @router.get(
     "/tasks/{task_id}",
@@ -78,10 +83,11 @@ async def get_task_status(
     try:
         return await service.get_task_status(db, task_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Project detail (consolidated) ─────────────────────────────────────────────
+
 
 @router.get(
     "/{project_id}",
@@ -96,12 +102,15 @@ async def get_project_detail(
     try:
         return await service.get_project_detail(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Legacy endpoints (kept for backward compatibility) ─────────────────────────
 
-@router.get("/{project_id}/gaps", response_model=GapAnalysisResponse, summary="Gap analysis for my project")
+
+@router.get(
+    "/{project_id}/gaps", response_model=GapAnalysisResponse, summary="Gap analysis for my project"
+)
 async def get_gap_analysis(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -110,10 +119,14 @@ async def get_gap_analysis(
     try:
         return await service.get_gap_analysis(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/{project_id}/simulate", response_model=SimulateResponse, summary="Simulate score with criteria changes")
+@router.post(
+    "/{project_id}/simulate",
+    response_model=SimulateResponse,
+    summary="Simulate score with criteria changes",
+)
 async def simulate_score(
     project_id: uuid.UUID,
     body: SimulateRequest,
@@ -121,12 +134,16 @@ async def simulate_score(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        return await service.simulate_score(db, project_id, current_user.org_id, body.criteria_overrides)
+        return await service.simulate_score(
+            db, project_id, current_user.org_id, body.criteria_overrides
+        )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/{project_id}/history", response_model=ScoreHistoryResponse, summary="Score history timeline")
+@router.get(
+    "/{project_id}/history", response_model=ScoreHistoryResponse, summary="Score history timeline"
+)
 async def get_history(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -135,10 +152,14 @@ async def get_history(
     try:
         return await service.get_score_history(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/{project_id}/benchmark", response_model=BenchmarkResponse, summary="Benchmark position vs peers")
+@router.get(
+    "/{project_id}/benchmark",
+    response_model=BenchmarkResponse,
+    summary="Benchmark position vs peers",
+)
 async def get_benchmark(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -147,4 +168,4 @@ async def get_benchmark(
     try:
         return await service.get_benchmark(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import uuid
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -49,6 +48,7 @@ ADMIN_USER = CurrentUser(
 def _override_auth(user: CurrentUser):
     async def _override():
         return user
+
     return _override
 
 
@@ -124,6 +124,7 @@ class TestCarbonEstimator:
 
     def _estimate(self, **kwargs):
         from app.modules.carbon_credits.estimator import estimate_credits
+
         return estimate_credits(**kwargs)
 
     def test_solar_high_capacity_gives_high_estimate(self):
@@ -170,7 +171,9 @@ class TestCarbonEstimator:
     def test_hydro_uses_higher_capacity_factor(self):
         """Hydro has CF=0.42 vs wind CF=0.28 — same capacity should yield more credits."""
         hydro = self._estimate(project_type="hydro", capacity_mw=10.0, geography_country="Kenya")
-        wind = self._estimate(project_type="onshore_wind", capacity_mw=10.0, geography_country="Kenya")
+        wind = self._estimate(
+            project_type="onshore_wind", capacity_mw=10.0, geography_country="Kenya"
+        )
         assert hydro["annual_tons_co2e"] > wind["annual_tons_co2e"]
 
     def test_solar_uses_acm0002_methodology(self):
@@ -202,6 +205,7 @@ class TestCarbonEstimator:
 
     def test_revenue_projection_returns_all_scenarios(self):
         from app.modules.carbon_credits.estimator import revenue_projection
+
         rev = revenue_projection(annual_tons=10_000.0)
         assert "conservative" in rev["scenarios"]
         assert "base_case" in rev["scenarios"]
@@ -210,6 +214,7 @@ class TestCarbonEstimator:
 
     def test_revenue_projection_base_case_arithmetic(self):
         from app.modules.carbon_credits.estimator import revenue_projection
+
         rev = revenue_projection(annual_tons=1_000.0, price_scenarios={"test": 10.0})
         assert rev["scenarios"]["test"]["annual_revenue_usd"] == 10_000.0
         assert rev["scenarios"]["test"]["10yr_revenue_usd"] == 100_000.0
@@ -217,7 +222,9 @@ class TestCarbonEstimator:
     def test_europe_lower_factor_than_default(self):
         """Europe region (0.25) has lower emission factor than unknown country (default 0.42)."""
         eu = self._estimate(project_type="solar_pv", capacity_mw=10.0, geography_country="Europe")
-        unknown = self._estimate(project_type="solar_pv", capacity_mw=10.0, geography_country="Wakanda")
+        unknown = self._estimate(
+            project_type="solar_pv", capacity_mw=10.0, geography_country="Wakanda"
+        )
         assert eu["annual_tons_co2e"] < unknown["annual_tons_co2e"]
 
 
@@ -247,7 +254,9 @@ class TestCarbonAPI:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_estimate_404_unknown_project(self, client: AsyncClient, db: AsyncSession, seed_org_user):
+    async def test_estimate_404_unknown_project(
+        self, client: AsyncClient, db: AsyncSession, seed_org_user
+    ):
         fake_id = uuid.UUID("00000000-0000-0000-9999-000000000001")
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
@@ -427,8 +436,11 @@ class TestLegalTemplates:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_get_template_detail_200(self, client: AsyncClient, db: AsyncSession, seed_org_user):
+    async def test_get_template_detail_200(
+        self, client: AsyncClient, db: AsyncSession, seed_org_user
+    ):
         from app.modules.legal.templates import SYSTEM_TEMPLATES
+
         first_id = SYSTEM_TEMPLATES[0]["id"]
 
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
@@ -444,7 +456,9 @@ class TestLegalTemplates:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_get_template_detail_404(self, client: AsyncClient, db: AsyncSession, seed_org_user):
+    async def test_get_template_detail_404(
+        self, client: AsyncClient, db: AsyncSession, seed_org_user
+    ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         app.dependency_overrides[get_readonly_session] = lambda: db
@@ -461,6 +475,7 @@ class TestLegalDocuments:
     @pytest.mark.anyio
     async def test_create_document_201(self, client: AsyncClient, db: AsyncSession, seed_org_user):
         from app.modules.legal.templates import SYSTEM_TEMPLATES
+
         first_id = SYSTEM_TEMPLATES[0]["id"]
 
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
@@ -482,6 +497,7 @@ class TestLegalDocuments:
     @pytest.mark.anyio
     async def test_list_documents_200(self, client: AsyncClient, db: AsyncSession, seed_org_user):
         from app.modules.legal.templates import SYSTEM_TEMPLATES
+
         first_id = SYSTEM_TEMPLATES[0]["id"]
 
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
@@ -504,6 +520,7 @@ class TestLegalDocuments:
     @pytest.mark.anyio
     async def test_get_document_200(self, client: AsyncClient, db: AsyncSession, seed_org_user):
         from app.modules.legal.templates import SYSTEM_TEMPLATES
+
         first_id = SYSTEM_TEMPLATES[0]["id"]
 
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
@@ -559,7 +576,9 @@ class TestDealIntelligence:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_discover_with_filters(self, client: AsyncClient, db: AsyncSession, seed_org_user):
+    async def test_discover_with_filters(
+        self, client: AsyncClient, db: AsyncSession, seed_org_user
+    ):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         app.dependency_overrides[get_readonly_session] = lambda: db

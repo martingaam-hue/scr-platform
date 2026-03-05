@@ -26,7 +26,6 @@ import {
   usePricingTrends,
   useMethodologies,
   verificationStatusBadge,
-  confidenceColor,
   VERIFICATION_STATUS_LABELS,
   SCENARIO_LABELS,
   type CarbonCreditResponse,

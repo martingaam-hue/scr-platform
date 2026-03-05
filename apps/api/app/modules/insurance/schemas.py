@@ -7,8 +7,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
-
+from pydantic import BaseModel, ConfigDict
 
 # ── Coverage Types ─────────────────────────────────────────────────────────────
 
@@ -52,16 +51,16 @@ class InsuranceImpactResponse(BaseModel):
     # Coverage summary
     recommended_coverage_types: list[str]
     estimated_annual_premium_pct: float  # % of total investment
-    estimated_annual_premium: float      # in project currency
+    estimated_annual_premium: float  # in project currency
 
     # Risk impact
-    risk_reduction_score: int     # 0–100 (how much insurance reduces risk)
-    coverage_adequacy: str        # excellent | good | partial | insufficient
+    risk_reduction_score: int  # 0–100 (how much insurance reduces risk)
+    coverage_adequacy: str  # excellent | good | partial | insufficient
     uncovered_risk_areas: list[str]
 
     # Financial impact
-    irr_impact_bps: int           # basis points impact (negative = cost)
-    npv_premium_cost: float       # PV of 20-year premium stream
+    irr_impact_bps: int  # basis points impact (negative = cost)
+    npv_premium_cost: float  # PV of 20-year premium stream
 
     # Recommendations
     recommendations: list[CoverageRecommendation]

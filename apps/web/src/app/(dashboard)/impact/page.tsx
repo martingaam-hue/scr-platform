@@ -9,7 +9,6 @@ import {
   Plus,
   CheckCircle2,
   AlertCircle,
-  Info,
 } from "lucide-react";
 import {
   Badge,
@@ -18,7 +17,6 @@ import {
   CardContent,
   DataTable,
   EmptyState,
-  ScoreGauge,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -31,8 +29,6 @@ import {
   useCreateCarbonCredit,
   useUpdateCarbonCredit,
   additionalityBadge,
-  additionalityColor,
-  carbonStatusVariant,
   formatNumber,
   SDG_METADATA,
   CARBON_STATUS_LABELS,

@@ -110,7 +110,7 @@ class RAGPipeline:
             f"{c.summary}\n---\n{c.text}" if c.summary else c.text for c in chunks
         ]
         embeddings = await self.embedder.embed_batch(texts_to_embed)
-        for chunk, emb in zip(chunks, embeddings):
+        for chunk, emb in zip(chunks, embeddings, strict=False):
             chunk.embedding = emb
 
         vectors_to_upsert = [
@@ -389,7 +389,7 @@ class RAGPipeline:
                     for chunk in chunks_to_summarize
                 ],
             )
-            for chunk, summary_result in zip(chunks_to_summarize, summaries):
+            for chunk, summary_result in zip(chunks_to_summarize, summaries, strict=False):
                 chunk.summary = summary_result.get("summary", chunk.text[:150])
         else:
             # Fallback: individual calls (original behaviour)
@@ -496,7 +496,7 @@ class RAGPipeline:
                 return candidates[:top_k]
             relevance_scores = json.loads(match.group())
             scored = sorted(
-                zip(candidates[: len(relevance_scores)], relevance_scores),
+                zip(candidates[: len(relevance_scores)], relevance_scores, strict=False),
                 key=lambda x: -x[1],
             )
             return [item for item, score in scored[:top_k] if score > 2]

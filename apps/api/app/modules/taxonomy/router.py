@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.auth.dependencies import get_current_user
 from app.core.database import get_db
 from app.models.taxonomy import IndustryTaxonomy
 
 router = APIRouter(prefix="/taxonomy", tags=["Industry Taxonomy"])
+
 
 @router.get("")
 async def list_taxonomy(
@@ -39,6 +41,7 @@ async def list_taxonomy(
         for n in nodes
     ]
 
+
 @router.get("/{code}")
 async def get_taxonomy_node(
     code: str,
@@ -46,9 +49,21 @@ async def get_taxonomy_node(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     result = await db.execute(
-        select(IndustryTaxonomy).where(IndustryTaxonomy.code == code, IndustryTaxonomy.is_deleted.is_(False))
+        select(IndustryTaxonomy).where(
+            IndustryTaxonomy.code == code, IndustryTaxonomy.is_deleted.is_(False)
+        )
     )
     node = result.scalar_one_or_none()
     if not node:
         raise HTTPException(status_code=404, detail=f"Taxonomy code '{code}' not found")
-    return {"code": node.code, "parent_code": node.parent_code, "name": node.name, "description": node.description, "level": node.level, "is_leaf": node.is_leaf, "nace_code": node.nace_code, "gics_code": node.gics_code, "meta": node.meta}
+    return {
+        "code": node.code,
+        "parent_code": node.parent_code,
+        "name": node.name,
+        "description": node.description,
+        "level": node.level,
+        "is_leaf": node.is_leaf,
+        "nace_code": node.nace_code,
+        "gics_code": node.gics_code,
+        "meta": node.meta,
+    }

@@ -25,7 +25,11 @@ _MAPPINGS: dict[str, dict] = {
             "properties": {
                 "id": {"type": "keyword"},
                 "org_id": {"type": "keyword"},
-                "name": {"type": "text", "analyzer": "standard", "fields": {"keyword": {"type": "keyword"}}},
+                "name": {
+                    "type": "text",
+                    "analyzer": "standard",
+                    "fields": {"keyword": {"type": "keyword"}},
+                },
                 "description": {"type": "text", "analyzer": "standard"},
                 "project_type": {"type": "keyword"},
                 "status": {"type": "keyword"},

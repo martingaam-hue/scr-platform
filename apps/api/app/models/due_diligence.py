@@ -1,9 +1,9 @@
 """Due Diligence Checklist models."""
 
 from __future__ import annotations
+
 import uuid
 from datetime import datetime
-from typing import Any
 
 from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -14,9 +14,7 @@ from app.models.base import BaseModel
 
 class DDChecklistTemplate(BaseModel):
     __tablename__ = "dd_checklist_templates"
-    __table_args__ = (
-        Index("ix_dd_template_type_stage", "asset_type", "deal_stage"),
-    )
+    __table_args__ = (Index("ix_dd_template_type_stage", "asset_type", "deal_stage"),)
 
     asset_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     deal_stage: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
@@ -34,8 +32,10 @@ class DDChecklistItem(BaseModel):
     __tablename__ = "dd_checklist_items"
 
     template_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("dd_checklist_templates.id", ondelete="CASCADE"),
-        nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("dd_checklist_templates.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     category: Mapped[str] = mapped_column(String(50), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -53,21 +53,23 @@ class DDProjectChecklist(BaseModel):
     __tablename__ = "dd_project_checklists"
 
     project_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"),
-        nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     org_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=False
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
     template_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("dd_checklist_templates.id"),
-        nullable=False
+        UUID(as_uuid=True), ForeignKey("dd_checklist_templates.id"), nullable=False
     )
     investor_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    status: Mapped[str] = mapped_column(String(20), default="in_progress", server_default="in_progress")
+    status: Mapped[str] = mapped_column(
+        String(20), default="in_progress", server_default="in_progress"
+    )
     completion_percentage: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
     total_items: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     completed_items: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
@@ -82,12 +84,12 @@ class DDItemStatus(BaseModel):
     )
 
     checklist_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("dd_project_checklists.id", ondelete="CASCADE"),
-        nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("dd_project_checklists.id", ondelete="CASCADE"),
+        nullable=False,
     )
     item_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("dd_checklist_items.id", ondelete="CASCADE"),
-        nullable=False
+        UUID(as_uuid=True), ForeignKey("dd_checklist_items.id", ondelete="CASCADE"), nullable=False
     )
     status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending")
     satisfied_by_document_id: Mapped[uuid.UUID | None] = mapped_column(

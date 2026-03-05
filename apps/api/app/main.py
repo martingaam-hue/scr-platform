@@ -1,105 +1,103 @@
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
+import app.models
+from app.auth.router import router as auth_router
 from app.core.config import settings
+from app.core.elasticsearch import close_es_client, setup_indices
+from app.core.errors import global_exception_handler, http_exception_handler
+from app.core.sentry import init_sentry
+from app.middleware.audit import AuditMiddleware
 from app.middleware.security import (
     RateLimitMiddleware,
     RequestBodySizeLimitMiddleware,
     SecurityHeadersMiddleware,
 )
-
-import app.models  # noqa: F401 — register all models at startup
-
-from app.auth.router import router as auth_router
-from app.middleware.audit import AuditMiddleware
 from app.middleware.tenant import TenantMiddleware
-from app.modules.dataroom.router import router as dataroom_router
-from app.modules.portfolio.router import router as portfolio_router
-from app.modules.onboarding.router import router as onboarding_router
-from app.modules.projects.router import router as projects_router
-from app.modules.reporting.router import router as reporting_router
-from app.modules.collaboration.router import router as collaboration_router
-from app.modules.notifications.router import router as notifications_router
-from app.modules.signal_score.router import router as signal_score_router
-from app.modules.deal_intelligence.router import router as deal_intelligence_router
-from app.modules.risk.router import router as risk_router
-from app.modules.matching.router import router as matching_router
-from app.modules.settings.router import router as settings_router
-from app.modules.impact.router import router as impact_router
-from app.modules.valuation.router import router as valuation_router
-from app.modules.marketplace.router import router as marketplace_router
-from app.modules.tax_credits.router import router as tax_credits_router
-from app.modules.legal.router import router as legal_router
-from app.modules.carbon_credits.router import router as carbon_credits_router
-from app.modules.board_advisor.router import router as board_advisor_router
-from app.modules.investor_personas.router import router as investor_personas_router
-from app.modules.equity_calculator.router import router as equity_calculator_router
-from app.modules.capital_efficiency.router import router as capital_efficiency_router
-from app.modules.investor_signal_score.router import router as investor_signal_score_router
-from app.modules.value_quantifier.router import router as value_quantifier_router
-from app.modules.tokenization.router import router as tokenization_router
-from app.modules.development_os.router import router as development_os_router
-from app.modules.ecosystem.router import router as ecosystem_router
-from app.modules.ralph_ai.router import router as ralph_ai_router
-from app.modules.admin.router import router as admin_router
 from app.modules.admin.prompts.router import router as admin_prompts_router
-from app.modules.search.router import router as search_router
+from app.modules.admin.router import router as admin_router
 from app.modules.ai_feedback.router import router as ai_feedback_router
-from app.modules.smart_screener.router import router as smart_screener_router
-from app.modules.risk_profile.router import router as risk_profile_router
-from app.modules.certification.router import router as certification_router
-from app.modules.deal_flow.router import router as deal_flow_router
-from app.modules.due_diligence.router import router as due_diligence_router
-from app.modules.esg.router import router as esg_router
-from app.modules.lp_reporting.router import router as lp_reporting_router
-from app.modules.comps.router import router as comps_router
-from app.modules.warm_intros.router import router as warm_intros_router
-from app.modules.doc_versions.router import router as doc_versions_router
-from app.modules.fx.router import router as fx_router
-from app.modules.meeting_prep.router import router as meeting_prep_router
-from app.modules.compliance.router import router as compliance_router
-from app.modules.stress_test.router import router as stress_test_router
-from app.modules.connectors.router import router as connectors_router
-from app.modules.deal_rooms.router import router as deal_rooms_router
-from app.modules.watchlists.router import router as watchlists_router
-from app.modules.blockchain_audit.router import router as blockchain_audit_router
-from app.modules.voice_input.router import router as voice_input_router
-from app.modules.gamification.router import router as gamification_router
-from app.modules.insurance.router import router as insurance_router
-from app.modules.digest.router import router as digest_router
-from app.modules.metrics.router import router as metrics_router
-from app.modules.citations.router import router as citations_router
-from app.modules.lineage.router import router as lineage_router
-from app.modules.qa_workflow.router import router as qa_workflow_router
-from app.modules.engagement.router import router as engagement_router
-from app.modules.monitoring.router import router as monitoring_router
-from app.modules.excel_api.router import router as excel_api_router
-from app.modules.crm_sync.router import router as crm_sync_router
-from app.modules.pacing.router import router as pacing_router
-from app.modules.taxonomy.router import router as taxonomy_router
-from app.modules.financial_templates.router import router as financial_templates_router
-from app.modules.business_plans.router import router as business_plans_router
-from app.modules.backtesting.router import router as backtesting_router
-from app.modules.expert_insights.router import router as expert_insights_router
-from app.modules.webhooks.router import router as webhooks_router
-from app.modules.document_annotations.router import router as document_annotations_router
-from app.modules.redaction.router import router as redaction_router
-from app.modules.market_data.router import router as market_data_router
-from app.modules.launch.router import router as launch_router
-from app.modules.custom_domain.router import router as custom_domain_router
-from app.modules.alley.signal_score.router import router as alley_signal_score_router
-from app.modules.alley.risk.router import router as alley_risk_router
 from app.modules.alley.advisor.router import router as alley_advisor_router
 from app.modules.alley.analytics.router import router as alley_analytics_router
+from app.modules.alley.risk.router import router as alley_risk_router
 from app.modules.alley.score_performance.router import router as alley_score_performance_router
-from app.core.elasticsearch import setup_indices, close_es_client
-from app.core.sentry import init_sentry
-from app.core.errors import global_exception_handler, http_exception_handler
+from app.modules.alley.signal_score.router import router as alley_signal_score_router
+from app.modules.backtesting.router import router as backtesting_router
+from app.modules.blockchain_audit.router import router as blockchain_audit_router
+from app.modules.board_advisor.router import router as board_advisor_router
+from app.modules.business_plans.router import router as business_plans_router
+from app.modules.capital_efficiency.router import router as capital_efficiency_router
+from app.modules.carbon_credits.router import router as carbon_credits_router
+from app.modules.certification.router import router as certification_router
+from app.modules.citations.router import router as citations_router
+from app.modules.collaboration.router import router as collaboration_router
+from app.modules.compliance.router import router as compliance_router
+from app.modules.comps.router import router as comps_router
+from app.modules.connectors.router import router as connectors_router
+from app.modules.crm_sync.router import router as crm_sync_router
+from app.modules.custom_domain.router import router as custom_domain_router
+from app.modules.dataroom.router import router as dataroom_router
+from app.modules.deal_flow.router import router as deal_flow_router
+from app.modules.deal_intelligence.router import router as deal_intelligence_router
+from app.modules.deal_rooms.router import router as deal_rooms_router
+from app.modules.development_os.router import router as development_os_router
+from app.modules.digest.router import router as digest_router
+from app.modules.doc_versions.router import router as doc_versions_router
+from app.modules.document_annotations.router import router as document_annotations_router
+from app.modules.due_diligence.router import router as due_diligence_router
+from app.modules.ecosystem.router import router as ecosystem_router
+from app.modules.engagement.router import router as engagement_router
+from app.modules.equity_calculator.router import router as equity_calculator_router
+from app.modules.esg.router import router as esg_router
+from app.modules.excel_api.router import router as excel_api_router
+from app.modules.expert_insights.router import router as expert_insights_router
+from app.modules.financial_templates.router import router as financial_templates_router
+from app.modules.fx.router import router as fx_router
+from app.modules.gamification.router import router as gamification_router
+from app.modules.impact.router import router as impact_router
+from app.modules.insurance.router import router as insurance_router
+from app.modules.investor_personas.router import router as investor_personas_router
+from app.modules.investor_signal_score.router import router as investor_signal_score_router
+from app.modules.launch.router import router as launch_router
+from app.modules.legal.router import router as legal_router
+from app.modules.lineage.router import router as lineage_router
+from app.modules.lp_reporting.router import router as lp_reporting_router
+from app.modules.market_data.router import router as market_data_router
+from app.modules.marketplace.router import router as marketplace_router
+from app.modules.matching.router import router as matching_router
+from app.modules.meeting_prep.router import router as meeting_prep_router
+from app.modules.metrics.router import router as metrics_router
+from app.modules.monitoring.router import router as monitoring_router
+from app.modules.notifications.router import router as notifications_router
+from app.modules.onboarding.router import router as onboarding_router
+from app.modules.pacing.router import router as pacing_router
+from app.modules.portfolio.router import router as portfolio_router
+from app.modules.projects.router import router as projects_router
+from app.modules.qa_workflow.router import router as qa_workflow_router
+from app.modules.ralph_ai.router import router as ralph_ai_router
+from app.modules.redaction.router import router as redaction_router
+from app.modules.reporting.router import router as reporting_router
+from app.modules.risk.router import router as risk_router
+from app.modules.risk_profile.router import router as risk_profile_router
+from app.modules.search.router import router as search_router
+from app.modules.settings.router import router as settings_router
+from app.modules.signal_score.router import router as signal_score_router
+from app.modules.smart_screener.router import router as smart_screener_router
+from app.modules.stress_test.router import router as stress_test_router
+from app.modules.tax_credits.router import router as tax_credits_router
+from app.modules.taxonomy.router import router as taxonomy_router
+from app.modules.tokenization.router import router as tokenization_router
+from app.modules.valuation.router import router as valuation_router
+from app.modules.value_quantifier.router import router as value_quantifier_router
+from app.modules.voice_input.router import router as voice_input_router
+from app.modules.warm_intros.router import router as warm_intros_router
+from app.modules.watchlists.router import router as watchlists_router
+from app.modules.webhooks.router import router as webhooks_router
 
 # ── Sentry — must be initialised BEFORE FastAPI app is created ────────────────
 init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
@@ -119,16 +117,18 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     async with async_session_factory() as db:
         try:
             await seed_default_flags(db)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("feature_flag_seed_failed", error=str(exc))
 
     # ── Startup dependency validation ─────────────────────────────────────────
     import httpx
+
     checks: dict[str, str] = {}
 
     # Database check
     try:
         from sqlalchemy import text
+
         async with async_session_factory() as session:
             await session.execute(text("SELECT 1"))
         checks["database"] = "ok"
@@ -138,7 +138,10 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     # Redis check
     try:
         import redis.asyncio as aioredis
-        redis_url = settings.REDIS_URL if hasattr(settings, "REDIS_URL") else "redis://localhost:6379/0"
+
+        redis_url = (
+            settings.REDIS_URL if hasattr(settings, "REDIS_URL") else "redis://localhost:6379/0"
+        )
         r = aioredis.from_url(redis_url)
         await r.ping()
         await r.aclose()
@@ -148,10 +151,16 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
 
     # AI Gateway check (non-blocking)
     try:
-        ai_gw_url = settings.AI_GATEWAY_URL if hasattr(settings, "AI_GATEWAY_URL") else "http://localhost:8001"
+        ai_gw_url = (
+            settings.AI_GATEWAY_URL
+            if hasattr(settings, "AI_GATEWAY_URL")
+            else "http://localhost:8001"
+        )
         async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.get(f"{ai_gw_url}/health")
-            checks["ai_gateway"] = "ok" if resp.status_code == 200 else f"WARNING: HTTP {resp.status_code}"
+            checks["ai_gateway"] = (
+                "ok" if resp.status_code == 200 else f"WARNING: HTTP {resp.status_code}"
+            )
     except Exception as exc:
         checks["ai_gateway"] = f"WARNING: {exc}"
 
@@ -169,7 +178,9 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
             logger.info("startup_check_passed", service=service)
 
     # Block on critical failures only
-    critical = [k for k, v in checks.items() if v.startswith("FAILED") and k in ("database", "redis")]
+    critical = [
+        k for k, v in checks.items() if v.startswith("FAILED") and k in ("database", "redis")
+    ]
     if critical:
         raise RuntimeError(f"Critical startup dependencies unavailable: {', '.join(critical)}")
 
@@ -237,12 +248,15 @@ async def add_version_header(request: Request, call_next) -> Response:
 async def health_check() -> dict:
     """Deep health check: probes PostgreSQL, Redis, Elasticsearch, and S3."""
     import asyncio
+
     checks: dict[str, dict] = {}
 
     # ── PostgreSQL ────────────────────────────────────────────────────────────
     try:
         from sqlalchemy import text
+
         from app.core.database import async_session_factory
+
         async with async_session_factory() as db:
             await db.execute(text("SELECT 1"))
         checks["postgresql"] = {"status": "healthy"}
@@ -252,6 +266,7 @@ async def health_check() -> dict:
     # ── Redis ─────────────────────────────────────────────────────────────────
     try:
         from redis.asyncio import from_url as redis_from_url
+
         r = redis_from_url(settings.REDIS_URL, socket_connect_timeout=2)
         await r.ping()
         await r.aclose()
@@ -262,6 +277,7 @@ async def health_check() -> dict:
     # ── Elasticsearch ─────────────────────────────────────────────────────────
     try:
         from app.core.elasticsearch import get_es_client
+
         es = get_es_client()
         if es is None:
             checks["elasticsearch"] = {"status": "not_configured"}
@@ -278,6 +294,7 @@ async def health_check() -> dict:
     try:
         import boto3
         from botocore.config import Config as BotoConfig
+
         s3 = boto3.client(
             "s3",
             endpoint_url=settings.AWS_S3_ENDPOINT_URL or None,
@@ -291,11 +308,7 @@ async def health_check() -> dict:
     except Exception as exc:
         checks["s3"] = {"status": "unhealthy", "error": str(exc)}
 
-    overall = (
-        "healthy"
-        if all(c["status"] == "healthy" for c in checks.values())
-        else "degraded"
-    )
+    overall = "healthy" if all(c["status"] == "healthy" for c in checks.values()) else "degraded"
     return {"status": overall, "service": "scr-api", "checks": checks}
 
 

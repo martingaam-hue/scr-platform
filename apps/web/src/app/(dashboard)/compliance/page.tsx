@@ -179,7 +179,7 @@ export default function CompliancePage() {
           <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl text-gray-500">
             <Shield className="h-10 w-10 text-gray-300 mx-auto mb-3" />
             <p className="font-medium">No compliance deadlines</p>
-            <p className="text-sm mt-1">Click "Auto-Generate" to create jurisdiction-appropriate deadlines</p>
+            <p className="text-sm mt-1">Click &quot;Auto-Generate&quot; to create jurisdiction-appropriate deadlines</p>
           </div>
         )}
       </div>

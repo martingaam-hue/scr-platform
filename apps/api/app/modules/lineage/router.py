@@ -70,5 +70,7 @@ async def get_full_trace(
     svc = LineageService(db, current_user.org_id)
     trace = await svc.get_full_trace(entity_type, entity_id, field_name)
     if not trace:
-        raise HTTPException(status_code=404, detail=f"No lineage found for {entity_type}/{entity_id}/{field_name}")
+        raise HTTPException(
+            status_code=404, detail=f"No lineage found for {entity_type}/{entity_id}/{field_name}"
+        )
     return trace

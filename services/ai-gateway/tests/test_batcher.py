@@ -1,11 +1,8 @@
 """Tests for the TaskBatcher."""
 
-import json
 
-import pytest
 
 from app.task_batcher import BATCHABLE_TASKS, MAX_BATCH_SIZE, TaskBatcher
-
 
 # ── Eligibility tests ─────────────────────────────────────────────────────────
 
@@ -106,7 +103,7 @@ class TestBatchSplitting:
         batcher.registry = None
 
         contexts = [{"x": 1}, {"x": 2}]
-        result = asyncio.get_event_loop().run_until_complete(
+        asyncio.get_event_loop().run_until_complete(
             batcher.batch_complete("score_quality", contexts)
         )
         assert len(called_individually) == 2

@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.advisory import InvestorSignalScore
-from app.models.projects import Project, SignalScore
+from app.models.projects import Project
 from app.modules.investor_signal_score.engine import (
     DIMENSION_WEIGHTS,
     InvestorSignalScoreEngine,
@@ -26,7 +26,6 @@ from app.modules.investor_signal_score.schemas import (
     ScoreHistoryItem,
     TopMatchItem,
 )
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -54,9 +53,7 @@ def _orm_to_response(record: InvestorSignalScore, scored: dict) -> InvestorSigna
         team_experience=_build_dimension(dims.get("team_experience", {})),
         esg_commitment=_build_dimension(dims.get("esg_commitment", {})),
         platform_readiness=_build_dimension(dims.get("platform_readiness", {})),
-        score_change=(
-            float(record.score_change) if record.score_change is not None else None
-        ),
+        score_change=(float(record.score_change) if record.score_change is not None else None),
         previous_score=(
             float(record.previous_score) if record.previous_score is not None else None
         ),

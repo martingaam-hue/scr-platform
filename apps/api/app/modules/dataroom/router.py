@@ -5,11 +5,12 @@ from math import ceil
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
 from app.core.database import get_db
-from app.models.enums import DocumentAccessAction, DocumentStatus, ExtractionType
+from app.models.enums import DocumentAccessAction, DocumentStatus
 from app.modules.dataroom import service
 from app.modules.dataroom.schemas import (
     AccessLogListResponse,
@@ -37,7 +38,6 @@ from app.modules.dataroom.schemas import (
     PresignedUploadRequest,
     PresignedUploadResponse,
     ProjectExtractionSummary,
-    ShareAccessRequest,
     ShareAccessResponse,
     ShareCreateRequest,
     ShareResponse,
@@ -47,8 +47,6 @@ from app.modules.dataroom.schemas import (
 )
 from app.schemas.auth import CurrentUser
 from app.services.ai_budget import enforce_ai_budget as _enforce_ai_budget
-
-from pydantic import BaseModel, Field
 
 
 class BulkAnalyzeRequest(BaseModel):
@@ -62,6 +60,7 @@ class CachedAnalysisRequest(BaseModel):
     context: dict = Field(default_factory=dict)
     force_refresh: bool = Field(default=False)
     model_override: str | None = Field(default=None)
+
 
 logger = structlog.get_logger()
 
@@ -101,9 +100,9 @@ async def create_folder(
             updated_at=folder.updated_at,
         )
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.get(
@@ -151,9 +150,9 @@ async def update_folder(
             updated_at=folder.updated_at,
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.delete(
@@ -171,9 +170,9 @@ async def delete_folder(
     try:
         await service.delete_folder(db, folder_id, current_user.org_id)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 # ── Document Upload ──────────────────────────────────────────────────────────
@@ -212,7 +211,7 @@ async def get_presigned_upload_url(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate upload URL",
-        )
+        ) from e
 
 
 @router.post(
@@ -232,14 +231,14 @@ async def confirm_upload(
 
         # Trigger async processing
         from app.modules.dataroom.tasks import process_document
+
         process_document.delay(str(doc.id))
 
         # Award gamification badges for document upload
         try:
             from app.modules.gamification import service as _gami
-            await _gami.evaluate_badges(
-                db, current_user.user_id, doc.project_id, "document_upload"
-            )
+
+            await _gami.evaluate_badges(db, current_user.user_id, doc.project_id, "document_upload")
         except Exception:
             pass
 
@@ -249,9 +248,9 @@ async def confirm_upload(
             message="Upload confirmed. Document processing has been queued.",
         )
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post(
@@ -286,7 +285,7 @@ async def get_unassigned_presigned_upload_url(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate upload URL",
-        )
+        ) from e
 
 
 # ── Document CRUD ────────────────────────────────────────────────────────────
@@ -387,7 +386,7 @@ async def get_document(
             version_count=len(versions),
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.get(
@@ -413,7 +412,7 @@ async def download_document(
         )
         return PresignedDownloadResponse(download_url=url)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.put(
@@ -441,7 +440,7 @@ async def update_document(
         )
         return _doc_to_response(doc)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.delete(
@@ -459,7 +458,7 @@ async def delete_document(
     try:
         await service.soft_delete_document(db, document_id, current_user.org_id)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.patch(
@@ -481,7 +480,7 @@ async def assign_document(
         )
         return _doc_to_response(doc)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 # ── Versioning ───────────────────────────────────────────────────────────────
@@ -516,7 +515,7 @@ async def create_new_version(
             s3_key=doc.s3_key,
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.get(
@@ -547,7 +546,7 @@ async def list_versions(
             for v in versions
         ]
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.get(
@@ -609,11 +608,13 @@ async def bulk_upload(
             checksum_sha256=file_item.checksum_sha256,
             folder_id=body.folder_id,
         )
-        uploads.append(PresignedUploadResponse(
-            upload_url=upload_url,
-            document_id=doc.id,
-            s3_key=doc.s3_key,
-        ))
+        uploads.append(
+            PresignedUploadResponse(
+                upload_url=upload_url,
+                document_id=doc.id,
+                s3_key=doc.s3_key,
+            )
+        )
     return BulkUploadResponse(uploads=uploads)
 
 
@@ -630,6 +631,7 @@ async def bulk_analyze(
 ):
     """Run batched AI analysis on multiple documents using the Task Batcher."""
     import httpx
+
     from app.core.config import settings
 
     document_ids: list[str] = body.document_ids
@@ -642,15 +644,15 @@ async def bulk_analyze(
     contexts: list[dict] = []
     for doc_id_str in document_ids[:20]:  # cap at 20
         try:
-            doc = await service.get_document_detail(
-                db, uuid.UUID(doc_id_str), current_user.org_id
+            doc = await service.get_document_detail(db, uuid.UUID(doc_id_str), current_user.org_id)
+            contexts.append(
+                {
+                    "document_id": doc_id_str,
+                    "filename": doc.name,
+                    "document_preview": (doc.metadata_ or {}).get("extracted_text", "")[:2000],
+                    "file_type": doc.file_type or "unknown",
+                }
             )
-            contexts.append({
-                "document_id": doc_id_str,
-                "filename": doc.name,
-                "document_preview": (doc.metadata_ or {}).get("extracted_text", "")[:2000],
-                "file_type": doc.file_type or "unknown",
-            })
         except (LookupError, ValueError):
             pass
 
@@ -658,7 +660,12 @@ async def bulk_analyze(
         return {"results": [], "task_type": task_type, "total": 0}
 
     if not settings.AI_GATEWAY_URL or not settings.AI_GATEWAY_API_KEY:
-        return {"results": [], "task_type": task_type, "total": 0, "error": "AI gateway not configured"}
+        return {
+            "results": [],
+            "task_type": task_type,
+            "total": 0,
+            "error": "AI gateway not configured",
+        }
 
     try:
         async with httpx.AsyncClient(timeout=120.0) as client:
@@ -674,7 +681,7 @@ async def bulk_analyze(
             resp.raise_for_status()
             return resp.json()
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Batch analysis failed: {exc}")
+        raise HTTPException(status_code=502, detail=f"Batch analysis failed: {exc}") from exc
 
 
 @router.post(
@@ -699,7 +706,7 @@ async def bulk_move(
             errors=errors,
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post(
@@ -714,9 +721,7 @@ async def bulk_delete(
     db: AsyncSession = Depends(get_db),
 ):
     """Soft-delete multiple documents."""
-    success, errors = await service.bulk_delete(
-        db, body.document_ids, current_user.org_id
-    )
+    success, errors = await service.bulk_delete(db, body.document_ids, current_user.org_id)
     return BulkOperationResponse(
         success_count=success,
         failure_count=len(errors),
@@ -745,6 +750,7 @@ async def trigger_extraction(
         await service.get_document_detail(db, document_id, current_user.org_id)
 
         from app.modules.dataroom.tasks import trigger_extraction as trigger_task
+
         extraction_types = (
             [t.value for t in body.extraction_types] if body and body.extraction_types else None
         )
@@ -752,7 +758,7 @@ async def trigger_extraction(
 
         return {"message": "Extraction queued", "document_id": str(document_id)}
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.get(
@@ -786,7 +792,7 @@ async def get_extractions(
             ]
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.get(
@@ -803,11 +809,12 @@ async def get_cached_analyses(
     try:
         await service.get_document_detail(db, document_id, current_user.org_id)
         from app.services.analysis_cache import make_analysis_cache
+
         cache = make_analysis_cache(db)
         analyses = await cache.get_all_analyses(document_id)
         return {"document_id": str(document_id), "analyses": analyses}
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post(
@@ -828,6 +835,7 @@ async def run_cached_analysis(
     try:
         await service.get_document_detail(db, document_id, current_user.org_id)
         from app.services.analysis_cache import make_analysis_cache
+
         cache = make_analysis_cache(db)
         result = await cache.get_or_analyze(
             document_id=document_id,
@@ -837,7 +845,7 @@ async def run_cached_analysis(
         )
         return {"document_id": str(document_id), "analysis_type": analysis_type, **result}
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.get(
@@ -852,9 +860,7 @@ async def get_project_extraction_summary(
     db: AsyncSession = Depends(get_db),
 ):
     """Get aggregated extraction results for all documents in a project."""
-    summary = await service.get_project_extraction_summary(
-        db, project_id, current_user.org_id
-    )
+    summary = await service.get_project_extraction_summary(db, project_id, current_user.org_id)
     return ProjectExtractionSummary(**summary)
 
 
@@ -898,10 +904,12 @@ async def create_share_link(
             created_at=share.created_at,
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
-@router.get("/share/{share_token}", summary="Access shared document", response_model=ShareAccessResponse)
+@router.get(
+    "/share/{share_token}", summary="Access shared document", response_model=ShareAccessResponse
+)
 async def access_share_link(
     share_token: str,
     password: str | None = Query(None),
@@ -918,9 +926,9 @@ async def access_share_link(
             watermark_enabled=share.watermark_enabled,
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
 
 
 @router.delete(
@@ -938,7 +946,7 @@ async def revoke_share_link(
     try:
         await service.revoke_share_link(db, share_id, current_user.org_id)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

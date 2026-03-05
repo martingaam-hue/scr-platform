@@ -26,17 +26,32 @@ class OpenWeatherConnector(BaseConnector):
         return p
 
     async def get_current_weather(self, lat: float, lon: float) -> dict[str, Any]:
-        return await self.fetch("/data/2.5/weather", params=await self._params({"lat": str(lat), "lon": str(lon), "units": "metric"}))
+        return await self.fetch(
+            "/data/2.5/weather",
+            params=await self._params({"lat": str(lat), "lon": str(lon), "units": "metric"}),
+        )
 
     async def get_solar_irradiance(self, lat: float, lon: float) -> dict[str, Any]:
         """Solar radiation data — requires One Call API subscription."""
         return await self.fetch(
             "/data/3.0/onecall",
-            params=await self._params({"lat": str(lat), "lon": str(lon), "exclude": "minutely,hourly,alerts", "units": "metric"}),
+            params=await self._params(
+                {
+                    "lat": str(lat),
+                    "lon": str(lon),
+                    "exclude": "minutely,hourly,alerts",
+                    "units": "metric",
+                }
+            ),
         )
 
     async def get_forecast(self, lat: float, lon: float, days: int = 5) -> list[dict[str, Any]]:
-        data = await self.fetch("/data/2.5/forecast", params=await self._params({"lat": str(lat), "lon": str(lon), "units": "metric", "cnt": str(days * 8)}))
+        data = await self.fetch(
+            "/data/2.5/forecast",
+            params=await self._params(
+                {"lat": str(lat), "lon": str(lon), "units": "metric", "cnt": str(days * 8)}
+            ),
+        )
         return data.get("list", [])
 
     async def health_check(self) -> bool:

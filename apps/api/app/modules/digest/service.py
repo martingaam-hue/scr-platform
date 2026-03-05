@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Any
 
 import httpx
@@ -37,7 +37,6 @@ async def gather_digest_data(
     ai_tasks_count = ai_tasks_result.scalar() or 0
 
     # Count AI tasks by agent type
-    from app.models.enums import AIAgentType
     agent_counts_result = await db.execute(
         select(AITaskLog.agent_type, func.count(AITaskLog.id).label("count"))
         .where(
@@ -47,14 +46,12 @@ async def gather_digest_data(
         )
         .group_by(AITaskLog.agent_type)
     )
-    agent_breakdown = {
-        row.agent_type.value: row.count
-        for row in agent_counts_result.all()
-    }
+    agent_breakdown = {row.agent_type.value: row.count for row in agent_counts_result.all()}
 
     # Recent projects (just count)
     try:
         from app.models.projects import Project
+
         projects_result = await db.execute(
             select(func.count(Project.id)).where(
                 Project.org_id == org_id,
@@ -69,6 +66,7 @@ async def gather_digest_data(
     # Documents processed
     try:
         from app.models.dataroom import DataroomDocument
+
         docs_result = await db.execute(
             select(func.count(DataroomDocument.id)).where(
                 DataroomDocument.org_id == org_id,
@@ -227,7 +225,8 @@ async def list_digest_history(
     Filters by both org_id (multi-tenancy) and user_id (personal history).
     Results are ordered newest-first.
     """
-    from sqlalchemy import func as sa_func, select
+    from sqlalchemy import func as sa_func
+    from sqlalchemy import select
 
     from app.models.digest_log import DigestLog
 
@@ -235,14 +234,10 @@ async def list_digest_history(
         DigestLog.org_id == org_id,
         DigestLog.user_id == user_id,
     )
-    total_scalar = await db.scalar(
-        select(sa_func.count()).select_from(base.subquery())
-    )
+    total_scalar = await db.scalar(select(sa_func.count()).select_from(base.subquery()))
     total = total_scalar or 0
 
     result = await db.execute(
-        base.order_by(DigestLog.sent_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
+        base.order_by(DigestLog.sent_at.desc()).offset((page - 1) * page_size).limit(page_size)
     )
     return list(result.scalars().all()), total

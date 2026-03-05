@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import uuid
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,7 +38,7 @@ async def create_plan(
 
 @router.get("", response_model=list[BusinessPlanResponse])
 async def list_plans(
-    project_id: Optional[uuid.UUID] = None,
+    project_id: uuid.UUID | None = None,
     current_user: CurrentUser = Depends(require_permission("view", "business_plan")),
     db: AsyncSession = Depends(get_db),
 ) -> list[BusinessPlanResponse]:

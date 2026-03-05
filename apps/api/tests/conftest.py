@@ -2,7 +2,7 @@
 
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -108,7 +108,7 @@ def mock_clerk_jwt():
         "sub": SAMPLE_CLERK_ID,
         "email": "test@example.com",
         "iss": "https://test.clerk.accounts.dev",
-        "exp": int(datetime.now(timezone.utc).timestamp()) + 3600,
+        "exp": int(datetime.now(UTC).timestamp()) + 3600,
     }
     with patch(
         "app.auth.clerk_jwt.verify_clerk_token",
@@ -124,17 +124,13 @@ async def authenticated_client(
 ) -> AsyncGenerator[AsyncClient, None]:
     """AsyncClient with dependency overrides that bypass Clerk JWT verification."""
     from app.auth.dependencies import get_current_user
-    from app.core.database import get_db
+    from app.core.database import get_db, get_readonly_session
     from app.main import app as _app
-
-    from app.core.database import get_readonly_session
 
     _app.dependency_overrides[get_current_user] = lambda: sample_current_user
     _app.dependency_overrides[get_db] = lambda: db
     _app.dependency_overrides[get_readonly_session] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=_app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=_app), base_url="http://test") as ac:
         yield ac
     _app.dependency_overrides.pop(get_current_user, None)
     _app.dependency_overrides.pop(get_db, None)

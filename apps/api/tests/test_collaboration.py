@@ -1,18 +1,16 @@
 """Comprehensive tests for the Collaboration & Notifications modules."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, patch
+from datetime import datetime, timedelta
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.core.database import get_db
 from app.main import app
-from app.models.collaboration import Activity, Comment
-from app.models.core import Notification, Organization, User
+from app.models.core import Organization, User
 from app.models.enums import NotificationType, OrgType, UserRole
 from app.modules.collaboration import service as collab_service
 from app.modules.notifications import service as notif_service
@@ -58,6 +56,7 @@ VIEWER_USER = CurrentUser(
 def _override_auth(user: CurrentUser):
     async def _override():
         return user
+
     return _override
 
 
@@ -66,26 +65,36 @@ async def seed_data(db: AsyncSession) -> None:
     """Seed Organization and Users."""
     org = Organization(id=ORG_ID, name="Test Org", slug="test-org", type=OrgType.INVESTOR)
     db.add(org)
-    other_org = Organization(
-        id=OTHER_ORG_ID, name="Other Org", slug="other-org", type=OrgType.ALLY
-    )
+    other_org = Organization(id=OTHER_ORG_ID, name="Other Org", slug="other-org", type=OrgType.ALLY)
     db.add(other_org)
     user = User(
-        id=USER_ID, org_id=ORG_ID, email="admin@example.com",
-        full_name="Admin User", role=UserRole.ADMIN,
-        external_auth_id="user_test_admin", is_active=True,
+        id=USER_ID,
+        org_id=ORG_ID,
+        email="admin@example.com",
+        full_name="Admin User",
+        role=UserRole.ADMIN,
+        external_auth_id="user_test_admin",
+        is_active=True,
     )
     db.add(user)
     user2 = User(
-        id=USER2_ID, org_id=ORG_ID, email="analyst@example.com",
-        full_name="Analyst User", role=UserRole.ANALYST,
-        external_auth_id="user_test_analyst", is_active=True,
+        id=USER2_ID,
+        org_id=ORG_ID,
+        email="analyst@example.com",
+        full_name="Analyst User",
+        role=UserRole.ANALYST,
+        external_auth_id="user_test_analyst",
+        is_active=True,
     )
     db.add(user2)
     viewer = User(
-        id=VIEWER_USER_ID, org_id=ORG_ID, email="viewer@example.com",
-        full_name="Viewer User", role=UserRole.VIEWER,
-        external_auth_id="user_test_viewer", is_active=True,
+        id=VIEWER_USER_ID,
+        org_id=ORG_ID,
+        email="viewer@example.com",
+        full_name="Viewer User",
+        role=UserRole.VIEWER,
+        external_auth_id="user_test_viewer",
+        is_active=True,
     )
     db.add(viewer)
     await db.flush()
@@ -119,9 +128,7 @@ async def test_create_threaded_reply(db: AsyncSession, seed_data):
 
 @pytest.mark.anyio
 async def test_reply_depth_limit(db: AsyncSession, seed_data):
-    parent = await collab_service.create_comment(
-        db, ADMIN_USER, "project", ENTITY_ID, "Parent"
-    )
+    parent = await collab_service.create_comment(db, ADMIN_USER, "project", ENTITY_ID, "Parent")
     reply = await collab_service.create_comment(
         db, ANALYST_USER, "project", ENTITY_ID, "Reply", parent_id=parent.id
     )
@@ -150,9 +157,7 @@ async def test_list_comments_threaded(db: AsyncSession, seed_data):
 
 @pytest.mark.anyio
 async def test_update_comment_by_author(db: AsyncSession, seed_data):
-    comment = await collab_service.create_comment(
-        db, ADMIN_USER, "project", ENTITY_ID, "Original"
-    )
+    comment = await collab_service.create_comment(db, ADMIN_USER, "project", ENTITY_ID, "Original")
     updated = await collab_service.update_comment(db, comment.id, USER_ID, "Edited")
     assert updated is not None
     assert updated.content == "Edited"
@@ -160,18 +165,14 @@ async def test_update_comment_by_author(db: AsyncSession, seed_data):
 
 @pytest.mark.anyio
 async def test_update_comment_by_non_author_fails(db: AsyncSession, seed_data):
-    comment = await collab_service.create_comment(
-        db, ADMIN_USER, "project", ENTITY_ID, "Original"
-    )
+    comment = await collab_service.create_comment(db, ADMIN_USER, "project", ENTITY_ID, "Original")
     with pytest.raises(PermissionError, match="Only the author"):
         await collab_service.update_comment(db, comment.id, USER2_ID, "Edited")
 
 
 @pytest.mark.anyio
 async def test_update_comment_after_edit_window_fails(db: AsyncSession, seed_data):
-    comment = await collab_service.create_comment(
-        db, ADMIN_USER, "project", ENTITY_ID, "Original"
-    )
+    comment = await collab_service.create_comment(db, ADMIN_USER, "project", ENTITY_ID, "Original")
     # Manually set created_at to 20 minutes ago
     comment.created_at = datetime.utcnow() - timedelta(minutes=20)
     await db.flush()
@@ -182,9 +183,7 @@ async def test_update_comment_after_edit_window_fails(db: AsyncSession, seed_dat
 
 @pytest.mark.anyio
 async def test_delete_comment_by_author(db: AsyncSession, seed_data):
-    comment = await collab_service.create_comment(
-        db, ADMIN_USER, "project", ENTITY_ID, "To delete"
-    )
+    comment = await collab_service.create_comment(db, ADMIN_USER, "project", ENTITY_ID, "To delete")
     result = await collab_service.delete_comment(db, comment.id, USER_ID, UserRole.ANALYST)
     assert result is True
     assert comment.content == "[deleted]"
@@ -202,9 +201,7 @@ async def test_delete_comment_by_admin(db: AsyncSession, seed_data):
 
 @pytest.mark.anyio
 async def test_delete_comment_by_non_author_non_admin_fails(db: AsyncSession, seed_data):
-    comment = await collab_service.create_comment(
-        db, ADMIN_USER, "project", ENTITY_ID, "To delete"
-    )
+    comment = await collab_service.create_comment(db, ADMIN_USER, "project", ENTITY_ID, "To delete")
     with pytest.raises(PermissionError, match="Only the author or an admin"):
         await collab_service.delete_comment(db, comment.id, USER2_ID, UserRole.ANALYST)
 
@@ -255,8 +252,13 @@ async def test_mention_parsing_in_comment(db: AsyncSession, seed_data):
 @pytest.mark.anyio
 async def test_record_activity(db: AsyncSession, seed_data):
     activity = await collab_service.record_activity(
-        db, ORG_ID, USER_ID, "project", ENTITY_ID,
-        "created", "Created project",
+        db,
+        ORG_ID,
+        USER_ID,
+        "project",
+        ENTITY_ID,
+        "created",
+        "Created project",
     )
     assert activity.action == "created"
     assert activity.entity_type == "project"
@@ -266,8 +268,13 @@ async def test_record_activity(db: AsyncSession, seed_data):
 async def test_get_entity_activity(db: AsyncSession, seed_data):
     for i in range(5):
         await collab_service.record_activity(
-            db, ORG_ID, USER_ID, "project", ENTITY_ID,
-            "updated", f"Update {i}",
+            db,
+            ORG_ID,
+            USER_ID,
+            "project",
+            ENTITY_ID,
+            "updated",
+            f"Update {i}",
         )
     activities, total, user_map = await collab_service.get_entity_activity(
         db, ORG_ID, "project", ENTITY_ID, page=1, page_size=3
@@ -298,8 +305,12 @@ async def test_get_activity_feed(db: AsyncSession, seed_data):
 @pytest.mark.anyio
 async def test_create_notification(db: AsyncSession, seed_data):
     notification = await notif_service.create_notification(
-        db, ORG_ID, USER_ID,
-        NotificationType.INFO, "Test", "Test notification",
+        db,
+        ORG_ID,
+        USER_ID,
+        NotificationType.INFO,
+        "Test",
+        "Test notification",
     )
     assert notification.title == "Test"
     assert notification.is_read is False
@@ -309,12 +320,14 @@ async def test_create_notification(db: AsyncSession, seed_data):
 async def test_list_notifications(db: AsyncSession, seed_data):
     for i in range(5):
         await notif_service.create_notification(
-            db, ORG_ID, USER_ID,
-            NotificationType.INFO, f"Notif {i}", f"Message {i}",
+            db,
+            ORG_ID,
+            USER_ID,
+            NotificationType.INFO,
+            f"Notif {i}",
+            f"Message {i}",
         )
-    notifications, total = await notif_service.list_notifications(
-        db, USER_ID, page=1, page_size=3
-    )
+    notifications, total = await notif_service.list_notifications(db, USER_ID, page=1, page_size=3)
     assert total == 5
     assert len(notifications) == 3
 
@@ -403,11 +416,14 @@ async def test_api_create_comment(client: AsyncClient, db: AsyncSession, seed_da
     app.dependency_overrides[get_current_user] = _override_auth(ANALYST_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        resp = await client.post("/v1/collaboration/comments", json={
-            "entity_type": "project",
-            "entity_id": str(ENTITY_ID),
-            "content": "API comment",
-        })
+        resp = await client.post(
+            "/v1/collaboration/comments",
+            json={
+                "entity_type": "project",
+                "entity_id": str(ENTITY_ID),
+                "content": "API comment",
+            },
+        )
         assert resp.status_code == 201
         data = resp.json()
         assert data["content"] == "API comment"
@@ -422,11 +438,14 @@ async def test_api_list_comments(client: AsyncClient, db: AsyncSession, seed_dat
     app.dependency_overrides[get_db] = lambda: db
     try:
         # Create a comment first
-        await client.post("/v1/collaboration/comments", json={
-            "entity_type": "project",
-            "entity_id": str(ENTITY_ID),
-            "content": "First comment",
-        })
+        await client.post(
+            "/v1/collaboration/comments",
+            json={
+                "entity_type": "project",
+                "entity_id": str(ENTITY_ID),
+                "content": "First comment",
+            },
+        )
         resp = await client.get(
             "/v1/collaboration/comments",
             params={"entity_type": "project", "entity_id": str(ENTITY_ID)},
@@ -443,15 +462,21 @@ async def test_api_update_comment(client: AsyncClient, db: AsyncSession, seed_da
     app.dependency_overrides[get_current_user] = _override_auth(ANALYST_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        create_resp = await client.post("/v1/collaboration/comments", json={
-            "entity_type": "project",
-            "entity_id": str(ENTITY_ID),
-            "content": "Original",
-        })
+        create_resp = await client.post(
+            "/v1/collaboration/comments",
+            json={
+                "entity_type": "project",
+                "entity_id": str(ENTITY_ID),
+                "content": "Original",
+            },
+        )
         comment_id = create_resp.json()["id"]
-        resp = await client.put(f"/v1/collaboration/comments/{comment_id}", json={
-            "content": "Updated",
-        })
+        resp = await client.put(
+            f"/v1/collaboration/comments/{comment_id}",
+            json={
+                "content": "Updated",
+            },
+        )
         assert resp.status_code == 200
         assert resp.json()["content"] == "Updated"
     finally:
@@ -463,11 +488,14 @@ async def test_api_delete_comment(client: AsyncClient, db: AsyncSession, seed_da
     app.dependency_overrides[get_current_user] = _override_auth(ANALYST_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        create_resp = await client.post("/v1/collaboration/comments", json={
-            "entity_type": "project",
-            "entity_id": str(ENTITY_ID),
-            "content": "To delete",
-        })
+        create_resp = await client.post(
+            "/v1/collaboration/comments",
+            json={
+                "entity_type": "project",
+                "entity_id": str(ENTITY_ID),
+                "content": "To delete",
+            },
+        )
         comment_id = create_resp.json()["id"]
         resp = await client.delete(f"/v1/collaboration/comments/{comment_id}")
         assert resp.status_code == 204
@@ -480,11 +508,14 @@ async def test_api_resolve_comment(client: AsyncClient, db: AsyncSession, seed_d
     app.dependency_overrides[get_current_user] = _override_auth(ANALYST_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        create_resp = await client.post("/v1/collaboration/comments", json={
-            "entity_type": "project",
-            "entity_id": str(ENTITY_ID),
-            "content": "Resolve me",
-        })
+        create_resp = await client.post(
+            "/v1/collaboration/comments",
+            json={
+                "entity_type": "project",
+                "entity_id": str(ENTITY_ID),
+                "content": "Resolve me",
+            },
+        )
         comment_id = create_resp.json()["id"]
         resp = await client.post(f"/v1/collaboration/comments/{comment_id}/resolve")
         assert resp.status_code == 200
@@ -515,11 +546,14 @@ async def test_viewer_cannot_create_comment(client: AsyncClient, db: AsyncSessio
     app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        resp = await client.post("/v1/collaboration/comments", json={
-            "entity_type": "project",
-            "entity_id": str(ENTITY_ID),
-            "content": "Should fail",
-        })
+        resp = await client.post(
+            "/v1/collaboration/comments",
+            json={
+                "entity_type": "project",
+                "entity_id": str(ENTITY_ID),
+                "content": "Should fail",
+            },
+        )
         assert resp.status_code == 403
     finally:
         app.dependency_overrides.clear()
@@ -530,9 +564,12 @@ async def test_viewer_cannot_edit_comment(client: AsyncClient, db: AsyncSession,
     app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
     app.dependency_overrides[get_db] = lambda: db
     try:
-        resp = await client.put(f"/v1/collaboration/comments/{uuid.uuid4()}", json={
-            "content": "Should fail",
-        })
+        resp = await client.put(
+            f"/v1/collaboration/comments/{uuid.uuid4()}",
+            json={
+                "content": "Should fail",
+            },
+        )
         assert resp.status_code == 403
     finally:
         app.dependency_overrides.clear()

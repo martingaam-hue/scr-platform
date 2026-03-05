@@ -121,7 +121,6 @@ export function useCreateScenario() {
 }
 
 export function useCompareScenarios() {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: CompareRequest) =>
       api

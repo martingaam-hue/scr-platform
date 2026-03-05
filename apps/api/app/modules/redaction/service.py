@@ -89,18 +89,14 @@ class RedactionService:
                 try:
                     start = content.find("[")
                     end = content.rfind("]") + 1
-                    entities_raw: list[dict] = (
-                        json.loads(content[start:end]) if start >= 0 else []
-                    )
+                    entities_raw: list[dict] = json.loads(content[start:end]) if start >= 0 else []
                 except Exception:
                     entities_raw = []
 
                 entities: list[dict] = []
                 for i, e in enumerate(entities_raw):
                     e["id"] = i
-                    e["is_high_sensitivity"] = (
-                        e.get("entity_type", "") in HIGH_SENSITIVITY
-                    )
+                    e["is_high_sensitivity"] = e.get("entity_type", "") in HIGH_SENSITIVITY
                     entities.append(e)
 
                 job.detected_entities = entities
@@ -173,17 +169,13 @@ class RedactionService:
 
         try:
             # Real implementation: fetch PDF from S3, apply fitz redaction, re-upload.
-            job.redacted_s3_key = (
-                f"redacted/{job.org_id}/{job.document_id}/redacted_{job.id}.pdf"
-            )
+            job.redacted_s3_key = f"redacted/{job.org_id}/{job.document_id}/redacted_{job.id}.pdf"
             job.status = "done"
             logger.info("redaction.apply.done", job_id=str(job_id))
         except Exception as exc:
             job.status = "failed"
             job.error_message = str(exc)[:500]
-            logger.error(
-                "redaction.apply.exception", job_id=str(job_id), error=str(exc)
-            )
+            logger.error("redaction.apply.exception", job_id=str(job_id), error=str(exc))
 
         await self.db.commit()
         await self.db.refresh(job)

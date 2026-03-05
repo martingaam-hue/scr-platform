@@ -1,6 +1,5 @@
 """Tests for the production RAG pipeline."""
-import pytest
-from app.rag import RAGPipeline, CHUNK_CONFIGS, Chunk
+from app.rag import CHUNK_CONFIGS, RAGPipeline
 
 
 class TestSemanticChunking:

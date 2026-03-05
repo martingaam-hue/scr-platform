@@ -82,33 +82,40 @@ class PDFGenerator(BaseReportGenerator):
             section_data = data.get(name, {})
 
             if isinstance(section_data, list) and section_data:
-                headers = [h.replace("_", " ").title() for h in section_data[0].keys()]
+                headers = [h.replace("_", " ").title() for h in section_data[0]]
                 rows = [
-                    [str(v) if v is not None else "" for v in row.values()]
-                    for row in section_data
+                    [str(v) if v is not None else "" for v in row.values()] for row in section_data
                 ]
-                rendered_sections.append({
-                    "display_name": display_name,
-                    "type": "table",
-                    "headers": headers,
-                    "rows": rows,
-                })
+                rendered_sections.append(
+                    {
+                        "display_name": display_name,
+                        "type": "table",
+                        "headers": headers,
+                        "rows": rows,
+                    }
+                )
             elif isinstance(section_data, dict):
                 items = [
                     (k.replace("_", " ").title(), str(v) if v is not None else "")
                     for k, v in section_data.items()
                 ]
-                rendered_sections.append({
-                    "display_name": display_name,
-                    "type": "kv",
-                    "items": items,
-                })
+                rendered_sections.append(
+                    {
+                        "display_name": display_name,
+                        "type": "kv",
+                        "items": items,
+                    }
+                )
             else:
-                rendered_sections.append({
-                    "display_name": display_name,
-                    "type": "text",
-                    "content": str(section_data) if section_data else f"No data available for {display_name}.",
-                })
+                rendered_sections.append(
+                    {
+                        "display_name": display_name,
+                        "type": "text",
+                        "content": str(section_data)
+                        if section_data
+                        else f"No data available for {display_name}.",
+                    }
+                )
 
         html = HTML_TEMPLATE.render(
             title=data.get("title", "Report"),

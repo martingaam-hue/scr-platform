@@ -1,7 +1,7 @@
 """Comprehensive tests for the Reporting module."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -63,6 +63,7 @@ ANALYST_USER = CurrentUser(
 def _override_auth(user: CurrentUser):
     async def _override():
         return user
+
     return _override
 
 
@@ -71,27 +72,37 @@ async def seed_data(db: AsyncSession) -> dict:
     """Seed org, users, and sample templates/reports."""
     org = Organization(id=ORG_ID, name="Test Org", slug="test-org", type=OrgType.INVESTOR)
     db.add(org)
-    other_org = Organization(
-        id=OTHER_ORG_ID, name="Other Org", slug="other-org", type=OrgType.ALLY
-    )
+    other_org = Organization(id=OTHER_ORG_ID, name="Other Org", slug="other-org", type=OrgType.ALLY)
     db.add(other_org)
 
     admin = User(
-        id=USER_ID, org_id=ORG_ID, email="admin@example.com",
-        full_name="Admin User", role=UserRole.ADMIN,
-        external_auth_id="user_test_admin", is_active=True,
+        id=USER_ID,
+        org_id=ORG_ID,
+        email="admin@example.com",
+        full_name="Admin User",
+        role=UserRole.ADMIN,
+        external_auth_id="user_test_admin",
+        is_active=True,
     )
     db.add(admin)
     viewer = User(
-        id=VIEWER_USER_ID, org_id=ORG_ID, email="viewer@example.com",
-        full_name="Viewer User", role=UserRole.VIEWER,
-        external_auth_id="user_test_viewer", is_active=True,
+        id=VIEWER_USER_ID,
+        org_id=ORG_ID,
+        email="viewer@example.com",
+        full_name="Viewer User",
+        role=UserRole.VIEWER,
+        external_auth_id="user_test_viewer",
+        is_active=True,
     )
     db.add(viewer)
     analyst = User(
-        id=ANALYST_USER_ID, org_id=ORG_ID, email="analyst@example.com",
-        full_name="Analyst User", role=UserRole.ANALYST,
-        external_auth_id="user_test_analyst", is_active=True,
+        id=ANALYST_USER_ID,
+        org_id=ORG_ID,
+        email="analyst@example.com",
+        full_name="Analyst User",
+        role=UserRole.ANALYST,
+        external_auth_id="user_test_analyst",
+        is_active=True,
     )
     db.add(analyst)
     await db.flush()
@@ -188,9 +199,7 @@ async def test_client(db: AsyncSession, seed_data) -> AsyncClient:
     app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_readonly_session] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
 
@@ -200,9 +209,7 @@ async def viewer_client(db: AsyncSession, seed_data) -> AsyncClient:
     app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_readonly_session] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
 
@@ -212,9 +219,7 @@ async def analyst_client(db: AsyncSession, seed_data) -> AsyncClient:
     app.dependency_overrides[get_current_user] = _override_auth(ANALYST_USER)
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_readonly_session] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
 
@@ -267,7 +272,12 @@ class TestGeneratedReportService:
     async def test_create_report(self, db: AsyncSession, seed_data):
         tmpl = seed_data["sys_tmpl"]
         report = await service.create_generated_report(
-            db, ADMIN_USER, tmpl.id, "New Report", {"key": "val"}, OutputFormat.XLSX,
+            db,
+            ADMIN_USER,
+            tmpl.id,
+            "New Report",
+            {"key": "val"},
+            OutputFormat.XLSX,
         )
         assert report.status == ReportStatus.QUEUED
         assert report.org_id == ORG_ID
@@ -280,14 +290,19 @@ class TestGeneratedReportService:
 
     async def test_list_reports_filter_status(self, db: AsyncSession, seed_data):
         reports, total = await service.list_generated_reports(
-            db, ORG_ID, status=ReportStatus.READY,
+            db,
+            ORG_ID,
+            status=ReportStatus.READY,
         )
         assert total >= 1
         assert all(r.status == ReportStatus.READY for r in reports)
 
     async def test_list_reports_pagination(self, db: AsyncSession, seed_data):
         reports, total = await service.list_generated_reports(
-            db, ORG_ID, page=1, page_size=1,
+            db,
+            ORG_ID,
+            page=1,
+            page_size=1,
         )
         assert len(reports) == 1
         assert total >= 2
@@ -313,7 +328,7 @@ class TestGeneratedReportService:
         mock_s3.return_value = mock_client
 
         url = service.generate_download_url("test-key")
-        assert "https://s3.example.com/file" == url
+        assert url == "https://s3.example.com/file"
 
 
 # ── Schedule Service Tests ───────────────────────────────────────────────────
@@ -323,8 +338,14 @@ class TestScheduleService:
     async def test_create_schedule(self, db: AsyncSession, seed_data):
         tmpl = seed_data["sys_tmpl"]
         schedule = await service.create_schedule(
-            db, ADMIN_USER, tmpl.id, "Daily Report",
-            ReportFrequency.DAILY, {}, ["a@b.com"], OutputFormat.PDF,
+            db,
+            ADMIN_USER,
+            tmpl.id,
+            "Daily Report",
+            ReportFrequency.DAILY,
+            {},
+            ["a@b.com"],
+            OutputFormat.PDF,
         )
         assert schedule.name == "Daily Report"
         assert schedule.is_active is True
@@ -337,7 +358,11 @@ class TestScheduleService:
     async def test_update_schedule(self, db: AsyncSession, seed_data):
         schedule = seed_data["schedule"]
         updated = await service.update_schedule(
-            db, schedule.id, ORG_ID, name="Updated Name", is_active=False,
+            db,
+            schedule.id,
+            ORG_ID,
+            name="Updated Name",
+            is_active=False,
         )
         assert updated is not None
         assert updated.name == "Updated Name"
@@ -390,21 +415,27 @@ class TestGenerateEndpoint:
     async def test_generate_report_202(self, mock_task, test_client: AsyncClient, seed_data):
         mock_task.delay = MagicMock()
         tmpl_id = str(seed_data["sys_tmpl"].id)
-        resp = await test_client.post("/v1/reports/generate", json={
-            "template_id": tmpl_id,
-            "parameters": {"date_from": "2025-01-01"},
-            "output_format": "xlsx",
-        })
+        resp = await test_client.post(
+            "/v1/reports/generate",
+            json={
+                "template_id": tmpl_id,
+                "parameters": {"date_from": "2025-01-01"},
+                "output_format": "xlsx",
+            },
+        )
         assert resp.status_code == 202
         data = resp.json()
         assert data["status"] == "queued"
         assert "report_id" in data
 
     async def test_generate_invalid_template(self, test_client: AsyncClient):
-        resp = await test_client.post("/v1/reports/generate", json={
-            "template_id": str(uuid.uuid4()),
-            "parameters": {},
-        })
+        resp = await test_client.post(
+            "/v1/reports/generate",
+            json={
+                "template_id": str(uuid.uuid4()),
+                "parameters": {},
+            },
+        )
         assert resp.status_code == 404
 
 
@@ -454,23 +485,29 @@ class TestScheduleEndpoints:
 
     async def test_create_schedule(self, test_client: AsyncClient, seed_data):
         tmpl_id = str(seed_data["sys_tmpl"].id)
-        resp = await test_client.post("/v1/reports/schedules", json={
-            "template_id": tmpl_id,
-            "name": "Monthly ESG",
-            "frequency": "monthly",
-            "parameters": {},
-            "recipients": ["a@b.com"],
-            "output_format": "pdf",
-        })
+        resp = await test_client.post(
+            "/v1/reports/schedules",
+            json={
+                "template_id": tmpl_id,
+                "name": "Monthly ESG",
+                "frequency": "monthly",
+                "parameters": {},
+                "recipients": ["a@b.com"],
+                "output_format": "pdf",
+            },
+        )
         assert resp.status_code == 201
         assert resp.json()["name"] == "Monthly ESG"
 
     async def test_update_schedule(self, test_client: AsyncClient, seed_data):
         schedule_id = str(seed_data["schedule"].id)
-        resp = await test_client.put(f"/v1/reports/schedules/{schedule_id}", json={
-            "name": "Renamed Schedule",
-            "is_active": False,
-        })
+        resp = await test_client.put(
+            f"/v1/reports/schedules/{schedule_id}",
+            json={
+                "name": "Renamed Schedule",
+                "is_active": False,
+            },
+        )
         assert resp.status_code == 200
         assert resp.json()["name"] == "Renamed Schedule"
         assert resp.json()["is_active"] is False
@@ -499,10 +536,13 @@ class TestRBAC:
 
     async def test_viewer_cannot_generate(self, viewer_client: AsyncClient, seed_data):
         tmpl_id = str(seed_data["sys_tmpl"].id)
-        resp = await viewer_client.post("/v1/reports/generate", json={
-            "template_id": tmpl_id,
-            "parameters": {},
-        })
+        resp = await viewer_client.post(
+            "/v1/reports/generate",
+            json={
+                "template_id": tmpl_id,
+                "parameters": {},
+            },
+        )
         assert resp.status_code == 403
 
     async def test_viewer_cannot_delete(self, viewer_client: AsyncClient, seed_data):
@@ -514,11 +554,14 @@ class TestRBAC:
         tmpl_id = str(seed_data["sys_tmpl"].id)
         with patch("app.modules.reporting.tasks.generate_report_task") as mock_task:
             mock_task.delay = MagicMock()
-            resp = await analyst_client.post("/v1/reports/generate", json={
-                "template_id": tmpl_id,
-                "parameters": {},
-                "output_format": "pdf",
-            })
+            resp = await analyst_client.post(
+                "/v1/reports/generate",
+                json={
+                    "template_id": tmpl_id,
+                    "parameters": {},
+                    "output_format": "pdf",
+                },
+            )
         assert resp.status_code == 202
 
     async def test_analyst_cannot_delete(self, analyst_client: AsyncClient, seed_data):

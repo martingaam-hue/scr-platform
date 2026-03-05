@@ -24,7 +24,6 @@ import {
   useWebhooks,
   useWebhookDeliveries,
   useCreateWebhook,
-  useUpdateWebhook,
   useDeleteWebhook,
   useTestWebhook,
   useEnableWebhook,
@@ -82,7 +81,6 @@ import {
   STATUS_LABELS,
   tierVariant,
   statusVariant,
-  roleVariant,
   type TeamMember,
   type ApiKeyItem,
   type UserRole,
@@ -916,7 +914,7 @@ function DigestPreviewCard() {
         {result && (
           <div className="rounded-lg bg-neutral-50 border border-neutral-200 p-4 space-y-3">
             <p className="text-sm text-neutral-800 leading-relaxed italic">
-              "{result.narrative}"
+              &quot;{result.narrative}&quot;
             </p>
             <div className="grid grid-cols-2 gap-3 pt-2 border-t border-neutral-200">
               <div className="text-center">
@@ -949,7 +947,7 @@ function CRMProviderCard({
   disconnect,
   triggerSync,
   logs,
-  sfSyncProjects,
+  _sfSyncProjects,
   sfContacts,
 }: {
   label: string;
@@ -959,7 +957,7 @@ function CRMProviderCard({
   disconnect: ReturnType<typeof useDisconnectCRM>;
   triggerSync: ReturnType<typeof useTriggerSync>;
   logs?: ReturnType<typeof useSyncLogs>["data"];
-  sfSyncProjects?: ReturnType<typeof useSalesforceSyncProjects>;
+  _sfSyncProjects?: ReturnType<typeof useSalesforceSyncProjects>;
   sfContacts?: ReturnType<typeof useSalesforceContacts>["data"];
 }) {
   const isSalesforce = provider === "salesforce";
@@ -1174,7 +1172,7 @@ function CRMTab() {
           disconnect={disconnect}
           triggerSync={triggerSync}
           logs={salesforceLogs}
-          sfSyncProjects={sfSyncProjects}
+          _sfSyncProjects={sfSyncProjects}
           sfContacts={sfContacts}
         />
       </div>
@@ -1579,8 +1577,6 @@ function WebhookRow({ sub }: { sub: WebhookSubscription }) {
   const testWebhook = useTestWebhook();
   const enableWebhook = useEnableWebhook();
   const disableWebhook = useDisableWebhook();
-  const update = useUpdateWebhook(sub.id);
-
   return (
     <div className="border border-neutral-200 rounded-xl overflow-hidden">
       {/* Header row */}

@@ -53,7 +53,7 @@ async def get_my_profile(
     try:
         profile = await service._get_profile_or_raise(db, current_user.user_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return profile
 
 
@@ -96,7 +96,7 @@ async def update_my_profile(
         await db.commit()
         await db.refresh(profile)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return profile
 
 
@@ -121,7 +121,7 @@ async def apply_to_project(
         await db.commit()
         await db.refresh(application)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return application
 
 
@@ -163,7 +163,7 @@ async def update_application_status(
         await db.commit()
         await db.refresh(application)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return application

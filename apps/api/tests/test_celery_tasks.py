@@ -1,5 +1,4 @@
 """Tests for Celery task infrastructure — queue config, task routing, AI costs."""
-import pytest
 
 
 # ── Queue topology ──────────────────────────────────────────────────────────
@@ -40,8 +39,9 @@ def test_shared_session_factory_importable() -> None:
 
 
 def test_calculate_cost_known_model() -> None:
-    from app.core.ai_costs import calculate_cost
     from decimal import Decimal
+
+    from app.core.ai_costs import calculate_cost
 
     cost = calculate_cost("claude-sonnet-4-6", 1000, 500)
     assert cost > Decimal("0")
@@ -49,24 +49,27 @@ def test_calculate_cost_known_model() -> None:
 
 
 def test_calculate_cost_unknown_model_uses_default() -> None:
-    from app.core.ai_costs import calculate_cost
     from decimal import Decimal
+
+    from app.core.ai_costs import calculate_cost
 
     cost = calculate_cost("unknown-model-xyz-9999", 1000, 500)
     assert cost > Decimal("0"), "Unknown model should use DEFAULT_COST, not crash"
 
 
 def test_calculate_cost_zero_tokens() -> None:
-    from app.core.ai_costs import calculate_cost
     from decimal import Decimal
+
+    from app.core.ai_costs import calculate_cost
 
     cost = calculate_cost("claude-sonnet-4-6", 0, 0)
     assert cost == Decimal("0")
 
 
 def test_calculate_cost_none_model() -> None:
-    from app.core.ai_costs import calculate_cost
     from decimal import Decimal
+
+    from app.core.ai_costs import calculate_cost
 
     cost = calculate_cost(None, 1000, 500)
     assert cost == Decimal("0")

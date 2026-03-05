@@ -2,7 +2,7 @@
 
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy import func, select
@@ -49,10 +49,7 @@ async def resolve_mention_users(
         name_parts = user.full_name.lower().split()
         # Match full name (joined with .), first name, or last name
         name_joined = ".".join(name_parts)
-        if (
-            name_joined in tokens_lower
-            or any(part in tokens_lower for part in name_parts)
-        ):
+        if name_joined in tokens_lower or any(part in tokens_lower for part in name_parts):
             matched.append(user)
     return matched
 
@@ -85,10 +82,7 @@ async def create_comment(
     mentions_data = None
     if mentioned_users:
         mentions_data = {
-            "users": [
-                {"user_id": str(u.id), "full_name": u.full_name}
-                for u in mentioned_users
-            ]
+            "users": [{"user_id": str(u.id), "full_name": u.full_name} for u in mentioned_users]
         }
 
     comment = Comment(
@@ -146,7 +140,7 @@ async def update_comment(
     if comment.user_id != user_id:
         raise PermissionError("Only the author can edit this comment")
 
-    elapsed = (datetime.now(timezone.utc) - comment.created_at.replace(tzinfo=timezone.utc)).total_seconds()
+    elapsed = (datetime.now(UTC) - comment.created_at.replace(tzinfo=UTC)).total_seconds()
     if elapsed > EDIT_WINDOW_MINUTES * 60:
         raise ValueError(f"Comments can only be edited within {EDIT_WINDOW_MINUTES} minutes")
 
@@ -157,10 +151,7 @@ async def update_comment(
         mentioned_users = await resolve_mention_users(db, comment.org_id, tokens)
         if mentioned_users:
             comment.mentions = {
-                "users": [
-                    {"user_id": str(u.id), "full_name": u.full_name}
-                    for u in mentioned_users
-                ]
+                "users": [{"user_id": str(u.id), "full_name": u.full_name} for u in mentioned_users]
             }
     await db.flush()
     return comment

@@ -11,7 +11,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
-from app.core.config import settings
 from app.core.database import get_db
 from app.modules.launch.schemas import (
     FeatureFlagResponse,
@@ -174,10 +173,12 @@ async def trigger_backup(
 ) -> dict:
     """Admin: manually trigger a database backup."""
     from app.models.core import Organization
+
     org = await db.get(Organization, current_user.org_id)
     if not org or org.type.value != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
     from app.tasks.backup import backup_database_task
+
     task = backup_database_task.delay()
     return {"task_id": task.id, "status": "queued"}
 

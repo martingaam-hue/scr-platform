@@ -11,7 +11,9 @@ from celery import shared_task
 logger = structlog.get_logger()
 
 
-@shared_task(name="tasks.deliver_webhook", bind=True, max_retries=0, soft_time_limit=120, time_limit=180)
+@shared_task(
+    name="tasks.deliver_webhook", bind=True, max_retries=0, soft_time_limit=120, time_limit=180
+)
 def deliver_webhook_task(self, delivery_id: str) -> dict:  # type: ignore[misc]
     """Deliver a single webhook event to the subscriber endpoint."""
 

@@ -206,7 +206,7 @@ export function useTriggerMemo() {
       api
         .post<MemoAcceptedResponse>(`/deals/${projectId}/memo`)
         .then((r) => r.data),
-    onSuccess: (_data, projectId) => {
+    onSuccess: () => {
       // Invalidate so polling picks it up
       qc.invalidateQueries({ queryKey: dealKeys.all });
     },

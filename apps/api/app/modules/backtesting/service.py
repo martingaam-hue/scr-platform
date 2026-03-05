@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import math
 import uuid
-from datetime import date
 from decimal import Decimal
 
 import structlog
-from sqlalchemy import and_, func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.middleware.tenant import tenant_filter
 from app.models.backtesting import BacktestRun, DealOutcome
 from app.modules.backtesting.schemas import (
     BacktestRunRequest,
@@ -83,7 +80,9 @@ class BacktestService:
         result = await self.db.execute(stmt)
         outcomes = list(result.scalars().all())
 
-        threshold = float(data.min_score_threshold) if data.min_score_threshold is not None else 50.0
+        threshold = (
+            float(data.min_score_threshold) if data.min_score_threshold is not None else 50.0
+        )
 
         if data.methodology == "cohort":
             analysis = self._cohort_analysis(outcomes)
@@ -108,11 +107,21 @@ class BacktestService:
             date_from=data.date_from,
             date_to=data.date_to,
             min_score_threshold=data.min_score_threshold,
-            accuracy=Decimal(str(round(metrics["accuracy"], 4))) if metrics["accuracy"] is not None else None,
-            precision=Decimal(str(round(metrics["precision"], 4))) if metrics["precision"] is not None else None,
-            recall=Decimal(str(round(metrics["recall"], 4))) if metrics["recall"] is not None else None,
-            auc_roc=Decimal(str(round(metrics["auc_roc"], 4))) if metrics["auc_roc"] is not None else None,
-            f1_score=Decimal(str(round(metrics["f1_score"], 4))) if metrics["f1_score"] is not None else None,
+            accuracy=Decimal(str(round(metrics["accuracy"], 4)))
+            if metrics["accuracy"] is not None
+            else None,
+            precision=Decimal(str(round(metrics["precision"], 4)))
+            if metrics["precision"] is not None
+            else None,
+            recall=Decimal(str(round(metrics["recall"], 4)))
+            if metrics["recall"] is not None
+            else None,
+            auc_roc=Decimal(str(round(metrics["auc_roc"], 4)))
+            if metrics["auc_roc"] is not None
+            else None,
+            f1_score=Decimal(str(round(metrics["f1_score"], 4)))
+            if metrics["f1_score"] is not None
+            else None,
             sample_size=metrics["sample_size"],
             results=results_payload,
         )
@@ -143,9 +152,7 @@ class BacktestService:
         approximation by sweeping thresholds.
         """
         # Only use outcomes that have a score at decision
-        scoreable = [
-            o for o in outcomes if o.signal_score_at_decision is not None
-        ]
+        scoreable = [o for o in outcomes if o.signal_score_at_decision is not None]
         n = len(scoreable)
 
         if n == 0:
@@ -180,11 +187,7 @@ class BacktestService:
         accuracy = (tp + tn) / n
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = (
-            2 * precision * recall / (precision + recall)
-            if (precision + recall) > 0
-            else 0.0
-        )
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
 
         # AUC-ROC: sweep thresholds 0..100 by 5, compute trapezoid
         auc_roc = self._compute_auc_roc(scoreable)
@@ -254,16 +257,19 @@ class BacktestService:
         result = []
         for label, low, high in bands:
             bucket = [
-                o for o in scoreable
+                o
+                for o in scoreable
                 if low <= float(o.signal_score_at_decision) < high  # type: ignore[arg-type]
             ]
             funded = sum(1 for o in bucket if o.outcome_type == "funded")
-            result.append({
-                "score_band": label,
-                "count": len(bucket),
-                "funded_count": funded,
-                "funded_rate": round(funded / len(bucket), 3) if bucket else None,
-            })
+            result.append(
+                {
+                    "score_band": label,
+                    "count": len(bucket),
+                    "funded_count": funded,
+                    "funded_rate": round(funded / len(bucket), 3) if bucket else None,
+                }
+            )
         return result
 
     def _cohort_analysis(self, outcomes: list[DealOutcome]) -> dict:
@@ -281,21 +287,22 @@ class BacktestService:
         cohorts = []
         for label, low, high in quartiles:
             bucket = [
-                o for o in scoreable
+                o
+                for o in scoreable
                 if low <= float(o.signal_score_at_decision) < high  # type: ignore[arg-type]
             ]
             funded = [o for o in bucket if o.outcome_type == "funded"]
-            irr_values = [
-                float(o.actual_irr) for o in funded if o.actual_irr is not None
-            ]
+            irr_values = [float(o.actual_irr) for o in funded if o.actual_irr is not None]
             avg_irr = round(sum(irr_values) / len(irr_values), 4) if irr_values else None
-            cohorts.append({
-                "quartile": label,
-                "count": len(bucket),
-                "funded_count": len(funded),
-                "funded_rate": round(len(funded) / len(bucket), 3) if bucket else None,
-                "avg_irr": avg_irr,
-            })
+            cohorts.append(
+                {
+                    "quartile": label,
+                    "count": len(bucket),
+                    "funded_count": len(funded),
+                    "funded_rate": round(len(funded) / len(bucket), 3) if bucket else None,
+                    "avg_irr": avg_irr,
+                }
+            )
         return {"quartiles": cohorts, "total_scored": len(scoreable)}
 
     # ── Query helpers ────────────────────────────────────────────────────────
@@ -352,9 +359,7 @@ class BacktestService:
             if o.signal_score_at_decision is not None
         ]
         avg_score_funded = (
-            round(sum(scores_of_funded) / len(scores_of_funded), 2)
-            if scores_of_funded
-            else None
+            round(sum(scores_of_funded) / len(scores_of_funded), 2) if scores_of_funded else None
         )
 
         # Latest backtest run

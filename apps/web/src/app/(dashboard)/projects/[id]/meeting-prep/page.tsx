@@ -17,7 +17,7 @@ import { AIFeedback } from "@/components/ai-feedback"
 
 function CheckedList({ items, label, icon: Icon }: { items: string[]; label: string; icon: React.ComponentType<{ className?: string }> }) {
   const [checked, setChecked] = useState<Set<number>>(new Set())
-  const toggle = (i: number) => setChecked((prev) => { const next = new Set(prev); next.has(i) ? next.delete(i) : next.add(i); return next })
+  const toggle = (i: number) => setChecked((prev) => { const next = new Set(prev); if (next.has(i)) next.delete(i); else next.add(i); return next })
 
   return (
     <div className="rounded-xl border border-gray-200 p-5">

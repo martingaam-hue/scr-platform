@@ -22,6 +22,7 @@ class ScoreExplainability:
     ) -> list[dict[str, Any]]:
         """Explain what caused score changes over a period."""
         from app.modules.metrics.snapshot_service import MetricSnapshotService
+
         svc = MetricSnapshotService(self.db)
         snapshots = await svc.get_trend("project", project_id, "signal_score", from_date, to_date)
 
@@ -36,17 +37,23 @@ class ScoreExplainability:
                 (prev.metadata_ or {}).get("dimensions", {}),
                 (snap.metadata_ or {}).get("dimensions", {}),
             )
-            changes.append({
-                "date": snap.recorded_at.isoformat(),
-                "score_from": prev.value,
-                "score_to": snap.value,
-                "delta": delta,
-                "direction": "up" if delta > 0 else "down",
-                "trigger_event": snap.trigger_event,
-                "trigger_entity": str(snap.trigger_entity_id) if snap.trigger_entity_id else None,
-                "dimension_changes": dim_changes,
-                "explanation": self._generate_explanation(delta, dim_changes, snap.trigger_event),
-            })
+            changes.append(
+                {
+                    "date": snap.recorded_at.isoformat(),
+                    "score_from": prev.value,
+                    "score_to": snap.value,
+                    "delta": delta,
+                    "direction": "up" if delta > 0 else "down",
+                    "trigger_event": snap.trigger_event,
+                    "trigger_entity": str(snap.trigger_entity_id)
+                    if snap.trigger_entity_id
+                    else None,
+                    "dimension_changes": dim_changes,
+                    "explanation": self._generate_explanation(
+                        delta, dim_changes, snap.trigger_event
+                    ),
+                }
+            )
         return changes
 
     def _diff_dimensions(
@@ -59,12 +66,14 @@ class ScoreExplainability:
             old_val = float(old_dims.get(dim, 0) or 0)
             new_val = float(new_dims.get(dim, 0) or 0)
             if old_val != new_val:
-                diffs.append({
-                    "dimension": dim,
-                    "from": old_val,
-                    "to": new_val,
-                    "delta": round(new_val - old_val, 2),
-                })
+                diffs.append(
+                    {
+                        "dimension": dim,
+                        "from": old_val,
+                        "to": new_val,
+                        "delta": round(new_val - old_val, 2),
+                    }
+                )
         return sorted(diffs, key=lambda x: abs(x["delta"]), reverse=True)
 
     def _generate_explanation(
@@ -93,6 +102,7 @@ class ScoreExplainability:
     ) -> dict[str, Any]:
         """How stable is this score? High volatility = uncertain or rapidly changing data."""
         from app.modules.metrics.snapshot_service import MetricSnapshotService
+
         from_date = datetime.utcnow() - timedelta(days=period_months * 30)
         svc = MetricSnapshotService(self.db)
         snapshots = await svc.get_trend("project", project_id, "signal_score", from_date=from_date)
@@ -132,15 +142,18 @@ class ScoreExplainability:
     ) -> list[dict[str, Any]]:
         """Get per-dimension score breakdown over time for stacked bar charts."""
         from app.modules.metrics.snapshot_service import MetricSnapshotService
+
         svc = MetricSnapshotService(self.db)
         snapshots = await svc.get_trend("project", project_id, "signal_score", from_date, to_date)
         result = []
         for s in snapshots:
             dims = (s.metadata_ or {}).get("dimensions", {})
-            result.append({
-                "date": s.recorded_at.isoformat(),
-                "overall": s.value,
-                "dimensions": dims,
-                "trigger": s.trigger_event,
-            })
+            result.append(
+                {
+                    "date": s.recorded_at.isoformat(),
+                    "overall": s.value,
+                    "dimensions": dims,
+                    "trigger": s.trigger_event,
+                }
+            )
         return result

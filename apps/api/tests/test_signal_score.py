@@ -1,12 +1,12 @@
 """Tests for the Signal Score module."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -14,12 +14,9 @@ from app.core.database import get_db, get_readonly_session
 from app.main import app
 from app.models.ai import AITaskLog
 from app.models.core import Organization, User
-from app.models.dataroom import Document, DocumentExtraction
 from app.models.enums import (
     AIAgentType,
     AITaskStatus,
-    DocumentStatus,
-    ExtractionType,
     OrgType,
     ProjectStage,
     ProjectStatus,
@@ -30,13 +27,6 @@ from app.models.projects import Project, SignalScore
 from app.modules.signal_score import service
 from app.modules.signal_score.criteria import ALL_CRITERIA, DIMENSIONS
 from app.modules.signal_score.engine import SignalScoreEngine
-from app.modules.signal_score.schemas import (
-    CalculateAcceptedResponse,
-    GapsResponse,
-    ScoreHistoryResponse,
-    SignalScoreDetailResponse,
-    TaskStatusResponse,
-)
 from app.schemas.auth import CurrentUser
 
 # ── Test Data ────────────────────────────────────────────────────────────────
@@ -69,6 +59,7 @@ VIEWER_USER = CurrentUser(
 def _override_auth(user: CurrentUser):
     async def _override():
         return user
+
     return _override
 
 
@@ -78,15 +69,23 @@ async def seed_data(db: AsyncSession):
     org = Organization(id=ORG_ID, name="Test Org", slug="test-org", type=OrgType.ALLY)
     db.add(org)
     user = User(
-        id=USER_ID, org_id=ORG_ID, email="admin@example.com",
-        full_name="Admin User", role=UserRole.ADMIN,
-        external_auth_id="user_test_admin", is_active=True,
+        id=USER_ID,
+        org_id=ORG_ID,
+        email="admin@example.com",
+        full_name="Admin User",
+        role=UserRole.ADMIN,
+        external_auth_id="user_test_admin",
+        is_active=True,
     )
     db.add(user)
     viewer = User(
-        id=VIEWER_USER_ID, org_id=ORG_ID, email="viewer@example.com",
-        full_name="Viewer User", role=UserRole.VIEWER,
-        external_auth_id="user_test_viewer", is_active=True,
+        id=VIEWER_USER_ID,
+        org_id=ORG_ID,
+        email="viewer@example.com",
+        full_name="Viewer User",
+        role=UserRole.VIEWER,
+        external_auth_id="user_test_viewer",
+        is_active=True,
     )
     db.add(viewer)
     project = Project(
@@ -139,10 +138,25 @@ async def seed_signal_score(db: AsyncSession, seed_data):
                         },
                     ],
                 },
-                "financial": {"score": 75, "completeness_score": 70, "quality_score": 78, "criteria": []},
+                "financial": {
+                    "score": 75,
+                    "completeness_score": 70,
+                    "quality_score": 78,
+                    "criteria": [],
+                },
                 "esg": {"score": 55, "completeness_score": 50, "quality_score": 58, "criteria": []},
-                "regulatory": {"score": 60, "completeness_score": 55, "quality_score": 63, "criteria": []},
-                "team": {"score": 50, "completeness_score": 45, "quality_score": 53, "criteria": []},
+                "regulatory": {
+                    "score": 60,
+                    "completeness_score": 55,
+                    "quality_score": 63,
+                    "criteria": [],
+                },
+                "team": {
+                    "score": 50,
+                    "completeness_score": 45,
+                    "quality_score": 53,
+                    "criteria": [],
+                },
             }
         },
         gaps={
@@ -224,9 +238,9 @@ class TestCriteriaDefinitions:
     def test_all_criteria_have_classifications(self):
         for dim in DIMENSIONS:
             for crit in dim.criteria:
-                assert len(crit.relevant_classifications) > 0, (
-                    f"Criterion {crit.id} has no classifications"
-                )
+                assert (
+                    len(crit.relevant_classifications) > 0
+                ), f"Criterion {crit.id} has no classifications"
 
     def test_all_criteria_indexed(self):
         assert len(ALL_CRITERIA) == sum(len(d.criteria) for d in DIMENSIONS)
@@ -262,6 +276,7 @@ class TestSignalScoreEngine:
 
         # execute() returns different things for different queries
         call_count = [0]
+
         def mock_execute(stmt):
             call_count[0] += 1
             result = MagicMock()
@@ -358,14 +373,16 @@ class TestSignalScoreEngine:
             for i, crit in enumerate(dim.criteria):
                 # Alternate between 0 and 30% score
                 score = round(crit.max_points * 0.3) if i % 2 else 0
-                criteria.append({
-                    "id": crit.id,
-                    "name": crit.name,
-                    "max_points": crit.max_points,
-                    "score": score,
-                    "has_document": score > 0,
-                    "ai_assessment": None,
-                })
+                criteria.append(
+                    {
+                        "id": crit.id,
+                        "name": crit.name,
+                        "max_points": crit.max_points,
+                        "score": score,
+                        "has_document": score > 0,
+                        "ai_assessment": None,
+                    }
+                )
             dimension_results[dim.id] = {
                 "score": 30,
                 "completeness_score": 30,
@@ -426,9 +443,7 @@ class TestSignalScoreService:
         with patch(
             "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
         ) as mock_delay:
-            task_log = await service.trigger_calculation(
-                db, PROJECT_ID, ORG_ID, USER_ID
-            )
+            task_log = await service.trigger_calculation(db, PROJECT_ID, ORG_ID, USER_ID)
             assert task_log.agent_type == AIAgentType.SCORING
             assert task_log.status == AITaskStatus.PENDING
             assert task_log.entity_id == PROJECT_ID
@@ -493,9 +508,7 @@ class TestSignalScoreAPI:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_get_details_200(
-        self, client: AsyncClient, db: AsyncSession, seed_signal_score
-    ):
+    async def test_get_details_200(self, client: AsyncClient, db: AsyncSession, seed_signal_score):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         app.dependency_overrides[get_readonly_session] = lambda: db
@@ -511,9 +524,7 @@ class TestSignalScoreAPI:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_get_gaps_200(
-        self, client: AsyncClient, db: AsyncSession, seed_signal_score
-    ):
+    async def test_get_gaps_200(self, client: AsyncClient, db: AsyncSession, seed_signal_score):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         app.dependency_overrides[get_readonly_session] = lambda: db
@@ -545,16 +556,12 @@ class TestSignalScoreAPI:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_calculate_202(
-        self, client: AsyncClient, db: AsyncSession, seed_data
-    ):
+    async def test_calculate_202(self, client: AsyncClient, db: AsyncSession, seed_data):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         app.dependency_overrides[get_readonly_session] = lambda: db
         try:
-            with patch(
-                "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
-            ):
+            with patch("app.modules.signal_score.tasks.calculate_signal_score_task.delay"):
                 resp = await client.post(f"/v1/signal-score/calculate/{PROJECT_ID}")
                 assert resp.status_code == 202
                 data = resp.json()
@@ -564,16 +571,12 @@ class TestSignalScoreAPI:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_recalculate_202(
-        self, client: AsyncClient, db: AsyncSession, seed_data
-    ):
+    async def test_recalculate_202(self, client: AsyncClient, db: AsyncSession, seed_data):
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db
         app.dependency_overrides[get_readonly_session] = lambda: db
         try:
-            with patch(
-                "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
-            ):
+            with patch("app.modules.signal_score.tasks.calculate_signal_score_task.delay"):
                 resp = await client.post(f"/v1/signal-score/{PROJECT_ID}/recalculate")
                 assert resp.status_code == 202
         finally:
@@ -594,9 +597,7 @@ class TestSignalScoreAPI:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_viewer_cannot_calculate(
-        self, client: AsyncClient, db: AsyncSession, seed_data
-    ):
+    async def test_viewer_cannot_calculate(self, client: AsyncClient, db: AsyncSession, seed_data):
         """Viewer role should not have run_analysis permission."""
         app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
         app.dependency_overrides[get_db] = lambda: db
@@ -608,9 +609,7 @@ class TestSignalScoreAPI:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_task_status_200(
-        self, client: AsyncClient, db: AsyncSession, seed_data
-    ):
+    async def test_task_status_200(self, client: AsyncClient, db: AsyncSession, seed_data):
         task_log = AITaskLog(
             org_id=ORG_ID,
             agent_type=AIAgentType.SCORING,
@@ -634,9 +633,7 @@ class TestSignalScoreAPI:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_task_status_404(
-        self, client: AsyncClient, db: AsyncSession, seed_data
-    ):
+    async def test_task_status_404(self, client: AsyncClient, db: AsyncSession, seed_data):
         fake_id = uuid.UUID("00000000-0000-0000-0000-999999999999")
         app.dependency_overrides[get_current_user] = _override_auth(ADMIN_USER)
         app.dependency_overrides[get_db] = lambda: db

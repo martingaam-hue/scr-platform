@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { Button, cn } from "@scr/ui";
+import { Button } from "@scr/ui";
 import { api } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────

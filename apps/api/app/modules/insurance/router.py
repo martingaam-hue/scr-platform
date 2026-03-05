@@ -43,7 +43,7 @@ async def get_insurance_impact(
     try:
         return await service.get_insurance_impact(db, current_user.org_id, project_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get(
@@ -59,7 +59,7 @@ async def get_insurance_summary(
     try:
         return await service.get_insurance_summary(db, current_user.org_id, project_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Quote CRUD ─────────────────────────────────────────────────────────────────
@@ -97,7 +97,7 @@ async def delete_quote(
     try:
         await service.delete_quote(db, current_user.org_id, quote_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Policy CRUD ────────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ async def create_policy(
     try:
         policy = await service.create_policy(db, current_user.org_id, body)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return PolicyResponse.model_validate(policy)
 
 
@@ -138,4 +138,4 @@ async def delete_policy(
     try:
         await service.delete_policy(db, current_user.org_id, policy_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

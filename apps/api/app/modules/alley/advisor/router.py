@@ -1,5 +1,7 @@
 """Alley Development Advisor API."""
+
 from __future__ import annotations
+
 import uuid
 
 import structlog
@@ -24,7 +26,11 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/alley/advisor", tags=["alley-advisor"])
 
 
-@router.post("/{project_id}/query", response_model=AdvisorQueryResponse, summary="Ask Development Advisor a question")
+@router.post(
+    "/{project_id}/query",
+    response_model=AdvisorQueryResponse,
+    summary="Ask Development Advisor a question",
+)
 async def query_advisor(
     project_id: uuid.UUID,
     body: AdvisorQueryRequest,
@@ -34,10 +40,14 @@ async def query_advisor(
     try:
         return await service.query_advisor(db, project_id, current_user.org_id, body.question)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/{project_id}/financing", response_model=FinancingReadinessResponse, summary="Financing readiness assessment")
+@router.get(
+    "/{project_id}/financing",
+    response_model=FinancingReadinessResponse,
+    summary="Financing readiness assessment",
+)
 async def financing_readiness(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -46,10 +56,14 @@ async def financing_readiness(
     try:
         return await service.get_financing_readiness(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/{project_id}/positioning", response_model=MarketPositioningResponse, summary="Market positioning analysis")
+@router.get(
+    "/{project_id}/positioning",
+    response_model=MarketPositioningResponse,
+    summary="Market positioning analysis",
+)
 async def market_positioning(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -58,10 +72,14 @@ async def market_positioning(
     try:
         return await service.get_market_positioning(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/{project_id}/milestones", response_model=MilestonePlanResponse, summary="Development milestone plan")
+@router.get(
+    "/{project_id}/milestones",
+    response_model=MilestonePlanResponse,
+    summary="Development milestone plan",
+)
 async def milestone_plan(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -70,10 +88,14 @@ async def milestone_plan(
     try:
         return await service.get_milestone_plan(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/{project_id}/regulatory", response_model=RegulatoryGuidanceResponse, summary="Regulatory guidance")
+@router.get(
+    "/{project_id}/regulatory",
+    response_model=RegulatoryGuidanceResponse,
+    summary="Regulatory guidance",
+)
 async def regulatory_guidance(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -82,4 +104,4 @@ async def regulatory_guidance(
     try:
         return await service.get_regulatory_guidance(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

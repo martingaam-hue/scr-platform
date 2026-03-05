@@ -1,10 +1,8 @@
 """Tests for Ralph AI module — conversation management, tool definitions, context trimming."""
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from tests.conftest import SAMPLE_ORG_ID, SAMPLE_USER_ID
-
 
 # ── Conversation CRUD ───────────────────────────────────────────────────────
 
@@ -78,6 +76,7 @@ def test_context_manager_exists() -> None:
 
 def test_context_trimming_keeps_last_message() -> None:
     from unittest.mock import MagicMock
+
     from app.modules.ralph_ai.context_manager import ContextWindowManager, GatewayAIClient
 
     ai_client = MagicMock(spec=GatewayAIClient)

@@ -28,7 +28,6 @@ import {
   TIER_LABELS,
   TIER_COLORS,
   STATUS_LABELS,
-  tierVariant,
   type CertificationGap,
 } from "@/lib/certification";
 

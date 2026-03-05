@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 import xml.etree.ElementTree as ET
-from datetime import date, timedelta
+from datetime import date
 from typing import Any
 
 import httpx
@@ -22,7 +23,20 @@ ECB_NS = {
     "gesmes": "http://www.gesmes.org/xml/2002-08-01",
     "ecb": "http://www.ecb.int/vocabulary/2002-08-01/eurofxref",
 }
-SUPPORTED_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "SEK", "NOK", "DKK", "JPY", "AUD", "CAD", "SGD", "HKD"]
+SUPPORTED_CURRENCIES = [
+    "EUR",
+    "USD",
+    "GBP",
+    "CHF",
+    "SEK",
+    "NOK",
+    "DKK",
+    "JPY",
+    "AUD",
+    "CAD",
+    "SGD",
+    "HKD",
+]
 
 
 # ── ECB fetch ─────────────────────────────────────────────────────────────────
@@ -53,10 +67,8 @@ async def fetch_ecb_rates(db: AsyncSession) -> dict[str, float]:
         currency = node.get("currency")
         rate_str = node.get("rate")
         if currency and rate_str:
-            try:
+            with contextlib.suppress(ValueError):
                 rates[currency] = float(rate_str)
-            except ValueError:
-                pass
 
     # Upsert into DB
     for currency, rate in rates.items():
@@ -69,9 +81,7 @@ async def fetch_ecb_rates(db: AsyncSession) -> dict[str, float]:
                 rate_date=rate_date,
                 source="ecb",
             )
-            .on_conflict_do_nothing(
-                index_elements=["base_currency", "quote_currency", "rate_date"]
-            )
+            .on_conflict_do_nothing(index_elements=["base_currency", "quote_currency", "rate_date"])
         )
         await db.execute(stmt)
 
@@ -119,7 +129,11 @@ async def get_latest_rates(db: AsyncSession) -> tuple[dict[str, float], date | N
 
 
 async def convert_amount(
-    db: AsyncSession, amount: float, from_currency: str, to_currency: str, on_date: date | None = None
+    db: AsyncSession,
+    amount: float,
+    from_currency: str,
+    to_currency: str,
+    on_date: date | None = None,
 ) -> tuple[float, float | None]:
     """Convert amount between currencies via EUR. Returns (converted, rate_used)."""
     if from_currency == to_currency:
@@ -158,8 +172,9 @@ async def get_fx_exposure(
 ) -> dict[str, Any]:
     """Portfolio value breakdown by project currency."""
     from sqlalchemy import func
-    from app.models.projects import Project
+
     from app.models.financial import Valuation
+    from app.models.projects import Project
 
     # Group projects by currency and sum their latest valuations
     stmt = (
@@ -169,11 +184,12 @@ async def get_fx_exposure(
             func.sum(Valuation.equity_value).label("total_equity"),
         )
         .outerjoin(Valuation, Valuation.project_id == Project.id)
-        .where(Project.org_id == org_id, Project.is_deleted == False)
+        .where(Project.org_id == org_id, Project.is_deleted is False)
         .group_by(Project.project_currency)
     )
     if portfolio_id:
         from app.models.investors import PortfolioHolding
+
         stmt = stmt.join(PortfolioHolding, PortfolioHolding.project_id == Project.id).where(
             PortfolioHolding.portfolio_id == portfolio_id
         )
@@ -192,12 +208,14 @@ async def get_fx_exposure(
             if rate:
                 value_eur = value_eur / rate
         total_base += value_eur
-        exposure.append({
-            "currency": currency or "EUR",
-            "value_eur": value_eur,
-            "pct": 0.0,
-            "project_count": int(count),
-        })
+        exposure.append(
+            {
+                "currency": currency or "EUR",
+                "value_eur": value_eur,
+                "pct": 0.0,
+                "project_count": int(count),
+            }
+        )
 
     # Calculate percentages
     for item in exposure:

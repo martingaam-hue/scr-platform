@@ -91,7 +91,7 @@ class PacingService:
         self, assumption_id: uuid.UUID, req: UpdateActualsRequest, scenario: str = "base"
     ) -> ProjectionRow:
         """Update actual cashflow fields on a specific projection row."""
-        assumption = await self._get_assumption_by_id(assumption_id)
+        await self._get_assumption_by_id(assumption_id)
 
         result = await self.db.execute(
             select(CashflowProjection).where(
@@ -154,9 +154,7 @@ class PacingService:
     # Private helpers
     # ------------------------------------------------------------------
 
-    async def _get_active_assumption(
-        self, portfolio_id: uuid.UUID
-    ) -> CashflowAssumption | None:
+    async def _get_active_assumption(self, portfolio_id: uuid.UUID) -> CashflowAssumption | None:
         result = await self.db.execute(
             select(CashflowAssumption).where(
                 CashflowAssumption.portfolio_id == portfolio_id,
@@ -180,9 +178,7 @@ class PacingService:
             raise LookupError(f"Assumption {assumption_id} not found")
         return assumption
 
-    async def _load_projections(
-        self, assumption_id: uuid.UUID
-    ) -> list[CashflowProjection]:
+    async def _load_projections(self, assumption_id: uuid.UUID) -> list[CashflowProjection]:
         result = await self.db.execute(
             select(CashflowProjection)
             .where(

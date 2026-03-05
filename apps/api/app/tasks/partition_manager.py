@@ -8,12 +8,13 @@ In production, tables should be converted to PARTITION BY RANGE(created_at):
 This task is a no-op until tables are partitioned — it just checks and logs
 what partitions WOULD be created, so we're ready when the tables are migrated.
 """
+
 from __future__ import annotations
 
-from celery import shared_task
 from datetime import datetime, timedelta
 
 import structlog
+from celery import shared_task
 
 logger = structlog.get_logger()
 
@@ -46,6 +47,7 @@ def ensure_partitions_exist() -> dict:
     Safe to run on non-partitioned tables — detects relkind='p' and skips.
     """
     from sqlalchemy import text
+
     from app.core.celery_db import get_celery_db_session
 
     months = _months_ahead(3)

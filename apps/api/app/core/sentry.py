@@ -1,12 +1,12 @@
 """Centralised Sentry initialisation for the SCR API and Celery worker."""
 
-import structlog
 import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+import structlog
 from sentry_sdk.integrations.celery import CeleryIntegration
-from sentry_sdk.integrations.redis import RedisIntegration
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
 logger = structlog.get_logger()
 
@@ -56,7 +56,7 @@ def init_sentry(
             RedisIntegration(),
             HttpxIntegration(),
         ],
-        send_default_pii=False,      # GDPR: never send PII
+        send_default_pii=False,  # GDPR: never send PII
         before_send=_scrub_sensitive_data,
         enable_tracing=True,
     )

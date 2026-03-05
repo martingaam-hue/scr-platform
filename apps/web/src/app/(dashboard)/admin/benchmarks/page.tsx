@@ -10,7 +10,6 @@ import {
   Upload,
 } from "lucide-react";
 import {
-  Badge,
   Button,
   Card,
   CardContent,

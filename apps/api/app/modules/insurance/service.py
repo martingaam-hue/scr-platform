@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import json
-import re
 import uuid
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 import httpx
 import structlog
@@ -14,12 +11,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models.investors import RiskAssessment
+from app.models.advisory import InsurancePolicy, InsuranceQuote
+from app.models.enums import InsurancePolicyStatus, InsurancePremiumFrequency, InsuranceSide
 from app.models.projects import Project, SignalScore
 from app.modules.insurance.schemas import (
     CoverageRecommendation,
     InsuranceImpactResponse,
     InsuranceSummaryResponse,
+    PolicyCreate,
+    QuoteCreate,
 )
 
 logger = structlog.get_logger()
@@ -60,8 +60,16 @@ _BASE_PREMIUM_PCT: dict[str, float] = {
 # ── High-risk geography premium surcharge (%) ─────────────────────────────────
 
 _HIGH_RISK_GEOS: set[str] = {
-    "Nigeria", "Ethiopia", "Tanzania", "Kenya", "Bangladesh",
-    "Pakistan", "Myanmar", "Cambodia", "Haiti", "Sudan",
+    "Nigeria",
+    "Ethiopia",
+    "Tanzania",
+    "Kenya",
+    "Bangladesh",
+    "Pakistan",
+    "Myanmar",
+    "Cambodia",
+    "Haiti",
+    "Sudan",
 }
 
 
@@ -88,9 +96,7 @@ async def _get_project_or_raise(
     return proj
 
 
-async def _get_latest_signal_score(
-    db: AsyncSession, project_id: uuid.UUID
-) -> SignalScore | None:
+async def _get_latest_signal_score(db: AsyncSession, project_id: uuid.UUID) -> SignalScore | None:
     result = await db.execute(
         select(SignalScore)
         .where(SignalScore.project_id == project_id)
@@ -114,86 +120,104 @@ def _build_fallback_recommendations(
     is_high_risk_geo = geography in _HIGH_RISK_GEOS
 
     if is_construction:
-        recs.append(CoverageRecommendation(
-            policy_type="construction_all_risk",
-            label=_COVERAGE_LABELS["construction_all_risk"],
-            is_mandatory=True,
-            typical_coverage_pct=100.0,
-            rationale="Mandatory lender requirement covering physical damage during construction.",
-            priority="critical",
-        ))
-        recs.append(CoverageRecommendation(
-            policy_type="third_party_liability",
-            label=_COVERAGE_LABELS["third_party_liability"],
-            is_mandatory=True,
-            typical_coverage_pct=10.0,
-            rationale="Required by EPC contractors and lenders for bodily injury and property damage claims.",
-            priority="critical",
-        ))
+        recs.append(
+            CoverageRecommendation(
+                policy_type="construction_all_risk",
+                label=_COVERAGE_LABELS["construction_all_risk"],
+                is_mandatory=True,
+                typical_coverage_pct=100.0,
+                rationale="Mandatory lender requirement covering physical damage during construction.",
+                priority="critical",
+            )
+        )
+        recs.append(
+            CoverageRecommendation(
+                policy_type="third_party_liability",
+                label=_COVERAGE_LABELS["third_party_liability"],
+                is_mandatory=True,
+                typical_coverage_pct=10.0,
+                rationale="Required by EPC contractors and lenders for bodily injury and property damage claims.",
+                priority="critical",
+            )
+        )
 
     if is_operational:
-        recs.append(CoverageRecommendation(
-            policy_type="operational_all_risk",
-            label=_COVERAGE_LABELS["operational_all_risk"],
-            is_mandatory=True,
-            typical_coverage_pct=100.0,
-            rationale="Core operational coverage for physical damage to the asset.",
-            priority="critical",
-        ))
-        recs.append(CoverageRecommendation(
-            policy_type="business_interruption",
-            label=_COVERAGE_LABELS["business_interruption"],
-            is_mandatory=True,
-            typical_coverage_pct=18.0,
-            rationale="Covers revenue loss during unplanned outages; typically 18-month indemnity period.",
-            priority="critical",
-        ))
-        recs.append(CoverageRecommendation(
-            policy_type="machinery_breakdown",
-            label=_COVERAGE_LABELS["machinery_breakdown"],
-            is_mandatory=False,
-            typical_coverage_pct=50.0,
-            rationale="Covers sudden mechanical breakdown not covered by OAR policy.",
-            priority="high",
-        ))
+        recs.append(
+            CoverageRecommendation(
+                policy_type="operational_all_risk",
+                label=_COVERAGE_LABELS["operational_all_risk"],
+                is_mandatory=True,
+                typical_coverage_pct=100.0,
+                rationale="Core operational coverage for physical damage to the asset.",
+                priority="critical",
+            )
+        )
+        recs.append(
+            CoverageRecommendation(
+                policy_type="business_interruption",
+                label=_COVERAGE_LABELS["business_interruption"],
+                is_mandatory=True,
+                typical_coverage_pct=18.0,
+                rationale="Covers revenue loss during unplanned outages; typically 18-month indemnity period.",
+                priority="critical",
+            )
+        )
+        recs.append(
+            CoverageRecommendation(
+                policy_type="machinery_breakdown",
+                label=_COVERAGE_LABELS["machinery_breakdown"],
+                is_mandatory=False,
+                typical_coverage_pct=50.0,
+                rationale="Covers sudden mechanical breakdown not covered by OAR policy.",
+                priority="high",
+            )
+        )
 
     if is_high_risk_geo:
-        recs.append(CoverageRecommendation(
-            policy_type="political_risk",
-            label=_COVERAGE_LABELS["political_risk"],
-            is_mandatory=True,
-            typical_coverage_pct=100.0,
-            rationale=f"Required for investments in {geography} to cover expropriation, currency inconvertibility, and political violence.",
-            priority="critical",
-        ))
+        recs.append(
+            CoverageRecommendation(
+                policy_type="political_risk",
+                label=_COVERAGE_LABELS["political_risk"],
+                is_mandatory=True,
+                typical_coverage_pct=100.0,
+                rationale=f"Required for investments in {geography} to cover expropriation, currency inconvertibility, and political violence.",
+                priority="critical",
+            )
+        )
 
     if project_type in {"geothermal", "hydro", "wind"}:
-        recs.append(CoverageRecommendation(
-            policy_type="weather_parametric",
-            label=_COVERAGE_LABELS["weather_parametric"],
+        recs.append(
+            CoverageRecommendation(
+                policy_type="weather_parametric",
+                label=_COVERAGE_LABELS["weather_parametric"],
+                is_mandatory=False,
+                typical_coverage_pct=30.0,
+                rationale="Parametric cover protecting against below-P90 resource yield years.",
+                priority="medium",
+            )
+        )
+
+    recs.append(
+        CoverageRecommendation(
+            policy_type="environmental_liability",
+            label=_COVERAGE_LABELS["environmental_liability"],
             is_mandatory=False,
-            typical_coverage_pct=30.0,
-            rationale="Parametric cover protecting against below-P90 resource yield years.",
+            typical_coverage_pct=20.0,
+            rationale="Covers environmental clean-up costs and third-party claims.",
             priority="medium",
-        ))
+        )
+    )
 
-    recs.append(CoverageRecommendation(
-        policy_type="environmental_liability",
-        label=_COVERAGE_LABELS["environmental_liability"],
-        is_mandatory=False,
-        typical_coverage_pct=20.0,
-        rationale="Covers environmental clean-up costs and third-party claims.",
-        priority="medium",
-    ))
-
-    recs.append(CoverageRecommendation(
-        policy_type="directors_officers",
-        label=_COVERAGE_LABELS["directors_officers"],
-        is_mandatory=False,
-        typical_coverage_pct=5.0,
-        rationale="Protects management against personal liability from investment decisions.",
-        priority="low",
-    ))
+    recs.append(
+        CoverageRecommendation(
+            policy_type="directors_officers",
+            label=_COVERAGE_LABELS["directors_officers"],
+            is_mandatory=False,
+            typical_coverage_pct=5.0,
+            rationale="Protects management against personal liability from investment decisions.",
+            priority="low",
+        )
+    )
 
     return recs
 
@@ -317,9 +341,7 @@ async def get_insurance_impact(
         "weather_parametric": "Resource variability risk not transferred",
         "directors_officers": "Management liability not covered",
     }
-    uncovered_risk_areas = [
-        v for k, v in potential_gaps.items() if k not in covered
-    ]
+    uncovered_risk_areas = [v for k, v in potential_gaps.items() if k not in covered]
 
     # Financial impact
     irr_impact_bps, npv_premium_cost = _compute_financial_impact(
@@ -328,8 +350,14 @@ async def get_insurance_impact(
 
     # AI narrative
     ai_narrative = await _generate_ai_narrative(
-        proj.name, project_type, geography, stage,
-        total_investment, currency, recommendations, risk_reduction_score,
+        proj.name,
+        project_type,
+        geography,
+        stage,
+        total_investment,
+        currency,
+        recommendations,
+        risk_reduction_score,
     )
 
     return InsuranceImpactResponse(
@@ -349,7 +377,7 @@ async def get_insurance_impact(
         npv_premium_cost=round(npv_premium_cost, 2),
         recommendations=recommendations,
         ai_narrative=ai_narrative,
-        analyzed_at=datetime.now(timezone.utc),
+        analyzed_at=datetime.now(UTC),
     )
 
 
@@ -378,7 +406,8 @@ async def get_insurance_summary(
 
     covered = {r.policy_type for r in recommendations}
     gaps = [
-        _COVERAGE_LABELS.get(k, k) for k in ["cyber_liability", "weather_parametric"]
+        _COVERAGE_LABELS.get(k, k)
+        for k in ["cyber_liability", "weather_parametric"]
         if k not in covered
     ]
 
@@ -404,6 +433,7 @@ async def get_insurance_summary(
 
 # ── Ralph AI compatibility shim (called as risk_service.get_insurance_impact_analysis) ──
 
+
 async def get_insurance_impact_analysis(
     db: AsyncSession,
     org_id: uuid.UUID,
@@ -415,15 +445,12 @@ async def get_insurance_impact_analysis(
 
 # ── Quote CRUD ─────────────────────────────────────────────────────────────────
 
+
 async def create_quote(
     db: AsyncSession,
     org_id: uuid.UUID,
-    body: "QuoteCreate",
-) -> "InsuranceQuote":
-    from app.models.advisory import InsuranceQuote
-    from app.models.enums import InsuranceSide
-    from app.modules.insurance.schemas import QuoteCreate
-
+    body: QuoteCreate,
+) -> InsuranceQuote:
     quote = InsuranceQuote(
         org_id=org_id,
         project_id=body.project_id,
@@ -446,9 +473,7 @@ async def list_quotes(
     db: AsyncSession,
     org_id: uuid.UUID,
     project_id: uuid.UUID | None = None,
-) -> list["InsuranceQuote"]:
-    from app.models.advisory import InsuranceQuote
-
+) -> list[InsuranceQuote]:
     stmt = select(InsuranceQuote).where(
         InsuranceQuote.org_id == org_id,
         InsuranceQuote.is_deleted.is_(False),
@@ -464,8 +489,6 @@ async def delete_quote(
     org_id: uuid.UUID,
     quote_id: uuid.UUID,
 ) -> None:
-    from app.models.advisory import InsuranceQuote
-
     result = await db.execute(
         select(InsuranceQuote).where(
             InsuranceQuote.id == quote_id,
@@ -482,15 +505,12 @@ async def delete_quote(
 
 # ── Policy CRUD ────────────────────────────────────────────────────────────────
 
+
 async def create_policy(
     db: AsyncSession,
     org_id: uuid.UUID,
-    body: "PolicyCreate",
-) -> "InsurancePolicy":
-    from app.models.advisory import InsurancePolicy
-    from app.models.enums import InsurancePolicyStatus, InsurancePremiumFrequency, InsuranceSide
-    from app.modules.insurance.schemas import PolicyCreate
-
+    body: PolicyCreate,
+) -> InsurancePolicy:
     policy = InsurancePolicy(
         org_id=org_id,
         quote_id=body.quote_id,
@@ -519,9 +539,7 @@ async def list_policies(
     db: AsyncSession,
     org_id: uuid.UUID,
     project_id: uuid.UUID | None = None,
-) -> list["InsurancePolicy"]:
-    from app.models.advisory import InsurancePolicy
-
+) -> list[InsurancePolicy]:
     stmt = select(InsurancePolicy).where(
         InsurancePolicy.org_id == org_id,
         InsurancePolicy.is_deleted.is_(False),
@@ -537,8 +555,6 @@ async def delete_policy(
     org_id: uuid.UUID,
     policy_id: uuid.UUID,
 ) -> None:
-    from app.models.advisory import InsurancePolicy
-
     result = await db.execute(
         select(InsurancePolicy).where(
             InsurancePolicy.id == policy_id,

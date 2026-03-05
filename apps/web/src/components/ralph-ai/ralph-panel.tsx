@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { Bot, Plus, Trash2, X, MessageSquare } from "lucide-react";
-import { cn } from "@scr/ui";
 import {
   useConversations,
   useCreateConversation,

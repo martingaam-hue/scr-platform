@@ -1,14 +1,11 @@
 """Tests for auth dependency functions."""
 
 import uuid
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
-from jose import JWTError
 
 from app.auth.dependencies import (
-    get_current_user,
     require_org_access,
     require_permission,
     require_role,

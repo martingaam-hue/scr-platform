@@ -70,9 +70,7 @@ class LegalTemplate(BaseModel):
     doc_type: Mapped[LegalDocumentType] = mapped_column(nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     variables: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    is_system: Mapped[bool] = mapped_column(
-        default=False, server_default="false", nullable=False
-    )
+    is_system: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     def __repr__(self) -> str:

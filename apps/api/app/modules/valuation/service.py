@@ -11,11 +11,10 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.enums import ValuationMethod, ValuationStatus
+from app.models.enums import ReportStatus, ValuationMethod, ValuationStatus
 from app.models.financial import Valuation
 from app.models.projects import Project
 from app.models.reporting import GeneratedReport
-from app.models.enums import ReportStatus
 from app.modules.valuation.ai_assistant import ValuationAIAssistant
 from app.modules.valuation.engine import ValuationEngine
 from app.modules.valuation.schemas import (
@@ -193,6 +192,7 @@ async def create_valuation(
     # Record enterprise value snapshot (best-effort, uses savepoint to not abort outer tx)
     try:
         from app.modules.metrics.snapshot_service import MetricSnapshotService
+
         async with db.begin_nested():
             svc = MetricSnapshotService(db)
             await svc.record_snapshot(
@@ -210,9 +210,7 @@ async def create_valuation(
     return val
 
 
-async def get_valuation(
-    db: AsyncSession, valuation_id: uuid.UUID, org_id: uuid.UUID
-) -> Valuation:
+async def get_valuation(db: AsyncSession, valuation_id: uuid.UUID, org_id: uuid.UUID) -> Valuation:
     result = await db.execute(
         select(Valuation).where(
             Valuation.id == valuation_id,
@@ -361,7 +359,7 @@ async def suggest_assumptions(
     project_type: str,
     geography: str,
     stage: str,
-    db: "AsyncSession | None" = None,
+    db: AsyncSession | None = None,
 ):
     return await _ai.suggest_assumptions(project_type, geography, stage, db=db)
 
@@ -370,6 +368,6 @@ async def find_comparables(
     project_type: str,
     geography: str,
     stage: str,
-    db: "AsyncSession | None" = None,
+    db: AsyncSession | None = None,
 ):
     return await _ai.find_comparables(project_type, geography, stage, db=db)

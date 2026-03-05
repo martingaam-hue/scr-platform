@@ -173,9 +173,7 @@ async def cm_client(db: AsyncSession, cm_user: User) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_readonly_session] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
@@ -188,9 +186,7 @@ async def cm_client2(db: AsyncSession, cm_user2: User) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: CURRENT_USER2
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_readonly_session] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
@@ -205,9 +201,7 @@ async def cm_client2(db: AsyncSession, cm_user2: User) -> AsyncClient:
 class TestRiskAnalysis:
     """Tests for /risk/... endpoints."""
 
-    async def test_create_risk_assessment_201(
-        self, cm_client: AsyncClient, cm_project: Project
-    ):
+    async def test_create_risk_assessment_201(self, cm_client: AsyncClient, cm_project: Project):
         """Create a risk assessment for a project entity."""
         resp = await cm_client.post(
             "/v1/risk/assess",
@@ -284,9 +278,7 @@ class TestRiskAnalysis:
         assert "items" in data
         assert "total" in data
 
-    async def test_risk_dashboard_not_found_for_unknown_portfolio(
-        self, cm_client: AsyncClient
-    ):
+    async def test_risk_dashboard_not_found_for_unknown_portfolio(self, cm_client: AsyncClient):
         """Dashboard returns 404 for a portfolio that doesn't exist."""
         fake_id = uuid.uuid4()
         resp = await cm_client.get(f"/v1/risk/dashboard/{fake_id}")
@@ -317,9 +309,7 @@ class TestRiskAnalysis:
         app.dependency_overrides[get_current_user] = lambda: CURRENT_USER
         app.dependency_overrides[get_db] = lambda: db
         app.dependency_overrides[get_readonly_session] = lambda: db
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client1:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client1:
             create_resp = await client1.post(
                 "/v1/risk/assess",
                 json={
@@ -335,15 +325,11 @@ class TestRiskAnalysis:
 
         # Now use org2 client to list assessments — should NOT see org1's data
         app.dependency_overrides[get_current_user] = lambda: CURRENT_USER2
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client2:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client2:
             resp2 = await client2.get("/v1/risk/assessments")
             assert resp2.status_code == 200
             items = resp2.json()
-            assert all(
-                a.get("description") != "Climate risk for org1 only" for a in items
-            )
+            assert all(a.get("description") != "Climate risk for org1 only" for a in items)
 
         app.dependency_overrides.pop(get_current_user, None)
         app.dependency_overrides.pop(get_db, None)
@@ -370,9 +356,7 @@ class TestLegalAutomation:
         assert "name" in first
         assert "doc_type" in first
 
-    async def test_get_template_detail_200(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_get_template_detail_200(self, cm_client: AsyncClient, cm_user: User):
         """Fetching an existing template by ID returns its questionnaire."""
         resp = await cm_client.get("/v1/legal/templates/nda_standard")
         assert resp.status_code == 200
@@ -381,16 +365,12 @@ class TestLegalAutomation:
         assert "questionnaire" in data
         assert "sections" in data["questionnaire"]
 
-    async def test_get_template_not_found(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_get_template_not_found(self, cm_client: AsyncClient, cm_user: User):
         """Unknown template ID returns 404."""
         resp = await cm_client.get("/v1/legal/templates/does_not_exist")
         assert resp.status_code == 404
 
-    async def test_list_jurisdictions_200(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_list_jurisdictions_200(self, cm_client: AsyncClient, cm_user: User):
         """Jurisdictions endpoint returns a list of strings."""
         resp = await cm_client.get("/v1/legal/jurisdictions")
         assert resp.status_code == 200
@@ -399,9 +379,7 @@ class TestLegalAutomation:
         assert len(items) > 0
         assert all(isinstance(j, str) for j in items)
 
-    async def test_create_legal_document_201(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_create_legal_document_201(self, cm_client: AsyncClient, cm_user: User):
         """Create a new legal document from the NDA template."""
         resp = await cm_client.post(
             "/v1/legal/documents",
@@ -418,9 +396,7 @@ class TestLegalAutomation:
         assert "id" in data
         assert "status" in data
 
-    async def test_list_legal_documents_200(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_list_legal_documents_200(self, cm_client: AsyncClient, cm_user: User):
         """List documents returns paginated structure."""
         resp = await cm_client.get("/v1/legal/documents")
         assert resp.status_code == 200
@@ -429,9 +405,7 @@ class TestLegalAutomation:
         assert "total" in data
         assert isinstance(data["items"], list)
 
-    async def test_legal_review_trigger_202(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_legal_review_trigger_202(self, cm_client: AsyncClient, cm_user: User):
         """Trigger a legal review via document text returns 202 with review_id."""
         resp = await cm_client.post(
             "/v1/legal/review",
@@ -451,9 +425,7 @@ class TestLegalAutomation:
         assert "review_id" in data
         assert data["status"] == "accepted"
 
-    async def test_legal_review_missing_content_422(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_legal_review_missing_content_422(self, cm_client: AsyncClient, cm_user: User):
         """Submitting a review with neither document_id nor document_text returns 422."""
         resp = await cm_client.post(
             "/v1/legal/review",
@@ -464,9 +436,7 @@ class TestLegalAutomation:
         )
         assert resp.status_code == 422
 
-    async def test_get_legal_document_after_create(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_get_legal_document_after_create(self, cm_client: AsyncClient, cm_user: User):
         """Create then GET the document by ID."""
         create_resp = await cm_client.post(
             "/v1/legal/documents",
@@ -513,9 +483,7 @@ class TestDealIntelligence:
         assert "total" in data
         assert isinstance(data["items"], list)
 
-    async def test_discover_deals_with_filters(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_discover_deals_with_filters(self, cm_client: AsyncClient, cm_user: User):
         """Discover can be filtered by sector and geography."""
         resp = await cm_client.get(
             "/v1/deals/discover",
@@ -544,9 +512,7 @@ class TestDealIntelligence:
         resp = await cm_client.get(f"/v1/deals/{fresh_id}/screening")
         assert resp.status_code == 404
 
-    async def test_batch_screen_empty_list_200(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_batch_screen_empty_list_200(self, cm_client: AsyncClient, cm_user: User):
         """Batch screen with empty list returns 200 with zero queued."""
         resp = await cm_client.post(
             "/v1/deals/batch-screen",
@@ -574,9 +540,7 @@ class TestDealIntelligence:
         assert data["failed"] == 2
         assert len(data["errors"]) == 2
 
-    async def test_batch_screen_too_many_projects_422(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_batch_screen_too_many_projects_422(self, cm_client: AsyncClient, cm_user: User):
         """Batch screen with more than 50 projects returns 422."""
         ids = [str(uuid.uuid4()) for _ in range(51)]
         resp = await cm_client.post(
@@ -585,9 +549,7 @@ class TestDealIntelligence:
         )
         assert resp.status_code == 422
 
-    async def test_compare_projects_invalid_count_422(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_compare_projects_invalid_count_422(self, cm_client: AsyncClient, cm_user: User):
         """Compare with fewer than 2 project IDs fails validation."""
         resp = await cm_client.post(
             "/v1/deals/compare",
@@ -604,9 +566,7 @@ class TestDealIntelligence:
 class TestCarbonCredits:
     """Tests for /carbon/... endpoints."""
 
-    async def test_get_pricing_trends_200(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_get_pricing_trends_200(self, cm_client: AsyncClient, cm_user: User):
         """Pricing trends returns a list of data points."""
         resp = await cm_client.get("/v1/carbon/pricing-trends")
         assert resp.status_code == 200
@@ -619,9 +579,7 @@ class TestCarbonCredits:
         assert "gold_standard_price" in first
         assert "eu_ets_price" in first
 
-    async def test_get_methodologies_200(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_get_methodologies_200(self, cm_client: AsyncClient, cm_user: User):
         """Methodologies endpoint returns list with registry and description."""
         resp = await cm_client.get("/v1/carbon/methodologies")
         assert resp.status_code == 200
@@ -668,9 +626,7 @@ class TestCarbonCredits:
         assert "verification_status" in data
         assert "quantity_tons" in data
 
-    async def test_get_carbon_credit_not_found_404(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_get_carbon_credit_not_found_404(self, cm_client: AsyncClient, cm_user: User):
         """GET credit record for project with no carbon credit returns 404."""
         resp = await cm_client.get(f"/v1/carbon/{uuid.uuid4()}")
         assert resp.status_code == 404
@@ -706,9 +662,7 @@ class TestCarbonCredits:
 class TestValuationAnalysis:
     """Tests for /valuations/... endpoints."""
 
-    async def test_list_valuations_empty_200(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_list_valuations_empty_200(self, cm_client: AsyncClient, cm_user: User):
         """List valuations returns correct structure when empty."""
         resp = await cm_client.get("/v1/valuations")
         assert resp.status_code == 200
@@ -717,9 +671,7 @@ class TestValuationAnalysis:
         assert "total" in data
         assert isinstance(data["items"], list)
 
-    async def test_create_dcf_valuation_201(
-        self, cm_client: AsyncClient, cm_project: Project
-    ):
+    async def test_create_dcf_valuation_201(self, cm_client: AsyncClient, cm_project: Project):
         """Create a DCF valuation for a known project."""
         resp = await cm_client.post(
             "/v1/valuations",
@@ -766,9 +718,7 @@ class TestValuationAnalysis:
         )
         assert resp.status_code == 404
 
-    async def test_get_valuation_by_id(
-        self, cm_client: AsyncClient, cm_project: Project
-    ):
+    async def test_get_valuation_by_id(self, cm_client: AsyncClient, cm_project: Project):
         """Create then GET the valuation by ID."""
         create_resp = await cm_client.post(
             "/v1/valuations",
@@ -793,16 +743,12 @@ class TestValuationAnalysis:
         assert data["id"] == val_id
         assert data["method"] == "dcf"
 
-    async def test_get_valuation_not_found_404(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_get_valuation_not_found_404(self, cm_client: AsyncClient, cm_user: User):
         """GET non-existent valuation returns 404."""
         resp = await cm_client.get(f"/v1/valuations/{uuid.uuid4()}")
         assert resp.status_code == 404
 
-    async def test_suggest_assumptions_200(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_suggest_assumptions_200(self, cm_client: AsyncClient, cm_user: User):
         """AI assumption suggestions endpoint returns plausible defaults."""
         resp = await cm_client.post(
             "/v1/valuations/suggest-assumptions",
@@ -822,9 +768,7 @@ class TestValuationAnalysis:
         assert 0 < data["discount_rate"] < 1.0
         assert data["projection_years"] > 0
 
-    async def test_compare_valuations_empty_list(
-        self, cm_client: AsyncClient, cm_user: User
-    ):
+    async def test_compare_valuations_empty_list(self, cm_client: AsyncClient, cm_user: User):
         """Compare endpoint with unknown IDs returns empty list (silently skips missing)."""
         resp = await cm_client.post(
             "/v1/valuations/compare",
@@ -854,9 +798,7 @@ class TestValuationAnalysis:
         )
         assert create_resp.status_code == 201
 
-        list_resp = await cm_client.get(
-            "/v1/valuations", params={"project_id": str(CM_PROJECT_ID)}
-        )
+        list_resp = await cm_client.get("/v1/valuations", params={"project_id": str(CM_PROJECT_ID)})
         assert list_resp.status_code == 200
         data = list_resp.json()
         assert data["total"] >= 1

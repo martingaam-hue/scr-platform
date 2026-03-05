@@ -14,7 +14,15 @@ from app.models.projects import Project
 
 logger = structlog.get_logger()
 
-BENCHMARK_METRICS = ["signal_score", "irr", "moic", "nav", "risk_score", "esg_score", "enterprise_value"]
+BENCHMARK_METRICS = [
+    "signal_score",
+    "irr",
+    "moic",
+    "nav",
+    "risk_score",
+    "esg_score",
+    "enterprise_value",
+]
 
 
 class BenchmarkService:
@@ -23,7 +31,7 @@ class BenchmarkService:
 
     # ── Benchmark computation ─────────────────────────────────────────────────
 
-    async def compute_benchmarks(self) -> dict[str, int]:
+    async def compute_benchmarks(self) -> dict[str, Any]:
         """Nightly task. Aggregates all metric snapshots into benchmark stats."""
         try:
             import statistics
@@ -32,18 +40,20 @@ class BenchmarkService:
 
         # Get all projects
         projects_result = await self.db.execute(
-            select(Project.id, Project.project_type, Project.geography_country, Project.stage)
-            .where(Project.is_deleted.is_(False))
+            select(
+                Project.id, Project.project_type, Project.geography_country, Project.stage
+            ).where(Project.is_deleted.is_(False))
         )
         projects = projects_result.all()
 
         rows_written = 0
         import datetime as _dt
+
         period = _dt.date.today().strftime("%Y-%m")
 
         for metric_name in BENCHMARK_METRICS:
             # Collect latest value per project
-            project_values: dict[str, list[tuple[str, str | None, str | None, float]]] = {}
+            project_values: dict[tuple[str, Any, str], list[float]] = {}
             for proj_id, proj_type, geography, stage in projects:
                 latest_result = await self.db.execute(
                     select(MetricSnapshot.value)
@@ -110,8 +120,14 @@ class BenchmarkService:
         }
 
     async def _upsert_benchmark(
-        self, asset_class: str, geography: str | None, stage: str | None,
-        vintage_year: int | None, metric_name: str, period: str, stats: dict
+        self,
+        asset_class: str,
+        geography: str | None,
+        stage: str | None,
+        vintage_year: int | None,
+        metric_name: str,
+        period: str,
+        stats: dict,
     ) -> None:
         stmt = (
             pg_insert(BenchmarkAggregate)
@@ -171,6 +187,7 @@ class BenchmarkService:
 
         comparisons = {}
         from app.modules.metrics.snapshot_service import MetricSnapshotService
+
         snapshot_svc = MetricSnapshotService(self.db)
 
         for m in metrics:
@@ -187,14 +204,23 @@ class BenchmarkService:
                 "peer_count": benchmark.count,
                 "percentile": percentile,
                 "quartile": self._calc_quartile(latest.value, benchmark),
-                "vs_median": round(latest.value - benchmark.median, 2) if benchmark.median else None,
+                "vs_median": round(latest.value - benchmark.median, 2)
+                if benchmark.median
+                else None,
                 "benchmark": {
-                    "p25": benchmark.p25, "p50": benchmark.median,
-                    "p75": benchmark.p75, "mean": benchmark.mean,
-                    "p10": benchmark.p10, "p90": benchmark.p90,
+                    "p25": benchmark.p25,
+                    "p50": benchmark.median,
+                    "p75": benchmark.p75,
+                    "mean": benchmark.mean,
+                    "p10": benchmark.p10,
+                    "p90": benchmark.p90,
                 },
             }
-        return {"project_id": str(project_id), "comparisons": comparisons, "asset_class": asset_class}
+        return {
+            "project_id": str(project_id),
+            "comparisons": comparisons,
+            "asset_class": asset_class,
+        }
 
     async def _find_best_benchmark(
         self, asset_class: str, geography: str | None, stage: str | None, metric_name: str
@@ -256,10 +282,11 @@ class BenchmarkService:
 
     # ── B02: External import + cashflow pacing ────────────────────────────────
 
-    async def import_external_benchmarks(self, csv_content: str, source: str) -> dict[str, int]:
+    async def import_external_benchmarks(self, csv_content: str, source: str) -> dict[str, Any]:
         """Import benchmark data from CSV content (e.g., Preqin, Cambridge Associates export).
         Format: asset_class, geography, vintage_year, metric, p25, p50, p75, mean, count"""
         import io
+
         reader = csv.DictReader(io.StringIO(csv_content))
         imported = 0
         for row in reader:
@@ -291,6 +318,7 @@ class BenchmarkService:
     ) -> list[dict]:
         """J-curve and cashflow pacing model for portfolio (10-year projection)."""
         from app.models.investors import PortfolioHolding
+
         holdings_result = await self.db.execute(
             select(PortfolioHolding).where(
                 PortfolioHolding.portfolio_id == portfolio_id,
@@ -303,18 +331,20 @@ class BenchmarkService:
             contributions = sum(self._pacing_draw(h, month, scenario) for h in holdings)
             distributions = sum(self._pacing_dist(h, month, scenario) for h in holdings)
             nav = sum(self._pacing_nav(h, month, scenario) for h in holdings)
-            projections.append({
-                "month": month,
-                "contributions": round(contributions, 2),
-                "distributions": round(distributions, 2),
-                "nav": round(nav, 2),
-                "net_cashflow": round(distributions - contributions, 2),
-            })
+            projections.append(
+                {
+                    "month": month,
+                    "contributions": round(contributions, 2),
+                    "distributions": round(distributions, 2),
+                    "nav": round(nav, 2),
+                    "net_cashflow": round(distributions - contributions, 2),
+                }
+            )
         return projections
 
     def _pacing_draw(self, holding, month: int, scenario: str) -> float:
         """Typical drawdown schedule per asset class."""
-        PACING = {
+        pacing = {
             "solar": [0.3, 0.3, 0.2, 0.1, 0.1],
             "wind": [0.2, 0.3, 0.25, 0.15, 0.1],
             "real_estate": [0.4, 0.3, 0.2, 0.1],
@@ -328,7 +358,7 @@ class BenchmarkService:
         if hasattr(holding, "project") and holding.project:
             pt = getattr(holding.project, "project_type", None)
             proj_type = pt.value if hasattr(pt, "value") else str(pt or "")
-        schedule = PACING.get(proj_type, PACING["_default"])
+        schedule = pacing.get(proj_type, pacing["_default"])
         if year < len(schedule):
             return committed * schedule[year] / 12 * scalar
         return 0.0
@@ -353,22 +383,22 @@ class BenchmarkService:
             return committed * nav_mult[year] * scalar
         return committed * 0.3 * scalar
 
-    async def get_quartile_chart_data(
-        self, project_id: uuid.UUID, org_id: uuid.UUID
-    ) -> list[dict]:
+    async def get_quartile_chart_data(self, project_id: uuid.UUID, org_id: uuid.UUID) -> list[dict]:
         """Return data for a quartile position chart across all benchmark metrics."""
         comparison = await self.compare_to_benchmark(project_id, org_id, BENCHMARK_METRICS)
         result = []
         for metric_name, comp in comparison.get("comparisons", {}).items():
-            result.append({
-                "metric_name": metric_name,
-                "value": comp["value"],
-                "p10": comp["benchmark"].get("p10"),
-                "p25": comp["benchmark"].get("p25"),
-                "p50": comp["benchmark"].get("p50"),
-                "p75": comp["benchmark"].get("p75"),
-                "p90": comp["benchmark"].get("p90"),
-                "percentile": comp.get("percentile"),
-                "quartile": comp.get("quartile"),
-            })
+            result.append(
+                {
+                    "metric_name": metric_name,
+                    "value": comp["value"],
+                    "p10": comp["benchmark"].get("p10"),
+                    "p25": comp["benchmark"].get("p25"),
+                    "p50": comp["benchmark"].get("p50"),
+                    "p75": comp["benchmark"].get("p75"),
+                    "p90": comp["benchmark"].get("p90"),
+                    "percentile": comp.get("percentile"),
+                    "quartile": comp.get("quartile"),
+                }
+            )
         return result

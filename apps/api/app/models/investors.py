@@ -90,9 +90,7 @@ class PortfolioHolding(BaseModel):
     current_value: Mapped[Decimal] = mapped_column(Numeric(19, 4), nullable=False)
     ownership_pct: Mapped[Decimal | None] = mapped_column(Numeric(19, 4))
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
-    status: Mapped[HoldingStatus] = mapped_column(
-        nullable=False, default=HoldingStatus.ACTIVE
-    )
+    status: Mapped[HoldingStatus] = mapped_column(nullable=False, default=HoldingStatus.ACTIVE)
     exit_date: Mapped[date | None] = mapped_column(Date)
     exit_amount: Mapped[Decimal | None] = mapped_column(Numeric(19, 4))
     notes: Mapped[str] = mapped_column(Text, nullable=False, default="")

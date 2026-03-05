@@ -2,7 +2,7 @@
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -64,7 +64,9 @@ def _parse_json_from_content(content: str) -> dict:
 # ── Screen Deal Task ─────────────────────────────────────────────────────────
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
+@celery_app.task(
+    bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180
+)
 def screen_deal_task(
     self,
     project_id: str,
@@ -89,7 +91,7 @@ def screen_deal_task(
 
     from app.core.celery_db import get_celery_db_session
     from app.models.ai import AITaskLog
-    from app.models.enums import AIAgentType, AITaskStatus
+    from app.models.enums import AITaskStatus
     from app.models.investors import InvestorMandate
     from app.models.projects import Project, SignalScore
 
@@ -125,29 +127,42 @@ def screen_deal_task(
 
             # Load investor mandate
             mandate = session.execute(
-                select(InvestorMandate).where(
+                select(InvestorMandate)
+                .where(
                     InvestorMandate.org_id == investor_uuid,
                     InvestorMandate.is_active.is_(True),
-                ).limit(1)
+                )
+                .limit(1)
             ).scalar_one_or_none()
 
             # Load document extractions text (via sync query on dataroom tables)
             from app.models.dataroom import Document, DocumentExtraction
-            doc_ids = session.execute(
-                select(Document.id).where(
-                    Document.project_id == project_uuid,
-                    Document.is_deleted.is_(False),
+
+            doc_ids = (
+                session.execute(
+                    select(Document.id).where(
+                        Document.project_id == project_uuid,
+                        Document.is_deleted.is_(False),
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             extraction_parts: list[str] = []
             cached_deal_relevance: dict | None = None
             if doc_ids:
-                extractions = session.execute(
-                    select(DocumentExtraction).where(
-                        DocumentExtraction.document_id.in_(doc_ids),
-                    ).limit(30)
-                ).scalars().all()
+                extractions = (
+                    session.execute(
+                        select(DocumentExtraction)
+                        .where(
+                            DocumentExtraction.document_id.in_(doc_ids),
+                        )
+                        .limit(30)
+                    )
+                    .scalars()
+                    .all()
+                )
                 for ext in extractions:
                     if ext.extraction_data:
                         extraction_parts.append(
@@ -157,11 +172,12 @@ def screen_deal_task(
                 # Pre-load cached deal_relevance analysis to skip AI if available
                 try:
                     from app.models.enums import ExtractionType
+
                     cached_ext = session.execute(
-                        select(DocumentExtraction).where(
+                        select(DocumentExtraction)
+                        .where(
                             DocumentExtraction.document_id.in_(doc_ids),
-                            DocumentExtraction.extraction_type
-                            == ExtractionType.DEAL_RELEVANCE,
+                            DocumentExtraction.extraction_type == ExtractionType.DEAL_RELEVANCE,
                             DocumentExtraction.confidence_score > 0,
                         )
                         .order_by(DocumentExtraction.created_at.desc())
@@ -176,7 +192,11 @@ def screen_deal_task(
                 except Exception:
                     pass
 
-            extraction_text = "\n".join(extraction_parts)[:6000] if extraction_parts else "No documents available."
+            extraction_text = (
+                "\n".join(extraction_parts)[:6000]
+                if extraction_parts
+                else "No documents available."
+            )
 
             # Build prompt
             ss_overall = signal_score.overall_score if signal_score else "N/A"
@@ -204,7 +224,7 @@ def screen_deal_task(
                 f"(Technical: {ss_tech}, Financial: {ss_fin}, ESG: {ss_esg})\n\n"
                 f"INVESTOR MANDATE:\n{mandate_text}\n\n"
                 f"DOCUMENT EXTRACTIONS:\n{extraction_text}\n\n"
-                'Respond ONLY with valid JSON:\n'
+                "Respond ONLY with valid JSON:\n"
                 '{"fit_score": <0-100>, "executive_summary": "...", '
                 '"strengths": [...], "risks": [...], '
                 '"key_metrics": [{"label": "...", "value": "..."}], '
@@ -218,8 +238,9 @@ def screen_deal_task(
             _screening_template_id: str | None = None
             try:
                 import asyncio as _asyncio
-                from app.services.prompt_registry import PromptRegistry as _PR
+
                 from app.core.database import async_session_factory as _asf
+                from app.services.prompt_registry import PromptRegistry as _PR
 
                 async def _render_screening() -> tuple:
                     async with _asf() as _adb:
@@ -241,8 +262,8 @@ def screen_deal_task(
 
                 _loop = _asyncio.new_event_loop()
                 try:
-                    _screening_messages, _screening_template_id, _ = (
-                        _loop.run_until_complete(_render_screening())
+                    _screening_messages, _screening_template_id, _ = _loop.run_until_complete(
+                        _render_screening()
                     )
                 finally:
                     _loop.close()
@@ -296,14 +317,13 @@ def screen_deal_task(
                 if _screening_template_id:
                     try:
                         import asyncio as _asyncio
-                        from app.services.prompt_registry import PromptRegistry as _PR
+
                         from app.core.database import async_session_factory as _asf
+                        from app.services.prompt_registry import PromptRegistry as _PR
 
                         async def _upd_screening() -> None:
                             async with _asf() as _adb:
-                                await _PR(_adb).update_quality_metrics(
-                                    _screening_template_id, 1.0
-                                )
+                                await _PR(_adb).update_quality_metrics(_screening_template_id, 1.0)
 
                         _upd_loop = _asyncio.new_event_loop()
                         try:
@@ -337,13 +357,15 @@ def screen_deal_task(
                 task_log_id=task_log_id,
                 error=str(exc),
             )
-            raise self.retry(exc=exc)
+            raise self.retry(exc=exc) from exc
 
 
 # ── Generate Memo Task ───────────────────────────────────────────────────────
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
+@celery_app.task(
+    bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180
+)
 def generate_memo_task(
     self,
     project_id: str,
@@ -375,7 +397,7 @@ def generate_memo_task(
     report_uuid = uuid.UUID(report_id)
     project_uuid = uuid.UUID(project_id)
     investor_uuid = uuid.UUID(investor_org_id)
-    start_time = time.time()
+    time.time()
 
     with get_celery_db_session() as session:
         report = session.get(GeneratedReport, report_uuid)
@@ -404,41 +426,62 @@ def generate_memo_task(
 
             # Load mandate
             mandate = session.execute(
-                select(InvestorMandate).where(
+                select(InvestorMandate)
+                .where(
                     InvestorMandate.org_id == investor_uuid,
                     InvestorMandate.is_active.is_(True),
-                ).limit(1)
+                )
+                .limit(1)
             ).scalar_one_or_none()
 
             # Load extractions
             from app.models.dataroom import Document, DocumentExtraction
-            doc_ids = session.execute(
-                select(Document.id).where(
-                    Document.project_id == project_uuid,
-                    Document.is_deleted.is_(False),
+
+            doc_ids = (
+                session.execute(
+                    select(Document.id).where(
+                        Document.project_id == project_uuid,
+                        Document.is_deleted.is_(False),
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             extraction_parts: list[str] = []
             if doc_ids:
-                extractions = session.execute(
-                    select(DocumentExtraction).where(
-                        DocumentExtraction.document_id.in_(doc_ids),
-                    ).limit(40)
-                ).scalars().all()
+                extractions = (
+                    session.execute(
+                        select(DocumentExtraction)
+                        .where(
+                            DocumentExtraction.document_id.in_(doc_ids),
+                        )
+                        .limit(40)
+                    )
+                    .scalars()
+                    .all()
+                )
                 for ext in extractions:
                     if ext.extraction_data:
                         extraction_parts.append(
                             f"[{ext.extraction_type.value}] {json.dumps(ext.extraction_data)[:400]}"
                         )
 
-            extraction_text = "\n".join(extraction_parts)[:8000] if extraction_parts else "No documents available."
+            extraction_text = (
+                "\n".join(extraction_parts)[:8000]
+                if extraction_parts
+                else "No documents available."
+            )
 
             ss_overall = signal_score.overall_score if signal_score else "N/A"
-            mandate_text = "No active mandate on file." if not mandate else (
-                f"Sectors: {mandate.sectors or 'Any'} | "
-                f"Geographies: {mandate.geographies or 'Any'} | "
-                f"Ticket: {mandate.ticket_size_min}–{mandate.ticket_size_max} {project.currency}"
+            mandate_text = (
+                "No active mandate on file."
+                if not mandate
+                else (
+                    f"Sectors: {mandate.sectors or 'Any'} | "
+                    f"Geographies: {mandate.geographies or 'Any'} | "
+                    f"Ticket: {mandate.ticket_size_min}–{mandate.ticket_size_max} {project.currency}"
+                )
             )
 
             prompt = (
@@ -469,8 +512,9 @@ def generate_memo_task(
             _memo_template_id: str | None = None
             try:
                 import asyncio as _asyncio
-                from app.services.prompt_registry import PromptRegistry as _PR
+
                 from app.core.database import async_session_factory as _asf
+                from app.services.prompt_registry import PromptRegistry as _PR
 
                 async def _render_memo() -> tuple:
                     async with _asf() as _adb:
@@ -492,8 +536,8 @@ def generate_memo_task(
 
                 _memo_loop = _asyncio.new_event_loop()
                 try:
-                    _memo_messages, _memo_template_id, _ = (
-                        _memo_loop.run_until_complete(_render_memo())
+                    _memo_messages, _memo_template_id, _ = _memo_loop.run_until_complete(
+                        _render_memo()
                     )
                 finally:
                     _memo_loop.close()
@@ -520,7 +564,7 @@ def generate_memo_task(
             content = resp_data.get("content") or resp_data.get("text", "")
 
             # Wrap in branded HTML
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             html = _HTML_TEMPLATE.format(
                 title=report.title,
                 date=now.strftime("%B %d, %Y"),
@@ -561,4 +605,4 @@ def generate_memo_task(
                 report_id=report_id,
                 error=str(exc),
             )
-            raise self.retry(exc=exc)
+            raise self.retry(exc=exc) from exc

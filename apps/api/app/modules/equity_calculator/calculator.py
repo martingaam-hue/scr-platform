@@ -57,7 +57,11 @@ def calculate_scenario(
     for m in multiples:
         exit_val = post_money * m
 
-        if security_type == "preferred_equity" and liquidation_preference and liquidation_preference > 0:
+        if (
+            security_type == "preferred_equity"
+            and liquidation_preference
+            and liquidation_preference > 0
+        ):
             # Liquidation preference paid first (capped at exit value)
             liq = min(liquidation_preference, exit_val)
             remaining = exit_val - liq
@@ -78,14 +82,16 @@ def calculate_scenario(
                     investor_participation = 0.0
                     founder_proceeds = max(0.0, exit_val - investor_proceeds)
                     moic = investor_proceeds / investment_amount if investment_amount else 0.0
-                    waterfall.append({
-                        "multiple": m,
-                        "exit_value": round(exit_val, 2),
-                        "investor_proceeds": round(investor_proceeds, 2),
-                        "founder_proceeds": round(founder_proceeds, 2),
-                        "investor_moic": round(moic, 3),
-                        "investor_irr_estimate": None,
-                    })
+                    waterfall.append(
+                        {
+                            "multiple": m,
+                            "exit_value": round(exit_val, 2),
+                            "investor_proceeds": round(investor_proceeds, 2),
+                            "founder_proceeds": round(founder_proceeds, 2),
+                            "investor_moic": round(moic, 3),
+                            "investor_irr_estimate": None,
+                        }
+                    )
                     continue
             investor_proceeds = liq + investor_participation
         elif security_type in ("convertible_note", "safe"):
@@ -97,14 +103,16 @@ def calculate_scenario(
 
         founder_proceeds = max(0.0, exit_val - investor_proceeds)
         moic = investor_proceeds / investment_amount if investment_amount else 0.0
-        waterfall.append({
-            "multiple": m,
-            "exit_value": round(exit_val, 2),
-            "investor_proceeds": round(investor_proceeds, 2),
-            "founder_proceeds": round(founder_proceeds, 2),
-            "investor_moic": round(moic, 3),
-            "investor_irr_estimate": None,
-        })
+        waterfall.append(
+            {
+                "multiple": m,
+                "exit_value": round(exit_val, 2),
+                "investor_proceeds": round(investor_proceeds, 2),
+                "founder_proceeds": round(founder_proceeds, 2),
+                "investor_moic": round(moic, 3),
+                "investor_irr_estimate": None,
+            }
+        )
 
     dilution_impact = {
         "pre_investment_ownership": 100.0,

@@ -15,7 +15,9 @@ from app.models.watchlists import Watchlist, WatchlistAlert
 logger = structlog.get_logger()
 
 
-async def create_watchlist(db: AsyncSession, user_id: uuid.UUID, org_id: uuid.UUID, body: Any) -> Watchlist:
+async def create_watchlist(
+    db: AsyncSession, user_id: uuid.UUID, org_id: uuid.UUID, body: Any
+) -> Watchlist:
     criteria = body.criteria or {}
 
     # If the user supplied a natural language query but no structured filters, parse it
@@ -23,6 +25,7 @@ async def create_watchlist(db: AsyncSession, user_id: uuid.UUID, org_id: uuid.UU
     if nl_query and not criteria:
         try:
             from app.modules.smart_screener.service import parse_query
+
             parsed = await parse_query(nl_query)
             criteria = parsed.model_dump(exclude_none=True)
         except Exception as exc:
@@ -45,7 +48,8 @@ async def create_watchlist(db: AsyncSession, user_id: uuid.UUID, org_id: uuid.UU
 
 async def list_watchlists(db: AsyncSession, user_id: uuid.UUID) -> list[Watchlist]:
     result = await db.execute(
-        select(Watchlist).where(Watchlist.user_id == user_id, Watchlist.is_deleted == False)
+        select(Watchlist)
+        .where(Watchlist.user_id == user_id, Watchlist.is_deleted is False)
         .order_by(Watchlist.created_at.desc())
     )
     return list(result.scalars().all())
@@ -54,7 +58,7 @@ async def list_watchlists(db: AsyncSession, user_id: uuid.UUID) -> list[Watchlis
 async def get_watchlist(db: AsyncSession, wl_id: uuid.UUID, user_id: uuid.UUID) -> Watchlist | None:
     result = await db.execute(
         select(Watchlist).where(
-            Watchlist.id == wl_id, Watchlist.user_id == user_id, Watchlist.is_deleted == False
+            Watchlist.id == wl_id, Watchlist.user_id == user_id, Watchlist.is_deleted is False
         )
     )
     return result.scalar_one_or_none()
@@ -107,6 +111,7 @@ async def create_alert(
     if "in_app" in (watchlist.alert_channels or []):
         try:
             from app.models.core import Notification
+
             notif = Notification(
                 user_id=watchlist.user_id,
                 notification_type="info",
@@ -127,7 +132,7 @@ async def list_alerts(
 ) -> list[WatchlistAlert]:
     stmt = select(WatchlistAlert).where(WatchlistAlert.user_id == user_id)
     if unread_only:
-        stmt = stmt.where(WatchlistAlert.is_read == False)
+        stmt = stmt.where(WatchlistAlert.is_read is False)
     stmt = stmt.order_by(WatchlistAlert.created_at.desc()).limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
@@ -144,7 +149,9 @@ async def mark_alert_read(db: AsyncSession, alert_id: uuid.UUID, user_id: uuid.U
 
 async def delete_alert(db: AsyncSession, alert_id: uuid.UUID, user_id: uuid.UUID) -> None:
     result = await db.execute(
-        select(WatchlistAlert).where(WatchlistAlert.id == alert_id, WatchlistAlert.user_id == user_id)
+        select(WatchlistAlert).where(
+            WatchlistAlert.id == alert_id, WatchlistAlert.user_id == user_id
+        )
     )
     alert = result.scalar_one_or_none()
     if alert:
@@ -154,7 +161,7 @@ async def delete_alert(db: AsyncSession, alert_id: uuid.UUID, user_id: uuid.UUID
 
 async def get_active_watchlists(db: AsyncSession) -> list[Watchlist]:
     result = await db.execute(
-        select(Watchlist).where(Watchlist.is_active == True, Watchlist.is_deleted == False)
+        select(Watchlist).where(Watchlist.is_active is True, Watchlist.is_deleted is False)
     )
     return list(result.scalars().all())
 
@@ -162,16 +169,21 @@ async def get_active_watchlists(db: AsyncSession) -> list[Watchlist]:
 async def check_watchlist(db: AsyncSession, wl: Watchlist) -> int:
     """Check a single watchlist and create alerts. Returns number of alerts created."""
     since_str = wl.last_checked_at  # stored as ISO string
-    since = datetime.fromisoformat(since_str) if isinstance(since_str, str) else (datetime.utcnow() - timedelta(hours=1))
+    since = (
+        datetime.fromisoformat(since_str)
+        if isinstance(since_str, str)
+        else (datetime.utcnow() - timedelta(hours=1))
+    )
     alert_count = 0
 
     try:
         if wl.watch_type == "new_projects":
             from app.models.projects import Project
+
             criteria = wl.criteria or {}
             stmt = select(Project).where(
                 Project.org_id != wl.org_id,  # other orgs' projects
-                Project.is_deleted == False,
+                Project.is_deleted is False,
                 Project.created_at >= since,
             )
             if criteria.get("project_type"):
@@ -182,24 +194,31 @@ async def check_watchlist(db: AsyncSession, wl: Watchlist) -> int:
             projects = result.scalars().all()
             for p in projects:
                 await create_alert(
-                    db, wl, "new_match",
+                    db,
+                    wl,
+                    "new_match",
                     title=f"New project matches '{wl.name}'",
                     description=f"{p.name} — {p.project_type}",
-                    entity_type="project", entity_id=p.id,
+                    entity_type="project",
+                    entity_id=p.id,
                 )
                 alert_count += 1
 
         elif wl.watch_type == "score_changes":
             from app.models.projects import SignalScore
+
             result = await db.execute(
                 select(SignalScore).where(SignalScore.created_at >= since).limit(20)
             )
             for score in result.scalars().all():
                 await create_alert(
-                    db, wl, "score_improved",
-                    title=f"Signal Score update",
+                    db,
+                    wl,
+                    "score_improved",
+                    title="Signal Score update",
                     description=f"Score: {score.overall_score}",
-                    entity_type="project", entity_id=score.project_id,
+                    entity_type="project",
+                    entity_id=score.project_id,
                 )
                 alert_count += 1
 

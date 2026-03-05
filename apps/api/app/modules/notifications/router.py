@@ -62,8 +62,12 @@ async def list_notifications(
 ):
     """List notifications for the current user."""
     notifications, total = await service.list_notifications(
-        db, current_user.user_id, type=type, is_read=is_read,
-        page=page, page_size=page_size,
+        db,
+        current_user.user_id,
+        type=type,
+        is_read=is_read,
+        page=page,
+        page_size=page_size,
     )
     return NotificationListResponse(
         items=[_notification_to_response(n) for n in notifications],
@@ -116,7 +120,7 @@ async def notification_stream(
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=30.0)
                     yield f"data: {json.dumps(event)}\n\n"
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Send heartbeat
                     yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
         except asyncio.CancelledError:

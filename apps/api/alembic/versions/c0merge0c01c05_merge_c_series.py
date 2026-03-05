@@ -6,8 +6,6 @@ Create Date: 2026-03-01 12:00:00.000000
 
 """
 
-from alembic import op
-
 # revision identifiers, used by Alembic.
 revision = "c0merge0c01c05"
 down_revision = (

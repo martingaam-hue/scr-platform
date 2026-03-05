@@ -76,7 +76,9 @@ class DocumentEngagement(Base, ModelMixin):
     )
 
     referrer_page: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    device_type: Mapped[str | None] = mapped_column(String(20), nullable=True)  # desktop, tablet, mobile
+    device_type: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )  # desktop, tablet, mobile
 
     def __repr__(self) -> str:
         return f"<DocumentEngagement(id={self.id}, document_id={self.document_id}, user_id={self.user_id})>"
@@ -129,7 +131,9 @@ class DealEngagementSummary(Base, ModelMixin):
     unique_documents_viewed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_documents_available: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     documents_downloaded: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    last_activity_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_activity_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     engagement_score: Mapped[float | None] = mapped_column(Float, nullable=True)  # 0-100
     computed_at: Mapped[datetime] = mapped_column(

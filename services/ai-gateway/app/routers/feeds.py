@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from app.services.auth import verify_gateway_key
-from app.services.external_data import get_feed_service, FEEDS
+from app.services.external_data import FEEDS, get_feed_service
 
 logger = structlog.get_logger()
 router = APIRouter()

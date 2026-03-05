@@ -4,11 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Globe,
-  MapPin,
   Search,
   SlidersHorizontal,
   TrendingUp,
-  Zap,
   CheckSquare,
   Square,
   ChevronRight,
@@ -31,7 +29,6 @@ import {
   useCompareProjects,
   useUpdateDealStatus,
   alignmentColor,
-  alignmentBgColor,
   PIPELINE_STATUS_OPTIONS,
   type DealCard,
   type DiscoveryDeal,

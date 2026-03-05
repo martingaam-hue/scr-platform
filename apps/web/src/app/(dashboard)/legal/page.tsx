@@ -4,8 +4,6 @@ import { useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
-  ChevronDown,
-  ChevronRight,
   Download,
   FileText,
   RefreshCw,
@@ -577,7 +575,7 @@ function ReviewResultDisplay({ result }: { result: ReviewResultResponse }) {
                     </span>
                   </div>
                   <p className="text-xs text-neutral-500 italic mb-2 line-clamp-2">
-                    "{c.text_excerpt}"
+                    &quot;{c.text_excerpt}&quot;
                   </p>
                   {c.issue && (
                     <p className="text-xs text-red-600">⚠ {c.issue}</p>

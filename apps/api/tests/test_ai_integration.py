@@ -26,11 +26,9 @@ from __future__ import annotations
 
 import json
 import uuid
-from dataclasses import asdict
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -40,7 +38,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.core.database import get_db, get_readonly_session
 from app.main import app
-from app.models.advisory import InvestorPersona, InvestorSignalScore
+from app.models.advisory import InvestorPersona
 from app.models.ai import AIConversation, AIMessage
 from app.models.core import Organization, User
 from app.models.dataroom import Document, DocumentExtraction
@@ -95,6 +93,7 @@ INVESTOR_USER = CurrentUser(
 
 # ── Shared helpers ─────────────────────────────────────────────────────────
 
+
 def _override(current_user: CurrentUser, db: AsyncSession):
     """Return dependency overrides dict for a test client."""
     return {
@@ -111,6 +110,7 @@ async def _make_client(current_user: CurrentUser, db: AsyncSession) -> AsyncClie
 
 
 # ── Common fixtures ────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 async def ally_org(db: AsyncSession) -> Organization:
@@ -236,6 +236,7 @@ async def sample_portfolio(db: AsyncSession, investor_user: User) -> Portfolio:
 
 # ── Scenario 1: Document Processing Pipeline ──────────────────────────────
 
+
 class TestDocumentProcessingPipeline:
     """
     Upload a document, trigger AI extraction, verify DocumentExtraction
@@ -247,9 +248,7 @@ class TestDocumentProcessingPipeline:
         """Pre-seed: org, user, project."""
         return {"project_id": sample_project.id}
 
-    async def test_confirm_upload_creates_document_record(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_confirm_upload_creates_document_record(self, db: AsyncSession, seeded: dict):
         """POST /dataroom/upload/confirm should create a PROCESSING document."""
         project_id = seeded["project_id"]
 
@@ -270,11 +269,10 @@ class TestDocumentProcessingPipeline:
         db.add(doc)
         await db.flush()
 
-        with patch(
-            "app.modules.dataroom.tasks.process_document.delay"
-        ) as mock_task, patch(
-            "app.modules.dataroom.service._get_s3_client"
-        ) as mock_s3:
+        with (
+            patch("app.modules.dataroom.tasks.process_document.delay") as mock_task,
+            patch("app.modules.dataroom.service._get_s3_client") as mock_s3,
+        ):
             mock_s3.return_value.head_object.return_value = {"ContentLength": 512000}
             async with await _make_client(ALLY_USER, db) as client:
                 resp = await client.post(
@@ -289,9 +287,7 @@ class TestDocumentProcessingPipeline:
         # Response should indicate document is being processed
         assert resp.status_code in (200, 201, 202)
 
-    async def test_extraction_endpoint_returns_results(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_extraction_endpoint_returns_results(self, db: AsyncSession, seeded: dict):
         """Seed a document + extractions; GET /dataroom/documents/{id}/extractions."""
         project_id = seeded["project_id"]
 
@@ -354,9 +350,7 @@ class TestDocumentProcessingPipeline:
         assert "kpi" in types_returned
         assert "classification" in types_returned
 
-    async def test_classification_is_financial_statement(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_classification_is_financial_statement(self, db: AsyncSession, seeded: dict):
         """Verify the classification extraction identifies financial_statement."""
         project_id = seeded["project_id"]
         doc = Document(
@@ -398,9 +392,7 @@ class TestDocumentProcessingPipeline:
         assert len(classifications) == 1
         assert classifications[0]["result"]["classification"] == "financial_statement"
 
-    async def test_kpi_extraction_finds_revenue_and_ebitda(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_kpi_extraction_finds_revenue_and_ebitda(self, db: AsyncSession, seeded: dict):
         """KPI extraction result must include revenue and EBITDA fields."""
         project_id = seeded["project_id"]
         doc = Document(
@@ -449,6 +441,7 @@ class TestDocumentProcessingPipeline:
 
 # ── Scenario 2: Signal Score Calculation ─────────────────────────────────
 
+
 class TestSignalScoreCalculation:
     """
     Create project → trigger calculation (mocked Celery) → seed score →
@@ -459,9 +452,7 @@ class TestSignalScoreCalculation:
     async def seeded(self, db: AsyncSession, ally_user: User, sample_project: Project):
         return {"project_id": sample_project.id}
 
-    async def test_trigger_returns_202_and_task_log_id(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_trigger_returns_202_and_task_log_id(self, db: AsyncSession, seeded: dict):
         project_id = seeded["project_id"]
         with patch(
             "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
@@ -476,9 +467,7 @@ class TestSignalScoreCalculation:
         assert body["status"] == "pending"
         assert mock_delay.called
 
-    async def test_get_score_returns_valid_structure(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_get_score_returns_valid_structure(self, db: AsyncSession, seeded: dict):
         """Seed a SignalScore record and verify the GET endpoint returns all dimensions."""
         project_id = seeded["project_id"]
 
@@ -486,7 +475,11 @@ class TestSignalScoreCalculation:
             project_id=project_id,
             overall_score=72,
             project_viability_score=75,
-            project_viability_details={"completeness": 0.85, "criteria_met": 4, "criteria_total": 5},
+            project_viability_details={
+                "completeness": 0.85,
+                "criteria_met": 4,
+                "criteria_total": 5,
+            },
             financial_planning_score=68,
             financial_planning_details={"completeness": 0.70},
             team_strength_score=65,
@@ -572,9 +565,7 @@ class TestSignalScoreCalculation:
         body = resp.json()
         assert 0 <= body["overall_score"] <= 100
 
-    async def test_gaps_endpoint_returns_recommendations(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_gaps_endpoint_returns_recommendations(self, db: AsyncSession, seeded: dict):
         project_id = seeded["project_id"]
         score = SignalScore(
             project_id=project_id,
@@ -620,9 +611,7 @@ class TestSignalScoreCalculation:
         gap = body["items"][0]
         assert "recommendation" in gap
 
-    async def test_live_score_is_instant_and_deterministic(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_live_score_is_instant_and_deterministic(self, db: AsyncSession, seeded: dict):
         """Live score is metadata-only — no AI, should return immediately."""
         project_id = seeded["project_id"]
 
@@ -678,6 +667,7 @@ class TestSignalScoreCalculation:
 
 
 # ── Scenario 3: Deal Screening ────────────────────────────────────────────
+
 
 class TestDealScreening:
     """
@@ -757,9 +747,7 @@ class TestDealScreening:
         # Verify descending order
         assert scores == sorted(scores, reverse=True)
 
-    async def test_good_fit_scores_higher_than_poor_fit(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_good_fit_scores_higher_than_poor_fit(self, db: AsyncSession, seeded: dict):
         """Solar/Mexico project must score higher than DeFi/concept project."""
         projects = seeded["projects"]
         good_id = str(projects[0].id)
@@ -778,6 +766,7 @@ class TestDealScreening:
 
 # ── Scenario 4: Ralph AI Conversation ─────────────────────────────────────
 
+
 class TestRalphAIConversation:
     """
     Multi-turn conversation: start → ask signal score (tool call logged) →
@@ -785,9 +774,7 @@ class TestRalphAIConversation:
     """
 
     @pytest.fixture
-    async def seeded(
-        self, db: AsyncSession, ally_user: User, sample_project: Project
-    ):
+    async def seeded(self, db: AsyncSession, ally_user: User, sample_project: Project):
         return {"project_id": sample_project.id}
 
     async def test_create_conversation(self, db: AsyncSession, seeded: dict):
@@ -802,9 +789,7 @@ class TestRalphAIConversation:
         assert "id" in body
         assert body["title"] == "Signal Score Analysis"
 
-    async def test_send_message_calls_get_signal_score_tool(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_send_message_calls_get_signal_score_tool(self, db: AsyncSession, seeded: dict):
         """Ralph must call the get_signal_score tool when asked about a score."""
         project_id = seeded["project_id"]
 
@@ -820,9 +805,7 @@ class TestRalphAIConversation:
         conv_id = conv.id
 
         # Mock process_message to simulate tool call + response
-        async def _mock_process_message(
-            db, conversation_id, user_content, org_id, user_id
-        ):
+        async def _mock_process_message(db, conversation_id, user_content, org_id, user_id):
             user_msg = AIMessage(
                 conversation_id=conversation_id,
                 role=AIMessageRole.USER,
@@ -871,9 +854,7 @@ class TestRalphAIConversation:
             async with await _make_client(ALLY_USER, db) as client:
                 resp = await client.post(
                     f"/v1/ralph/conversations/{conv_id}/message",
-                    json={
-                        "content": f"What is the Signal Score for project {project_id}?"
-                    },
+                    json={"content": f"What is the Signal Score for project {project_id}?"},
                 )
             app.dependency_overrides.clear()
 
@@ -888,9 +869,7 @@ class TestRalphAIConversation:
         # Response must reference the score
         assert "72" in body["assistant_message"]["content"]
 
-    async def test_multi_turn_conversation_coherence(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_multi_turn_conversation_coherence(self, db: AsyncSession, seeded: dict):
         """Second message in same conversation should be coherent with first."""
         conv = AIConversation(
             org_id=ALLY_ORG_ID,
@@ -904,9 +883,7 @@ class TestRalphAIConversation:
 
         messages_sent = []
 
-        async def _mock_process(
-            db, conversation_id, user_content, org_id, user_id
-        ):
+        async def _mock_process(db, conversation_id, user_content, org_id, user_id):
             messages_sent.append(user_content)
             user_msg = AIMessage(
                 conversation_id=conversation_id,
@@ -992,6 +969,7 @@ class TestRalphAIConversation:
 
 # ── Scenario 5: Valuation + Report Generation ─────────────────────────────
 
+
 class TestValuationAndReporting:
     """
     Financial data → DCF valuation (deterministic) → generate report (mocked Celery).
@@ -1010,7 +988,28 @@ class TestValuationAndReporting:
             "method": "dcf",
             "currency": "USD",
             "dcf_params": {
-                "cash_flows": [3240000.0, 3304800.0, 3370896.0, 3438313.92, 3507080.2, 3577221.8, 3648766.2, 3721741.5, 3796176.3, 3872099.8, 3949541.8, 4028532.6, 4109103.3, 4191285.4, 4275111.1, 4360613.3, 4447825.6, 4536782.1, 4627517.7, 4720068.1],
+                "cash_flows": [
+                    3240000.0,
+                    3304800.0,
+                    3370896.0,
+                    3438313.92,
+                    3507080.2,
+                    3577221.8,
+                    3648766.2,
+                    3721741.5,
+                    3796176.3,
+                    3872099.8,
+                    3949541.8,
+                    4028532.6,
+                    4109103.3,
+                    4191285.4,
+                    4275111.1,
+                    4360613.3,
+                    4447825.6,
+                    4536782.1,
+                    4627517.7,
+                    4720068.1,
+                ],
                 "discount_rate": 0.105,
                 "terminal_growth_rate": 0.02,
                 "net_debt": 0.0,
@@ -1028,9 +1027,7 @@ class TestValuationAndReporting:
         assert float(body["enterprise_value"]) > 0
         assert float(body["equity_value"]) > 0
 
-    async def test_dcf_calculation_is_deterministic(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_dcf_calculation_is_deterministic(self, db: AsyncSession, seeded: dict):
         """Same DCF params → same result every time."""
         project_id = seeded["project_id"]
         payload = {
@@ -1038,7 +1035,23 @@ class TestValuationAndReporting:
             "method": "dcf",
             "currency": "USD",
             "dcf_params": {
-                "cash_flows": [1950000.0, 2008500.0, 2068755.0, 2130817.65, 2194742.18, 2200584.84, 2244596.54, 2289488.47, 2335278.24, 2382083.8, 2429725.48, 2478219.99, 2527584.39, 2577836.08, 2628992.8],
+                "cash_flows": [
+                    1950000.0,
+                    2008500.0,
+                    2068755.0,
+                    2130817.65,
+                    2194742.18,
+                    2200584.84,
+                    2244596.54,
+                    2289488.47,
+                    2335278.24,
+                    2382083.8,
+                    2429725.48,
+                    2478219.99,
+                    2527584.39,
+                    2577836.08,
+                    2628992.8,
+                ],
                 "discount_rate": 0.12,
                 "terminal_growth_rate": 0.02,
                 "net_debt": 0.0,
@@ -1053,9 +1066,7 @@ class TestValuationAndReporting:
         assert r1.status_code == r2.status_code == 201
         assert r1.json()["enterprise_value"] == r2.json()["enterprise_value"]
 
-    async def test_valuation_report_queues_celery_task(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_valuation_report_queues_celery_task(self, db: AsyncSession, seeded: dict):
         """POST /valuations/{id}/report → 202 with task queued."""
         project_id = seeded["project_id"]
 
@@ -1087,9 +1098,7 @@ class TestValuationAndReporting:
         assert resp.status_code == 202
         assert mock_task.called
 
-    async def test_list_valuations_filtered_by_project(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_list_valuations_filtered_by_project(self, db: AsyncSession, seeded: dict):
         """GET /valuations?project_id=... returns only this project's valuations."""
         project_id = seeded["project_id"]
 
@@ -1113,7 +1122,11 @@ class TestValuationAndReporting:
         app.dependency_overrides.clear()
 
         assert list_resp.status_code == 200
-        items = list_resp.json() if isinstance(list_resp.json(), list) else list_resp.json().get("items", [])
+        items = (
+            list_resp.json()
+            if isinstance(list_resp.json(), list)
+            else list_resp.json().get("items", [])
+        )
         assert len(items) >= 2
         for item in items:
             assert item["project_id"] == str(project_id)
@@ -1121,15 +1134,14 @@ class TestValuationAndReporting:
 
 # ── Scenario 6: Matching Pipeline ─────────────────────────────────────────
 
+
 class TestMatchingPipeline:
     """
     5 investor mandates × 5 projects → batch match → verify ordering.
     """
 
     @pytest.fixture
-    async def seeded(
-        self, db: AsyncSession, ally_user: User, investor_user: User
-    ):
+    async def seeded(self, db: AsyncSession, ally_user: User, investor_user: User):
         project_configs = [
             ("Solar Farm A", ProjectType.SOLAR, "Mexico", Decimal("15000000")),
             ("Wind Park B", ProjectType.WIND, "USA", Decimal("25000000")),
@@ -1155,11 +1167,35 @@ class TestMatchingPipeline:
             projects.append(p)
 
         mandate_configs = [
-            ("Clean Energy Americas", ["solar", "wind"], ["Mexico", "USA", "Canada"], Decimal("5000000"), Decimal("30000000")),
-            ("Pan-American Renewables", ["solar", "wind", "hydro"], ["USA", "Canada", "Mexico"], Decimal("10000000"), Decimal("50000000")),
+            (
+                "Clean Energy Americas",
+                ["solar", "wind"],
+                ["Mexico", "USA", "Canada"],
+                Decimal("5000000"),
+                Decimal("30000000"),
+            ),
+            (
+                "Pan-American Renewables",
+                ["solar", "wind", "hydro"],
+                ["USA", "Canada", "Mexico"],
+                Decimal("10000000"),
+                Decimal("50000000"),
+            ),
             ("Hydro Focus", ["hydro"], ["Canada"], Decimal("20000000"), Decimal("60000000")),
-            ("Latam Biomass", ["biomass"], ["Mexico", "Brazil"], Decimal("5000000"), Decimal("20000000")),
-            ("Global PE", ["private_equity"], ["USA", "Brazil", "Mexico"], Decimal("5000000"), Decimal("15000000")),
+            (
+                "Latam Biomass",
+                ["biomass"],
+                ["Mexico", "Brazil"],
+                Decimal("5000000"),
+                Decimal("20000000"),
+            ),
+            (
+                "Global PE",
+                ["private_equity"],
+                ["USA", "Brazil", "Mexico"],
+                Decimal("5000000"),
+                Decimal("15000000"),
+            ),
         ]
         mandates = []
         for name, sectors, geos, min_t, max_t in mandate_configs:
@@ -1180,9 +1216,7 @@ class TestMatchingPipeline:
         await db.flush()
         return {"projects": projects, "mandates": mandates}
 
-    async def test_investor_recommendations_return_results(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_investor_recommendations_return_results(self, db: AsyncSession, seeded: dict):
         async with await _make_client(INVESTOR_USER, db) as client:
             resp = await client.get("/v1/matching/investor/recommendations")
         app.dependency_overrides.clear()
@@ -1192,9 +1226,7 @@ class TestMatchingPipeline:
         recs = body.get("items", [])
         assert len(recs) >= 1
 
-    async def test_recommendations_ordered_descending(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_recommendations_ordered_descending(self, db: AsyncSession, seeded: dict):
         async with await _make_client(INVESTOR_USER, db) as client:
             resp = await client.get("/v1/matching/investor/recommendations")
         app.dependency_overrides.clear()
@@ -1203,9 +1235,7 @@ class TestMatchingPipeline:
         scores = [r["alignment"]["overall"] for r in recs if "alignment" in r]
         assert scores == sorted(scores, reverse=True), "Recs must be ordered best-first"
 
-    async def test_ally_can_see_matching_investors(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_ally_can_see_matching_investors(self, db: AsyncSession, seeded: dict):
         """Ally can view which investors match their project."""
         project = seeded["projects"][0]  # Solar Farm A
 
@@ -1215,9 +1245,7 @@ class TestMatchingPipeline:
 
         assert resp.status_code == 200
 
-    async def test_express_interest_creates_match_record(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_express_interest_creates_match_record(self, db: AsyncSession, seeded: dict):
         """Investor can express interest in a project."""
         project = seeded["projects"][0]
 
@@ -1240,14 +1268,13 @@ class TestMatchingPipeline:
 
         assert resp.status_code in (200, 201)
         # Match status should be updated
-        result = await db.execute(
-            select(MatchResult).where(MatchResult.id == match.id)
-        )
+        result = await db.execute(select(MatchResult).where(MatchResult.id == match.id))
         updated = result.scalar_one()
         assert updated.status == MatchStatus.INTERESTED
 
 
 # ── Scenario 7: End-to-End Ally Journey ───────────────────────────────────
+
 
 class TestEndToEndAllyJourney:
     """
@@ -1290,9 +1317,7 @@ class TestEndToEndAllyJourney:
             assert 0 <= live_score <= 100
 
             # 3. Trigger full signal score (mocked Celery)
-            with patch(
-                "app.modules.signal_score.tasks.calculate_signal_score_task.delay"
-            ):
+            with patch("app.modules.signal_score.tasks.calculate_signal_score_task.delay"):
                 calc_resp = await client.post(f"/v1/signal-score/calculate/{project_id}")
             assert calc_resp.status_code == 202
 
@@ -1309,17 +1334,21 @@ class TestEndToEndAllyJourney:
             esg_score=72,
             market_opportunity_score=68,
             scoring_details={"dimensions": {}},
-            gaps={"items": [{
-                "dimension_id": "financial_planning",
-                "dimension_name": "Financial Planning",
-                "criterion_id": "financial_projections",
-                "criterion_name": "Financial Projections",
-                "current_score": 0,
-                "max_points": 20,
-                "priority": "high",
-                "recommendation": "Upload financial projections",
-                "relevant_doc_types": ["financial_model"],
-            }]},
+            gaps={
+                "items": [
+                    {
+                        "dimension_id": "financial_planning",
+                        "dimension_name": "Financial Planning",
+                        "criterion_id": "financial_projections",
+                        "criterion_name": "Financial Projections",
+                        "current_score": 0,
+                        "max_points": 20,
+                        "priority": "high",
+                        "recommendation": "Upload financial projections",
+                        "relevant_doc_types": ["financial_model"],
+                    }
+                ]
+            },
             model_used="claude-sonnet-4-20250514",
             version=1,
             is_live=True,
@@ -1340,18 +1369,15 @@ class TestEndToEndAllyJourney:
 
             # 7. Find matching investors
             # Project must be published first — update it
-            await client.put(
-                f"/v1/projects/{project_id}", json={"is_published": True}
-            )
-            match_resp = await client.get(
-                f"/v1/matching/ally/recommendations/{project_id}"
-            )
+            await client.put(f"/v1/projects/{project_id}", json={"is_published": True})
+            match_resp = await client.get(f"/v1/matching/ally/recommendations/{project_id}")
             assert match_resp.status_code == 200
 
         app.dependency_overrides.clear()
 
 
 # ── Scenario 8: End-to-End Investor Journey ───────────────────────────────
+
 
 class TestEndToEndInvestorJourney:
     """
@@ -1409,13 +1435,11 @@ class TestEndToEndInvestorJourney:
                 "app.modules.investor_signal_score.engine.InvestorSignalScoreEngine.calculate"
             ) as mock_calc:
                 from app.modules.investor_signal_score.engine import (
-                    DIMENSION_WEIGHTS,
                     CriterionResult,
                     DimensionResult,
                     EngineResult,
-                    ImprovementAction,
-                    ScoreFactorItem,
                 )
+
                 # Build a realistic mock EngineResult
                 def _make_dim(score):
                     return DimensionResult(
@@ -1432,7 +1456,14 @@ class TestEndToEndInvestorJourney:
                         ],
                         gaps=[],
                         recommendations=[],
-                        details={"criteria_met": 1, "criteria_total": 1, "points_earned": int(score * 0.2), "points_max": 20, "icon": "DollarSign", "description": "Test dimension"},
+                        details={
+                            "criteria_met": 1,
+                            "criteria_total": 1,
+                            "points_earned": int(score * 0.2),
+                            "points_max": 20,
+                            "icon": "DollarSign",
+                            "description": "Test dimension",
+                        },
                     )
 
                 mock_calc.return_value = EngineResult(
@@ -1449,7 +1480,14 @@ class TestEndToEndInvestorJourney:
                     recommendations=[],
                     improvement_actions=[],
                     score_factors=[],
-                    data_sources={"portfolios": 1, "mandates": 1, "holdings": 1, "risk_assessments": 0, "personas": 0, "users": 1},
+                    data_sources={
+                        "portfolios": 1,
+                        "mandates": 1,
+                        "holdings": 1,
+                        "risk_assessments": 0,
+                        "personas": 0,
+                        "users": 1,
+                    },
                 )
 
                 score_resp = await client.post("/v1/investor-signal-score/calculate")
@@ -1461,6 +1499,7 @@ class TestEndToEndInvestorJourney:
 
 
 # ── Scenario 9: Investor Signal Score ─────────────────────────────────────
+
 
 class TestInvestorSignalScore:
     """
@@ -1497,9 +1536,7 @@ class TestInvestorSignalScore:
         app.dependency_overrides.clear()
         assert resp.status_code == 404
 
-    async def test_calculate_returns_6_dimensions(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_calculate_returns_6_dimensions(self, db: AsyncSession, seeded: dict):
         from app.modules.investor_signal_score.engine import (
             CriterionResult,
             DimensionResult,
@@ -1539,7 +1576,14 @@ class TestInvestorSignalScore:
             recommendations=["Enhance team_experience"],
             improvement_actions=[],
             score_factors=[],
-            data_sources={"portfolios": 1, "mandates": 1, "holdings": 1, "risk_assessments": 0, "personas": 0, "users": 1},
+            data_sources={
+                "portfolios": 1,
+                "mandates": 1,
+                "holdings": 1,
+                "risk_assessments": 0,
+                "personas": 0,
+                "users": 1,
+            },
         )
 
         with patch(
@@ -1566,9 +1610,7 @@ class TestInvestorSignalScore:
             assert dim_key in body, f"Missing dimension: {dim_key}"
             assert 0 <= body[dim_key]["score"] <= 100
 
-    async def test_improvement_plan_returns_actions(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_improvement_plan_returns_actions(self, db: AsyncSession, seeded: dict):
         """Seed a score with improvement_actions; verify plan endpoint."""
         from app.models.advisory import InvestorSignalScore as ISS
 
@@ -1576,21 +1618,76 @@ class TestInvestorSignalScore:
             org_id=INVESTOR_ORG_ID,
             overall_score=Decimal("62.0"),
             financial_capacity_score=Decimal("80"),
-            financial_capacity_details={"criteria_met": 3, "criteria_total": 5, "points_earned": 50, "points_max": 85, "icon": "DollarSign", "description": "Test", "criteria": []},
+            financial_capacity_details={
+                "criteria_met": 3,
+                "criteria_total": 5,
+                "points_earned": 50,
+                "points_max": 85,
+                "icon": "DollarSign",
+                "description": "Test",
+                "criteria": [],
+            },
             risk_management_score=Decimal("55"),
-            risk_management_details={"criteria_met": 2, "criteria_total": 7, "points_earned": 35, "points_max": 100, "icon": "ShieldCheck", "description": "Test", "criteria": []},
+            risk_management_details={
+                "criteria_met": 2,
+                "criteria_total": 7,
+                "points_earned": 35,
+                "points_max": 100,
+                "icon": "ShieldCheck",
+                "description": "Test",
+                "criteria": [],
+            },
             investment_strategy_score=Decimal("70"),
-            investment_strategy_details={"criteria_met": 4, "criteria_total": 7, "points_earned": 65, "points_max": 100, "icon": "Target", "description": "Test", "criteria": []},
+            investment_strategy_details={
+                "criteria_met": 4,
+                "criteria_total": 7,
+                "points_earned": 65,
+                "points_max": 100,
+                "icon": "Target",
+                "description": "Test",
+                "criteria": [],
+            },
             team_experience_score=Decimal("50"),
-            team_experience_details={"criteria_met": 2, "criteria_total": 8, "points_earned": 35, "points_max": 100, "icon": "Users", "description": "Test", "criteria": []},
+            team_experience_details={
+                "criteria_met": 2,
+                "criteria_total": 8,
+                "points_earned": 35,
+                "points_max": 100,
+                "icon": "Users",
+                "description": "Test",
+                "criteria": [],
+            },
             esg_commitment_score=Decimal("65"),
-            esg_commitment_details={"criteria_met": 3, "criteria_total": 6, "points_earned": 55, "points_max": 100, "icon": "Leaf", "description": "Test", "criteria": []},
+            esg_commitment_details={
+                "criteria_met": 3,
+                "criteria_total": 6,
+                "points_earned": 55,
+                "points_max": 100,
+                "icon": "Leaf",
+                "description": "Test",
+                "criteria": [],
+            },
             platform_readiness_score=Decimal("60"),
-            platform_readiness_details={"criteria_met": 3, "criteria_total": 7, "points_earned": 55, "points_max": 100, "icon": "BarChart3", "description": "Test", "criteria": []},
+            platform_readiness_details={
+                "criteria_met": 3,
+                "criteria_total": 7,
+                "points_earned": 55,
+                "points_max": 100,
+                "icon": "BarChart3",
+                "description": "Test",
+                "criteria": [],
+            },
             gaps={"financial_capacity": [], "risk_management": ["Upload risk policy"]},
             recommendations={"risk_management": ["Add risk policy document"]},
             score_factors={
-                "dimension_weights": {"financial_capacity": 0.20, "risk_management": 0.20, "investment_strategy": 0.15, "team_experience": 0.15, "esg_commitment": 0.15, "platform_readiness": 0.15},
+                "dimension_weights": {
+                    "financial_capacity": 0.20,
+                    "risk_management": 0.20,
+                    "investment_strategy": 0.15,
+                    "team_experience": 0.15,
+                    "esg_commitment": 0.15,
+                    "platform_readiness": 0.15,
+                },
                 "improvement_actions": [
                     {
                         "title": "Written Risk Policy",
@@ -1658,15 +1755,14 @@ class TestInvestorSignalScore:
 
 # ── Scenario 10: Live Scoring ─────────────────────────────────────────────
 
+
 class TestLiveScoring:
     """
     Live score is metadata-only (no AI). Verify it reflects project completeness.
     Simulate an update → verify score improves.
     """
 
-    async def test_live_score_improves_with_completeness(
-        self, db: AsyncSession, ally_user: User
-    ):
+    async def test_live_score_improves_with_completeness(self, db: AsyncSession, ally_user: User):
         """A minimal project scores lower than a fully-specified one."""
         # Minimal project
         minimal = Project(
@@ -1694,7 +1790,8 @@ class TestLiveScoring:
             target_close_date=date(2026, 6, 30),
             is_published=True,
             cover_image_url="https://example.com/cover.jpg",
-            description="This is a comprehensive project description with full details about the investment opportunity and risk profile." * 5,
+            description="This is a comprehensive project description with full details about the investment opportunity and risk profile."
+            * 5,
         )
         db.add(full)
         await db.flush()
@@ -1711,6 +1808,7 @@ class TestLiveScoring:
 
 # ── Scenario 11: Board Advisor ─────────────────────────────────────────────
 
+
 class TestBoardAdvisor:
     """Board advisor search and application flow."""
 
@@ -1720,9 +1818,7 @@ class TestBoardAdvisor:
         app.dependency_overrides.clear()
         assert resp.status_code == 200
 
-    async def test_create_advisor_profile(
-        self, db: AsyncSession, investor_user: User
-    ):
+    async def test_create_advisor_profile(self, db: AsyncSession, investor_user: User):
         async with await _make_client(INVESTOR_USER, db) as client:
             resp = await client.post(
                 "/v1/board-advisors/my-profile",
@@ -1746,9 +1842,7 @@ class TestBoardAdvisor:
         app.dependency_overrides.clear()
         assert resp.status_code in (200, 201)
 
-    async def test_search_advisors_by_sector(
-        self, db: AsyncSession, ally_user: User
-    ):
+    async def test_search_advisors_by_sector(self, db: AsyncSession, ally_user: User):
         async with await _make_client(ALLY_USER, db) as client:
             resp = await client.get("/v1/board-advisors/search?expertise=solar")
         app.dependency_overrides.clear()
@@ -1756,6 +1850,7 @@ class TestBoardAdvisor:
 
 
 # ── Scenario 12: Investor Personas ────────────────────────────────────────
+
 
 class TestInvestorPersonas:
     """Create an investor persona and verify it matches projects correctly."""
@@ -1808,6 +1903,7 @@ class TestInvestorPersonas:
 
 # ── Scenario 13: Equity Calculator ────────────────────────────────────────
 
+
 class TestEquityCalculator:
     """Deterministic equity and waterfall calculations."""
 
@@ -1815,9 +1911,7 @@ class TestEquityCalculator:
     async def seeded(self, db: AsyncSession, ally_user: User, sample_project: Project):
         return {"project_id": sample_project.id}
 
-    async def test_equity_scenario_calculation(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_equity_scenario_calculation(self, db: AsyncSession, seeded: dict):
         """POST /equity-calculator/scenarios → verify deterministic output."""
         project_id = seeded["project_id"]
 
@@ -1843,9 +1937,7 @@ class TestEquityCalculator:
         # Waterfall should have results for each exit value
         assert "waterfall" in body or "results" in body
 
-    async def test_waterfall_at_5_exit_multiples(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_waterfall_at_5_exit_multiples(self, db: AsyncSession, seeded: dict):
         """Verify waterfall produces 5 results for 5 exit values."""
         project_id = seeded["project_id"]
 
@@ -1871,6 +1963,7 @@ class TestEquityCalculator:
 
 
 # ── Scenario 14: Capital Efficiency ───────────────────────────────────────
+
 
 class TestCapitalEfficiency:
     """Capital efficiency metrics and industry benchmark comparison."""
@@ -1903,9 +1996,7 @@ class TestCapitalEfficiency:
         await db.flush()
         return {"portfolio_id": sample_portfolio.id}
 
-    async def test_capital_efficiency_metrics(
-        self, db: AsyncSession, seeded: dict
-    ):
+    async def test_capital_efficiency_metrics(self, db: AsyncSession, seeded: dict):
         portfolio_id = seeded["portfolio_id"]
 
         async with await _make_client(INVESTOR_USER, db) as client:
@@ -1915,10 +2006,19 @@ class TestCapitalEfficiency:
         assert resp.status_code == 200
         body = resp.json()
         # Should return key efficiency metrics
-        assert any(k in body for k in ["platform_efficiency_score", "total_savings", "due_diligence_savings", "efficiency_score"])
+        assert any(
+            k in body
+            for k in [
+                "platform_efficiency_score",
+                "total_savings",
+                "due_diligence_savings",
+                "efficiency_score",
+            ]
+        )
 
 
 # ── Scenario 15: Risk Monitoring (stub) ───────────────────────────────────
+
 
 class TestRiskMonitoring:
     """
@@ -1943,6 +2043,7 @@ class TestRiskMonitoring:
 
 
 # ── Scenario 16: Insurance Both Sides (stub) ──────────────────────────────
+
 
 class TestInsuranceBothSides:
     """
@@ -1974,6 +2075,7 @@ class TestInsuranceBothSides:
 
 
 # ── Cross-cutting: Multi-tenant isolation ─────────────────────────────────
+
 
 class TestMultiTenantIsolation:
     """
@@ -2071,6 +2173,7 @@ class TestMultiTenantIsolation:
 
 # ── Cross-cutting: RBAC enforcement ───────────────────────────────────────
 
+
 class TestRBACEnforcement:
     """Verify RBAC prevents under-privileged users from triggering calculations."""
 
@@ -2087,9 +2190,7 @@ class TestRBACEnforcement:
 
         with patch("app.modules.signal_score.tasks.calculate_signal_score_task.delay"):
             async with await _make_client(viewer, db) as client:
-                resp = await client.post(
-                    f"/v1/signal-score/calculate/{sample_project.id}"
-                )
+                resp = await client.post(f"/v1/signal-score/calculate/{sample_project.id}")
             app.dependency_overrides.clear()
 
         assert resp.status_code == 403
@@ -2099,16 +2200,12 @@ class TestRBACEnforcement:
     ):
         with patch("app.modules.signal_score.tasks.calculate_signal_score_task.delay"):
             async with await _make_client(ALLY_USER, db) as client:
-                resp = await client.post(
-                    f"/v1/signal-score/calculate/{sample_project.id}"
-                )
+                resp = await client.post(f"/v1/signal-score/calculate/{sample_project.id}")
             app.dependency_overrides.clear()
 
         assert resp.status_code == 202
 
-    async def test_viewer_cannot_delete_ralph_conversation(
-        self, db: AsyncSession, ally_user: User
-    ):
+    async def test_viewer_cannot_delete_ralph_conversation(self, db: AsyncSession, ally_user: User):
         conv = AIConversation(
             org_id=ALLY_ORG_ID,
             user_id=ALLY_USER_ID,

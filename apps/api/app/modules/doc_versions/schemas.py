@@ -49,6 +49,7 @@ class CompareVersionsResponse(BaseModel):
 
 class CreateVersionRequest(BaseModel):
     """Body for creating a new version record (after file has been uploaded to S3)."""
+
     s3_key: str
     file_size_bytes: int | None = None
     checksum_sha256: str | None = None

@@ -38,14 +38,18 @@ def _safe_dict(obj: Any) -> dict[str, Any] | None:
 
 async def _get_project(db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID) -> Any:
     from app.models.projects import Project
+
     result = await db.execute(
-        select(Project).where(Project.id == project_id, Project.org_id == org_id, Project.is_deleted == False)
+        select(Project).where(
+            Project.id == project_id, Project.org_id == org_id, Project.is_deleted is False
+        )
     )
     return result.scalar_one_or_none()
 
 
 async def _get_signal_score(db: AsyncSession, project_id: uuid.UUID) -> Any:
     from app.models.projects import SignalScore
+
     result = await db.execute(
         select(SignalScore)
         .where(SignalScore.project_id == project_id)
@@ -57,6 +61,7 @@ async def _get_signal_score(db: AsyncSession, project_id: uuid.UUID) -> Any:
 
 async def _get_risk_summary(db: AsyncSession, project_id: uuid.UUID) -> Any:
     from app.models.investors import RiskAssessment
+
     result = await db.execute(
         select(RiskAssessment)
         .where(RiskAssessment.project_id == project_id)
@@ -68,6 +73,7 @@ async def _get_risk_summary(db: AsyncSession, project_id: uuid.UUID) -> Any:
 
 async def _get_dd_status(db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID) -> Any:
     from app.models.due_diligence import DDProjectChecklist
+
     result = await db.execute(
         select(DDProjectChecklist)
         .where(DDProjectChecklist.project_id == project_id, DDProjectChecklist.org_id == org_id)
@@ -79,11 +85,13 @@ async def _get_dd_status(db: AsyncSession, project_id: uuid.UUID, org_id: uuid.U
 
 async def _get_doc_count(db: AsyncSession, project_id: uuid.UUID) -> int:
     from sqlalchemy import func
+
     from app.models.dataroom import Document
+
     result = await db.execute(
         select(func.count(Document.id)).where(
             Document.project_id == project_id,
-            Document.is_deleted == False,
+            Document.is_deleted is False,
         )
     )
     return result.scalar_one() or 0
@@ -119,14 +127,19 @@ async def _ai_generate_briefing(
     if db is not None:
         try:
             from app.services.prompt_registry import PromptRegistry
+
             _reg = PromptRegistry(db)
             _registry_messages, _template_id, _ = await _reg.render(
                 "meeting_preparation",
                 {
                     "meeting_type": meeting_type,
                     "project_name": getattr(project, "name", "") if project else "",
-                    "project_type": getattr(project, "project_type", {}).value if project and hasattr(getattr(project, "project_type", None), "value") else "",
-                    "signal_score": str(getattr(signal_score, "overall_score", "N/A")) if signal_score else "N/A",
+                    "project_type": getattr(project, "project_type", {}).value
+                    if project and hasattr(getattr(project, "project_type", None), "value")
+                    else "",
+                    "signal_score": str(getattr(signal_score, "overall_score", "N/A"))
+                    if signal_score
+                    else "N/A",
                     "document_count": str(doc_count),
                     "has_previous_meeting": str(previous_meeting_date is not None),
                 },
@@ -154,6 +167,7 @@ async def _ai_generate_briefing(
         if _template_id and db is not None:
             try:
                 from app.services.prompt_registry import PromptRegistry
+
                 await PromptRegistry(db).update_quality_metrics(_template_id, 1.0)
             except Exception:
                 pass
@@ -201,6 +215,7 @@ async def generate_briefing(
     previous_meeting_date: date | None = None,
 ) -> MeetingBriefing:
     """Aggregate all module data and generate an AI briefing."""
+
     # Sequential awaits — asyncio.gather shares the DB connection which breaks
     # under NullPool (tests) and causes issues with some async drivers.
     async def _try(coro: Any) -> Any:
@@ -247,22 +262,28 @@ async def list_briefings(
     org_id: uuid.UUID,
     project_id: uuid.UUID | None = None,
 ) -> list[MeetingBriefing]:
-    stmt = select(MeetingBriefing).where(
-        MeetingBriefing.org_id == org_id,
-        MeetingBriefing.is_deleted == False,
-    ).order_by(MeetingBriefing.created_at.desc())
+    stmt = (
+        select(MeetingBriefing)
+        .where(
+            MeetingBriefing.org_id == org_id,
+            MeetingBriefing.is_deleted is False,
+        )
+        .order_by(MeetingBriefing.created_at.desc())
+    )
     if project_id:
         stmt = stmt.where(MeetingBriefing.project_id == project_id)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
-async def get_briefing(db: AsyncSession, briefing_id: uuid.UUID, org_id: uuid.UUID) -> MeetingBriefing | None:
+async def get_briefing(
+    db: AsyncSession, briefing_id: uuid.UUID, org_id: uuid.UUID
+) -> MeetingBriefing | None:
     result = await db.execute(
         select(MeetingBriefing).where(
             MeetingBriefing.id == briefing_id,
             MeetingBriefing.org_id == org_id,
-            MeetingBriefing.is_deleted == False,
+            MeetingBriefing.is_deleted is False,
         )
     )
     return result.scalar_one_or_none()

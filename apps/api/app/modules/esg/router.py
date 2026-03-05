@@ -6,7 +6,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db
 from app.modules.esg import service
 from app.modules.esg.schemas import (
@@ -48,9 +48,7 @@ async def export_portfolio_csv(
     db: AsyncSession = Depends(get_db),
 ):
     """Export ESG portfolio data as CSV."""
-    csv_content = await service.export_portfolio_csv(
-        db, current_user.org_id, period=period
-    )
+    csv_content = await service.export_portfolio_csv(db, current_user.org_id, period=period)
     filename = f"esg-portfolio{f'-{period}' if period else ''}.csv"
     return Response(
         content=csv_content,
@@ -72,9 +70,7 @@ async def get_project_metrics(
     db: AsyncSession = Depends(get_db),
 ):
     """Return full ESG metrics history for a project."""
-    records = await service.get_project_esg_metrics(
-        db, project_id, current_user.org_id
-    )
+    records = await service.get_project_esg_metrics(db, project_id, current_user.org_id)
     return ESGMetricsHistoryResponse(project_id=project_id, records=records)
 
 
@@ -91,9 +87,7 @@ async def upsert_project_metrics(
 ):
     """Create or update ESG metrics for a project period."""
     try:
-        metrics = await service.upsert_esg_metrics(
-            db, project_id, current_user.org_id, body
-        )
+        metrics = await service.upsert_esg_metrics(db, project_id, current_user.org_id, body)
         await db.commit()
         await db.refresh(metrics)
     except Exception as exc:
@@ -101,5 +95,5 @@ async def upsert_project_metrics(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to save ESG metrics.",
-        )
+        ) from exc
     return service._to_response(metrics)

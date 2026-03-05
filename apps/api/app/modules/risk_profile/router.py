@@ -1,9 +1,7 @@
 """Investor Risk Profile API."""
 
-import uuid
-
 import structlog
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,9 +26,7 @@ async def submit_assessment(
     answers = body.model_dump()
     scores = calculate_risk_scores(answers)
 
-    stmt = select(InvestorRiskProfile).where(
-        InvestorRiskProfile.user_id == current_user.user_id
-    )
+    stmt = select(InvestorRiskProfile).where(InvestorRiskProfile.user_id == current_user.user_id)
     result = await db.execute(stmt)
     profile = result.scalar_one_or_none()
 
@@ -71,9 +67,7 @@ async def get_my_profile(
     db: AsyncSession = Depends(get_db),
 ) -> RiskProfileResponse:
     """Get current user's risk profile."""
-    stmt = select(InvestorRiskProfile).where(
-        InvestorRiskProfile.user_id == current_user.user_id
-    )
+    stmt = select(InvestorRiskProfile).where(InvestorRiskProfile.user_id == current_user.user_id)
     result = await db.execute(stmt)
     profile = result.scalar_one_or_none()
 

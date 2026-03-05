@@ -1,5 +1,7 @@
 """Alley-side Risk service — project holder view of project risks."""
+
 from __future__ import annotations
+
 import uuid
 
 import structlog
@@ -7,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.middleware.tenant import tenant_filter
-from app.models.projects import Project, SignalScore
 from app.models.alley import RiskMitigationStatus
+from app.models.projects import Project, SignalScore
 from app.modules.alley.risk.schemas import (
     DomainRiskItem,
     DomainRiskResponse,
@@ -45,7 +47,7 @@ def _extract_risks_from_score(score: SignalScore) -> list[dict]:
     item_id = 1
     for dim in risk_dims:
         dim_gaps = gaps.get(dim, []) if isinstance(gaps, dict) else []
-        for gap in (dim_gaps if isinstance(dim_gaps, list) else []):
+        for gap in dim_gaps if isinstance(dim_gaps, list) else []:
             if isinstance(gap, dict):
                 severity = "high" if gap.get("priority") in ("critical", "high") else "medium"
                 # Map to canonical domains
@@ -54,14 +56,16 @@ def _extract_risks_from_score(score: SignalScore) -> list[dict]:
                     "regulatory": "regulatory",
                     "esg": "esg",
                 }.get(dim, dim)
-                risks.append({
-                    "id": uuid.uuid5(score.project_id, f"{dim}_{item_id}"),
-                    "title": gap.get("criterion_name", f"Risk {item_id}"),
-                    "description": gap.get("recommendation", ""),
-                    "severity": severity,
-                    "dimension": canonical,
-                    "source": "auto",
-                })
+                risks.append(
+                    {
+                        "id": uuid.uuid5(score.project_id, f"{dim}_{item_id}"),
+                        "title": gap.get("criterion_name", f"Risk {item_id}"),
+                        "description": gap.get("recommendation", ""),
+                        "severity": severity,
+                        "dimension": canonical,
+                        "source": "auto",
+                    }
+                )
                 item_id += 1
 
     # If no gaps, synthesise from dimension scores
@@ -76,14 +80,16 @@ def _extract_risks_from_score(score: SignalScore) -> list[dict]:
         for dim_name, dim_score in dim_map.items():
             if dim_score is not None and dim_score < 60:
                 severity = "critical" if dim_score < 40 else "high" if dim_score < 50 else "medium"
-                risks.append({
-                    "id": uuid.uuid5(score.project_id, dim_name),
-                    "title": f"{dim_name.replace('_', ' ').title()} Risk",
-                    "description": f"Score of {dim_score}/100 indicates areas requiring attention",
-                    "severity": severity,
-                    "dimension": dim_name,
-                    "source": "auto",
-                })
+                risks.append(
+                    {
+                        "id": uuid.uuid5(score.project_id, dim_name),
+                        "title": f"{dim_name.replace('_', ' ').title()} Risk",
+                        "description": f"Score of {dim_score}/100 indicates areas requiring attention",
+                        "severity": severity,
+                        "dimension": dim_name,
+                        "source": "auto",
+                    }
+                )
     return risks
 
 
@@ -160,23 +166,26 @@ async def list_risk_summaries(db: AsyncSession, org_id: uuid.UUID) -> RiskListRe
         risk_score = _calculate_risk_score(risks, mitigation_map)
         portfolio_risk_scores.append(risk_score)
 
-        summaries.append(ProjectRiskSummary(
-            project_id=project.id,
-            project_name=project.name,
-            total_risks=total,
-            critical_count=counts.get("critical", 0),
-            high_count=counts.get("high", 0),
-            medium_count=counts.get("medium", 0),
-            low_count=counts.get("low", 0),
-            mitigation_progress_pct=progress,
-            overall_risk_score=risk_score,
-            auto_identified_count=auto_count,
-            logged_count=logged_count,
-        ))
+        summaries.append(
+            ProjectRiskSummary(
+                project_id=project.id,
+                project_name=project.name,
+                total_risks=total,
+                critical_count=counts.get("critical", 0),
+                high_count=counts.get("high", 0),
+                medium_count=counts.get("medium", 0),
+                low_count=counts.get("low", 0),
+                mitigation_progress_pct=progress,
+                overall_risk_score=risk_score,
+                auto_identified_count=auto_count,
+                logged_count=logged_count,
+            )
+        )
 
     portfolio_risk_score = (
         round(sum(portfolio_risk_scores) / len(portfolio_risk_scores), 1)
-        if portfolio_risk_scores else 0.0
+        if portfolio_risk_scores
+        else 0.0
     )
     return RiskListResponse(
         items=summaries,
@@ -211,18 +220,22 @@ async def get_project_risk_detail(
         status = status_rec.status if status_rec else "unaddressed"
         if status in ("mitigated", "accepted"):
             addressed += 1
-        items.append(RiskItemSummary(
-            id=risk["id"],
-            title=risk["title"],
-            description=risk["description"],
-            severity=risk["severity"],
-            dimension=risk["dimension"],
-            mitigation_status=status,
-            guidance=status_rec.guidance if status_rec else None,
-            evidence_document_ids=list(status_rec.evidence_document_ids or []) if status_rec else [],
-            notes=status_rec.notes if status_rec else None,
-            source=risk.get("source", "auto"),
-        ))
+        items.append(
+            RiskItemSummary(
+                id=risk["id"],
+                title=risk["title"],
+                description=risk["description"],
+                severity=risk["severity"],
+                dimension=risk["dimension"],
+                mitigation_status=status,
+                guidance=status_rec.guidance if status_rec else None,
+                evidence_document_ids=list(status_rec.evidence_document_ids or [])
+                if status_rec
+                else [],
+                notes=status_rec.notes if status_rec else None,
+                source=risk.get("source", "auto"),
+            )
+        )
 
     total = len(items)
     risk_score = _calculate_risk_score(risks, mitigation_map)
@@ -285,15 +298,17 @@ async def get_domain_breakdown(db: AsyncSession, org_id: uuid.UUID) -> DomainRis
         n = bucket["n"]
         score = round(bucket["weighted"] / n, 1) if n > 0 else 0.0
         all_scores.append(score)
-        domains.append(DomainRiskItem(
-            domain=dom,
-            risk_score=score,
-            critical_count=bucket.get("critical", 0),
-            high_count=bucket.get("high", 0),
-            medium_count=bucket.get("medium", 0),
-            low_count=bucket.get("low", 0),
-            total=n,
-        ))
+        domains.append(
+            DomainRiskItem(
+                domain=dom,
+                risk_score=score,
+                critical_count=bucket.get("critical", 0),
+                high_count=bucket.get("high", 0),
+                medium_count=bucket.get("medium", 0),
+                low_count=bucket.get("low", 0),
+                total=n,
+            )
+        )
 
     portfolio_score = round(sum(all_scores) / len(all_scores), 1) if all_scores else 0.0
     return DomainRiskResponse(domains=domains, portfolio_risk_score=portfolio_score)
@@ -387,7 +402,7 @@ async def add_evidence(
 async def get_mitigation_progress(
     db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID
 ) -> MitigationProgressResponse:
-    project = await _get_project(db, project_id, org_id)
+    await _get_project(db, project_id, org_id)
     score_result = await db.execute(
         select(SignalScore)
         .where(SignalScore.project_id == project_id)
@@ -397,14 +412,26 @@ async def get_mitigation_progress(
     score = score_result.scalar_one_or_none()
     if not score:
         return MitigationProgressResponse(
-            project_id=project_id, total_risks=0, addressed=0,
-            in_progress=0, mitigated=0, accepted=0, unaddressed=0, progress_pct=0,
+            project_id=project_id,
+            total_risks=0,
+            addressed=0,
+            in_progress=0,
+            mitigated=0,
+            accepted=0,
+            unaddressed=0,
+            progress_pct=0,
         )
 
     risks = _extract_risks_from_score(score)
     mitigation_map = await _get_mitigation_statuses(db, project_id, org_id)
 
-    counts: dict[str, int] = {"acknowledged": 0, "in_progress": 0, "mitigated": 0, "accepted": 0, "unaddressed": 0}
+    counts: dict[str, int] = {
+        "acknowledged": 0,
+        "in_progress": 0,
+        "mitigated": 0,
+        "accepted": 0,
+        "unaddressed": 0,
+    }
     for risk in risks:
         rec = mitigation_map.get(str(risk["id"]))
         status = rec.status if rec else "unaddressed"

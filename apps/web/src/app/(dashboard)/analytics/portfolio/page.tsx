@@ -3,10 +3,7 @@
 import { useState } from "react";
 import {
   BarChart3,
-  Briefcase,
-  DollarSign,
   Loader2,
-  TrendingUp,
 } from "lucide-react";
 import {
   BarChart,
@@ -29,7 +26,6 @@ import {
   useHoldings,
   formatCurrency,
   formatMultiple,
-  formatPercent,
   type AllocationBreakdown,
   type HoldingResponse,
 } from "@/lib/portfolio";

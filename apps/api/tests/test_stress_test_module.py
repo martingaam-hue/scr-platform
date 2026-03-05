@@ -150,9 +150,7 @@ async def st_holding(
 async def st_client(db: AsyncSession, st_user: User) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: ST_CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
@@ -164,9 +162,7 @@ async def st_client(db: AsyncSession, st_user: User) -> AsyncClient:
 class TestStressTestScenarios:
     """Tests for GET /v1/stress-test/scenarios."""
 
-    async def test_list_scenarios_returns_200(
-        self, st_client: AsyncClient, st_user: User
-    ) -> None:
+    async def test_list_scenarios_returns_200(self, st_client: AsyncClient, st_user: User) -> None:
         """GET /v1/stress-test/scenarios returns a non-empty list of scenario objects."""
         resp = await st_client.get("/v1/stress-test/scenarios")
         assert resp.status_code == 200

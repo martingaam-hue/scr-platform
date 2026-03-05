@@ -1,12 +1,11 @@
 """Reporting service: template, generated report, and schedule business logic."""
 
-import math
 import uuid
 
 import boto3
 import structlog
 from botocore.config import Config as BotoConfig
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -88,9 +87,7 @@ async def list_generated_reports(
     page_size: int = 20,
 ) -> tuple[list[GeneratedReport], int]:
     """List generated reports with pagination."""
-    base = select(GeneratedReport).options(
-        selectinload(GeneratedReport.template)
-    )
+    base = select(GeneratedReport).options(selectinload(GeneratedReport.template))
     base = tenant_filter(base, org_id, GeneratedReport)
     base = base.where(GeneratedReport.is_deleted.is_(False))
 

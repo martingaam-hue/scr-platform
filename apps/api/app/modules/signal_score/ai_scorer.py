@@ -60,6 +60,7 @@ class AIScorer:
         if db is not None:
             try:
                 import asyncio
+
                 from app.services.prompt_registry import PromptRegistry
 
                 async def _render() -> tuple:
@@ -205,6 +206,7 @@ Respond ONLY with valid JSON (no markdown, no extra text):
         if template_id and db is not None:
             try:
                 import asyncio
+
                 from app.services.prompt_registry import PromptRegistry
 
                 async def _update() -> None:

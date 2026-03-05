@@ -2,7 +2,6 @@
 
 import uuid
 from datetime import date, datetime
-from typing import Any
 
 from pydantic import BaseModel
 
@@ -40,9 +39,9 @@ class ConstructionPhase(BaseModel):
     phase_name: str
     start_date: date | None
     end_date: date | None
-    completion_pct: float   # 0–100
+    completion_pct: float  # 0–100
     milestones: list[MilestoneResponse]
-    status: str             # not_started, in_progress, completed
+    status: str  # not_started, in_progress, completed
 
 
 class ProcurementItem(BaseModel):
@@ -51,7 +50,7 @@ class ProcurementItem(BaseModel):
     vendor: str | None
     category: str
     estimated_cost_usd: float | None
-    status: str             # pending, rfq_sent, negotiating, contracted, delivered
+    status: str  # pending, rfq_sent, negotiating, contracted, delivered
     delivery_date: date | None
     notes: str | None
 

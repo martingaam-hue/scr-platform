@@ -1,7 +1,9 @@
 """Alley Score Performance (Score Journey) service."""
+
 from __future__ import annotations
+
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 import structlog
@@ -58,15 +60,17 @@ async def list_performance_summaries(
         else:
             trend = "stable"
 
-        items.append(ProjectScorePerformanceSummary(
-            project_id=p.id,
-            project_name=p.name,
-            current_score=last,
-            start_score=first,
-            total_improvement=diff,
-            versions=len(scores),
-            trend=trend,
-        ))
+        items.append(
+            ProjectScorePerformanceSummary(
+                project_id=p.id,
+                project_name=p.name,
+                current_score=last,
+                start_score=first,
+                total_improvement=diff,
+                versions=len(scores),
+                trend=trend,
+            )
+        )
     return items
 
 
@@ -83,12 +87,14 @@ async def get_score_journey(
     journey = []
     for i, s in enumerate(scores):
         prev_score = scores[i - 1].overall_score if i > 0 else s.overall_score
-        journey.append(ScoreJourneyPoint(
-            version=s.version,
-            overall_score=s.overall_score,
-            calculated_at=s.calculated_at,
-            score_change=s.overall_score - prev_score,
-        ))
+        journey.append(
+            ScoreJourneyPoint(
+                version=s.version,
+                overall_score=s.overall_score,
+                calculated_at=s.calculated_at,
+                score_change=s.overall_score - prev_score,
+            )
+        )
 
     total = (scores[-1].overall_score - scores[0].overall_score) if len(scores) > 1 else 0
     return ScoreJourneyResponse(project_id=project_id, journey=journey, total_improvement=total)
@@ -155,13 +161,20 @@ async def get_score_insights(
         async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
                 f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json={"prompt": prompt, "task_type": "alley_score_insights", "max_tokens": 800, "temperature": 0.3},
+                json={
+                    "prompt": prompt,
+                    "task_type": "alley_score_insights",
+                    "max_tokens": 800,
+                    "temperature": 0.3,
+                },
                 headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
             )
         resp.raise_for_status()
-        import json, re
+        import json
+        import re
+
         raw = resp.json().get("content", "")
-        match = re.search(r'\[.*\]', raw, re.DOTALL)
+        match = re.search(r"\[.*\]", raw, re.DOTALL)
         if match:
             data = json.loads(match.group())
             insights = [ScoreInsightItem(**item) for item in data if isinstance(item, dict)]
@@ -179,15 +192,17 @@ async def get_score_insights(
             "market_opportunity": latest.market_opportunity_score,
         }
         for dim, score in sorted(dim_scores.items(), key=lambda x: x[1])[:3]:
-            insights.append(ScoreInsightItem(
-                dimension=dim,
-                insight=f"Your {dim.replace('_', ' ')} score is {score}/100",
-                recommendation=f"Focus on improving {dim.replace('_', ' ')} by uploading relevant documentation",
-                estimated_impact=10,
-            ))
+            insights.append(
+                ScoreInsightItem(
+                    dimension=dim,
+                    insight=f"Your {dim.replace('_', ' ')} score is {score}/100",
+                    recommendation=f"Focus on improving {dim.replace('_', ' ')} by uploading relevant documentation",
+                    estimated_impact=10,
+                )
+            )
 
     return ScoreInsightsResponse(
         project_id=project_id,
         insights=insights,
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )

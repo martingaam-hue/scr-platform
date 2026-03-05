@@ -10,8 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import CarbonVerificationStatus
 from app.models.financial import CarbonCredit
-from app.models.projects import Project, SignalScore
+from app.models.projects import Project
 from app.modules.impact.schemas import (
+    SDG_METADATA,
     AdditionalityResponse,
     CarbonCreditCreateRequest,
     CarbonCreditListResponse,
@@ -23,7 +24,6 @@ from app.modules.impact.schemas import (
     SDGGoal,
     SDGMappingRequest,
     SDGSummary,
-    SDG_METADATA,
 )
 
 logger = structlog.get_logger()
@@ -31,21 +31,61 @@ logger = structlog.get_logger()
 # ── KPI catalogue ─────────────────────────────────────────────────────────────
 
 KPI_CATALOGUE: list[dict] = [
-    {"key": "capacity_mw",             "label": "Installed Capacity",        "unit": "MW",    "category": "energy"},
-    {"key": "energy_output_gwh",       "label": "Annual Energy Output",      "unit": "GWh",   "category": "energy"},
-    {"key": "households_served",       "label": "Households Served",         "unit": "HH",    "category": "energy"},
-    {"key": "co2_reduction_tco2e",     "label": "CO₂ Reduction",             "unit": "tCO₂e", "category": "environment"},
-    {"key": "land_restored_ha",        "label": "Land Restored",             "unit": "ha",    "category": "environment"},
-    {"key": "water_saved_m3",          "label": "Water Saved",               "unit": "m³",    "category": "environment"},
-    {"key": "biodiversity_index",      "label": "Biodiversity Index",        "unit": "score", "category": "environment"},
-    {"key": "jobs_created_direct",     "label": "Direct Jobs Created",       "unit": "jobs",  "category": "social"},
-    {"key": "jobs_created_indirect",   "label": "Indirect Jobs",             "unit": "jobs",  "category": "social"},
-    {"key": "women_employed_pct",      "label": "Women Employed",            "unit": "%",     "category": "social"},
-    {"key": "local_content_pct",       "label": "Local Content",             "unit": "%",     "category": "social"},
-    {"key": "community_fund_usd",      "label": "Community Fund",            "unit": "USD",   "category": "social"},
-    {"key": "tax_revenue_usd",         "label": "Tax Revenue Generated",     "unit": "USD",   "category": "economic"},
-    {"key": "local_procurement_pct",   "label": "Local Procurement",         "unit": "%",     "category": "economic"},
-    {"key": "gdp_contribution_usd",    "label": "GDP Contribution",          "unit": "USD",   "category": "economic"},
+    {"key": "capacity_mw", "label": "Installed Capacity", "unit": "MW", "category": "energy"},
+    {
+        "key": "energy_output_gwh",
+        "label": "Annual Energy Output",
+        "unit": "GWh",
+        "category": "energy",
+    },
+    {"key": "households_served", "label": "Households Served", "unit": "HH", "category": "energy"},
+    {
+        "key": "co2_reduction_tco2e",
+        "label": "CO₂ Reduction",
+        "unit": "tCO₂e",
+        "category": "environment",
+    },
+    {"key": "land_restored_ha", "label": "Land Restored", "unit": "ha", "category": "environment"},
+    {"key": "water_saved_m3", "label": "Water Saved", "unit": "m³", "category": "environment"},
+    {
+        "key": "biodiversity_index",
+        "label": "Biodiversity Index",
+        "unit": "score",
+        "category": "environment",
+    },
+    {
+        "key": "jobs_created_direct",
+        "label": "Direct Jobs Created",
+        "unit": "jobs",
+        "category": "social",
+    },
+    {
+        "key": "jobs_created_indirect",
+        "label": "Indirect Jobs",
+        "unit": "jobs",
+        "category": "social",
+    },
+    {"key": "women_employed_pct", "label": "Women Employed", "unit": "%", "category": "social"},
+    {"key": "local_content_pct", "label": "Local Content", "unit": "%", "category": "social"},
+    {"key": "community_fund_usd", "label": "Community Fund", "unit": "USD", "category": "social"},
+    {
+        "key": "tax_revenue_usd",
+        "label": "Tax Revenue Generated",
+        "unit": "USD",
+        "category": "economic",
+    },
+    {
+        "key": "local_procurement_pct",
+        "label": "Local Procurement",
+        "unit": "%",
+        "category": "economic",
+    },
+    {
+        "key": "gdp_contribution_usd",
+        "label": "GDP Contribution",
+        "unit": "USD",
+        "category": "economic",
+    },
 ]
 
 KPI_MAP = {k["key"]: k for k in KPI_CATALOGUE}
@@ -90,9 +130,7 @@ def _kpis_from_raw(raw_kpis: dict[str, Any], capacity_mw: Decimal | None) -> lis
     return result
 
 
-async def _get_project(
-    db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID
-) -> Project:
+async def _get_project(db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID) -> Project:
     proj = await db.get(Project, project_id)
     if not proj or proj.is_deleted or proj.org_id != org_id:
         raise LookupError(f"Project {project_id} not found")
@@ -123,9 +161,7 @@ async def update_sdg_mapping(
     )
 
 
-async def get_sdg_summary(
-    db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID
-) -> SDGSummary:
+async def get_sdg_summary(db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID) -> SDGSummary:
     proj = await _get_project(db, project_id, org_id)
     tech = _tech(proj)
     goals = _sdg_from_raw(tech.get("sdg_goals", []))
@@ -182,9 +218,7 @@ async def _build_project_impact(proj: Project) -> ProjectImpactResponse:
 # ── Portfolio impact ──────────────────────────────────────────────────────────
 
 
-async def get_portfolio_impact(
-    db: AsyncSession, org_id: uuid.UUID
-) -> PortfolioImpactResponse:
+async def get_portfolio_impact(db: AsyncSession, org_id: uuid.UUID) -> PortfolioImpactResponse:
     result = await db.execute(
         select(Project).where(
             Project.org_id == org_id,
@@ -252,11 +286,7 @@ async def list_carbon_credits(
     credits = list(result.scalars().all())
 
     def tons(status: CarbonVerificationStatus) -> float:
-        return sum(
-            float(c.quantity_tons)
-            for c in credits
-            if c.verification_status == status
-        )
+        return sum(float(c.quantity_tons) for c in credits if c.verification_status == status)
 
     return CarbonCreditListResponse(
         items=[_credit_to_response(c) for c in credits],
@@ -340,14 +370,40 @@ async def update_carbon_credit(
 
 # High-need geographies for private market investment
 _HIGH_NEED_COUNTRIES = {
-    "Nigeria", "Kenya", "Ethiopia", "Tanzania", "Uganda", "Ghana", "Senegal",
-    "Rwanda", "Mozambique", "Zimbabwe", "Bangladesh", "Pakistan", "Nepal",
-    "Cambodia", "Myanmar", "Laos", "Haiti", "Honduras", "Guatemala",
-    "Bolivia", "Peru", "Colombia", "Indonesia", "Philippines", "Vietnam",
+    "Nigeria",
+    "Kenya",
+    "Ethiopia",
+    "Tanzania",
+    "Uganda",
+    "Ghana",
+    "Senegal",
+    "Rwanda",
+    "Mozambique",
+    "Zimbabwe",
+    "Bangladesh",
+    "Pakistan",
+    "Nepal",
+    "Cambodia",
+    "Myanmar",
+    "Laos",
+    "Haiti",
+    "Honduras",
+    "Guatemala",
+    "Bolivia",
+    "Peru",
+    "Colombia",
+    "Indonesia",
+    "Philippines",
+    "Vietnam",
 }
 
 _RENEWABLE_TYPES = {
-    "solar", "wind", "hydro", "geothermal", "biomass", "sustainable_agriculture",
+    "solar",
+    "wind",
+    "hydro",
+    "geothermal",
+    "biomass",
+    "sustainable_agriculture",
 }
 
 
@@ -358,7 +414,9 @@ def _calc_additionality(proj: Project, raw_kpis: dict[str, Any]) -> dict:
     # 1. Geographic need (25 pts): high-need developing country = 25, others = 15
     if proj.geography_country in _HIGH_NEED_COUNTRIES:
         geo_score = 25
-        geo_rationale = "Project in high-need geography with strong private market investment potential."
+        geo_rationale = (
+            "Project in high-need geography with strong private market investment potential."
+        )
     else:
         geo_score = 15
         geo_rationale = "Project in moderate-need geography."
@@ -381,8 +439,12 @@ def _calc_additionality(proj: Project, raw_kpis: dict[str, Any]) -> dict:
 
     # 3. Project stage (20 pts): earlier stage = more additional
     stage_scores = {
-        "concept": 20, "pre_development": 18, "development": 15,
-        "construction_ready": 10, "under_construction": 5, "operational": 2,
+        "concept": 20,
+        "pre_development": 18,
+        "development": 15,
+        "construction_ready": 10,
+        "under_construction": 5,
+        "operational": 2,
     }
     stage_val = proj.stage.value
     stage_score = stage_scores.get(stage_val, 10)
@@ -424,7 +486,11 @@ def _calc_additionality(proj: Project, raw_kpis: dict[str, Any]) -> dict:
         social_score = 0
     social_rationale = f"{jobs} direct jobs; {hh:,} households served."
     score += social_score
-    breakdown["social_co_benefits"] = {"score": social_score, "max": 15, "rationale": social_rationale}
+    breakdown["social_co_benefits"] = {
+        "score": social_score,
+        "max": 15,
+        "rationale": social_rationale,
+    }
 
     # Rating
     if score >= 70:

@@ -7,7 +7,7 @@ import remarkGfm from "remark-gfm";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@scr/ui";
 import {
-  RalphMessage,
+  type RalphMessage,
   useConversation,
   useStreamMessage,
 } from "@/lib/ralph";

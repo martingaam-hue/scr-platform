@@ -5,6 +5,7 @@ Start worker:    celery -A app.worker worker --loglevel=info
 Start beat:      celery -A app.worker beat --loglevel=info
 Start both:      celery -A app.worker worker --beat --loglevel=info
 """
+
 from celery.schedules import crontab
 
 from app.core.celery_app import celery_app

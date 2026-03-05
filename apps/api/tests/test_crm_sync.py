@@ -1,4 +1,5 @@
 """Tests for CRM sync module — connections, sync logs, entity mappings."""
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession

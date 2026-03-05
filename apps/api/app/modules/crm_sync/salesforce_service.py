@@ -1,7 +1,7 @@
 """Salesforce CRM integration — OAuth, SOQL queries, bidirectional sync."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
 import httpx
@@ -77,7 +77,7 @@ class SalesforceService:
         tokens = resp.json()
         self.conn.access_token = tokens.get("access_token", self.conn.access_token)
         # Salesforce does not always return expires_in; default 2 h
-        self.conn.token_expires_at = datetime.now(timezone.utc) + timedelta(
+        self.conn.token_expires_at = datetime.now(UTC) + timedelta(
             seconds=tokens.get("expires_in", 7200)
         )
         await self.db.flush()
@@ -170,9 +170,7 @@ class SalesforceService:
 
     # ── Sync operations ────────────────────────────────────────────────────────
 
-    async def sync_projects_to_deals(
-        self, project_ids: list[uuid.UUID]
-    ) -> dict:
+    async def sync_projects_to_deals(self, project_ids: list[uuid.UUID]) -> dict:
         """Push SCR projects to Salesforce Opportunities.
 
         For each project, creates a new Opportunity or patches the existing
@@ -183,14 +181,18 @@ class SalesforceService:
         from app.models.projects import Project  # local import avoids circular deps
 
         projects = (
-            await self.db.execute(
-                select(Project).where(
-                    Project.id.in_(project_ids),
-                    Project.org_id == self.conn.org_id,
-                    Project.is_deleted.is_(False),
+            (
+                await self.db.execute(
+                    select(Project).where(
+                        Project.id.in_(project_ids),
+                        Project.org_id == self.conn.org_id,
+                        Project.is_deleted.is_(False),
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         field_mappings = self.conn.field_mappings or {}
         synced = 0
@@ -204,7 +206,7 @@ class SalesforceService:
                 ),
                 # Salesforce requires a CloseDate; default 90 days out
                 field_mappings.get("close_date", "CloseDate"): (
-                    datetime.now(timezone.utc) + timedelta(days=90)
+                    datetime.now(UTC) + timedelta(days=90)
                 ).strftime("%Y-%m-%d"),
             }
             if project.total_investment_required:
@@ -221,8 +223,12 @@ class SalesforceService:
                         opp_data,
                     )
                     await self._log_sync(
-                        "push", "opportunity", project.id,
-                        existing.crm_entity_id, "update", "success",
+                        "push",
+                        "opportunity",
+                        project.id,
+                        existing.crm_entity_id,
+                        "update",
+                        "success",
                     )
                 else:
                     resp = await self._api_call(
@@ -264,20 +270,16 @@ class SalesforceService:
                 }
                 for r in records
             ]
-            await self._log_sync(
-                "pull", "contact", None, None, "list", "success"
-            )
+            await self._log_sync("pull", "contact", None, None, "list", "success")
             return contacts
         except Exception as exc:
-            await self._log_sync(
-                "pull", "contact", None, None, "list", "error", str(exc)
-            )
+            await self._log_sync("pull", "contact", None, None, "list", "error", str(exc))
             return []
 
     async def test_connection(self) -> dict:
         """Verify connection by calling the Salesforce identity endpoint."""
         try:
-            resp = await self._api_call(
+            await self._api_call(
                 "GET",
                 f"/services/data/{SALESFORCE_API_VERSION}/limits",
             )

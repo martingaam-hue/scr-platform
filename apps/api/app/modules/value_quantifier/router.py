@@ -34,10 +34,10 @@ async def calculate_value(
     try:
         return await service.calculate_value(db, current_user.org_id, body)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("value_quantifier.calculate.error", error=str(exc))
-        raise HTTPException(status_code=500, detail="Calculation failed")
+        raise HTTPException(status_code=500, detail="Calculation failed") from exc
 
 
 @router.get("/{project_id}", response_model=ValueQuantifierResponse)
@@ -51,7 +51,7 @@ async def get_value_quantifier(
     try:
         return await service.calculate_value(db, current_user.org_id, req)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("value_quantifier.get.error", project_id=str(project_id), error=str(exc))
-        raise HTTPException(status_code=500, detail="Calculation failed")
+        raise HTTPException(status_code=500, detail="Calculation failed") from exc

@@ -24,9 +24,13 @@ class DataConnector(BaseModel):
     )  # market_data, esg, property, energy, company, weather
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     base_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    auth_type: Mapped[str] = mapped_column(String(20), default="api_key")  # api_key, oauth2, basic, none
+    auth_type: Mapped[str] = mapped_column(
+        String(20), default="api_key"
+    )  # api_key, oauth2, basic, none
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
-    pricing_tier: Mapped[str] = mapped_column(String(20), default="free")  # free, professional, enterprise
+    pricing_tier: Mapped[str] = mapped_column(
+        String(20), default="free"
+    )  # free, professional, enterprise
     rate_limit_per_minute: Mapped[int] = mapped_column(Integer, default=60)
     documentation_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -42,7 +46,9 @@ class OrgConnectorConfig(BaseModel):
         UUID(as_uuid=True), ForeignKey("data_connectors.id", ondelete="CASCADE"), nullable=False
     )
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
-    api_key_encrypted: Mapped[str | None] = mapped_column(String(1000), nullable=True)  # AES-256-GCM
+    api_key_encrypted: Mapped[str | None] = mapped_column(
+        String(1000), nullable=True
+    )  # AES-256-GCM
     config: Mapped[dict] = mapped_column(JSONB, default=dict)  # connector-specific settings
     last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_error: Mapped[str | None] = mapped_column(String(1000), nullable=True)

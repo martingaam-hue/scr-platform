@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime
+from datetime import date
 
 from sqlalchemy import Date, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -17,12 +17,8 @@ class MeetingBriefing(BaseModel):
 
     __tablename__ = "meeting_briefings"
 
-    org_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, index=True
-    )
-    project_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, index=True
-    )
+    org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
 
     meeting_type: Mapped[str] = mapped_column(String(50), nullable=False)

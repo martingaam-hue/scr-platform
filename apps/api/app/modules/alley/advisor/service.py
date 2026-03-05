@@ -1,7 +1,9 @@
 """Alley Development Advisor service — AI strategic guidance for project developers."""
+
 from __future__ import annotations
+
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 import structlog
@@ -51,7 +53,8 @@ def _project_context(project: Project, score: SignalScore | None) -> str:
         f"Risk: {score.risk_assessment_score}, "
         f"ESG: {score.esg_score}, "
         f"Market: {score.market_opportunity_score})"
-        if score else "No score calculated yet."
+        if score
+        else "No score calculated yet."
     )
     return (
         f"Project: {project.name}\n"
@@ -70,7 +73,12 @@ async def _call_ai(prompt: str, task_type: str, max_tokens: int = 1500) -> str:
         async with httpx.AsyncClient(timeout=90.0) as client:
             resp = await client.post(
                 f"{settings.AI_GATEWAY_URL}/v1/completions",
-                json={"prompt": prompt, "task_type": task_type, "max_tokens": max_tokens, "temperature": 0.4},
+                json={
+                    "prompt": prompt,
+                    "task_type": task_type,
+                    "max_tokens": max_tokens,
+                    "temperature": 0.4,
+                },
                 headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
             )
         resp.raise_for_status()
@@ -87,6 +95,7 @@ async def query_advisor(
     question: str,
 ) -> AdvisorQueryResponse:
     import uuid as _uuid
+
     project, score = await _get_project_with_score(db, project_id, org_id)
     ctx = _project_context(project, score)
     prompt = (
@@ -98,7 +107,9 @@ async def query_advisor(
     )
     answer = await _call_ai(prompt, "alley_advisor_query", max_tokens=1000)
     if not answer:
-        answer = "I apologise — I couldn't generate a response at this time. Please try again shortly."
+        answer = (
+            "I apologise — I couldn't generate a response at this time. Please try again shortly."
+        )
     return AdvisorQueryResponse(
         answer=answer,
         conversation_id=str(_uuid.uuid4()),
@@ -119,10 +130,12 @@ async def get_financing_readiness(
         '"checklist": [{"item": "...", "status": "complete|partial|missing", "action": "..."}], '
         '"recommended_structure": "<debt/equity/blended finance recommendation>"}'
     )
-    import json, re
+    import json
+    import re
+
     raw = await _call_ai(prompt, "alley_financing_readiness", max_tokens=1200)
     try:
-        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
         data = json.loads(match.group()) if match else {}
     except Exception:
         data = {}
@@ -133,7 +146,7 @@ async def get_financing_readiness(
         summary=data.get("summary", "Assessment in progress."),
         checklist=data.get("checklist", []),
         recommended_structure=data.get("recommended_structure", "Blended finance recommended."),
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )
 
 
@@ -149,10 +162,12 @@ async def get_market_positioning(
         '{"strengths": ["..."], "weaknesses": ["..."], '
         '"timing_assessment": "<market timing analysis>", "score_percentile": <estimated 1-100>}'
     )
-    import json, re
+    import json
+    import re
+
     raw = await _call_ai(prompt, "alley_market_positioning", max_tokens=1000)
     try:
-        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
         data = json.loads(match.group()) if match else {}
     except Exception:
         data = {}
@@ -163,7 +178,7 @@ async def get_market_positioning(
         weaknesses=data.get("weaknesses", []),
         timing_assessment=data.get("timing_assessment", ""),
         score_percentile=data.get("score_percentile", 50),
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )
 
 
@@ -180,10 +195,12 @@ async def get_milestone_plan(
         '{"next_milestones": [{"title": "...", "description": "...", "estimated_weeks": <int>, "priority": "critical|high|medium"}], '
         '"critical_path_item": "<the single most important next action>"}'
     )
-    import json, re
+    import json
+    import re
+
     raw = await _call_ai(prompt, "alley_development_milestones", max_tokens=1200)
     try:
-        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
         data = json.loads(match.group()) if match else {}
     except Exception:
         data = {}
@@ -193,7 +210,7 @@ async def get_milestone_plan(
         current_stage=project.stage.value,
         next_milestones=data.get("next_milestones", []),
         critical_path_item=data.get("critical_path_item", ""),
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )
 
 
@@ -210,10 +227,12 @@ async def get_regulatory_guidance(
         '{"permit_requirements": [{"permit": "...", "timeline": "...", "authority": "...", "notes": "..."}], '
         '"common_pitfalls": ["..."]}'
     )
-    import json, re
+    import json
+    import re
+
     raw = await _call_ai(prompt, "alley_regulatory_guidance", max_tokens=1200)
     try:
-        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
         data = json.loads(match.group()) if match else {}
     except Exception:
         data = {}
@@ -224,5 +243,5 @@ async def get_regulatory_guidance(
         asset_type=project.project_type.value,
         permit_requirements=data.get("permit_requirements", []),
         common_pitfalls=data.get("common_pitfalls", []),
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )

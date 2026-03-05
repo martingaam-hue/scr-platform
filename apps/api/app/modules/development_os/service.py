@@ -1,13 +1,13 @@
 """Development OS service — project construction lifecycle management."""
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.enums import MilestoneStatus, ProjectStage
+from app.models.enums import MilestoneStatus
 from app.models.projects import Project, ProjectMilestone
 from app.modules.development_os.schemas import (
     ConstructionPhase,
@@ -21,10 +21,42 @@ from app.modules.development_os.schemas import (
 # ── Phase keyword mapping ────────────────────────────────────────────────────
 
 PHASE_PATTERNS: dict[str, list[str]] = {
-    "Pre-Development": ["feasibility", "permitting", "environmental", "land", "site", "survey", "assessment", "study"],
-    "Development": ["design", "engineering", "financing", "procurement", "planning", "approval", "regulatory"],
-    "Construction": ["civil", "electrical", "mechanical", "commissioning", "installation", "build", "construction"],
-    "Operations": ["operations", "maintenance", "monitoring", "reporting", "inspection", "performance"],
+    "Pre-Development": [
+        "feasibility",
+        "permitting",
+        "environmental",
+        "land",
+        "site",
+        "survey",
+        "assessment",
+        "study",
+    ],
+    "Development": [
+        "design",
+        "engineering",
+        "financing",
+        "procurement",
+        "planning",
+        "approval",
+        "regulatory",
+    ],
+    "Construction": [
+        "civil",
+        "electrical",
+        "mechanical",
+        "commissioning",
+        "installation",
+        "build",
+        "construction",
+    ],
+    "Operations": [
+        "operations",
+        "maintenance",
+        "monitoring",
+        "reporting",
+        "inspection",
+        "performance",
+    ],
 }
 
 # Synthetic procurement items keyed by project_type prefix
@@ -34,12 +66,22 @@ PROCUREMENT_TEMPLATES: dict[str, list[dict[str, Any]]] = {
         {"name": "Inverters", "category": "Equipment", "vendor": "SMA Solar", "cost": 120_000},
         {"name": "Mounting Structures", "category": "Civil", "vendor": None, "cost": 95_000},
         {"name": "Cables & Wiring", "category": "Electrical", "vendor": None, "cost": 45_000},
-        {"name": "SCADA System", "category": "Controls", "vendor": "Schneider Electric", "cost": 35_000},
+        {
+            "name": "SCADA System",
+            "category": "Controls",
+            "vendor": "Schneider Electric",
+            "cost": 35_000,
+        },
     ],
     "wind": [
         {"name": "Wind Turbines", "category": "Equipment", "vendor": "Vestas", "cost": 4_200_000},
         {"name": "Foundations", "category": "Civil", "vendor": None, "cost": 650_000},
-        {"name": "Grid Connection Cable", "category": "Electrical", "vendor": None, "cost": 280_000},
+        {
+            "name": "Grid Connection Cable",
+            "category": "Electrical",
+            "vendor": None,
+            "cost": 280_000,
+        },
         {"name": "SCADA & Controls", "category": "Controls", "vendor": "ABB", "cost": 75_000},
         {"name": "Cranes & Logistics", "category": "Logistics", "vendor": None, "cost": 180_000},
     ],
@@ -47,7 +89,12 @@ PROCUREMENT_TEMPLATES: dict[str, list[dict[str, Any]]] = {
         {"name": "Primary Equipment", "category": "Equipment", "vendor": None, "cost": 1_200_000},
         {"name": "Civil Works", "category": "Civil", "vendor": None, "cost": 350_000},
         {"name": "Electrical Systems", "category": "Electrical", "vendor": None, "cost": 180_000},
-        {"name": "Controls & Instrumentation", "category": "Controls", "vendor": None, "cost": 90_000},
+        {
+            "name": "Controls & Instrumentation",
+            "category": "Controls",
+            "vendor": None,
+            "cost": 90_000,
+        },
         {"name": "Professional Services", "category": "Services", "vendor": None, "cost": 120_000},
     ],
 }
@@ -98,16 +145,18 @@ def _build_procurement(project_type: str) -> list[ProcurementItem]:
     templates = PROCUREMENT_TEMPLATES[key]
     items: list[ProcurementItem] = []
     for i, t in enumerate(templates):
-        items.append(ProcurementItem(
-            id=f"proc-{i+1}",
-            name=t["name"],
-            vendor=t.get("vendor"),
-            category=t["category"],
-            estimated_cost_usd=float(t.get("cost", 0)),
-            status=PROCUREMENT_STATUSES[i % len(PROCUREMENT_STATUSES)],
-            delivery_date=None,
-            notes=None,
-        ))
+        items.append(
+            ProcurementItem(
+                id=f"proc-{i+1}",
+                name=t["name"],
+                vendor=t.get("vendor"),
+                category=t["category"],
+                estimated_cost_usd=float(t.get("cost", 0)),
+                status=PROCUREMENT_STATUSES[i % len(PROCUREMENT_STATUSES)],
+                delivery_date=None,
+                notes=None,
+            )
+        )
     return items
 
 
@@ -125,6 +174,7 @@ def _str_to_milestone_status(s: str) -> MilestoneStatus:
 
 
 # ── Public service functions ─────────────────────────────────────────────────
+
 
 async def get_development_overview(
     db: AsyncSession,
@@ -169,14 +219,16 @@ async def get_development_overview(
         start_date = min(dates) if dates else None
         end_date = max(dates) if dates else None
 
-        phases.append(ConstructionPhase(
-            phase_name=phase_name,
-            start_date=start_date,
-            end_date=end_date,
-            completion_pct=comp_pct,
-            milestones=phase_ms,
-            status=_phase_status(phase_ms),
-        ))
+        phases.append(
+            ConstructionPhase(
+                phase_name=phase_name,
+                start_date=start_date,
+                end_date=end_date,
+                completion_pct=comp_pct,
+                milestones=phase_ms,
+                status=_phase_status(phase_ms),
+            )
+        )
 
     # Overall completion
     total_ms = len(ms_responses)
@@ -185,10 +237,7 @@ async def get_development_overview(
 
     # Next pending milestone (closest future due_date)
     today = date.today()
-    pending = [
-        m for m in ms_responses
-        if m.status not in ("completed",) and m.due_date is not None
-    ]
+    pending = [m for m in ms_responses if m.status not in ("completed",) and m.due_date is not None]
     next_milestone: MilestoneResponse | None = None
     days_to_next: int | None = None
     if pending:
@@ -209,7 +258,7 @@ async def get_development_overview(
         procurement=procurement,
         next_milestone=next_milestone,
         days_to_next_milestone=days_to_next,
-        last_updated=datetime.now(timezone.utc),
+        last_updated=datetime.now(UTC),
     )
 
 

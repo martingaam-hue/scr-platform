@@ -75,20 +75,11 @@ async def execute_search(
     if filters.stages:
         conditions.append(Project.stage.in_(filters.stages))
     if filters.min_ticket_size is not None:
-        conditions.append(
-            Project.total_investment_required >= filters.min_ticket_size * 1_000_000
-        )
+        conditions.append(Project.total_investment_required >= filters.min_ticket_size * 1_000_000)
     if filters.max_ticket_size is not None:
-        conditions.append(
-            Project.total_investment_required <= filters.max_ticket_size * 1_000_000
-        )
+        conditions.append(Project.total_investment_required <= filters.max_ticket_size * 1_000_000)
 
-    stmt = (
-        select(Project)
-        .where(and_(*conditions))
-        .order_by(Project.updated_at.desc())
-        .limit(limit)
-    )
+    stmt = select(Project).where(and_(*conditions)).order_by(Project.updated_at.desc()).limit(limit)
     result = await db.execute(stmt)
     projects = result.scalars().all()
 
@@ -123,9 +114,17 @@ async def execute_search(
 
     # Apply signal score filter post-fetch (score comes from separate table)
     if filters.min_signal_score is not None:
-        results = [r for r in results if r.signal_score is None or r.signal_score >= filters.min_signal_score]
+        results = [
+            r
+            for r in results
+            if r.signal_score is None or r.signal_score >= filters.min_signal_score
+        ]
     if filters.max_signal_score is not None:
-        results = [r for r in results if r.signal_score is None or r.signal_score <= filters.max_signal_score]
+        results = [
+            r
+            for r in results
+            if r.signal_score is None or r.signal_score <= filters.max_signal_score
+        ]
 
     # Sort
     if filters.sort_by == "signal_score":
@@ -153,15 +152,11 @@ def generate_suggestions(filters: ParsedFilters, result_count: int) -> list[str]
         if filters.geographies:
             suggestions.append(f"Try expanding beyond {', '.join(filters.geographies[:2])}")
         if not filters.project_types:
-            suggestions.append(
-                "Try specifying a project type (solar, wind, real estate, etc.)"
-            )
+            suggestions.append("Try specifying a project type (solar, wind, real estate, etc.)")
 
     elif result_count > 30:
         if not filters.min_signal_score:
-            suggestions.append(
-                "Add 'with Signal Score above 70' to focus on higher quality deals"
-            )
+            suggestions.append("Add 'with Signal Score above 70' to focus on higher quality deals")
         if not filters.stages:
             suggestions.append(
                 "Add a development stage filter (e.g., 'operational' or 'construction')"
@@ -196,9 +191,7 @@ async def save_search(
     return saved
 
 
-async def list_saved_searches(
-    db: AsyncSession, user_id: uuid.UUID
-) -> list[SavedSearch]:
+async def list_saved_searches(db: AsyncSession, user_id: uuid.UUID) -> list[SavedSearch]:
     stmt = (
         select(SavedSearch)
         .where(SavedSearch.user_id == user_id)

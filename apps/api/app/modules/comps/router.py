@@ -8,7 +8,7 @@ import structlog
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db, get_readonly_session
 from app.modules.comps import service
 from app.modules.comps.schemas import (
@@ -60,21 +60,30 @@ async def search_comps(
     return CompListResponse(items=[CompResponse.model_validate(c) for c in comps], total=total)
 
 
-@router.post("", summary="Create comparable transaction", response_model=CompResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    summary="Create comparable transaction",
+    response_model=CompResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_comp(
     body: CompCreate,
     current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),
     db: AsyncSession = Depends(get_db),
 ):
     """Add a new comparable transaction."""
-    comp = await service.create_comp(db, org_id=current_user.org_id, user_id=current_user.user_id, data=body)
+    comp = await service.create_comp(
+        db, org_id=current_user.org_id, user_id=current_user.user_id, data=body
+    )
     await db.commit()
     await db.refresh(comp)
     logger.info("comp.created", comp_id=str(comp.id), org_id=str(current_user.org_id))
     return CompResponse.model_validate(comp)
 
 
-@router.get("/similar/{project_id}", summary="Find similar comps", response_model=SimilarCompsResponse)
+@router.get(
+    "/similar/{project_id}", summary="Find similar comps", response_model=SimilarCompsResponse
+)
 async def find_similar_comps(
     project_id: uuid.UUID,
     limit: int = Query(10, ge=1, le=50),
@@ -82,18 +91,26 @@ async def find_similar_comps(
     db: AsyncSession = Depends(get_db),
 ):
     """Find comps most similar to a project using AI ranking."""
-    results = await service.find_similar_comps(db, org_id=current_user.org_id, project_id=project_id, limit=limit)
+    results = await service.find_similar_comps(
+        db, org_id=current_user.org_id, project_id=project_id, limit=limit
+    )
     return SimilarCompsResponse(items=results)
 
 
-@router.post("/implied-valuation", summary="Calculate implied valuation from comps", response_model=ImpliedValuationResponse)
+@router.post(
+    "/implied-valuation",
+    summary="Calculate implied valuation from comps",
+    response_model=ImpliedValuationResponse,
+)
 async def calculate_implied_valuation(
     body: ImpliedValuationRequest,
     current_user: CurrentUser = Depends(require_permission("view", "analysis")),
     db: AsyncSession = Depends(get_db),
 ):
     """Calculate implied valuation from selected comparable transactions."""
-    result = await service.calculate_implied_valuation(db, comp_ids=body.comp_ids, project=body.project.model_dump())
+    result = await service.calculate_implied_valuation(
+        db, org_id=current_user.org_id, comp_ids=body.comp_ids, project=body.project.model_dump()
+    )
     return ImpliedValuationResponse(**result)
 
 
@@ -107,11 +124,18 @@ async def import_comps_csv(
     contents = await file.read()
     try:
         csv_text = contents.decode("utf-8")
-    except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="File must be UTF-8 encoded CSV")
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="File must be UTF-8 encoded CSV") from exc
 
-    result = await service.import_comps_csv(db, org_id=current_user.org_id, user_id=current_user.user_id, csv_content=csv_text)
-    logger.info("comp.csv_import", created=result["created"], errors=len(result["errors"]), org_id=str(current_user.org_id))
+    result = await service.import_comps_csv(
+        db, org_id=current_user.org_id, user_id=current_user.user_id, csv_content=csv_text
+    )
+    logger.info(
+        "comp.csv_import",
+        created=result["created"],
+        errors=len(result["errors"]),
+        org_id=str(current_user.org_id),
+    )
     return result
 
 
@@ -138,13 +162,17 @@ async def update_comp(
     """Update a comparable transaction."""
     comp = await service.update_comp(db, comp_id=comp_id, org_id=current_user.org_id, data=body)
     if not comp:
-        raise HTTPException(status_code=404, detail="Comparable transaction not found or not editable")
+        raise HTTPException(
+            status_code=404, detail="Comparable transaction not found or not editable"
+        )
     await db.commit()
     await db.refresh(comp)
     return CompResponse.model_validate(comp)
 
 
-@router.delete("/{comp_id}", summary="Delete comparable transaction", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{comp_id}", summary="Delete comparable transaction", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_comp(
     comp_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("run_analysis", "analysis")),

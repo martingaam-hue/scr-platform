@@ -143,7 +143,9 @@ async def c_portfolio(db: AsyncSession, c_org: Organization) -> Portfolio:
 
 
 @pytest.fixture
-async def c_document(db: AsyncSession, c_org: Organization, c_project: Project, c_user: User) -> Document:
+async def c_document(
+    db: AsyncSession, c_org: Organization, c_project: Project, c_user: User
+) -> Document:
     """Create a test document in the data room (needed for engagement FK)."""
     doc = Document(
         id=C_DOCUMENT_ID,
@@ -219,9 +221,7 @@ async def c_client(db: AsyncSession, c_user: User) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_readonly_session] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
@@ -234,9 +234,7 @@ async def c_client2(db: AsyncSession, c_user2: User) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: CURRENT_USER2
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_readonly_session] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
@@ -251,9 +249,7 @@ async def c_client2(db: AsyncSession, c_user2: User) -> AsyncClient:
 class TestQAWorkflow:
     """Tests for /qa/... endpoints (C01)."""
 
-    async def test_create_question_201(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_create_question_201(self, c_client: AsyncClient, c_project: Project):
         resp = await c_client.post(
             f"/v1/qa/projects/{C_PROJECT_ID}/questions",
             json={
@@ -274,16 +270,12 @@ class TestQAWorkflow:
         assert "question_number" in data
         assert data["question_number"] >= 1
 
-    async def test_list_questions_empty(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_list_questions_empty(self, c_client: AsyncClient, c_project: Project):
         resp = await c_client.get(f"/v1/qa/projects/{C_PROJECT_ID}/questions")
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
-    async def test_list_questions_after_create(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_list_questions_after_create(self, c_client: AsyncClient, c_project: Project):
         # Create a question first
         create_resp = await c_client.post(
             f"/v1/qa/projects/{C_PROJECT_ID}/questions",
@@ -300,9 +292,7 @@ class TestQAWorkflow:
         questions = list_resp.json()
         assert any(q["question"] == "What permits are needed?" for q in questions)
 
-    async def test_list_questions_filter_by_status(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_list_questions_filter_by_status(self, c_client: AsyncClient, c_project: Project):
         resp = await c_client.get(
             f"/v1/qa/projects/{C_PROJECT_ID}/questions",
             params={"status": "open"},
@@ -312,9 +302,7 @@ class TestQAWorkflow:
         for q in resp.json():
             assert q["status"] == "open"
 
-    async def test_get_question_by_id(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_get_question_by_id(self, c_client: AsyncClient, c_project: Project):
         create_resp = await c_client.post(
             f"/v1/qa/projects/{C_PROJECT_ID}/questions",
             json={
@@ -336,9 +324,7 @@ class TestQAWorkflow:
         resp = await c_client.get(f"/v1/qa/questions/{fake_id}")
         assert resp.status_code == 404
 
-    async def test_answer_question_201(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_answer_question_201(self, c_client: AsyncClient, c_project: Project):
         # Create a question
         create_resp = await c_client.post(
             f"/v1/qa/projects/{C_PROJECT_ID}/questions",
@@ -365,9 +351,7 @@ class TestQAWorkflow:
         assert data["question_id"] == question_id
         assert data["answered_by"] == str(C_USER_ID)
 
-    async def test_answer_nonexistent_question_404(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_answer_nonexistent_question_404(self, c_client: AsyncClient, c_project: Project):
         fake_id = uuid.uuid4()
         resp = await c_client.post(
             f"/v1/qa/questions/{fake_id}/answers",
@@ -375,9 +359,7 @@ class TestQAWorkflow:
         )
         assert resp.status_code == 404
 
-    async def test_qa_stats(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_qa_stats(self, c_client: AsyncClient, c_project: Project):
         # Create a couple of questions so stats are non-trivial
         for i in range(2):
             await c_client.post(
@@ -441,13 +423,9 @@ class TestQAWorkflow:
         list_resp = await c_client2.get(f"/v1/qa/projects/{C_PROJECT2_ID}/questions")
         assert list_resp.status_code == 200
         questions = list_resp.json()
-        assert not any(
-            q["question"] == "Org1 confidential question" for q in questions
-        )
+        assert not any(q["question"] == "Org1 confidential question" for q in questions)
 
-    async def test_export_qa_log_csv(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_export_qa_log_csv(self, c_client: AsyncClient, c_project: Project):
         # Create a question so the export is not empty
         await c_client.post(
             f"/v1/qa/projects/{C_PROJECT_ID}/questions",
@@ -458,9 +436,7 @@ class TestQAWorkflow:
         assert resp.status_code == 200
         assert "text/csv" in resp.headers.get("content-type", "")
 
-    async def test_invalid_category_422(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_invalid_category_422(self, c_client: AsyncClient, c_project: Project):
         resp = await c_client.post(
             f"/v1/qa/projects/{C_PROJECT_ID}/questions",
             json={"question": "Bad category question?", "category": "invalid_cat"},
@@ -476,9 +452,7 @@ class TestQAWorkflow:
 class TestDocumentEngagement:
     """Tests for /engagement/... endpoints (C02)."""
 
-    async def test_track_open_201(
-        self, c_client: AsyncClient, c_document: Document
-    ):
+    async def test_track_open_201(self, c_client: AsyncClient, c_document: Document):
         """Track a document open event — returns 201 with session details."""
         session_id = f"sess-{uuid.uuid4()}"
 
@@ -500,9 +474,7 @@ class TestDocumentEngagement:
         assert data["total_time_seconds"] == 0
         assert data["downloaded"] is False
 
-    async def test_track_page_view_200(
-        self, c_client: AsyncClient, c_document: Document
-    ):
+    async def test_track_page_view_200(self, c_client: AsyncClient, c_document: Document):
         """Track a page view within an existing session."""
         # Open a session first
         open_resp = await c_client.post(
@@ -529,9 +501,7 @@ class TestDocumentEngagement:
         assert data["id"] == engagement_id
         assert data["total_time_seconds"] >= 45
 
-    async def test_track_close_200(
-        self, c_client: AsyncClient, c_document: Document
-    ):
+    async def test_track_close_200(self, c_client: AsyncClient, c_document: Document):
         """Track a document close event."""
         open_resp = await c_client.post(
             "/v1/engagement/track/open",
@@ -552,9 +522,7 @@ class TestDocumentEngagement:
         assert data["id"] == engagement_id
         assert data["closed_at"] is not None
 
-    async def test_track_download_200(
-        self, c_client: AsyncClient, c_document: Document
-    ):
+    async def test_track_download_200(self, c_client: AsyncClient, c_document: Document):
         """Track a document download event."""
         open_resp = await c_client.post(
             "/v1/engagement/track/open",
@@ -589,9 +557,7 @@ class TestDocumentEngagement:
         )
         assert resp.status_code == 404
 
-    async def test_get_document_analytics_200(
-        self, c_client: AsyncClient, c_document: Document
-    ):
+    async def test_get_document_analytics_200(self, c_client: AsyncClient, c_document: Document):
         """Get analytics for a document (including one that has sessions)."""
         # Create a session for this document
         await c_client.post(
@@ -615,18 +581,14 @@ class TestDocumentEngagement:
         assert "recent_sessions" in data
         assert data["total_views"] >= 1
 
-    async def test_get_project_engagement_200(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_get_project_engagement_200(self, c_client: AsyncClient, c_project: Project):
         """Get engagement summaries for all investors in a project."""
         resp = await c_client.get(f"/v1/engagement/project/{C_PROJECT_ID}")
         assert resp.status_code == 200
         # Returns a list (may be empty if no investor sessions)
         assert isinstance(resp.json(), list)
 
-    async def test_get_page_heatmap_200(
-        self, c_client: AsyncClient, c_document: Document
-    ):
+    async def test_get_page_heatmap_200(self, c_client: AsyncClient, c_document: Document):
         """Get page heatmap for a document — returns a dict of page→seconds."""
         # Open and view a page
         open_resp = await c_client.post(
@@ -659,9 +621,7 @@ class TestDocumentEngagement:
 class TestCovenantKPIMonitoring:
     """Tests for /monitoring/... endpoints (C03)."""
 
-    async def test_create_covenant_201(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_create_covenant_201(self, c_client: AsyncClient, c_project: Project):
         resp = await c_client.post(
             f"/v1/monitoring/covenants/{C_PROJECT_ID}",
             json={
@@ -684,16 +644,12 @@ class TestCovenantKPIMonitoring:
         assert data["status"] == "compliant"
         assert "id" in data
 
-    async def test_list_covenants_empty(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_list_covenants_empty(self, c_client: AsyncClient, c_project: Project):
         resp = await c_client.get(f"/v1/monitoring/covenants/{C_PROJECT_ID}")
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
-    async def test_list_covenants_after_create(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_list_covenants_after_create(self, c_client: AsyncClient, c_project: Project):
         # Create a covenant
         create_resp = await c_client.post(
             f"/v1/monitoring/covenants/{C_PROJECT_ID}",
@@ -712,9 +668,7 @@ class TestCovenantKPIMonitoring:
         covenants = list_resp.json()
         assert any(c["name"] == "Equity Ratio" for c in covenants)
 
-    async def test_update_covenant_200(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_update_covenant_200(self, c_client: AsyncClient, c_project: Project):
         create_resp = await c_client.post(
             f"/v1/monitoring/covenants/{C_PROJECT_ID}",
             json={
@@ -736,9 +690,7 @@ class TestCovenantKPIMonitoring:
         data = update_resp.json()
         assert float(data["threshold_value"]) == pytest.approx(3.5, rel=1e-3)
 
-    async def test_waive_covenant(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_waive_covenant(self, c_client: AsyncClient, c_project: Project):
         create_resp = await c_client.post(
             f"/v1/monitoring/covenants/{C_PROJECT_ID}",
             json={
@@ -761,9 +713,7 @@ class TestCovenantKPIMonitoring:
         assert data["status"] == "waived"
         assert data["waived_reason"] == "COVID-19 temporary waiver approved by board"
 
-    async def test_record_kpi_actual_201(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_record_kpi_actual_201(self, c_client: AsyncClient, c_project: Project):
         resp = await c_client.post(
             f"/v1/monitoring/kpis/{C_PROJECT_ID}",
             json={
@@ -783,9 +733,7 @@ class TestCovenantKPIMonitoring:
         assert data["org_id"] == str(C_ORG_ID)
         assert data["project_id"] == str(C_PROJECT_ID)
 
-    async def test_list_kpi_actuals_200(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_list_kpi_actuals_200(self, c_client: AsyncClient, c_project: Project):
         # Record a KPI first
         await c_client.post(
             f"/v1/monitoring/kpis/{C_PROJECT_ID}",
@@ -804,9 +752,7 @@ class TestCovenantKPIMonitoring:
         assert isinstance(actuals, list)
         assert any(a["kpi_name"] == "generation_mwh" for a in actuals)
 
-    async def test_set_kpi_target_201(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_set_kpi_target_201(self, c_client: AsyncClient, c_project: Project):
         resp = await c_client.post(
             f"/v1/monitoring/kpis/{C_PROJECT_ID}/targets",
             json={
@@ -822,9 +768,7 @@ class TestCovenantKPIMonitoring:
         assert data["kpi_name"] == "capacity_factor"
         assert float(data["target_value"]) == pytest.approx(0.30, rel=1e-3)
 
-    async def test_get_kpi_variance_200(
-        self, c_client: AsyncClient, c_project: Project
-    ):
+    async def test_get_kpi_variance_200(self, c_client: AsyncClient, c_project: Project):
         """Get variance after recording both actual and target for the same KPI+period."""
         period = "2026-Q1"
         kpi_name = "revenue_eur"
@@ -900,9 +844,7 @@ class TestCovenantKPIMonitoring:
 class TestJCurvePacing:
     """Tests for /pacing/... endpoints (C06)."""
 
-    async def test_create_assumption_201(
-        self, c_client: AsyncClient, c_portfolio: Portfolio
-    ):
+    async def test_create_assumption_201(self, c_client: AsyncClient, c_portfolio: Portfolio):
         resp = await c_client.post(
             f"/v1/pacing/portfolios/{C_PORTFOLIO_ID}/assumptions",
             json={
@@ -925,9 +867,7 @@ class TestJCurvePacing:
         assert "fund_life_years" in data
         assert data["fund_life_years"] == 10
 
-    async def test_get_pacing_200(
-        self, c_client: AsyncClient, c_portfolio: Portfolio
-    ):
+    async def test_get_pacing_200(self, c_client: AsyncClient, c_portfolio: Portfolio):
         """Create an assumption then retrieve pacing data."""
         # Create assumption
         create_resp = await c_client.post(
@@ -949,9 +889,7 @@ class TestJCurvePacing:
         assert "trough_year" in data
         assert "projections" in data
 
-    async def test_pacing_trough_year_present(
-        self, c_client: AsyncClient, c_portfolio: Portfolio
-    ):
+    async def test_pacing_trough_year_present(self, c_client: AsyncClient, c_portfolio: Portfolio):
         """J-curve trough year should be populated when projections are generated."""
         resp = await c_client.post(
             f"/v1/pacing/portfolios/{C_PORTFOLIO_ID}/assumptions",
@@ -1009,14 +947,10 @@ class TestJCurvePacing:
         projections = resp.json()["projections"]
 
         optimistic_dist = [
-            p["projected_distributions"]
-            for p in projections
-            if p["scenario"] == "optimistic"
+            p["projected_distributions"] for p in projections if p["scenario"] == "optimistic"
         ]
         pessimistic_dist = [
-            p["projected_distributions"]
-            for p in projections
-            if p["scenario"] == "pessimistic"
+            p["projected_distributions"] for p in projections if p["scenario"] == "pessimistic"
         ]
 
         # Find a year where both have nonzero distributions
@@ -1026,9 +960,7 @@ class TestJCurvePacing:
         if opt_nonzero and pess_nonzero:
             assert max(opt_nonzero) > max(pess_nonzero)
 
-    async def test_list_assumptions_200(
-        self, c_client: AsyncClient, c_portfolio: Portfolio
-    ):
+    async def test_list_assumptions_200(self, c_client: AsyncClient, c_portfolio: Portfolio):
         """List assumptions for a portfolio."""
         # Create at least one
         await c_client.post(
@@ -1041,9 +973,7 @@ class TestJCurvePacing:
             },
         )
 
-        resp = await c_client.get(
-            f"/v1/pacing/portfolios/{C_PORTFOLIO_ID}/assumptions"
-        )
+        resp = await c_client.get(f"/v1/pacing/portfolios/{C_PORTFOLIO_ID}/assumptions")
         assert resp.status_code == 200, resp.text
         assumptions = resp.json()
         assert isinstance(assumptions, list)
@@ -1055,9 +985,7 @@ class TestJCurvePacing:
         assert "committed_capital" in a
         assert "is_active" in a
 
-    async def test_update_actuals_200(
-        self, c_client: AsyncClient, c_portfolio: Portfolio
-    ):
+    async def test_update_actuals_200(self, c_client: AsyncClient, c_portfolio: Portfolio):
         """Update actual cashflow data for a specific year in a projection row."""
         # Create assumption
         create_resp = await c_client.post(
@@ -1182,9 +1110,7 @@ class TestFinancialTemplates:
         assert "assumptions" in data
         assert "is_system" in data
 
-    async def test_get_template_404(
-        self, c_client: AsyncClient, c_org: Organization
-    ):
+    async def test_get_template_404(self, c_client: AsyncClient, c_org: Organization):
         fake_id = uuid.uuid4()
         resp = await c_client.get(f"/v1/financial-templates/{fake_id}")
         assert resp.status_code == 404
@@ -1215,9 +1141,7 @@ class TestFinancialTemplates:
         # Annual cashflows should span project life
         assert len(data["annual_cashflows"]) > 1
 
-    async def test_compute_dcf_404_bad_template(
-        self, c_client: AsyncClient, c_org: Organization
-    ):
+    async def test_compute_dcf_404_bad_template(self, c_client: AsyncClient, c_org: Organization):
         fake_id = uuid.uuid4()
         resp = await c_client.post(
             f"/v1/financial-templates/{fake_id}/compute",
@@ -1231,9 +1155,7 @@ class TestFinancialTemplates:
         """Filtering templates by taxonomy_code should narrow results."""
         code, template_id = await self._seed_taxonomy_and_template(db, C_ORG_ID)
 
-        resp = await c_client.get(
-            "/v1/financial-templates", params={"taxonomy_code": code}
-        )
+        resp = await c_client.get("/v1/financial-templates", params={"taxonomy_code": code})
         assert resp.status_code == 200
         templates = resp.json()
         # All returned templates should match the requested taxonomy_code
@@ -1276,9 +1198,7 @@ class TestIndustryTaxonomy:
         await db.flush()
         return parent_code, child_code
 
-    async def test_list_taxonomy_200(
-        self, c_client: AsyncClient, c_org: Organization
-    ):
+    async def test_list_taxonomy_200(self, c_client: AsyncClient, c_org: Organization):
         """GET /taxonomy returns 200 with a list."""
         resp = await c_client.get("/v1/taxonomy")
         assert resp.status_code == 200
@@ -1320,9 +1240,7 @@ class TestIndustryTaxonomy:
         """Filtering by parent_code returns only children of that parent."""
         parent_code, child_code = await self._seed_nodes(db)
 
-        resp = await c_client.get(
-            "/v1/taxonomy", params={"parent_code": parent_code}
-        )
+        resp = await c_client.get("/v1/taxonomy", params={"parent_code": parent_code})
         assert resp.status_code == 200
         nodes = resp.json()
         # All returned nodes must have the given parent_code
@@ -1369,9 +1287,7 @@ class TestIndustryTaxonomy:
         assert data["parent_code"] == parent_code
         assert data["is_leaf"] is True
 
-    async def test_get_taxonomy_node_404(
-        self, c_client: AsyncClient, c_org: Organization
-    ):
+    async def test_get_taxonomy_node_404(self, c_client: AsyncClient, c_org: Organization):
         """GET /taxonomy/{code} for non-existent code returns 404."""
         resp = await c_client.get("/v1/taxonomy/NONEXISTENT_CODE_XYZ")
         assert resp.status_code == 404

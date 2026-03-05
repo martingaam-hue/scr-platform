@@ -1,9 +1,8 @@
 """Comprehensive tests for the Portfolio module."""
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date
 from decimal import Decimal
-from unittest.mock import patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -62,6 +61,7 @@ VIEWER_USER = CurrentUser(
 def _override_auth(user: CurrentUser):
     async def _override():
         return user
+
     return _override
 
 
@@ -70,20 +70,26 @@ async def seed_data(db: AsyncSession) -> None:
     """Seed Organization, Users, and Project for FK constraints."""
     org = Organization(id=ORG_ID, name="Test Org", slug="test-org", type=OrgType.INVESTOR)
     db.add(org)
-    other_org = Organization(
-        id=OTHER_ORG_ID, name="Other Org", slug="other-org", type=OrgType.ALLY
-    )
+    other_org = Organization(id=OTHER_ORG_ID, name="Other Org", slug="other-org", type=OrgType.ALLY)
     db.add(other_org)
     user = User(
-        id=USER_ID, org_id=ORG_ID, email="test@example.com",
-        full_name="Test User", role=UserRole.ADMIN,
-        external_auth_id="user_test_123", is_active=True,
+        id=USER_ID,
+        org_id=ORG_ID,
+        email="test@example.com",
+        full_name="Test User",
+        role=UserRole.ADMIN,
+        external_auth_id="user_test_123",
+        is_active=True,
     )
     db.add(user)
     viewer = User(
-        id=VIEWER_USER_ID, org_id=ORG_ID, email="viewer@example.com",
-        full_name="Viewer User", role=UserRole.VIEWER,
-        external_auth_id="user_test_viewer", is_active=True,
+        id=VIEWER_USER_ID,
+        org_id=ORG_ID,
+        email="viewer@example.com",
+        full_name="Viewer User",
+        role=UserRole.VIEWER,
+        external_auth_id="user_test_viewer",
+        is_active=True,
     )
     db.add(viewer)
     # Project for linking holdings
@@ -108,9 +114,7 @@ async def test_client(db: AsyncSession, seed_data) -> AsyncClient:
     app.dependency_overrides[get_current_user] = _override_auth(CURRENT_USER)
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_readonly_session] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
 
@@ -120,9 +124,7 @@ async def viewer_client(db: AsyncSession, seed_data) -> AsyncClient:
     app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_readonly_session] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
 
@@ -148,9 +150,7 @@ async def sample_portfolio(db: AsyncSession, seed_data) -> Portfolio:
 
 
 @pytest.fixture
-async def sample_holdings(
-    db: AsyncSession, sample_portfolio: Portfolio
-) -> list[PortfolioHolding]:
+async def sample_holdings(db: AsyncSession, sample_portfolio: Portfolio) -> list[PortfolioHolding]:
     """Create sample holdings for metrics testing."""
     h1 = PortfolioHolding(
         portfolio_id=sample_portfolio.id,
@@ -199,7 +199,8 @@ async def sample_holdings(
 @pytest.mark.asyncio
 async def test_create_portfolio(db: AsyncSession, seed_data):
     portfolio = await service.create_portfolio(
-        db, CURRENT_USER,
+        db,
+        CURRENT_USER,
         name="Test Fund",
         strategy=PortfolioStrategy.BALANCED,
         fund_type=FundType.OPEN_END,
@@ -247,7 +248,9 @@ async def test_get_portfolio_wrong_org(db: AsyncSession, seed_data, sample_portf
 @pytest.mark.asyncio
 async def test_update_portfolio(db: AsyncSession, seed_data, sample_portfolio):
     updated = await service.update_portfolio(
-        db, sample_portfolio.id, ORG_ID,
+        db,
+        sample_portfolio.id,
+        ORG_ID,
         name="Green Energy Fund II",
         current_aum=Decimal("60000000"),
     )
@@ -261,7 +264,9 @@ async def test_update_portfolio(db: AsyncSession, seed_data, sample_portfolio):
 @pytest.mark.asyncio
 async def test_add_holding(db: AsyncSession, seed_data, sample_portfolio):
     holding = await service.add_holding(
-        db, CURRENT_USER, sample_portfolio.id,
+        db,
+        CURRENT_USER,
+        sample_portfolio.id,
         asset_name="New Solar Asset",
         asset_type=AssetType.EQUITY,
         investment_date=date(2024, 1, 1),
@@ -300,7 +305,10 @@ async def test_list_holdings_filter_status(
 async def test_update_holding(db: AsyncSession, seed_data, sample_portfolio, sample_holdings):
     h = sample_holdings[0]
     updated = await service.update_holding(
-        db, h.id, sample_portfolio.id, ORG_ID,
+        db,
+        h.id,
+        sample_portfolio.id,
+        ORG_ID,
         current_value=Decimal("7000000"),
     )
     assert updated.current_value == Decimal("7000000")
@@ -310,7 +318,10 @@ async def test_update_holding(db: AsyncSession, seed_data, sample_portfolio, sam
 async def test_update_holding_not_found(db: AsyncSession, seed_data, sample_portfolio):
     with pytest.raises(LookupError):
         await service.update_holding(
-            db, uuid.uuid4(), sample_portfolio.id, ORG_ID,
+            db,
+            uuid.uuid4(),
+            sample_portfolio.id,
+            ORG_ID,
             current_value=Decimal("100"),
         )
 
@@ -407,9 +418,7 @@ async def test_compute_irr_with_exit():
 
 
 @pytest.mark.asyncio
-async def test_get_cash_flows(
-    db: AsyncSession, seed_data, sample_portfolio, sample_holdings
-):
+async def test_get_cash_flows(db: AsyncSession, seed_data, sample_portfolio, sample_holdings):
     flows = await service.get_cash_flows(db, sample_portfolio.id, ORG_ID)
     assert len(flows) >= 3  # 3 investments + 1 exit = 4 entries
     # Should be sorted by date
@@ -433,9 +442,7 @@ async def test_get_cash_flows_empty(db: AsyncSession, seed_data, sample_portfoli
 
 
 @pytest.mark.asyncio
-async def test_get_allocation(
-    db: AsyncSession, seed_data, sample_portfolio, sample_holdings
-):
+async def test_get_allocation(db: AsyncSession, seed_data, sample_portfolio, sample_holdings):
     alloc = await service.get_allocation(db, sample_portfolio.id, ORG_ID)
     assert "by_asset_type" in alloc
     assert "by_sector" in alloc
@@ -507,12 +514,15 @@ async def test_get_latest_metrics_none(db: AsyncSession, seed_data, sample_portf
 
 @pytest.mark.asyncio
 async def test_api_create_portfolio(test_client: AsyncClient):
-    resp = await test_client.post("/v1/portfolio", json={
-        "name": "API Test Fund",
-        "strategy": "growth",
-        "fund_type": "closed_end",
-        "target_aum": "50000000",
-    })
+    resp = await test_client.post(
+        "/v1/portfolio",
+        json={
+            "name": "API Test Fund",
+            "strategy": "growth",
+            "fund_type": "closed_end",
+            "target_aum": "50000000",
+        },
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == "API Test Fund"
@@ -547,18 +557,19 @@ async def test_api_get_portfolio_not_found(test_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_api_update_portfolio(test_client: AsyncClient, sample_portfolio):
-    resp = await test_client.put(f"/v1/portfolio/{sample_portfolio.id}", json={
-        "name": "Updated Fund Name",
-        "current_aum": "55000000",
-    })
+    resp = await test_client.put(
+        f"/v1/portfolio/{sample_portfolio.id}",
+        json={
+            "name": "Updated Fund Name",
+            "current_aum": "55000000",
+        },
+    )
     assert resp.status_code == 200
     assert resp.json()["name"] == "Updated Fund Name"
 
 
 @pytest.mark.asyncio
-async def test_api_get_metrics(
-    test_client: AsyncClient, sample_portfolio, sample_holdings
-):
+async def test_api_get_metrics(test_client: AsyncClient, sample_portfolio, sample_holdings):
     resp = await test_client.get(f"/v1/portfolio/{sample_portfolio.id}/metrics")
     assert resp.status_code == 200
     data = resp.json()
@@ -569,9 +580,7 @@ async def test_api_get_metrics(
 
 
 @pytest.mark.asyncio
-async def test_api_list_holdings(
-    test_client: AsyncClient, sample_portfolio, sample_holdings
-):
+async def test_api_list_holdings(test_client: AsyncClient, sample_portfolio, sample_holdings):
     resp = await test_client.get(f"/v1/portfolio/{sample_portfolio.id}/holdings")
     assert resp.status_code == 200
     data = resp.json()
@@ -594,13 +603,16 @@ async def test_api_list_holdings_filter_status(
 
 @pytest.mark.asyncio
 async def test_api_add_holding(test_client: AsyncClient, sample_portfolio):
-    resp = await test_client.post(f"/v1/portfolio/{sample_portfolio.id}/holdings", json={
-        "asset_name": "API Holding",
-        "asset_type": "equity",
-        "investment_date": "2024-01-15",
-        "investment_amount": "2000000",
-        "current_value": "2200000",
-    })
+    resp = await test_client.post(
+        f"/v1/portfolio/{sample_portfolio.id}/holdings",
+        json={
+            "asset_name": "API Holding",
+            "asset_type": "equity",
+            "investment_date": "2024-01-15",
+            "investment_amount": "2000000",
+            "current_value": "2200000",
+        },
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["asset_name"] == "API Holding"
@@ -609,9 +621,7 @@ async def test_api_add_holding(test_client: AsyncClient, sample_portfolio):
 
 
 @pytest.mark.asyncio
-async def test_api_update_holding(
-    test_client: AsyncClient, sample_portfolio, sample_holdings
-):
+async def test_api_update_holding(test_client: AsyncClient, sample_portfolio, sample_holdings):
     h = sample_holdings[0]
     resp = await test_client.put(
         f"/v1/portfolio/{sample_portfolio.id}/holdings/{h.id}",
@@ -622,9 +632,7 @@ async def test_api_update_holding(
 
 
 @pytest.mark.asyncio
-async def test_api_cash_flows(
-    test_client: AsyncClient, sample_portfolio, sample_holdings
-):
+async def test_api_cash_flows(test_client: AsyncClient, sample_portfolio, sample_holdings):
     resp = await test_client.get(f"/v1/portfolio/{sample_portfolio.id}/cash-flows")
     assert resp.status_code == 200
     data = resp.json()
@@ -633,9 +641,7 @@ async def test_api_cash_flows(
 
 
 @pytest.mark.asyncio
-async def test_api_allocation(
-    test_client: AsyncClient, sample_portfolio, sample_holdings
-):
+async def test_api_allocation(test_client: AsyncClient, sample_portfolio, sample_holdings):
     resp = await test_client.get(f"/v1/portfolio/{sample_portfolio.id}/allocation")
     assert resp.status_code == 200
     data = resp.json()
@@ -650,24 +656,30 @@ async def test_api_allocation(
 
 @pytest.mark.asyncio
 async def test_viewer_cannot_create_portfolio(viewer_client: AsyncClient):
-    resp = await viewer_client.post("/v1/portfolio", json={
-        "name": "Viewer Fund",
-        "strategy": "growth",
-        "fund_type": "closed_end",
-        "target_aum": "10000000",
-    })
+    resp = await viewer_client.post(
+        "/v1/portfolio",
+        json={
+            "name": "Viewer Fund",
+            "strategy": "growth",
+            "fund_type": "closed_end",
+            "target_aum": "10000000",
+        },
+    )
     assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_viewer_cannot_add_holding(viewer_client: AsyncClient, sample_portfolio):
-    resp = await viewer_client.post(f"/v1/portfolio/{sample_portfolio.id}/holdings", json={
-        "asset_name": "Viewer Holding",
-        "asset_type": "equity",
-        "investment_date": "2024-01-01",
-        "investment_amount": "1000000",
-        "current_value": "1000000",
-    })
+    resp = await viewer_client.post(
+        f"/v1/portfolio/{sample_portfolio.id}/holdings",
+        json={
+            "asset_name": "Viewer Holding",
+            "asset_type": "equity",
+            "investment_date": "2024-01-01",
+            "investment_amount": "1000000",
+            "current_value": "1000000",
+        },
+    )
     assert resp.status_code == 403
 
 

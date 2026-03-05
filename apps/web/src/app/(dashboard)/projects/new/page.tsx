@@ -29,7 +29,6 @@ import {
   Wheat,
   FileText,
   X,
-  Upload,
   Loader2,
 } from "lucide-react";
 import { Button, Card, CardContent, FileUploader, cn } from "@scr/ui";
@@ -386,7 +385,7 @@ export default function NewProjectPage() {
                 )}
                 {!showVoice && (
                   <p className="text-xs text-indigo-400">
-                    Upload an audio file describing your project — we'll auto-fill the form.
+                    Upload an audio file describing your project — we&apos;ll auto-fill the form.
                   </p>
                 )}
               </div>

@@ -1,7 +1,6 @@
 """Portfolio API router: CRUD, holdings, metrics, cash flows, allocation."""
 
 import uuid
-from decimal import Decimal
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -171,7 +170,7 @@ async def get_portfolio(
             holding_count=len(holdings),
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.put(
@@ -189,12 +188,14 @@ async def update_portfolio(
     """Update a portfolio."""
     try:
         portfolio = await service.update_portfolio(
-            db, portfolio_id, current_user.org_id,
+            db,
+            portfolio_id,
+            current_user.org_id,
             **body.model_dump(exclude_unset=True),
         )
         return _portfolio_to_response(portfolio)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 # ── Metrics ─────────────────────────────────────────────────────────────────
@@ -216,7 +217,7 @@ async def get_portfolio_metrics(
         metrics = await service.compute_metrics(db, portfolio_id, current_user.org_id)
         return PortfolioMetricsResponse(**metrics)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 # ── Holdings ────────────────────────────────────────────────────────────────
@@ -242,9 +243,7 @@ async def list_holdings(
         items = [_holding_to_response(h) for h in holdings]
         total_invested = sum(h.investment_amount for h in holdings)
         total_current = sum(h.current_value for h in holdings)
-        weighted_moic = (
-            total_current / total_invested if total_invested else None
-        )
+        weighted_moic = total_current / total_invested if total_invested else None
         return HoldingListResponse(
             items=items,
             total=len(items),
@@ -255,7 +254,7 @@ async def list_holdings(
             ),
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post(
@@ -289,7 +288,7 @@ async def add_holding(
         )
         return _holding_to_response(holding)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.put(
@@ -308,12 +307,15 @@ async def update_holding(
     """Update a holding."""
     try:
         holding = await service.update_holding(
-            db, holding_id, portfolio_id, current_user.org_id,
+            db,
+            holding_id,
+            portfolio_id,
+            current_user.org_id,
             **body.model_dump(exclude_unset=True),
         )
         return _holding_to_response(holding)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 # ── Cash Flows ──────────────────────────────────────────────────────────────
@@ -333,11 +335,9 @@ async def get_cash_flows(
     """Get cash flow time series for a portfolio."""
     try:
         flows = await service.get_cash_flows(db, portfolio_id, current_user.org_id)
-        return CashFlowResponse(
-            items=[CashFlowEntry(**f) for f in flows]
-        )
+        return CashFlowResponse(items=[CashFlowEntry(**f) for f in flows])
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 # ── Allocation ──────────────────────────────────────────────────────────────
@@ -364,4 +364,4 @@ async def get_allocation(
             by_asset_type=[AllocationBreakdown(**a) for a in alloc["by_asset_type"]],
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e

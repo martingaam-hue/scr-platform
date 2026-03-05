@@ -17,6 +17,7 @@ class CompaniesHouseConnector(BaseConnector):
     def _get_headers(self) -> dict[str, str]:
         if self.api_key:
             import base64
+
             token = base64.b64encode(f"{self.api_key}:".encode()).decode()
             return {"Authorization": f"Basic {token}"}
         return {}
@@ -28,8 +29,12 @@ class CompaniesHouseConnector(BaseConnector):
     async def get_company(self, company_number: str) -> dict[str, Any]:
         return await self.fetch(f"/company/{company_number}")
 
-    async def get_filing_history(self, company_number: str, limit: int = 20) -> list[dict[str, Any]]:
-        data = await self.fetch(f"/company/{company_number}/filing-history", params={"items_per_page": limit})
+    async def get_filing_history(
+        self, company_number: str, limit: int = 20
+    ) -> list[dict[str, Any]]:
+        data = await self.fetch(
+            f"/company/{company_number}/filing-history", params={"items_per_page": limit}
+        )
         return data.get("items", [])
 
     async def get_officers(self, company_number: str) -> list[dict[str, Any]]:
@@ -48,5 +53,9 @@ class CompaniesHouseConnector(BaseConnector):
         return {
             "connector": self.name,
             "status": "ok",
-            "sample": {"query": "Aston Martin", "results_count": len(results), "sample": results[:2]},
+            "sample": {
+                "query": "Aston Martin",
+                "results_count": len(results),
+                "sample": results[:2],
+            },
         }

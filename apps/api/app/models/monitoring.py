@@ -37,9 +37,7 @@ class Covenant(Base, ModelMixin):
         onupdate=func.now(),
         nullable=False,
     )
-    is_deleted: Mapped[bool] = mapped_column(
-        default=False, server_default="false", nullable=False
-    )
+    is_deleted: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
 
     org_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -70,9 +68,7 @@ class Covenant(Base, ModelMixin):
     threshold_upper: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     current_value: Mapped[float | None] = mapped_column(Float, nullable=True)
-    last_checked_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # compliant, warning, breach, waived, not_applicable
     status: Mapped[str] = mapped_column(
@@ -81,9 +77,7 @@ class Covenant(Base, ModelMixin):
     warning_threshold_pct: Mapped[float] = mapped_column(
         Float, nullable=False, default=0.1, server_default="0.1"
     )
-    breach_date: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    breach_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     waived_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -131,9 +125,7 @@ class KPIActual(Base, ModelMixin):
         onupdate=func.now(),
         nullable=False,
     )
-    is_deleted: Mapped[bool] = mapped_column(
-        default=False, server_default="false", nullable=False
-    )
+    is_deleted: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
 
     org_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -199,9 +191,7 @@ class KPITarget(Base, ModelMixin):
         onupdate=func.now(),
         nullable=False,
     )
-    is_deleted: Mapped[bool] = mapped_column(
-        default=False, server_default="false", nullable=False
-    )
+    is_deleted: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
 
     org_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

@@ -6,7 +6,6 @@ stored in MatchResult.score_breakdown for full auditability.
 
 from __future__ import annotations
 
-import uuid
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
@@ -14,19 +13,18 @@ from typing import Any
 from app.models.investors import InvestorMandate
 from app.models.projects import Project, SignalScore
 
-
 # ── Adjacent sector groupings ─────────────────────────────────────────────────
 
 _ADJACENT_SECTORS: dict[str, set[str]] = {
-    "solar":                   {"wind", "geothermal", "hydro"},
-    "wind":                    {"solar", "geothermal"},
-    "hydro":                   {"solar", "geothermal"},
-    "geothermal":              {"solar", "wind", "hydro"},
-    "energy_efficiency":       {"green_building"},
-    "green_building":          {"energy_efficiency"},
-    "biomass":                 {"sustainable_agriculture"},
+    "solar": {"wind", "geothermal", "hydro"},
+    "wind": {"solar", "geothermal"},
+    "hydro": {"solar", "geothermal"},
+    "geothermal": {"solar", "wind", "hydro"},
+    "energy_efficiency": {"green_building"},
+    "green_building": {"energy_efficiency"},
+    "biomass": {"sustainable_agriculture"},
     "sustainable_agriculture": {"biomass"},
-    "other":                   set(),
+    "other": set(),
 }
 
 # ── Adjacent stage ordering ───────────────────────────────────────────────────
@@ -43,14 +41,14 @@ _STAGE_ORDER = [
 # ── Geography region grouping ─────────────────────────────────────────────────
 
 _REGIONS: dict[str, set[str]] = {
-    "Africa":        {"NG", "KE", "GH", "ZA", "ET", "TZ", "UG", "SN", "CI", "CM"},
-    "Asia":          {"IN", "CN", "ID", "PH", "BD", "VN", "TH", "PK", "MM", "KH"},
+    "Africa": {"NG", "KE", "GH", "ZA", "ET", "TZ", "UG", "SN", "CI", "CM"},
+    "Asia": {"IN", "CN", "ID", "PH", "BD", "VN", "TH", "PK", "MM", "KH"},
     "Latin America": {"BR", "MX", "CO", "AR", "CL", "PE", "EC", "VE", "UY", "PY"},
-    "Europe":        {"DE", "FR", "GB", "ES", "IT", "PL", "NL", "SE", "NO", "DK"},
-    "Middle East":   {"SA", "AE", "QA", "KW", "BH", "JO", "LB", "EG", "MA", "TN"},
+    "Europe": {"DE", "FR", "GB", "ES", "IT", "PL", "NL", "SE", "NO", "DK"},
+    "Middle East": {"SA", "AE", "QA", "KW", "BH", "JO", "LB", "EG", "MA", "TN"},
     "North America": {"US", "CA", "MX"},
-    "Southeast Asia":{"ID", "PH", "VN", "TH", "MY", "SG", "MM", "KH", "LA", "BN"},
-    "Oceania":       {"AU", "NZ", "FJ", "PG"},
+    "Southeast Asia": {"ID", "PH", "VN", "TH", "MY", "SG", "MM", "KH", "LA", "BN"},
+    "Oceania": {"AU", "NZ", "FJ", "PG"},
 }
 
 
@@ -127,9 +125,7 @@ class MatchingAlgorithm:
 
     # ── Dimension scorers ──────────────────────────────────────────────────
 
-    def _score_sector(
-        self, mandate: InvestorMandate, project: Project
-    ) -> tuple[int, dict]:
+    def _score_sector(self, mandate: InvestorMandate, project: Project) -> tuple[int, dict]:
         sectors = mandate.sectors or []
         pt = project.project_type.value
 
@@ -142,9 +138,7 @@ class MatchingAlgorithm:
 
         return 0, {"result": "no_match", "project_type": pt, "mandate_sectors": sectors}
 
-    def _score_geography(
-        self, mandate: InvestorMandate, project: Project
-    ) -> tuple[int, dict]:
+    def _score_geography(self, mandate: InvestorMandate, project: Project) -> tuple[int, dict]:
         geos = mandate.geographies or []
         country = project.geography_country
 
@@ -163,9 +157,7 @@ class MatchingAlgorithm:
 
         return 0, {"result": "no_match", "country": country}
 
-    def _score_ticket_size(
-        self, mandate: InvestorMandate, project: Project
-    ) -> tuple[int, dict]:
+    def _score_ticket_size(self, mandate: InvestorMandate, project: Project) -> tuple[int, dict]:
         investment = project.total_investment_required
         lo = mandate.ticket_size_min
         hi = mandate.ticket_size_max
@@ -183,12 +175,9 @@ class MatchingAlgorithm:
         if (lo - tolerance_50) <= investment <= (hi + tolerance_50):
             return 10, {"result": "within_50pct", "investment": str(investment)}
 
-        return 0, {"result": "outside_range", "investment": str(investment),
-                   "range": f"{lo}–{hi}"}
+        return 0, {"result": "outside_range", "investment": str(investment), "range": f"{lo}–{hi}"}
 
-    def _score_stage(
-        self, mandate: InvestorMandate, project: Project
-    ) -> tuple[int, dict]:
+    def _score_stage(self, mandate: InvestorMandate, project: Project) -> tuple[int, dict]:
         stages = mandate.stages or []
         ps = project.stage.value
 
@@ -238,15 +227,17 @@ class MatchingAlgorithm:
         else:
             return 0, {"result": "below_threshold", "signal_score": ss, "threshold": threshold}
 
-    def _score_esg(
-        self, mandate: InvestorMandate, project: Project
-    ) -> tuple[int, dict]:
+    def _score_esg(self, mandate: InvestorMandate, project: Project) -> tuple[int, dict]:
         esg_req = mandate.esg_requirements or {}
         if not esg_req:
             # No explicit ESG requirements — renewable/green projects get full marks
             green_types = {
-                "solar", "wind", "hydro", "geothermal",
-                "energy_efficiency", "green_building",
+                "solar",
+                "wind",
+                "hydro",
+                "geothermal",
+                "energy_efficiency",
+                "green_building",
             }
             if project.project_type.value in green_types:
                 return 10, {"result": "inherently_green"}
@@ -270,8 +261,7 @@ class MatchingAlgorithm:
     ) -> list[tuple[Project, SignalScore | None, AlignmentScore]]:
         """Score all projects against a mandate and return sorted by overall desc."""
         results = [
-            (p, ss, self.calculate_alignment(mandate, p, ss))
-            for p, ss in projects_with_scores
+            (p, ss, self.calculate_alignment(mandate, p, ss)) for p, ss in projects_with_scores
         ]
         results.sort(key=lambda x: x[2].overall, reverse=True)
         return results

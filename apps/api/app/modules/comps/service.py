@@ -12,7 +12,7 @@ from typing import Any
 
 import httpx
 import structlog
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -105,9 +105,8 @@ async def update_comp(
         setattr(comp, field, value)
 
     # Re-derive close_year if close_date changed
-    if "close_date" in update_data and update_data["close_date"]:
-        if not update_data.get("close_year"):
-            comp.close_year = update_data["close_date"].year
+    if update_data.get("close_date") and not update_data.get("close_year"):
+        comp.close_year = update_data["close_date"].year
 
     await db.commit()
     await db.refresh(comp)
@@ -169,9 +168,7 @@ async def search_comps(
     if asset_type:
         stmt = stmt.where(ComparableTransaction.asset_type == asset_type)
     if geography:
-        stmt = stmt.where(
-            ComparableTransaction.geography.ilike(f"%{geography}%")
-        )
+        stmt = stmt.where(ComparableTransaction.geography.ilike(f"%{geography}%"))
     if year_from is not None:
         stmt = stmt.where(ComparableTransaction.close_year >= year_from)
     if year_to is not None:
@@ -188,7 +185,11 @@ async def search_comps(
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total: int = (await db.execute(count_stmt)).scalar_one()
 
-    stmt = stmt.order_by(ComparableTransaction.close_year.desc().nullslast()).offset(offset).limit(limit)
+    stmt = (
+        stmt.order_by(ComparableTransaction.close_year.desc().nullslast())
+        .offset(offset)
+        .limit(limit)
+    )
     result = await db.execute(stmt)
     return list(result.scalars().all()), total
 
@@ -215,9 +216,7 @@ async def find_similar_comps(
     if not project:
         raise LookupError(f"Project {project_id} not found")
 
-    project_asset_type = (
-        project.project_type.value if project.project_type else None
-    )
+    project_asset_type = project.project_type.value if project.project_type else None
 
     # 2. Get candidate comps (same asset type preferred, fallback to all)
     candidates = await search_comps(
@@ -258,9 +257,7 @@ async def find_similar_comps(
         "stage": project.stage.value if project.stage else None,
         "geography": project.geography_country,
         "capacity_mw": getattr(project, "capacity_mw", None),
-        "total_investment_required": getattr(
-            project, "total_investment_required", None
-        ),
+        "total_investment_required": getattr(project, "total_investment_required", None),
     }
 
     prompt = _build_similarity_prompt(project_context, comp_summaries)
@@ -290,6 +287,7 @@ async def find_similar_comps(
                 ranked_comps = parsed.get("ranked_comps", [])
             except json.JSONDecodeError:
                 import re
+
                 match = re.search(r"\{[\s\S]*\}", content)
                 if match:
                     parsed = json.loads(match.group())

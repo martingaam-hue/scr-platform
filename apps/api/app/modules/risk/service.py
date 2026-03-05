@@ -6,15 +6,13 @@ AI Gateway is used ONLY for compliance narrative generation.
 
 import uuid
 from collections import defaultdict
-from datetime import datetime, timezone
-from decimal import Decimal
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
-from sqlalchemy import and_, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.middleware.tenant import tenant_filter
 from app.models.advisory import MonitoringAlert
 from app.models.core import AuditLog
 from app.models.enums import (
@@ -33,7 +31,6 @@ from app.models.investors import Portfolio, PortfolioHolding, PortfolioMetrics, 
 from app.models.projects import Project, SignalScore
 from app.modules.portfolio.service import _get_portfolio_or_raise
 from app.modules.risk.schemas import (
-    AlertResolveRequest,
     AuditEntry,
     AuditTrailResponse,
     AutoRiskItem,
@@ -50,8 +47,8 @@ from app.modules.risk.schemas import (
     MonitoringAlertListResponse,
     MonitoringAlertResponse,
     PAIIndicator,
-    RiskAssessmentResponse,
     RiskAssessmentCreate,
+    RiskAssessmentResponse,
     RiskDashboardResponse,
     RiskDomainScore,
     RiskHeatmapResponse,
@@ -65,23 +62,29 @@ logger = structlog.get_logger()
 # ── Severity / Probability numeric weights ────────────────────────────────────
 
 _SEVERITY_WEIGHT: dict[str, float] = {
-    "low": 1, "medium": 2, "high": 3, "critical": 4,
+    "low": 1,
+    "medium": 2,
+    "high": 3,
+    "critical": 4,
 }
 _PROB_WEIGHT: dict[str, float] = {
-    "unlikely": 1, "possible": 2, "likely": 3, "very_likely": 4,
+    "unlikely": 1,
+    "possible": 2,
+    "likely": 3,
+    "very_likely": 4,
 }
 
 # Climate risk per project type
 _CLIMATE_RISK: dict[str, dict[str, str]] = {
-    "solar":                  {"physical": "medium",  "transition": "low"},
-    "wind":                   {"physical": "medium",  "transition": "low"},
-    "hydro":                  {"physical": "high",    "transition": "low"},
-    "biomass":                {"physical": "low",     "transition": "medium"},
-    "geothermal":             {"physical": "low",     "transition": "low"},
-    "energy_efficiency":      {"physical": "low",     "transition": "low"},
-    "green_building":         {"physical": "medium",  "transition": "low"},
-    "sustainable_agriculture":{"physical": "high",    "transition": "medium"},
-    "other":                  {"physical": "medium",  "transition": "medium"},
+    "solar": {"physical": "medium", "transition": "low"},
+    "wind": {"physical": "medium", "transition": "low"},
+    "hydro": {"physical": "high", "transition": "low"},
+    "biomass": {"physical": "low", "transition": "medium"},
+    "geothermal": {"physical": "low", "transition": "low"},
+    "energy_efficiency": {"physical": "low", "transition": "low"},
+    "green_building": {"physical": "medium", "transition": "low"},
+    "sustainable_agriculture": {"physical": "high", "transition": "medium"},
+    "other": {"physical": "medium", "transition": "medium"},
 }
 
 # Regulatory risk: high-scrutiny jurisdictions
@@ -89,32 +92,32 @@ _HIGH_REG_COUNTRIES = {"CN", "RU", "BR", "IN", "NG", "PK"}
 
 # EU Taxonomy eligible project types and their economic activity descriptions
 _TAXONOMY_ACTIVITIES: dict[str, str] = {
-    "solar":                  "4.1 Electricity generation using solar photovoltaic technology",
-    "wind":                   "4.3 Electricity generation from wind power",
-    "hydro":                  "4.5 Electricity generation from hydropower",
-    "biomass":                "4.6 Electricity generation from bioenergy",
-    "geothermal":             "4.7 Electricity generation from geothermal energy",
-    "energy_efficiency":      "7.2 Renovation of existing buildings",
-    "green_building":         "7.1 Construction of new buildings",
-    "sustainable_agriculture":"1.1 Crop production",
+    "solar": "4.1 Electricity generation using solar photovoltaic technology",
+    "wind": "4.3 Electricity generation from wind power",
+    "hydro": "4.5 Electricity generation from hydropower",
+    "biomass": "4.6 Electricity generation from bioenergy",
+    "geothermal": "4.7 Electricity generation from geothermal energy",
+    "energy_efficiency": "7.2 Renovation of existing buildings",
+    "green_building": "7.1 Construction of new buildings",
+    "sustainable_agriculture": "1.1 Crop production",
 }
 
 # PAI indicator definitions (14 mandatory SFDR indicators)
 _PAI_INDICATORS = [
-    (1,  "GHG emissions scope 1",             "Climate",      "tCO2e/year"),
-    (2,  "GHG emissions scope 2",             "Climate",      "tCO2e/year"),
-    (3,  "GHG emissions scope 3",             "Climate",      "tCO2e/year"),
-    (4,  "Carbon footprint",                  "Climate",      "tCO2e/€M invested"),
-    (5,  "GHG intensity of investee companies","Climate",     "tCO2e/€M revenue"),
-    (6,  "Fossil fuel exposure",              "Climate",      "%"),
-    (7,  "Carbon-intensive energy consumption",  "Climate",    "%"),
-    (8,  "Energy consumption intensity",      "Climate",      "MWh/€M revenue"),
-    (9,  "Biodiversity-sensitive areas",      "Biodiversity", "Yes/No"),
-    (10, "Water emissions",                   "Water",        "m³/year"),
-    (11, "Hazardous waste ratio",             "Waste",        "%"),
-    (12, "Anti-corruption policy violations", "Social",       "Number"),
-    (13, "Unadjusted gender pay gap",         "Social",       "%"),
-    (14, "Board gender diversity",            "Social",       "%"),
+    (1, "GHG emissions scope 1", "Climate", "tCO2e/year"),
+    (2, "GHG emissions scope 2", "Climate", "tCO2e/year"),
+    (3, "GHG emissions scope 3", "Climate", "tCO2e/year"),
+    (4, "Carbon footprint", "Climate", "tCO2e/€M invested"),
+    (5, "GHG intensity of investee companies", "Climate", "tCO2e/€M revenue"),
+    (6, "Fossil fuel exposure", "Climate", "%"),
+    (7, "Carbon-intensive energy consumption", "Climate", "%"),
+    (8, "Energy consumption intensity", "Climate", "MWh/€M revenue"),
+    (9, "Biodiversity-sensitive areas", "Biodiversity", "Yes/No"),
+    (10, "Water emissions", "Water", "m³/year"),
+    (11, "Hazardous waste ratio", "Waste", "%"),
+    (12, "Anti-corruption policy violations", "Social", "Number"),
+    (13, "Unadjusted gender pay gap", "Social", "%"),
+    (14, "Board gender diversity", "Social", "%"),
 ]
 
 _DNSH_OBJECTIVES = [
@@ -193,43 +196,51 @@ class RiskMapper:
 
         for sector, amt in sector_totals.items():
             if amt / total_invested > 0.25:
-                risks.append(AutoRiskItem(
-                    risk_type="concentration",
-                    severity="high",
-                    probability="likely",
-                    description=f"Sector concentration: {sector} represents "
-                                f"{amt / total_invested * 100:.1f}% of portfolio",
-                ))
+                risks.append(
+                    AutoRiskItem(
+                        risk_type="concentration",
+                        severity="high",
+                        probability="likely",
+                        description=f"Sector concentration: {sector} represents "
+                        f"{amt / total_invested * 100:.1f}% of portfolio",
+                    )
+                )
 
         for geo, amt in geo_totals.items():
             if amt / total_invested > 0.25:
-                risks.append(AutoRiskItem(
-                    risk_type="concentration",
-                    severity="medium",
-                    probability="possible",
-                    description=f"Geographic concentration: {geo} represents "
-                                f"{amt / total_invested * 100:.1f}% of portfolio",
-                ))
+                risks.append(
+                    AutoRiskItem(
+                        risk_type="concentration",
+                        severity="medium",
+                        probability="possible",
+                        description=f"Geographic concentration: {geo} represents "
+                        f"{amt / total_invested * 100:.1f}% of portfolio",
+                    )
+                )
 
         # ── Currency risk ─────────────────────────────────────────
         non_base_pct = sum(v for k, v in currency_totals.items() if k != "USD") / total_invested
         if non_base_pct > 0.1:
-            risks.append(AutoRiskItem(
-                risk_type="market",
-                severity="medium",
-                probability="possible",
-                description=f"Currency risk: {non_base_pct * 100:.1f}% of holdings in non-USD currencies",
-            ))
+            risks.append(
+                AutoRiskItem(
+                    risk_type="market",
+                    severity="medium",
+                    probability="possible",
+                    description=f"Currency risk: {non_base_pct * 100:.1f}% of holdings in non-USD currencies",
+                )
+            )
 
         # ── Liquidity risk ────────────────────────────────────────
         illiquid_pct = len(holdings) / max(len(holdings), 1)  # all infra is illiquid
         if illiquid_pct >= 0.8:
-            risks.append(AutoRiskItem(
-                risk_type="liquidity",
-                severity="medium",
-                probability="likely",
-                description="High illiquidity: portfolio concentrated in illiquid infrastructure assets",
-            ))
+            risks.append(
+                AutoRiskItem(
+                    risk_type="liquidity",
+                    severity="medium",
+                    probability="likely",
+                    description="High illiquidity: portfolio concentrated in illiquid infrastructure assets",
+                )
+            )
 
         # ── Climate risk ──────────────────────────────────────────
         climate_exposed = 0.0
@@ -241,13 +252,15 @@ class RiskMapper:
                     climate_exposed += float(h.investment_amount)
 
         if climate_exposed / total_invested > 0.3:
-            risks.append(AutoRiskItem(
-                risk_type="climate",
-                severity="high",
-                probability="possible",
-                description=f"Physical climate risk: {climate_exposed / total_invested * 100:.1f}% "
-                            "of portfolio exposed to high/medium physical climate risk",
-            ))
+            risks.append(
+                AutoRiskItem(
+                    risk_type="climate",
+                    severity="high",
+                    probability="possible",
+                    description=f"Physical climate risk: {climate_exposed / total_invested * 100:.1f}% "
+                    "of portfolio exposed to high/medium physical climate risk",
+                )
+            )
 
         # ── Regulatory risk ───────────────────────────────────────
         reg_exposed = 0.0
@@ -257,13 +270,15 @@ class RiskMapper:
                 reg_exposed += float(h.investment_amount)
 
         if reg_exposed > 0:
-            risks.append(AutoRiskItem(
-                risk_type="regulatory",
-                severity="medium",
-                probability="possible",
-                description=f"Regulatory risk: {reg_exposed / total_invested * 100:.1f}% of portfolio "
-                            "in high-scrutiny jurisdictions",
-            ))
+            risks.append(
+                AutoRiskItem(
+                    risk_type="regulatory",
+                    severity="medium",
+                    probability="possible",
+                    description=f"Regulatory risk: {reg_exposed / total_invested * 100:.1f}% of portfolio "
+                    "in high-scrutiny jurisdictions",
+                )
+            )
 
         # ── Counterparty risk ─────────────────────────────────────
         counterparty_totals: dict[uuid.UUID, float] = defaultdict(float)
@@ -273,13 +288,15 @@ class RiskMapper:
 
         for _pid, amt in counterparty_totals.items():
             if amt / total_invested > 0.25:
-                risks.append(AutoRiskItem(
-                    risk_type="counterparty",
-                    severity="high",
-                    probability="unlikely",
-                    description=f"Counterparty concentration: single project represents "
-                                f"{amt / total_invested * 100:.1f}% of portfolio",
-                ))
+                risks.append(
+                    AutoRiskItem(
+                        risk_type="counterparty",
+                        severity="high",
+                        probability="unlikely",
+                        description=f"Counterparty concentration: single project represents "
+                        f"{amt / total_invested * 100:.1f}% of portfolio",
+                    )
+                )
 
         return risks
 
@@ -298,7 +315,9 @@ class ScenarioEngine:
         parameters: dict[str, Any],
     ) -> ScenarioResult:
         nav_before = sum(float(h.current_value) for h in holdings)
-        irr_before = float(latest_metrics.irr_net) if latest_metrics and latest_metrics.irr_net else None
+        irr_before = (
+            float(latest_metrics.irr_net) if latest_metrics and latest_metrics.irr_net else None
+        )
 
         holding_impacts: list[HoldingImpact] = []
         waterfall: list[dict[str, Any]] = [{"label": "Baseline NAV", "value": nav_before}]
@@ -308,14 +327,16 @@ class ScenarioEngine:
             stressed = self._stress_holding(h, cv, scenario_type, parameters)
             delta = stressed - cv
             delta_pct = (delta / cv * 100) if cv else 0.0
-            holding_impacts.append(HoldingImpact(
-                holding_id=h.id,
-                asset_name=h.asset_name,
-                current_value=cv,
-                stressed_value=round(stressed, 2),
-                delta_value=round(delta, 2),
-                delta_pct=round(delta_pct, 2),
-            ))
+            holding_impacts.append(
+                HoldingImpact(
+                    holding_id=h.id,
+                    asset_name=h.asset_name,
+                    current_value=cv,
+                    stressed_value=round(stressed, 2),
+                    delta_value=round(delta, 2),
+                    delta_pct=round(delta_pct, 2),
+                )
+            )
             if abs(delta) > 0.01:
                 waterfall.append({"label": h.asset_name, "value": round(delta, 2)})
 
@@ -520,9 +541,7 @@ class ESGScoringEngine:
 class TaxonomyAlignmentChecker:
     """EU Taxonomy alignment check (deterministic rule engine)."""
 
-    def check_alignment(
-        self, holding: PortfolioHolding, project: Project | None
-    ) -> TaxonomyResult:
+    def check_alignment(self, holding: PortfolioHolding, project: Project | None) -> TaxonomyResult:
         if not project:
             return TaxonomyResult(
                 holding_id=holding.id,
@@ -542,18 +561,22 @@ class TaxonomyAlignmentChecker:
         dnsh_checks: list[DNSHCheck] = []
         for obj in _DNSH_OBJECTIVES:
             if obj == "Climate change mitigation":
-                status = "compliant" if pt in (
-                    "solar", "wind", "hydro", "geothermal", "energy_efficiency"
-                ) else "needs_assessment"
+                status = (
+                    "compliant"
+                    if pt in ("solar", "wind", "hydro", "geothermal", "energy_efficiency")
+                    else "needs_assessment"
+                )
             elif obj == "Biodiversity and ecosystems":
                 status = "needs_assessment"
             else:
                 status = "compliant"
-            dnsh_checks.append(DNSHCheck(
-                objective=obj,
-                status=status,
-                notes=f"Assessment based on project type '{pt}'.",
-            ))
+            dnsh_checks.append(
+                DNSHCheck(
+                    objective=obj,
+                    status=status,
+                    notes=f"Assessment based on project type '{pt}'.",
+                )
+            )
 
         all_dnsh_ok = all(c.status != "non_compliant" for c in dnsh_checks)
         aligned = eligible and all_dnsh_ok
@@ -598,7 +621,7 @@ class ComplianceService:
 
         eligible_value = sum(
             float(h.current_value)
-            for h, r in zip(holdings, taxonomy_results)
+            for h, r in zip(holdings, taxonomy_results, strict=False)
             if r.eligible
         )
 
@@ -626,7 +649,7 @@ class ComplianceService:
             pai_indicators=pai_indicators,
             taxonomy_results=taxonomy_results,
             overall_status=overall,
-            last_assessed=datetime.now(timezone.utc),
+            last_assessed=datetime.now(UTC),
         )
 
     def _build_pai_indicators(
@@ -637,14 +660,16 @@ class ComplianceService:
         indicators: list[PAIIndicator] = []
         for pai_id, name, category, unit in _PAI_INDICATORS:
             value, status = self._compute_pai(pai_id, holdings, projects)
-            indicators.append(PAIIndicator(
-                id=pai_id,
-                name=name,
-                category=category,
-                value=value,
-                unit=unit,
-                status=status,
-            ))
+            indicators.append(
+                PAIIndicator(
+                    id=pai_id,
+                    name=name,
+                    category=category,
+                    value=value,
+                    unit=unit,
+                    status=status,
+                )
+            )
         return indicators
 
     def _compute_pai(
@@ -659,8 +684,9 @@ class ComplianceService:
             fossil_value = sum(
                 float(h.investment_amount)
                 for h in holdings
-                if projects.get(h.project_id, None) and
-                projects[h.project_id].project_type.value in ("biomass",)
+                if h.project_id is not None
+                and projects.get(h.project_id, None)
+                and projects[h.project_id].project_type.value in ("biomass",)
             )
             total = sum(float(h.investment_amount) for h in holdings) or 1.0
             pct = round(fossil_value / total * 100, 1)
@@ -675,8 +701,9 @@ class ComplianceService:
             clean_value = sum(
                 float(h.investment_amount)
                 for h in holdings
-                if projects.get(h.project_id) and
-                projects[h.project_id].project_type.value in clean_types
+                if h.project_id is not None
+                and projects.get(h.project_id)
+                and projects[h.project_id].project_type.value in clean_types
             )
             total = sum(float(h.investment_amount) for h in holdings) or 1.0
             clean_pct = clean_value / total
@@ -695,7 +722,7 @@ async def get_risk_dashboard(
     portfolio_id: uuid.UUID,
     org_id: uuid.UUID,
 ) -> RiskDashboardResponse:
-    portfolio = await _get_portfolio_or_raise(db, portfolio_id, org_id)
+    await _get_portfolio_or_raise(db, portfolio_id, org_id)
     holdings = await _load_active_holdings(db, portfolio_id)
 
     # Load projects
@@ -707,11 +734,16 @@ async def get_risk_dashboard(
         projects = {p.id: p for p in result.scalars().all()}
 
     # Load manual risk assessments
-    stmt = select(RiskAssessment).where(
-        RiskAssessment.org_id == org_id,
-        RiskAssessment.entity_id == portfolio_id,
-        RiskAssessment.is_deleted.is_(False),
-    ).order_by(RiskAssessment.updated_at.desc()).limit(50)
+    stmt = (
+        select(RiskAssessment)
+        .where(
+            RiskAssessment.org_id == org_id,
+            RiskAssessment.entity_id == portfolio_id,
+            RiskAssessment.is_deleted.is_(False),
+        )
+        .order_by(RiskAssessment.updated_at.desc())
+        .limit(50)
+    )
     result = await db.execute(stmt)
     assessments = list(result.scalars().all())
 
@@ -744,17 +776,14 @@ async def get_risk_dashboard(
 
     # Overall risk score: weighted average of all risks
     all_scores: list[float] = [
-        _risk_score(a.severity.value, a.probability.value) * 100 / 16
-        for a in assessments
-    ] + [
-        _risk_score(r.severity, r.probability) * 100 / 16
-        for r in auto_risks
-    ]
+        _risk_score(a.severity.value, a.probability.value) * 100 / 16 for a in assessments
+    ] + [_risk_score(r.severity, r.probability) * 100 / 16 for r in auto_risks]
     overall = round(sum(all_scores) / len(all_scores), 1) if all_scores else 0.0
 
     # Record risk score snapshot (best-effort, uses savepoint to not abort outer tx)
     try:
         from app.modules.metrics.snapshot_service import MetricSnapshotService
+
         async with db.begin_nested():
             svc = MetricSnapshotService(db)
             await svc.record_snapshot(
@@ -774,7 +803,9 @@ async def get_risk_dashboard(
     monthly_scores: dict[str, list[float]] = defaultdict(list)
     for a in assessments:
         month_key = a.created_at.strftime("%Y-%m")
-        monthly_scores[month_key].append(_risk_score(a.severity.value, a.probability.value) * 100 / 16)
+        monthly_scores[month_key].append(
+            _risk_score(a.severity.value, a.probability.value) * 100 / 16
+        )
     risk_trend = [
         RiskTrendPoint(
             date=month,
@@ -785,6 +816,7 @@ async def get_risk_dashboard(
     # If no historical data yet, fall back to a single current-month point
     if not risk_trend:
         import datetime as _dt
+
         risk_trend = [RiskTrendPoint(date=_dt.date.today().strftime("%Y-%m"), risk_score=overall)]
 
     return RiskDashboardResponse(
@@ -811,7 +843,7 @@ async def create_risk_assessment(
         probability = RiskProbability(data.probability)
         status = RiskAssessmentStatus(data.status)
     except ValueError as exc:
-        raise ValueError(str(exc))
+        raise ValueError(str(exc)) from exc
 
     assessment = RiskAssessment(
         org_id=org_id,
@@ -930,9 +962,7 @@ async def get_concentration_analysis(
     ]:
         for k, v in mapping.items():
             if v / total > 0.25:
-                flags.append(
-                    f"{label} concentration: {k} at {v / total * 100:.1f}%"
-                )
+                flags.append(f"{label} concentration: {k} at {v / total * 100:.1f}%")
 
     return ConcentrationAnalysisResponse(
         portfolio_id=portfolio_id,
@@ -1029,7 +1059,7 @@ async def get_five_domain_scores(
     Loads from stored RiskAssessment domain scores if available,
     otherwise derives a deterministic estimate from portfolio assessments.
     """
-    portfolio = await _get_portfolio_or_raise(db, portfolio_id, org_id)
+    await _get_portfolio_or_raise(db, portfolio_id, org_id)
 
     # Load the most recent RiskAssessment for this portfolio
     stmt = (
@@ -1059,35 +1089,59 @@ async def get_five_domain_scores(
             RiskDomainScore(
                 domain="market",
                 score=float(assessment.market_risk_score) if assessment.market_risk_score else None,
-                label=_domain_label(float(assessment.market_risk_score) if assessment.market_risk_score else None),
+                label=_domain_label(
+                    float(assessment.market_risk_score) if assessment.market_risk_score else None
+                ),
                 details=assessment.market_risk_details,
                 mitigation=assessment.market_risk_mitigation,
             ),
             RiskDomainScore(
                 domain="climate",
-                score=float(assessment.climate_risk_score) if assessment.climate_risk_score else None,
-                label=_domain_label(float(assessment.climate_risk_score) if assessment.climate_risk_score else None),
+                score=float(assessment.climate_risk_score)
+                if assessment.climate_risk_score
+                else None,
+                label=_domain_label(
+                    float(assessment.climate_risk_score) if assessment.climate_risk_score else None
+                ),
                 details=assessment.climate_risk_details,
                 mitigation=assessment.climate_risk_mitigation,
             ),
             RiskDomainScore(
                 domain="regulatory",
-                score=float(assessment.regulatory_risk_score) if assessment.regulatory_risk_score else None,
-                label=_domain_label(float(assessment.regulatory_risk_score) if assessment.regulatory_risk_score else None),
+                score=float(assessment.regulatory_risk_score)
+                if assessment.regulatory_risk_score
+                else None,
+                label=_domain_label(
+                    float(assessment.regulatory_risk_score)
+                    if assessment.regulatory_risk_score
+                    else None
+                ),
                 details=assessment.regulatory_risk_details,
                 mitigation=assessment.regulatory_risk_mitigation,
             ),
             RiskDomainScore(
                 domain="technology",
-                score=float(assessment.technology_risk_score) if assessment.technology_risk_score else None,
-                label=_domain_label(float(assessment.technology_risk_score) if assessment.technology_risk_score else None),
+                score=float(assessment.technology_risk_score)
+                if assessment.technology_risk_score
+                else None,
+                label=_domain_label(
+                    float(assessment.technology_risk_score)
+                    if assessment.technology_risk_score
+                    else None
+                ),
                 details=assessment.technology_risk_details,
                 mitigation=assessment.technology_risk_mitigation,
             ),
             RiskDomainScore(
                 domain="liquidity",
-                score=float(assessment.liquidity_risk_score) if assessment.liquidity_risk_score else None,
-                label=_domain_label(float(assessment.liquidity_risk_score) if assessment.liquidity_risk_score else None),
+                score=float(assessment.liquidity_risk_score)
+                if assessment.liquidity_risk_score
+                else None,
+                label=_domain_label(
+                    float(assessment.liquidity_risk_score)
+                    if assessment.liquidity_risk_score
+                    else None
+                ),
                 details=assessment.liquidity_risk_details,
                 mitigation=assessment.liquidity_risk_mitigation,
             ),
@@ -1127,10 +1181,14 @@ async def get_five_domain_scores(
         "other": "market",
     }
     sev_weights = {"low": 15, "medium": 35, "high": 60, "critical": 85}
-    domain_scores: dict[str, list[float]] = {d: [] for d in ["market", "climate", "regulatory", "technology", "liquidity"]}
+    domain_scores: dict[str, list[float]] = {
+        d: [] for d in ["market", "climate", "regulatory", "technology", "liquidity"]
+    }
 
     for a in all_assessments:
-        domain = domain_map.get(a.risk_type.value if hasattr(a.risk_type, "value") else str(a.risk_type), "market")
+        domain = domain_map.get(
+            a.risk_type.value if hasattr(a.risk_type, "value") else str(a.risk_type), "market"
+        )
         sev = a.severity.value if hasattr(a.severity, "value") else str(a.severity)
         domain_scores[domain].append(sev_weights.get(sev, 35))
 
@@ -1218,7 +1276,7 @@ async def trigger_monitoring_check(
 
     In production this would call external data providers.
     """
-    portfolio = await _get_portfolio_or_raise(db, portfolio_id, org_id)
+    await _get_portfolio_or_raise(db, portfolio_id, org_id)
 
     # Check concentration risk
     holdings_stmt = select(PortfolioHolding).where(
@@ -1312,6 +1370,7 @@ async def generate_domain_mitigation(
     _template_id: str | None = None
     try:
         from app.services.prompt_registry import PromptRegistry
+
         _reg = PromptRegistry(db)
         _registry_messages, _template_id, _ = await _reg.render(
             "risk_mitigation",
@@ -1355,6 +1414,7 @@ async def generate_domain_mitigation(
             if resp.status_code == 200:
                 content = resp.json().get("content", "")
                 import json as _json
+
                 # Strip markdown code blocks if present
                 if "```" in content:
                     content = content.split("```")[1]
@@ -1367,6 +1427,7 @@ async def generate_domain_mitigation(
                 if _template_id:
                     try:
                         from app.services.prompt_registry import PromptRegistry
+
                         await PromptRegistry(db).update_quality_metrics(_template_id, 1.0)
                     except Exception:
                         pass
@@ -1391,4 +1452,5 @@ async def get_insurance_impact_analysis(
 ):
     """Delegate to insurance service — keeps tools.py import path stable."""
     from app.modules.insurance import service as insurance_service
+
     return await insurance_service.get_insurance_impact_analysis(db, org_id, project_id)

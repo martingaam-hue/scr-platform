@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import uuid
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
 
 import pytest
 from httpx import AsyncClient
@@ -32,12 +31,13 @@ TC_USER_ID = uuid.UUID("00000000-0000-0001-0000-000000000002")
 TC_PROJECT_ID = uuid.UUID("00000000-0000-0001-0000-000000000003")
 TC_PORTFOLIO_ID = uuid.UUID("00000000-0000-0001-0000-000000000004")
 
-from app.schemas.auth import CurrentUser
-from app.main import app
+from httpx import ASGITransport
+
 from app.auth.dependencies import get_current_user
 from app.core.database import get_db
+from app.main import app
 from app.models.core import Organization, User
-from httpx import ASGITransport
+from app.schemas.auth import CurrentUser
 
 TC_CURRENT_USER = CurrentUser(
     user_id=TC_USER_ID,
@@ -125,9 +125,7 @@ async def tc_portfolio(db: AsyncSession, tc_org: Organization) -> Portfolio:
 async def tc_client(db: AsyncSession, tc_user: User) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: TC_CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
@@ -167,7 +165,7 @@ class TestTaxCreditsInventory:
         assert resp.status_code == 200
         data = resp.json()
         # total_estimated should be a valid number
-        assert isinstance(data["total_estimated"], (int, float))
+        assert isinstance(data["total_estimated"], int | float)
 
 
 class TestTaxCreditsIdentify:
@@ -177,18 +175,14 @@ class TestTaxCreditsIdentify:
         self, tc_client: AsyncClient, tc_user: User
     ) -> None:
         """POST identify for an unknown project returns 404."""
-        resp = await tc_client.post(
-            f"/v1/tax-credits/identify/{uuid.uuid4()}"
-        )
+        resp = await tc_client.post(f"/v1/tax-credits/identify/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_identify_credits_known_project_returns_201(
         self, tc_client: AsyncClient, tc_project: Project
     ) -> None:
         """POST identify for a known project returns 201 with identification result."""
-        resp = await tc_client.post(
-            f"/v1/tax-credits/identify/{TC_PROJECT_ID}"
-        )
+        resp = await tc_client.post(f"/v1/tax-credits/identify/{TC_PROJECT_ID}")
         assert resp.status_code == 201, resp.text
         data = resp.json()
         assert "project_id" in data
@@ -201,12 +195,10 @@ class TestTaxCreditsIdentify:
         self, tc_client: AsyncClient, tc_project: Project
     ) -> None:
         """POST identify returns a numeric total_estimated_value."""
-        resp = await tc_client.post(
-            f"/v1/tax-credits/identify/{TC_PROJECT_ID}"
-        )
+        resp = await tc_client.post(f"/v1/tax-credits/identify/{TC_PROJECT_ID}")
         assert resp.status_code == 201
         data = resp.json()
-        assert isinstance(data["total_estimated_value"], (int, float))
+        assert isinstance(data["total_estimated_value"], int | float)
 
 
 class TestTaxCreditsSummary:
@@ -216,18 +208,14 @@ class TestTaxCreditsSummary:
         self, tc_client: AsyncClient, tc_user: User
     ) -> None:
         """GET summary for an unknown entity ID returns 404."""
-        resp = await tc_client.get(
-            f"/v1/tax-credits/summary/{uuid.uuid4()}"
-        )
+        resp = await tc_client.get(f"/v1/tax-credits/summary/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_get_summary_known_portfolio_returns_200(
         self, tc_client: AsyncClient, tc_portfolio: Portfolio
     ) -> None:
         """GET summary for a known portfolio returns 200 with expected structure."""
-        resp = await tc_client.get(
-            f"/v1/tax-credits/summary/{TC_PORTFOLIO_ID}"
-        )
+        resp = await tc_client.get(f"/v1/tax-credits/summary/{TC_PORTFOLIO_ID}")
         assert resp.status_code == 200
         data = resp.json()
         assert "entity_id" in data
@@ -239,7 +227,5 @@ class TestTaxCreditsSummary:
         self, tc_client: AsyncClient, tc_user: User
     ) -> None:
         """GET summary with the sentinel fake UUID returns 404."""
-        resp = await tc_client.get(
-            "/v1/tax-credits/summary/00000000-0000-0000-0000-000000000099"
-        )
+        resp = await tc_client.get("/v1/tax-credits/summary/00000000-0000-0000-0000-000000000099")
         assert resp.status_code == 404

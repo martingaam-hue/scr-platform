@@ -78,6 +78,7 @@ async def create_watchlist(
     # Auto-populate criteria from natural language query when criteria is empty
     if body.nl_query and not body.criteria:
         from app.modules.smart_screener import service as screener_service
+
         try:
             parsed = await screener_service.parse_query(body.nl_query)
             criteria: dict = {}

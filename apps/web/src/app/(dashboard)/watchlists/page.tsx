@@ -293,7 +293,7 @@ export default function WatchlistsPage() {
               <button
                 onClick={() => {
                   let criteria = {}
-                  try { criteria = JSON.parse(newWatchlist.criteria) } catch {}
+                  try { criteria = JSON.parse(newWatchlist.criteria) } catch { /* ignore parse errors */ }
                   createMutation.mutate({ ...newWatchlist, criteria }, { onSuccess: () => setShowCreate(false) })
                 }}
                 disabled={!newWatchlist.name || createMutation.isPending}

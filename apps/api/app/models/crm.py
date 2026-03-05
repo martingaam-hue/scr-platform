@@ -16,13 +16,13 @@ class CRMConnection(Base, ModelMixin):
     """Stores OAuth credentials and configuration for a CRM provider connection."""
 
     __tablename__ = "crm_connections"
-    __table_args__ = (
-        Index("ix_crm_connections_org_id", "org_id"),
-    )
+    __table_args__ = (Index("ix_crm_connections_org_id", "org_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
-        server_default=func.gen_random_uuid()
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=func.gen_random_uuid(),
     )
     org_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -40,15 +40,23 @@ class CRMConnection(Base, ModelMixin):
     )
 
     portal_id: Mapped[str | None] = mapped_column(String(100), nullable=True)  # HubSpot portal ID
-    instance_url: Mapped[str | None] = mapped_column(String(500), nullable=True)  # Salesforce instance URL
+    instance_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True
+    )  # Salesforce instance URL
 
     field_mappings: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}")
     # e.g. {"project_name": "dealname", "signal_score": "scr_score__c", ...}
 
-    sync_frequency: Mapped[str] = mapped_column(String(20), nullable=False, default="15min")  # 15min, hourly, daily
-    sync_direction: Mapped[str] = mapped_column(String(20), nullable=False, default="bidirectional")  # push, pull, bidirectional
+    sync_frequency: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="15min"
+    )  # 15min, hourly, daily
+    sync_direction: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="bidirectional"
+    )  # push, pull, bidirectional
     last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -65,13 +73,13 @@ class CRMSyncLog(Base, ModelMixin):
     """Append-only log of individual sync operations."""
 
     __tablename__ = "crm_sync_logs"
-    __table_args__ = (
-        Index("ix_crm_sync_logs_connection_id", "connection_id"),
-    )
+    __table_args__ = (Index("ix_crm_sync_logs_connection_id", "connection_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
-        server_default=func.gen_random_uuid()
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=func.gen_random_uuid(),
     )
     connection_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -102,14 +110,18 @@ class CRMEntityMapping(Base, ModelMixin):
     __table_args__ = (
         Index("ix_crm_entity_mappings_connection_id", "connection_id"),
         UniqueConstraint(
-            "connection_id", "scr_entity_type", "scr_entity_id",
+            "connection_id",
+            "scr_entity_type",
+            "scr_entity_id",
             name="uq_crm_entity_mapping_scr",
         ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
-        server_default=func.gen_random_uuid()
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=func.gen_random_uuid(),
     )
     connection_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

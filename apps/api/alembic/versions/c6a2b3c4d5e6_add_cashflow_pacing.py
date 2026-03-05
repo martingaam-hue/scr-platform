@@ -7,18 +7,20 @@ Create Date: 2026-03-01 13:00:00.000000
 Creates cashflow_assumptions and cashflow_projections tables
 for the C06 J-curve cashflow pacing feature.
 """
+
 from __future__ import annotations
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
+
 revision: str = "c6a2b3c4d5e6"
-down_revision: Union[str, tuple[str, ...]] = "c0merge0c01c05"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | tuple[str, ...] = "c0merge0c01c05"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -37,7 +39,9 @@ def upgrade() -> None:
         sa.Column("investment_period_years", sa.Integer(), server_default="5", nullable=False),
         sa.Column("fund_life_years", sa.Integer(), server_default="10", nullable=False),
         sa.Column("optimistic_modifier", sa.Numeric(6, 4), server_default="1.2000", nullable=False),
-        sa.Column("pessimistic_modifier", sa.Numeric(6, 4), server_default="0.8000", nullable=False),
+        sa.Column(
+            "pessimistic_modifier", sa.Numeric(6, 4), server_default="0.8000", nullable=False
+        ),
         sa.Column(
             "deployment_schedule",
             postgresql.JSONB(astext_type=sa.Text()),
@@ -68,11 +72,11 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["org_id"], ["organizations.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["portfolio_id"], ["portfolios.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "portfolio_id", "is_active", name="uq_one_active_pacing_per_portfolio"
-        ),
+        sa.UniqueConstraint("portfolio_id", "is_active", name="uq_one_active_pacing_per_portfolio"),
     )
-    op.create_index("ix_cashflow_assumptions_portfolio_id", "cashflow_assumptions", ["portfolio_id"])
+    op.create_index(
+        "ix_cashflow_assumptions_portfolio_id", "cashflow_assumptions", ["portfolio_id"]
+    )
 
     # cashflow_projections
     op.create_table(
@@ -115,9 +119,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["assumption_id"], ["cashflow_assumptions.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["org_id"], ["organizations.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "assumption_id", "scenario", "year", name="uq_cashflow_projection_row"
-        ),
+        sa.UniqueConstraint("assumption_id", "scenario", "year", name="uq_cashflow_projection_row"),
     )
     op.create_index(
         "ix_cashflow_projections_assumption_id", "cashflow_projections", ["assumption_id"]

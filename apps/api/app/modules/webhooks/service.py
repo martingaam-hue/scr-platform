@@ -78,9 +78,7 @@ class WebhookService:
         await self.db.refresh(sub)
         return sub
 
-    async def delete_subscription(
-        self, org_id: uuid.UUID, sub_id: uuid.UUID
-    ) -> bool:
+    async def delete_subscription(self, org_id: uuid.UUID, sub_id: uuid.UUID) -> bool:
         sub = await self.get_subscription(org_id, sub_id)
         if not sub:
             return False
@@ -115,9 +113,7 @@ class WebhookService:
 
     # ── Event firing ──────────────────────────────────────────────────────────
 
-    async def fire_event(
-        self, org_id: uuid.UUID, event_type: str, payload: dict
-    ) -> int:
+    async def fire_event(self, org_id: uuid.UUID, event_type: str, payload: dict) -> int:
         """Find all active subscriptions for this org+event, queue deliveries.
 
         Returns the number of deliveries queued.
@@ -229,9 +225,7 @@ class WebhookService:
             # Auto-disable after 10 consecutive failures
             if sub.failure_count >= 10:
                 sub.is_active = False
-                sub.disabled_reason = (
-                    "Auto-disabled: 10 consecutive delivery failures"
-                )
+                sub.disabled_reason = "Auto-disabled: 10 consecutive delivery failures"
 
             logger.warning(
                 "webhook_delivery_failed",

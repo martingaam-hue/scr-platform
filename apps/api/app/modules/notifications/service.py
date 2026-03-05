@@ -6,7 +6,6 @@ import structlog
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.middleware.tenant import tenant_filter
 from app.models.core import Notification, User
 from app.models.enums import NotificationType
 from app.modules.collaboration.service import parse_mentions, resolve_mention_users
@@ -37,16 +36,19 @@ async def create_notification(
     await db.flush()
 
     # Push SSE event
-    await sse_manager.push(user_id, {
-        "type": "notification",
-        "data": {
-            "id": str(notification.id),
-            "type": type.value,
-            "title": title,
-            "message": message,
-            "link": link,
+    await sse_manager.push(
+        user_id,
+        {
+            "type": "notification",
+            "data": {
+                "id": str(notification.id),
+                "type": type.value,
+                "title": title,
+                "message": message,
+                "link": link,
+            },
         },
-    })
+    )
 
     return notification
 

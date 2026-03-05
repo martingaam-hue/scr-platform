@@ -5,12 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_permission
-from app.core.database import get_db
 from app.modules.voice_input import service
 from app.schemas.auth import CurrentUser
 
@@ -19,8 +17,15 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/voice", tags=["voice-input"])
 
 _ALLOWED_AUDIO_TYPES = {
-    "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav",
-    "audio/mp4", "audio/m4a", "audio/x-m4a", "audio/ogg", "audio/webm",
+    "audio/mpeg",
+    "audio/mp3",
+    "audio/wav",
+    "audio/x-wav",
+    "audio/mp4",
+    "audio/m4a",
+    "audio/x-m4a",
+    "audio/ogg",
+    "audio/webm",
 }
 _MAX_BYTES = 25 * 1024 * 1024  # 25 MB (Whisper limit)
 
@@ -42,9 +47,11 @@ async def transcribe(
         raise HTTPException(status_code=413, detail="Audio file exceeds 25 MB limit")
 
     try:
-        transcript = await service.transcribe_audio(audio_bytes, file.filename or "audio.mp3", file.content_type)
+        transcript = await service.transcribe_audio(
+            audio_bytes, file.filename or "audio.mp3", file.content_type
+        )
     except RuntimeError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return {"transcript": transcript}
 
@@ -57,7 +64,7 @@ async def extract(
     try:
         extracted = await service.extract_project_data(body.transcript)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return {"extracted": extracted}
 
 
@@ -74,8 +81,10 @@ async def process(
         raise HTTPException(status_code=413, detail="Audio file exceeds 25 MB limit")
 
     try:
-        result = await service.process_audio(audio_bytes, file.filename or "audio.mp3", file.content_type)
+        result = await service.process_audio(
+            audio_bytes, file.filename or "audio.mp3", file.content_type
+        )
     except RuntimeError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return result

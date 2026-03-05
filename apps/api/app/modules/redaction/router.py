@@ -154,9 +154,7 @@ async def approve_redactions(
     Call POST /jobs/{job_id}/apply next to generate the redacted PDF.
     """
     svc = RedactionService(db)
-    job = await svc.approve_redactions(
-        current_user.org_id, job_id, body.approved_entity_ids
-    )
+    job = await svc.approve_redactions(current_user.org_id, job_id, body.approved_entity_ids)
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -183,9 +181,7 @@ async def apply_redaction(
     svc = RedactionService(db)
     job = await svc.get_job(current_user.org_id, job_id)
     if not job:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Redaction job not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Redaction job not found")
     if job.status != "applying":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

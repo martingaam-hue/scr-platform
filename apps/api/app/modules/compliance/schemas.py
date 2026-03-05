@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
-from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class DeadlineCreate(BaseModel):
-    category: str  # regulatory_filing, tax, environmental, permit, license, insurance, reporting, sfdr
+    category: (
+        str  # regulatory_filing, tax, environmental, permit, license, insurance, reporting, sfdr
+    )
     title: str
     description: str | None = None
     jurisdiction: str | None = None

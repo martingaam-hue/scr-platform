@@ -3,7 +3,7 @@
 import hashlib
 import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -66,9 +66,7 @@ async def list_org_users(db: AsyncSession, org_id: uuid.UUID) -> list[User]:
     return list(result.scalars().all())
 
 
-async def get_user(
-    db: AsyncSession, org_id: uuid.UUID, user_id: uuid.UUID
-) -> User:
+async def get_user(db: AsyncSession, org_id: uuid.UUID, user_id: uuid.UUID) -> User:
     result = await db.execute(
         select(User).where(
             User.id == user_id,
@@ -158,7 +156,7 @@ def create_api_key(org: Organization, name: str) -> ApiKeyCreatedResponse:
     raw_key = f"scr_{secrets.token_urlsafe(32)}"
     key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
     key_id = uuid.uuid4().hex[:16]
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     entry: dict[str, Any] = {
         "id": key_id,
@@ -214,9 +212,7 @@ _NOTIF_DEFAULTS: dict[str, Any] = {
 }
 
 
-async def get_user_preferences(
-    db: AsyncSession, user_id: uuid.UUID
-) -> PreferencesResponse:
+async def get_user_preferences(db: AsyncSession, user_id: uuid.UUID) -> PreferencesResponse:
     user = await db.get(User, user_id)
     if not user:
         raise LookupError(f"User {user_id} not found")

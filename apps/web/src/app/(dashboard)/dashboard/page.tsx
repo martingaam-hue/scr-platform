@@ -3,9 +3,6 @@
 import { useRouter } from "next/navigation";
 import {
   FolderKanban,
-  TrendingUp,
-  DollarSign,
-  Target,
   Plus,
   ArrowRight,
   Briefcase,

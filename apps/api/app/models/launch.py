@@ -31,18 +31,14 @@ class FeatureFlag(Base, ModelMixin):
     rollout_pct: Mapped[int] = mapped_column(
         Integer, nullable=False, default=100, server_default="100"
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default="now()"
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default="now()")
 
 
 class FeatureFlagOverride(Base, ModelMixin):
     """Per-org override for a feature flag."""
 
     __tablename__ = "feature_flag_overrides"
-    __table_args__ = (
-        UniqueConstraint("flag_name", "org_id", name="uq_flag_override_org"),
-    )
+    __table_args__ = (UniqueConstraint("flag_name", "org_id", name="uq_flag_override_org"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -56,9 +52,7 @@ class FeatureFlagOverride(Base, ModelMixin):
     )
     org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default="now()"
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default="now()")
 
 
 class UsageEvent(Base, ModelMixin):
@@ -79,9 +73,7 @@ class UsageEvent(Base, ModelMixin):
     event_metadata: Mapped[dict] = mapped_column(
         "metadata", JSONB, nullable=False, default=dict, server_default="{}"
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default="now()"
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default="now()")
 
 
 class WaitlistEntry(Base, ModelMixin):
@@ -101,7 +93,5 @@ class WaitlistEntry(Base, ModelMixin):
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="pending", server_default="'pending'"
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default="now()"
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default="now()")
     approved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

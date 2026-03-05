@@ -4,11 +4,13 @@ Revision ID: e4a2b3c4d5e6
 Revises: e2a2b3c4d5e6
 Create Date: 2026-03-01 15:00:00.000000
 """
+
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "e4a2b3c4d5e6"
 down_revision = "e2a2b3c4d5e6"
@@ -56,9 +58,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["org_id"], ["organizations.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["created_by"], ["users.id"], ondelete="SET NULL"),
     )
-    op.create_index(
-        "ix_webhook_subscriptions_org_id", "webhook_subscriptions", ["org_id"]
-    )
+    op.create_index("ix_webhook_subscriptions_org_id", "webhook_subscriptions", ["org_id"])
 
     # ── webhook_deliveries ────────────────────────────────────────────────────
     op.create_table(
@@ -103,12 +103,8 @@ def upgrade() -> None:
         "webhook_deliveries",
         ["subscription_id"],
     )
-    op.create_index(
-        "ix_webhook_deliveries_org_id", "webhook_deliveries", ["org_id"]
-    )
-    op.create_index(
-        "ix_webhook_deliveries_status", "webhook_deliveries", ["status"]
-    )
+    op.create_index("ix_webhook_deliveries_org_id", "webhook_deliveries", ["org_id"])
+    op.create_index("ix_webhook_deliveries_status", "webhook_deliveries", ["status"])
     op.create_index(
         "ix_webhook_deliveries_next_retry_at",
         "webhook_deliveries",
@@ -120,11 +116,7 @@ def downgrade() -> None:
     op.drop_index("ix_webhook_deliveries_next_retry_at", table_name="webhook_deliveries")
     op.drop_index("ix_webhook_deliveries_status", table_name="webhook_deliveries")
     op.drop_index("ix_webhook_deliveries_org_id", table_name="webhook_deliveries")
-    op.drop_index(
-        "ix_webhook_deliveries_subscription_id", table_name="webhook_deliveries"
-    )
+    op.drop_index("ix_webhook_deliveries_subscription_id", table_name="webhook_deliveries")
     op.drop_table("webhook_deliveries")
-    op.drop_index(
-        "ix_webhook_subscriptions_org_id", table_name="webhook_subscriptions"
-    )
+    op.drop_index("ix_webhook_subscriptions_org_id", table_name="webhook_subscriptions")
     op.drop_table("webhook_subscriptions")

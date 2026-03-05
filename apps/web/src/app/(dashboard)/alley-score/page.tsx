@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   BarChart2,
@@ -14,7 +14,6 @@ import {
   X,
 } from "lucide-react";
 import {
-  Badge,
   Button,
   Card,
   CardContent,
@@ -23,7 +22,6 @@ import {
   cn,
 } from "@scr/ui";
 import {
-  dimensionBarColor,
   scoreBadgeClass,
   scoreLabelColor,
   useGenerateScore,
@@ -97,29 +95,6 @@ function PortfolioMetrics({
           <span className="text-xs text-neutral-400">{sub}</span>
         </div>
       ))}
-    </div>
-  );
-}
-
-// ── Dimension mini-bar ────────────────────────────────────────────────────────
-
-function MiniBar({ score }: { score: number }) {
-  const barRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (barRef.current) {
-      barRef.current.style.transition = "width 700ms ease-out";
-      barRef.current.style.width = `${score}%`;
-    }
-  }, [score]);
-
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
-      <div
-        ref={barRef}
-        style={{ width: "0%" }}
-        className={cn("h-full rounded-full", dimensionBarColor(score))}
-      />
     </div>
   );
 }

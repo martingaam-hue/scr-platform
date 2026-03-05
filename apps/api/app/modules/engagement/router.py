@@ -8,7 +8,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db, get_readonly_session
 from app.modules.engagement.schemas import (
     DocumentAnalyticsResponse,
@@ -60,7 +60,7 @@ async def track_open(
         return EngagementSessionResponse.model_validate(engagement)
     except Exception as exc:
         logger.error("track_open_failed", error=str(exc))
-        raise HTTPException(status_code=500, detail="Failed to record document open")
+        raise HTTPException(status_code=500, detail="Failed to record document open") from exc
 
 
 @router.post(
@@ -84,10 +84,10 @@ async def track_page_view(
         await db.commit()
         return EngagementSessionResponse.model_validate(engagement)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("track_page_failed", error=str(exc))
-        raise HTTPException(status_code=500, detail="Failed to record page view")
+        raise HTTPException(status_code=500, detail="Failed to record page view") from exc
 
 
 @router.post(
@@ -107,10 +107,10 @@ async def track_close(
         await db.commit()
         return EngagementSessionResponse.model_validate(engagement)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("track_close_failed", error=str(exc))
-        raise HTTPException(status_code=500, detail="Failed to record document close")
+        raise HTTPException(status_code=500, detail="Failed to record document close") from exc
 
 
 @router.post(
@@ -130,10 +130,10 @@ async def track_download(
         await db.commit()
         return EngagementSessionResponse.model_validate(engagement)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("track_download_failed", error=str(exc))
-        raise HTTPException(status_code=500, detail="Failed to record download")
+        raise HTTPException(status_code=500, detail="Failed to record download") from exc
 
 
 # ── Analytics read endpoints ───────────────────────────────────────────────────
@@ -182,10 +182,11 @@ async def get_deal_room_engagement(
     db: AsyncSession = Depends(get_readonly_session),
 ) -> list[InvestorEngagementResponse]:
     """Return per-investor engagement summaries filtered to a specific deal room."""
-    from app.models.deal_rooms import DealRoom
-
     # Resolve the project_id from the deal room (org-scoped check)
     from sqlalchemy import select as sa_select
+
+    from app.models.deal_rooms import DealRoom
+
     dr_result = await db.execute(
         sa_select(DealRoom).where(
             DealRoom.id == deal_room_id,

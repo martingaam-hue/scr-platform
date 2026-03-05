@@ -1,13 +1,12 @@
 """Tests for gamification — badges, quests, leaderboard."""
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio
-async def test_my_badges(
-    authenticated_client: AsyncClient, sample_user, db: AsyncSession
-) -> None:
+async def test_my_badges(authenticated_client: AsyncClient, sample_user, db: AsyncSession) -> None:
     # User's own badges: GET /gamification/badges/my
     response = await authenticated_client.get("/v1/gamification/badges/my")
     assert response.status_code == 200

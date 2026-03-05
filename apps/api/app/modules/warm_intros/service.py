@@ -155,9 +155,7 @@ async def update_connection(
         conn.connected_person_email = data.connected_person_email
     if data.relationship_strength is not None:
         if data.relationship_strength not in _VALID_STRENGTHS:
-            raise ValueError(
-                f"Invalid relationship_strength: {data.relationship_strength}"
-            )
+            raise ValueError(f"Invalid relationship_strength: {data.relationship_strength}")
         conn.relationship_strength = data.relationship_strength
     if data.last_interaction_date is not None:
         conn.last_interaction_date = data.last_interaction_date
@@ -360,9 +358,7 @@ async def update_request_status(
 ) -> IntroductionRequest:
     """Update the status of an introduction request (connector accepts/declines)."""
     if new_status not in _VALID_STATUSES:
-        raise ValueError(
-            f"Invalid status: {new_status}. Must be one of {sorted(_VALID_STATUSES)}"
-        )
+        raise ValueError(f"Invalid status: {new_status}. Must be one of {sorted(_VALID_STATUSES)}")
 
     stmt = select(IntroductionRequest).where(
         IntroductionRequest.id == request_id,

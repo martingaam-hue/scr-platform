@@ -1,4 +1,5 @@
 """Alley signal_score Celery tasks — async score generation."""
+
 from __future__ import annotations
 
 import uuid
@@ -57,12 +58,14 @@ def run_signal_score_generation(self, task_log_id: str, org_id: str, project_id:
             content = ai_result.get("content", {})
             if isinstance(content, str):
                 import json as _json
+
                 try:
                     content = _json.loads(content)
                 except Exception:
                     content = {}
 
             from sqlalchemy import select as sa_select
+
             latest = db.execute(
                 sa_select(SignalScore)
                 .where(SignalScore.project_id == uuid.UUID(project_id))
@@ -107,6 +110,6 @@ def run_signal_score_generation(self, task_log_id: str, org_id: str, project_id:
                 log.status = AITaskStatus.FAILED
                 log.error_message = str(exc)
                 db.commit()
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
     finally:
         engine.dispose()

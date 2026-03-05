@@ -12,6 +12,7 @@ logger = structlog.get_logger()
 
 def enrich_expert_note_task(note_id: str) -> None:
     """Fire-and-forget enrichment — runs in Celery worker via async_session_factory."""
+
     async def _run() -> None:
         from app.core.database import async_session_factory
         from app.modules.expert_insights.service import ExpertInsightsService
@@ -35,12 +36,18 @@ def enrich_expert_note_task_celery(note_id: str) -> None:
 try:
     from app.core.celery_app import celery_app
 
-    @celery_app.task(name="tasks.enrich_expert_note", bind=True, max_retries=3, soft_time_limit=120, time_limit=180)  # type: ignore[misc]
+    @celery_app.task(
+        name="tasks.enrich_expert_note",
+        bind=True,
+        max_retries=3,
+        soft_time_limit=120,
+        time_limit=180,
+    )  # type: ignore[misc]
     def _enrich_expert_note_celery(self, note_id: str) -> None:  # type: ignore[misc]
         try:
             enrich_expert_note_task(note_id)
         except Exception as exc:
-            raise self.retry(exc=exc, countdown=60)
+            raise self.retry(exc=exc, countdown=60) from exc
 
 except Exception:
     # Worker module not importable in API context — that's fine.

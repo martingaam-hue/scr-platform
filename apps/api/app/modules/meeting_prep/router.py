@@ -8,7 +8,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db
 from app.modules.meeting_prep import service
 from app.modules.meeting_prep.schemas import (
@@ -86,7 +86,10 @@ async def update_briefing(
 ):
     """Save user edits as custom overrides (merged with AI content on read)."""
     briefing = await service.update_briefing(
-        db, briefing_id=briefing_id, org_id=current_user.org_id, custom_overrides=body.custom_overrides
+        db,
+        briefing_id=briefing_id,
+        org_id=current_user.org_id,
+        custom_overrides=body.custom_overrides,
     )
     if not briefing:
         raise HTTPException(status_code=404, detail="Briefing not found")

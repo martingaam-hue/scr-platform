@@ -7,7 +7,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # ── Alignment breakdown ───────────────────────────────────────────────────────
 
 
@@ -26,7 +25,7 @@ class AlignmentBreakdownResponse(BaseModel):
 
 
 class RecommendedProjectResponse(BaseModel):
-    match_id: uuid.UUID | None       # None if not yet in pipeline
+    match_id: uuid.UUID | None  # None if not yet in pipeline
     project_id: uuid.UUID
     project_name: str
     project_type: str
@@ -37,7 +36,7 @@ class RecommendedProjectResponse(BaseModel):
     cover_image_url: str | None
     signal_score: int | None
     alignment: AlignmentBreakdownResponse
-    status: str                      # MatchStatus value, "new" if not yet matched
+    status: str  # MatchStatus value, "new" if not yet matched
     mandate_id: uuid.UUID | None
     mandate_name: str | None
     updated_at: datetime | None

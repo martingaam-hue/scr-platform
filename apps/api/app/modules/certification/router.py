@@ -40,6 +40,7 @@ async def get_certification(
 ):
     """Get full certification status for a project."""
     from sqlalchemy import select
+
     from app.models.certification import InvestorReadinessCertification
 
     stmt = select(InvestorReadinessCertification).where(
@@ -51,7 +52,9 @@ async def get_certification(
     cert = result.scalar_one_or_none()
 
     if cert is None:
-        raise HTTPException(status_code=404, detail="No certification record found for this project")
+        raise HTTPException(
+            status_code=404, detail="No certification record found for this project"
+        )
 
     return CertificationResponse.model_validate(cert)
 
@@ -73,9 +76,7 @@ async def get_requirements(
     db: AsyncSession = Depends(get_db),
 ):
     """Check what a project needs to achieve Investor Readiness Certification."""
-    return await service.get_certification_requirements(
-        db, project_id, current_user.org_id
-    )
+    return await service.get_certification_requirements(db, project_id, current_user.org_id)
 
 
 @router.post("/{project_id}/evaluate", response_model=CertificationResponse)
@@ -86,15 +87,13 @@ async def evaluate_certification(
 ):
     """Trigger a re-evaluation of certification status for a project."""
     try:
-        cert = await service.evaluate_certification(
-            db, project_id, current_user.org_id
-        )
+        cert = await service.evaluate_certification(db, project_id, current_user.org_id)
     except Exception as exc:
         logger.error(
             "certification_evaluation_error",
             project_id=str(project_id),
             error=str(exc),
         )
-        raise HTTPException(status_code=500, detail="Certification evaluation failed")
+        raise HTTPException(status_code=500, detail="Certification evaluation failed") from exc
 
     return CertificationResponse.model_validate(cert)

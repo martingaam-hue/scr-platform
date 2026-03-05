@@ -5,6 +5,7 @@ in Redis (shared across all worker processes) with an in-process fallback,
 and verifies RS256-signed tokens.
 """
 
+import contextlib
 import json
 
 import httpx
@@ -22,8 +23,9 @@ async def _redis_client():
     """Return a short-lived Redis client, or None if Redis is unavailable."""
     try:
         from redis.asyncio import from_url  # type: ignore[import-untyped]
+
         return from_url(settings.REDIS_URL, decode_responses=True)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return None
 
 
@@ -43,13 +45,11 @@ async def _fetch_jwks() -> dict:
             if cached:
                 await redis.aclose()
                 return json.loads(cached)
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 await redis.aclose()
-            except Exception:  # noqa: BLE001
-                pass
 
     # 2. Fetch from Clerk
     jwks_url = f"{settings.CLERK_ISSUER_URL}/.well-known/jwks.json"
@@ -65,13 +65,11 @@ async def _fetch_jwks() -> dict:
     if redis:
         try:
             await redis.setex(_REDIS_KEY, settings.CLERK_JWKS_CACHE_TTL, json.dumps(jwks))
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 await redis.aclose()
-            except Exception:  # noqa: BLE001
-                pass
 
     return jwks
 
@@ -116,10 +114,8 @@ async def clear_jwks_cache() -> None:
     if redis:
         try:
             await redis.delete(_REDIS_KEY)
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 await redis.aclose()
-            except Exception:  # noqa: BLE001
-                pass

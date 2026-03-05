@@ -5,13 +5,12 @@ from pathlib import Path
 # Ensure apps/api is on sys.path so `app` package is importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from alembic import context
-from sqlalchemy import create_engine, engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
+import app.models
+from alembic import context
 from app.core.config import settings
 from app.core.database import Base
-
-import app.models  # noqa: F401 — register all models so Base.metadata is populated
 
 config = context.config
 

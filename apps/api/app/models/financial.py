@@ -1,13 +1,13 @@
 """Financial models: Valuation, TaxCredit, CarbonCredit, BusinessPlan."""
 
 import uuid
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import Date, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
 from app.models.enums import (
@@ -44,9 +44,7 @@ class Valuation(BaseModel):
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
     assumptions: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     model_inputs: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    status: Mapped[ValuationStatus] = mapped_column(
-        nullable=False, default=ValuationStatus.DRAFT
-    )
+    status: Mapped[ValuationStatus] = mapped_column(nullable=False, default=ValuationStatus.DRAFT)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     valued_at: Mapped[date] = mapped_column(Date, nullable=False)
     prepared_by: Mapped[uuid.UUID] = mapped_column(
@@ -129,7 +127,9 @@ class CarbonCredit(BaseModel):
     retirement_date: Mapped[date | None] = mapped_column(Date)
 
     def __repr__(self) -> str:
-        return f"<CarbonCredit(id={self.id}, registry={self.registry!r}, tons={self.quantity_tons})>"
+        return (
+            f"<CarbonCredit(id={self.id}, registry={self.registry!r}, tons={self.quantity_tons})>"
+        )
 
 
 class BusinessPlan(BaseModel):

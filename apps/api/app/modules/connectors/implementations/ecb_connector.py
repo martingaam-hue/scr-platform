@@ -38,7 +38,9 @@ class ECBConnector(BaseConnector):
 
     async def get_series(self, series_key: str) -> list[dict[str, Any]]:
         """Fetch an ECB statistical time series."""
-        data = await self.fetch(f"/data/{series_key}", params={"format": "jsondata", "lastNObservations": "12"})
+        data = await self.fetch(
+            f"/data/{series_key}", params={"format": "jsondata", "lastNObservations": "12"}
+        )
         return data
 
     async def health_check(self) -> bool:

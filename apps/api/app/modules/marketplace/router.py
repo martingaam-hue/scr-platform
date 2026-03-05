@@ -73,9 +73,9 @@ async def create_listing(
         await db.refresh(listing)
         return await service._enrich_listing(db, listing)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/rfqs/sent", response_model=RFQListResponse)
@@ -116,7 +116,7 @@ async def get_price_suggestion(
     try:
         return await service.suggest_price(db, listing_type, project_type)
     except Exception as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 # ── Parameterised listing routes ───────────────────────────────────────────────
@@ -133,7 +133,7 @@ async def get_listing(
         listing = await service.get_listing(db, listing_id, current_user.org_id)
         return await service._enrich_listing(db, listing)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.put("/listings/{listing_id}", response_model=ListingResponse)
@@ -150,9 +150,9 @@ async def update_listing(
         await db.refresh(listing)
         return await service._enrich_listing(db, listing)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.delete("/listings/{listing_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -166,9 +166,9 @@ async def withdraw_listing(
         await service.withdraw_listing(db, listing_id, current_user.org_id)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post(
@@ -191,9 +191,9 @@ async def submit_rfq(
         await db.refresh(rfq)
         return service._rfq_to_response(rfq)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 # ── RFQ response ──────────────────────────────────────────────────────────────
@@ -208,16 +208,14 @@ async def respond_to_rfq(
 ):
     """Accept, reject, or counter an RFQ (seller only)."""
     try:
-        rfq, _tx = await service.respond_to_rfq(
-            db, rfq_id, current_user.org_id, body
-        )
+        rfq, _tx = await service.respond_to_rfq(db, rfq_id, current_user.org_id, body)
         await db.commit()
         await db.refresh(rfq)
         return service._rfq_to_response(rfq)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 # ── Transaction completion ────────────────────────────────────────────────────
@@ -234,13 +232,11 @@ async def complete_transaction(
 ):
     """Mark a transaction as completed."""
     try:
-        tx = await service.complete_transaction(
-            db, transaction_id, current_user.org_id
-        )
+        tx = await service.complete_transaction(db, transaction_id, current_user.org_id)
         await db.commit()
         await db.refresh(tx)
         return service._tx_to_response(tx)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

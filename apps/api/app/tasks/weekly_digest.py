@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import uuid
 from datetime import datetime, timedelta
 
 import structlog
@@ -55,9 +54,7 @@ async def _async_send_digests() -> dict:
             user = row[0]
             org_name = row[1]
             try:
-                activity = await digest_service.gather_digest_data(
-                    db, user.org_id, user.id, since
-                )
+                activity = await digest_service.gather_digest_data(db, user.org_id, user.id, since)
                 summary = await digest_service.generate_digest_summary(activity, org_name)
                 subject = _build_subject(org_name, since)
                 await _send_digest_email(user.email, user.full_name, org_name, activity, summary)
@@ -98,9 +95,10 @@ async def _send_digest_email(
         logger.debug("email_not_configured_skipping", email=email)
         return
 
+    import os
+
     import boto3
     from jinja2 import Environment, FileSystemLoader
-    import os
 
     templates_dir = os.path.join(os.path.dirname(__file__), "..", "templates", "email")
     env = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)

@@ -1,6 +1,5 @@
 """Ralph AI — tool implementations that call existing SCR service layers."""
 
-import json
 import uuid
 from typing import Any
 
@@ -38,6 +37,7 @@ class RalphTools:
 
     async def _tool_get_project_details(self, project_id: str) -> dict[str, Any]:
         from app.models.projects import Project
+
         stmt = select(Project).where(
             Project.id == uuid.UUID(project_id),
             Project.org_id == self.org_id,
@@ -61,9 +61,14 @@ class RalphTools:
 
     async def _tool_get_signal_score(self, project_id: str) -> dict[str, Any]:
         from app.models.projects import SignalScore
-        stmt = select(SignalScore).where(
-            SignalScore.project_id == uuid.UUID(project_id),
-        ).order_by(SignalScore.created_at.desc())
+
+        stmt = (
+            select(SignalScore)
+            .where(
+                SignalScore.project_id == uuid.UUID(project_id),
+            )
+            .order_by(SignalScore.created_at.desc())
+        )
         result = await self.db.execute(stmt)
         score = result.scalars().first()
         if score is None:
@@ -76,14 +81,21 @@ class RalphTools:
             "created_at": str(score.created_at),
         }
 
-    async def _tool_get_risk_assessment(self, entity_id: str, entity_type: str = "project") -> dict[str, Any]:
+    async def _tool_get_risk_assessment(
+        self, entity_id: str, entity_type: str = "project"
+    ) -> dict[str, Any]:
         from app.models.investors import RiskAssessment
-        stmt = select(RiskAssessment).where(
-            RiskAssessment.org_id == self.org_id,
-            RiskAssessment.entity_id == uuid.UUID(entity_id),
-            RiskAssessment.entity_type == entity_type,
-            RiskAssessment.is_deleted.is_(False),
-        ).order_by(RiskAssessment.created_at.desc())
+
+        stmt = (
+            select(RiskAssessment)
+            .where(
+                RiskAssessment.org_id == self.org_id,
+                RiskAssessment.entity_id == uuid.UUID(entity_id),
+                RiskAssessment.entity_type == entity_type,
+                RiskAssessment.is_deleted.is_(False),
+            )
+            .order_by(RiskAssessment.created_at.desc())
+        )
         result = await self.db.execute(stmt)
         assessment = result.scalars().first()
         if assessment is None:
@@ -102,6 +114,7 @@ class RalphTools:
 
     async def _tool_get_portfolio_metrics(self, portfolio_id: str | None = None) -> dict[str, Any]:
         from app.models.investors import Portfolio, PortfolioMetrics
+
         if portfolio_id:
             stmt = select(Portfolio).where(
                 Portfolio.id == uuid.UUID(portfolio_id),
@@ -109,18 +122,26 @@ class RalphTools:
                 Portfolio.is_deleted.is_(False),
             )
         else:
-            stmt = select(Portfolio).where(
-                Portfolio.org_id == self.org_id,
-                Portfolio.is_deleted.is_(False),
-            ).limit(1)
+            stmt = (
+                select(Portfolio)
+                .where(
+                    Portfolio.org_id == self.org_id,
+                    Portfolio.is_deleted.is_(False),
+                )
+                .limit(1)
+            )
         result = await self.db.execute(stmt)
         portfolio = result.scalar_one_or_none()
         if portfolio is None:
             return {"error": "No portfolio found"}
 
-        metrics_stmt = select(PortfolioMetrics).where(
-            PortfolioMetrics.portfolio_id == portfolio.id,
-        ).order_by(PortfolioMetrics.calculated_at.desc())
+        metrics_stmt = (
+            select(PortfolioMetrics)
+            .where(
+                PortfolioMetrics.portfolio_id == portfolio.id,
+            )
+            .order_by(PortfolioMetrics.calculated_at.desc())
+        )
         metrics_result = await self.db.execute(metrics_stmt)
         metrics = metrics_result.scalars().first()
 
@@ -128,19 +149,27 @@ class RalphTools:
             "portfolio_id": str(portfolio.id),
             "name": portfolio.name,
             "strategy": portfolio.strategy.value if portfolio.strategy else None,
-            "total_committed": float(portfolio.total_committed) if portfolio.total_committed else None,
+            "total_committed": float(portfolio.total_committed)
+            if portfolio.total_committed
+            else None,
             "total_deployed": float(portfolio.total_deployed) if portfolio.total_deployed else None,
             "metrics": {
-                "total_value": float(metrics.total_value) if metrics and metrics.total_value else None,
+                "total_value": float(metrics.total_value)
+                if metrics and metrics.total_value
+                else None,
                 "irr": float(metrics.irr) if metrics and metrics.irr else None,
                 "moic": float(metrics.moic) if metrics and metrics.moic else None,
                 "num_holdings": metrics.num_holdings if metrics else None,
-            } if metrics else None,
+            }
+            if metrics
+            else None,
         }
 
     # ── AI-gateway powered tools ──────────────────────────────────────────────
 
-    async def _tool_search_documents(self, query: str, project_id: str | None = None) -> dict[str, Any]:
+    async def _tool_search_documents(
+        self, query: str, project_id: str | None = None
+    ) -> dict[str, Any]:
         """Search documents via AI gateway RAG endpoint."""
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -186,9 +215,11 @@ class RalphTools:
 
     # ── Matching tools ────────────────────────────────────────────────────────
 
-    async def _tool_find_matching_investors(self, project_id: str, limit: int = 5) -> dict[str, Any]:
-        from app.models.projects import Project
+    async def _tool_find_matching_investors(
+        self, project_id: str, limit: int = 5
+    ) -> dict[str, Any]:
         from app.modules.matching import service as matching_service
+
         try:
             recs = await matching_service.get_investor_recommendations(
                 self.db, self.org_id, limit=limit
@@ -199,9 +230,10 @@ class RalphTools:
 
     async def _tool_find_matching_projects(self, limit: int = 5) -> dict[str, Any]:
         from app.modules.matching import service as matching_service
+
         try:
             recs = await matching_service.get_ally_recommendations(
-                self.db, self.org_id, limit=limit
+                self.db, self.org_id, self.org_id
             )
             return {"projects": [r.model_dump() for r in recs.items[:limit]]}
         except Exception as e:
@@ -211,6 +243,7 @@ class RalphTools:
 
     async def _tool_run_valuation(self, project_id: str, method: str = "dcf") -> dict[str, Any]:
         from app.modules.valuation import service as val_service
+
         try:
             result = await val_service.get_latest_valuation(
                 self.db, uuid.UUID(project_id), self.org_id
@@ -231,9 +264,12 @@ class RalphTools:
         self, project_id: str, investment_amount: float, equity_percentage: float
     ) -> dict[str, Any]:
         from app.modules.equity_calculator import service as eq_service
+
         try:
             result = await eq_service.calculate_scenario(
-                self.db, self.org_id, uuid.UUID(project_id),
+                self.db,
+                self.org_id,
+                uuid.UUID(project_id),
                 investment_amount=investment_amount,
                 equity_percentage=equity_percentage,
             )
@@ -243,6 +279,7 @@ class RalphTools:
 
     async def _tool_get_capital_efficiency(self, project_id: str) -> dict[str, Any]:
         from app.modules.capital_efficiency import service as ce_service
+
         try:
             result = await ce_service.get_capital_efficiency_report(
                 self.db, self.org_id, uuid.UUID(project_id)
@@ -255,6 +292,7 @@ class RalphTools:
 
     async def _tool_get_carbon_estimate(self, project_id: str) -> dict[str, Any]:
         from app.modules.carbon_credits import service as cc_service
+
         try:
             result = await cc_service.get_carbon_estimate(
                 self.db, self.org_id, uuid.UUID(project_id)
@@ -265,6 +303,7 @@ class RalphTools:
 
     async def _tool_get_tax_credit_info(self, project_id: str) -> dict[str, Any]:
         from app.modules.tax_credits import service as tc_service
+
         try:
             result = await tc_service.get_tax_credit_summary(
                 self.db, self.org_id, uuid.UUID(project_id)
@@ -277,6 +316,7 @@ class RalphTools:
 
     async def _tool_get_investor_signal_score(self) -> dict[str, Any]:
         from app.modules.investor_signal_score import service as iss_service
+
         try:
             result = await iss_service.get_investor_signal_score(self.db, self.org_id)
             return result.model_dump() if hasattr(result, "model_dump") else {"result": str(result)}
@@ -285,9 +325,11 @@ class RalphTools:
 
     async def _tool_get_improvement_plan(self, project_id: str | None = None) -> dict[str, Any]:
         from app.modules.signal_score import service as ss_service
+
         try:
             result = await ss_service.get_improvement_plan(
-                self.db, self.org_id,
+                self.db,
+                self.org_id,
                 project_id=uuid.UUID(project_id) if project_id else None,
             )
             return result.model_dump() if hasattr(result, "model_dump") else {"result": str(result)}
@@ -298,6 +340,7 @@ class RalphTools:
 
     async def _tool_find_board_advisors(self, expertise: list[str] | None = None) -> dict[str, Any]:
         from app.modules.board_advisor import service as ba_service
+
         try:
             result = await ba_service.find_matching_advisors(
                 self.db, self.org_id, expertise=expertise
@@ -306,11 +349,15 @@ class RalphTools:
         except Exception as e:
             return {"error": str(e)}
 
-    async def _tool_get_risk_mitigation_strategies(self, risk_type: str, project_id: str | None = None) -> dict[str, Any]:
+    async def _tool_get_risk_mitigation_strategies(
+        self, risk_type: str, project_id: str | None = None
+    ) -> dict[str, Any]:
         from app.modules.risk import service as risk_service
+
         try:
             result = await risk_service.get_mitigation_strategies(
-                self.db, self.org_id,
+                self.db,
+                self.org_id,
                 risk_type=risk_type,
                 entity_id=uuid.UUID(project_id) if project_id else None,
             )
@@ -320,6 +367,7 @@ class RalphTools:
 
     async def _tool_get_insurance_impact(self, project_id: str) -> dict[str, Any]:
         from app.modules.risk import service as risk_service
+
         try:
             result = await risk_service.get_insurance_impact_analysis(
                 self.db, self.org_id, uuid.UUID(project_id)
@@ -332,6 +380,7 @@ class RalphTools:
 
     async def _tool_review_legal_document(self, document_id: str) -> dict[str, Any]:
         from app.modules.legal import service as legal_service
+
         try:
             result = await legal_service.review_document(
                 self.db, self.org_id, uuid.UUID(document_id)
@@ -345,6 +394,7 @@ class RalphTools:
     async def _tool_deep_dive_project(self, project_id: str) -> dict[str, Any]:
         """Comprehensive project analysis — chains 6 tools concurrently."""
         import asyncio
+
         results = await asyncio.gather(
             self._tool_get_project_details(project_id),
             self._tool_get_signal_score(project_id),
@@ -357,7 +407,7 @@ class RalphTools:
         keys = ["project", "signal_score", "risk", "documents", "valuation", "matching_investors"]
         return {
             k: (v if not isinstance(v, Exception) else {"error": str(v)})
-            for k, v in zip(keys, results)
+            for k, v in zip(keys, results, strict=False)
         }
 
     async def _tool_portfolio_health_check(self, portfolio_id: str | None = None) -> dict[str, Any]:
@@ -370,17 +420,21 @@ class RalphTools:
         async def _no_portfolio() -> dict[str, Any]:
             return {"error": "No portfolio found"}
 
-        risk_coro = (
-            self._tool_get_risk_assessment(pid, "portfolio") if pid else _no_portfolio()
-        )
+        risk_coro = self._tool_get_risk_assessment(pid, "portfolio") if pid else _no_portfolio()
         docs_coro = self._tool_search_documents("compliance regulatory reporting portfolio")
 
-        risk_result, docs_result = await asyncio.gather(risk_coro, docs_coro, return_exceptions=True)
+        risk_result, docs_result = await asyncio.gather(
+            risk_coro, docs_coro, return_exceptions=True
+        )
 
         return {
             "portfolio": portfolio_result,
-            "risk": risk_result if not isinstance(risk_result, Exception) else {"error": str(risk_result)},
-            "compliance_documents": docs_result if not isinstance(docs_result, Exception) else {"error": str(docs_result)},
+            "risk": risk_result
+            if not isinstance(risk_result, Exception)
+            else {"error": str(risk_result)},
+            "compliance_documents": docs_result
+            if not isinstance(docs_result, Exception)
+            else {"error": str(docs_result)},
         }
 
     async def _tool_deal_readiness_check(self, project_id: str) -> dict[str, Any]:
@@ -388,7 +442,9 @@ class RalphTools:
         import asyncio
 
         signal_coro = self._tool_get_signal_score(project_id)
-        docs_coro = self._tool_search_documents("term sheet subscription agreement legal document", project_id=project_id)
+        docs_coro = self._tool_search_documents(
+            "term sheet subscription agreement legal document", project_id=project_id
+        )
         improvement_coro = self._tool_get_improvement_plan(project_id)
         risk_coro = self._tool_get_risk_assessment(project_id, "project")
 
@@ -399,7 +455,9 @@ class RalphTools:
         return {
             "signal_score": signal if not isinstance(signal, Exception) else {"error": str(signal)},
             "documents": docs if not isinstance(docs, Exception) else {"error": str(docs)},
-            "improvement_plan": improvement if not isinstance(improvement, Exception) else {"error": str(improvement)},
+            "improvement_plan": improvement
+            if not isinstance(improvement, Exception)
+            else {"error": str(improvement)},
             "risk": risk if not isinstance(risk, Exception) else {"error": str(risk)},
         }
 
@@ -443,7 +501,10 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "portfolio_id": {"type": "string", "description": "UUID of the portfolio (optional, defaults to primary)"},
+                    "portfolio_id": {
+                        "type": "string",
+                        "description": "UUID of the portfolio (optional, defaults to primary)",
+                    },
                 },
             },
         },
@@ -457,7 +518,11 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "type": "object",
                 "properties": {
                     "entity_id": {"type": "string", "description": "UUID of the entity"},
-                    "entity_type": {"type": "string", "enum": ["project", "portfolio"], "description": "Type of entity"},
+                    "entity_type": {
+                        "type": "string",
+                        "enum": ["project", "portfolio"],
+                        "description": "Type of entity",
+                    },
                 },
                 "required": ["entity_id"],
             },
@@ -472,7 +537,10 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "type": "object",
                 "properties": {
                     "query": {"type": "string", "description": "The search query"},
-                    "project_id": {"type": "string", "description": "Optional project UUID to scope the search"},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project UUID to scope the search",
+                    },
                 },
                 "required": ["query"],
             },
@@ -487,7 +555,11 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "type": "object",
                 "properties": {
                     "project_id": {"type": "string", "description": "UUID of the project"},
-                    "method": {"type": "string", "enum": ["dcf", "comparables", "replacement_cost", "blended"], "description": "Valuation method"},
+                    "method": {
+                        "type": "string",
+                        "enum": ["dcf", "comparables", "replacement_cost", "blended"],
+                        "description": "Valuation method",
+                    },
                 },
                 "required": ["project_id"],
             },
@@ -502,7 +574,11 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "type": "object",
                 "properties": {
                     "project_id": {"type": "string", "description": "UUID of the project to match"},
-                    "limit": {"type": "integer", "description": "Maximum number of results", "default": 5},
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results",
+                        "default": 5,
+                    },
                 },
                 "required": ["project_id"],
             },
@@ -516,7 +592,11 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "limit": {"type": "integer", "description": "Maximum number of results", "default": 5},
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of results",
+                        "default": 5,
+                    },
                 },
             },
         },
@@ -557,9 +637,18 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "topic": {"type": "string", "description": "The topic to analyze or write about"},
-                    "context": {"type": "string", "description": "Supporting data or context to include"},
-                    "section_type": {"type": "string", "description": "Type of section: analysis, summary, recommendation"},
+                    "topic": {
+                        "type": "string",
+                        "description": "The topic to analyze or write about",
+                    },
+                    "context": {
+                        "type": "string",
+                        "description": "Supporting data or context to include",
+                    },
+                    "section_type": {
+                        "type": "string",
+                        "description": "Type of section: analysis, summary, recommendation",
+                    },
                 },
                 "required": ["topic", "context"],
             },
@@ -584,7 +673,10 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "project_id": {"type": "string", "description": "Optional project UUID for project-specific recommendations"},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project UUID for project-specific recommendations",
+                    },
                 },
             },
         },
@@ -614,8 +706,14 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "risk_type": {"type": "string", "description": "Type of risk: market, operational, regulatory, environmental, financial"},
-                    "project_id": {"type": "string", "description": "Optional project UUID for project-specific strategies"},
+                    "risk_type": {
+                        "type": "string",
+                        "description": "Type of risk: market, operational, regulatory, environmental, financial",
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project UUID for project-specific strategies",
+                    },
                 },
                 "required": ["risk_type"],
             },
@@ -629,7 +727,10 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "document_id": {"type": "string", "description": "UUID of the document to review"},
+                    "document_id": {
+                        "type": "string",
+                        "description": "UUID of the document to review",
+                    },
                 },
                 "required": ["document_id"],
             },
@@ -644,8 +745,14 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "type": "object",
                 "properties": {
                     "project_id": {"type": "string", "description": "UUID of the project"},
-                    "investment_amount": {"type": "number", "description": "Investment amount in USD"},
-                    "equity_percentage": {"type": "number", "description": "Equity percentage requested"},
+                    "investment_amount": {
+                        "type": "number",
+                        "description": "Investment amount in USD",
+                    },
+                    "equity_percentage": {
+                        "type": "number",
+                        "description": "Equity percentage requested",
+                    },
                 },
                 "required": ["project_id", "investment_amount", "equity_percentage"],
             },
@@ -687,7 +794,10 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "project_id": {"type": "string", "description": "UUID of the project to analyze"},
+                    "project_id": {
+                        "type": "string",
+                        "description": "UUID of the project to analyze",
+                    },
                 },
                 "required": ["project_id"],
             },
@@ -701,7 +811,10 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "portfolio_id": {"type": "string", "description": "UUID of the portfolio (optional, defaults to primary portfolio)"},
+                    "portfolio_id": {
+                        "type": "string",
+                        "description": "UUID of the portfolio (optional, defaults to primary portfolio)",
+                    },
                 },
             },
         },
@@ -714,7 +827,10 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "project_id": {"type": "string", "description": "UUID of the project to assess"},
+                    "project_id": {
+                        "type": "string",
+                        "description": "UUID of the project to assess",
+                    },
                 },
                 "required": ["project_id"],
             },

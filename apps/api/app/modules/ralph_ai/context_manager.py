@@ -19,7 +19,6 @@ Strategy for long conversations:
 from __future__ import annotations
 
 import json
-import uuid
 from typing import Any
 
 import httpx
@@ -80,10 +79,10 @@ class ContextWindowManager:
 
     # Token budget allocation
     TOTAL_BUDGET = 16_000
-    SYSTEM_BUDGET = 2_000     # System prompt + tool definitions
-    RAG_BUDGET = 3_000        # Retrieved document context
-    HISTORY_BUDGET = 8_000    # Conversation history
-    CURRENT_BUDGET = 3_000    # New message + response headroom
+    SYSTEM_BUDGET = 2_000  # System prompt + tool definitions
+    RAG_BUDGET = 3_000  # Retrieved document context
+    HISTORY_BUDGET = 8_000  # Conversation history
+    CURRENT_BUDGET = 3_000  # New message + response headroom
 
     # Always keep at least this many recent message pairs
     MIN_RECENT_PAIRS = 3
@@ -92,6 +91,7 @@ class ContextWindowManager:
         self.ai = ai_client
         try:
             import tiktoken
+
             self._tokenizer = tiktoken.get_encoding("cl100k_base")
         except Exception:
             self._tokenizer = None  # Fallback to char-based estimation
@@ -146,10 +146,12 @@ class ContextWindowManager:
             if rag_tokens > self.RAG_BUDGET:
                 rag_context = self._truncate_to_tokens(rag_context, self.RAG_BUDGET)
                 rag_tokens = self.RAG_BUDGET
-            messages.append({
-                "role": "system",
-                "content": f"Relevant documents:\n\n{rag_context}",
-            })
+            messages.append(
+                {
+                    "role": "system",
+                    "content": f"Relevant documents:\n\n{rag_context}",
+                }
+            )
             remaining_budget -= rag_tokens
 
         # ── 3. Conversation history (managed within remaining budget) ────────────
@@ -231,7 +233,7 @@ class ContextWindowManager:
                         "role": "system",
                         "content": f"Earlier conversation summary:\n{summary}",
                     }
-                    return [summary_msg] + older_to_include + recent
+                    return [summary_msg, *older_to_include, *recent]
             except Exception as exc:
                 logger.warning("context_summary_failed", error=str(exc))
                 # Continue without summary
@@ -250,15 +252,17 @@ class ContextWindowManager:
 
         response = await self.ai.complete(
             model="claude-haiku-4-5-20251001",
-            messages=[{
-                "role": "user",
-                "content": (
-                    "Summarise this conversation history in 2-3 sentences. "
-                    "Focus on: what the user asked about, key findings discussed, "
-                    "and any decisions or action items.\n\n"
-                    f"{conversation_text[:3000]}"
-                ),
-            }],
+            messages=[
+                {
+                    "role": "user",
+                    "content": (
+                        "Summarise this conversation history in 2-3 sentences. "
+                        "Focus on: what the user asked about, key findings discussed, "
+                        "and any decisions or action items.\n\n"
+                        f"{conversation_text[:3000]}"
+                    ),
+                }
+            ],
             max_tokens=200,
             temperature=0.1,
         )
@@ -274,7 +278,7 @@ class ContextWindowManager:
                 return text
             return self._tokenizer.decode(tokens[:max_tokens])
         # Fallback: char-based
-        return text[:max_tokens * 4]
+        return text[: max_tokens * 4]
 
     def _truncate_messages(
         self, messages: list[dict[str, Any]], budget: int

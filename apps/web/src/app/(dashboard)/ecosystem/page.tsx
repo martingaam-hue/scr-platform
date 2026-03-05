@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { Network, Plus, Loader2, Star, ArrowRight } from "lucide-react";
-import { Badge, Button, Card, CardContent, EmptyState } from "@scr/ui";
+import { Button, Card, CardContent, EmptyState } from "@scr/ui";
 
 import {
-  ecosystemKeys,
   engagementStatusColor,
   RELATIONSHIP_TYPES,
   STAKEHOLDER_TYPES,

@@ -17,9 +17,7 @@ logger = structlog.get_logger()
 async def _get_project_or_raise(
     db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID
 ) -> Project:
-    stmt = select(Project).where(
-        Project.id == project_id, Project.is_deleted.is_(False)
-    )
+    stmt = select(Project).where(Project.id == project_id, Project.is_deleted.is_(False))
     stmt = tenant_filter(stmt, org_id, Project)
     result = await db.execute(stmt)
     project = result.scalar_one_or_none()
@@ -54,9 +52,7 @@ async def trigger_calculation(
     # Dispatch Celery task
     from app.modules.signal_score.tasks import calculate_signal_score_task
 
-    calculate_signal_score_task.delay(
-        str(project_id), str(org_id), str(user_id), str(task_log.id)
-    )
+    calculate_signal_score_task.delay(str(project_id), str(org_id), str(user_id), str(task_log.id))
 
     logger.info(
         "signal_score_calculation_triggered",
@@ -113,10 +109,7 @@ async def get_live_score(
     score = 0
 
     def _add(name: str, met: bool, impact: int) -> None:
-        if met:
-            score_inc = impact
-        else:
-            score_inc = 0
+        score_inc = impact if met else 0
         nonlocal score
         score += score_inc
         factors.append({"name": name, "met": met, "impact": impact})

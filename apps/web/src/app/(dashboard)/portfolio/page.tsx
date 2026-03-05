@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   ArrowUpDown,
   BarChart3,
   DollarSign,
-  Leaf,
   PieChart,
   Plus,
   TrendingUp,
@@ -387,7 +385,6 @@ const holdingColumns: ColumnDef<HoldingResponse>[] = [
 // ── Page ────────────────────────────────────────────────────────────────────
 
 export default function PortfolioPage() {
-  const router = useRouter();
   const canCreate = usePermission("create", "portfolio");
 
   // Load list of portfolios and select first one

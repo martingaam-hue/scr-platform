@@ -32,4 +32,4 @@ def fetch_daily_fx_rates(self) -> dict:
     try:
         return asyncio.run(_run())
     except Exception as exc:
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc

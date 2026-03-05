@@ -3,12 +3,12 @@
 import hashlib
 import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 import structlog
 from botocore.config import Config as BotoConfig
-from sqlalchemy import Select, and_, delete, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -23,7 +23,6 @@ from app.models.dataroom import (
 )
 from app.models.enums import (
     DocumentAccessAction,
-    DocumentClassification,
     DocumentStatus,
     ExtractionType,
 )
@@ -85,12 +84,9 @@ async def get_folder_tree(
 ) -> list[FolderTreeNode]:
     """Return nested folder structure with document counts for a project."""
     # Load all folders for this project
-    stmt = (
-        select(DocumentFolder)
-        .where(
-            DocumentFolder.project_id == project_id,
-            DocumentFolder.is_deleted.is_(False),
-        )
+    stmt = select(DocumentFolder).where(
+        DocumentFolder.project_id == project_id,
+        DocumentFolder.is_deleted.is_(False),
     )
     stmt = tenant_filter(stmt, org_id, DocumentFolder)
     result = await db.execute(stmt)
@@ -111,13 +107,10 @@ async def get_folder_tree(
     doc_counts: dict[uuid.UUID, int] = dict(count_result.all())
 
     # Also count documents with no folder (root-level)
-    root_count_stmt = (
-        select(func.count(Document.id))
-        .where(
-            Document.project_id == project_id,
-            Document.is_deleted.is_(False),
-            Document.folder_id.is_(None),
-        )
+    root_count_stmt = select(func.count(Document.id)).where(
+        Document.project_id == project_id,
+        Document.is_deleted.is_(False),
+        Document.folder_id.is_(None),
     )
     root_count_stmt = tenant_filter(root_count_stmt, org_id, Document)
 
@@ -173,21 +166,17 @@ async def delete_folder(
     folder = await _get_folder_or_raise(db, folder_id, org_id)
 
     # Check for documents
-    doc_count_stmt = (
-        select(func.count(Document.id))
-        .where(Document.folder_id == folder_id, Document.is_deleted.is_(False))
+    doc_count_stmt = select(func.count(Document.id)).where(
+        Document.folder_id == folder_id, Document.is_deleted.is_(False)
     )
     result = await db.execute(doc_count_stmt)
     if result.scalar_one() > 0:
         raise ValueError("Cannot delete folder: contains documents")
 
     # Check for child folders
-    child_count_stmt = (
-        select(func.count(DocumentFolder.id))
-        .where(
-            DocumentFolder.parent_folder_id == folder_id,
-            DocumentFolder.is_deleted.is_(False),
-        )
+    child_count_stmt = select(func.count(DocumentFolder.id)).where(
+        DocumentFolder.parent_folder_id == folder_id,
+        DocumentFolder.is_deleted.is_(False),
     )
     result = await db.execute(child_count_stmt)
     if result.scalar_one() > 0:
@@ -345,11 +334,11 @@ async def confirm_upload(
         # Update size if different (S3 is source of truth)
         if actual_size != doc.file_size_bytes:
             doc.file_size_bytes = actual_size
-    except s3.exceptions.ClientError:
+    except s3.exceptions.ClientError as exc:
         doc.status = DocumentStatus.ERROR
         doc.metadata_ = {"error": "File not found in S3 after upload confirmation"}
         await db.flush()
-        raise ValueError("File not found in S3. Upload may have failed.")
+        raise ValueError("File not found in S3. Upload may have failed.") from exc
 
     # Virus scan placeholder
     _scan_for_viruses(doc.s3_bucket, doc.s3_key)
@@ -404,10 +393,7 @@ async def list_documents(
 
     # Sort
     sort_col = getattr(Document, sort_by, Document.created_at)
-    if sort_order == "asc":
-        base = base.order_by(sort_col.asc())
-    else:
-        base = base.order_by(sort_col.desc())
+    base = base.order_by(sort_col.asc()) if sort_order == "asc" else base.order_by(sort_col.desc())
 
     # Paginate
     base = base.offset((page - 1) * page_size).limit(page_size)
@@ -523,13 +509,10 @@ async def create_new_version(
     parent = await _get_document_or_raise(db, parent_document_id, current_user.org_id)
 
     # Determine next version number
-    version_stmt = (
-        select(func.max(Document.version))
-        .where(
-            # All versions share the same root parent or are the parent
-            ((Document.parent_version_id == parent_document_id) | (Document.id == parent_document_id)),
-            Document.is_deleted.is_(False),
-        )
+    version_stmt = select(func.max(Document.version)).where(
+        # All versions share the same root parent or are the parent
+        ((Document.parent_version_id == parent_document_id) | (Document.id == parent_document_id)),
+        Document.is_deleted.is_(False),
     )
     result = await db.execute(version_stmt)
     max_version = result.scalar_one() or parent.version
@@ -666,12 +649,9 @@ async def get_project_extraction_summary(
 ) -> dict:
     """Aggregate all extractions for a project."""
     # Get all documents for this project
-    doc_stmt = (
-        select(Document.id)
-        .where(
-            Document.project_id == project_id,
-            Document.is_deleted.is_(False),
-        )
+    doc_stmt = select(Document.id).where(
+        Document.project_id == project_id,
+        Document.is_deleted.is_(False),
     )
     doc_stmt = tenant_filter(doc_stmt, org_id, Document)
     doc_result = await db.execute(doc_stmt)
@@ -750,7 +730,9 @@ async def create_share_link(
     password_hash = hashlib.sha256(password.encode()).hexdigest() if password else None
 
     # Strip timezone info — DB uses TIMESTAMP WITHOUT TIME ZONE (stores UTC)
-    naive_expires = expires_at.replace(tzinfo=None) if expires_at and expires_at.tzinfo else expires_at
+    naive_expires = (
+        expires_at.replace(tzinfo=None) if expires_at and expires_at.tzinfo else expires_at
+    )
 
     share = ShareLink(
         document_id=document_id,
@@ -796,7 +778,7 @@ async def access_share_link(
         raise LookupError("Share link not found or has been revoked")
 
     # Check expiration (DB stores naive UTC timestamps)
-    if share.expires_at and share.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
+    if share.expires_at and share.expires_at < datetime.now(UTC).replace(tzinfo=None):
         raise PermissionError("Share link has expired")
 
     # Check max views
@@ -886,7 +868,9 @@ def generate_watermark(pdf_bytes: bytes, user_name: str, timestamp: str) -> byte
         writer.write(output)
         return output.getvalue()
     except ImportError:
-        logger.warning("watermark_libraries_unavailable", detail="PyPDF2 or reportlab not installed")
+        logger.warning(
+            "watermark_libraries_unavailable", detail="PyPDF2 or reportlab not installed"
+        )
         return pdf_bytes
 
 

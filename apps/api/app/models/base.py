@@ -22,9 +22,7 @@ class ModelMixin:
             value = getattr(self, column.name)
             if isinstance(value, uuid.UUID):
                 value = str(value)
-            elif isinstance(value, datetime):
-                value = value.isoformat()
-            elif isinstance(value, date):
+            elif isinstance(value, datetime | date):
                 value = value.isoformat()
             elif isinstance(value, Decimal):
                 value = str(value)
@@ -85,9 +83,5 @@ class TimestampedModel(Base, ModelMixin):
 class AuditMixin:
     """Adds created_by and updated_by tracking (no FK constraints)."""
 
-    created_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True
-    )
-    updated_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True
-    )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)

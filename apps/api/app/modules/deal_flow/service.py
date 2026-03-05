@@ -65,6 +65,7 @@ async def record_transition(
     # Fire webhook for deal stage change
     try:
         from app.modules.webhooks.service import WebhookService
+
         wh = WebhookService(db)
         await wh.fire_event(
             org_id,
@@ -78,9 +79,8 @@ async def record_transition(
         )
     except Exception as _wh_exc:
         import structlog as _sl
-        _sl.get_logger().warning(
-            "webhook_fire_deal_stage_failed", error=str(_wh_exc)
-        )
+
+        _sl.get_logger().warning("webhook_fire_deal_stage_failed", error=str(_wh_exc))
 
     return t
 
@@ -93,8 +93,8 @@ async def _auto_create_outcome(
 ) -> None:
     """Create a DealOutcome record if signal score data is available."""
     try:
-        from app.models.projects import SignalScore
         from app.models.backtesting import DealOutcome
+        from app.models.projects import SignalScore
 
         stmt = (
             select(SignalScore)
@@ -130,9 +130,10 @@ async def _auto_create_outcome(
         )
         db.add(outcome)
         await db.commit()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         # Never let auto-capture failures break the main flow
         import structlog as _sl
+
         _sl.get_logger().warning(
             "deal_outcome_auto_capture_failed",
             org_id=str(org_id),
@@ -169,7 +170,7 @@ async def get_funnel(
     # Build StageCount list in order
     stage_count_list = [
         StageCount(stage=s, count=stage_counts.get(s, 0), deal_value=None)
-        for s in DEAL_STAGES_ORDER + ["passed"]
+        for s in [*DEAL_STAGES_ORDER, "passed"]
     ]
 
     # Conversions
@@ -294,9 +295,7 @@ async def get_pipeline_value(
     project_ids = [t.project_id for t in transitions]
 
     if project_ids:
-        projects_result = await db.execute(
-            select(Project).where(Project.id.in_(project_ids))
-        )
+        projects_result = await db.execute(select(Project).where(Project.id.in_(project_ids)))
         project_map = {p.id: p for p in projects_result.scalars().all()}
         for t in transitions:
             proj = project_map.get(t.project_id)
@@ -360,9 +359,7 @@ async def get_velocity(
     avg_times = await _calculate_avg_times(db, org_id, since, investor_id)
 
     # Avg days to close = sum of all stage avg times
-    total_days = sum(
-        at.avg_days for at in avg_times if at.avg_days is not None
-    )
+    total_days = sum(at.avg_days for at in avg_times if at.avg_days is not None)
     avg_days_to_close = round(total_days, 1) if total_days > 0 else None
 
     trend = await _calculate_monthly_trend(db, org_id, since, investor_id)

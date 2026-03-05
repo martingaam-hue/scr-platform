@@ -6,8 +6,7 @@ import uuid
 from datetime import date, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, field_validator
-
+from pydantic import BaseModel
 
 # ── Inventory ─────────────────────────────────────────────────────────────────
 
@@ -33,7 +32,7 @@ class TaxCreditInventoryResponse(BaseModel):
     portfolio_id: uuid.UUID
     total_estimated: float
     total_claimed: float
-    credits_by_type: dict[str, float]   # credit_type → total estimated
+    credits_by_type: dict[str, float]  # credit_type → total estimated
     credits: list[TaxCreditResponse]
     currency: str
 
@@ -42,8 +41,8 @@ class TaxCreditInventoryResponse(BaseModel):
 
 
 class IdentifiedCredit(BaseModel):
-    credit_type: str                    # e.g. "ITC", "PTC", "45L"
-    program_name: str                   # e.g. "Investment Tax Credit (IRA §48)"
+    credit_type: str  # e.g. "ITC", "PTC", "45L"
+    program_name: str  # e.g. "Investment Tax Credit (IRA §48)"
     estimated_value: float
     qualification: Literal["qualified", "potential"]
     criteria_met: list[str]
@@ -73,7 +72,7 @@ class OptimizationAction(BaseModel):
     credit_type: str
     estimated_value: float
     action: Literal["claim", "transfer"]
-    timing: str         # "immediate" | "upon_completion" | "pending_qualification"
+    timing: str  # "immediate" | "upon_completion" | "pending_qualification"
     reason: str
 
 
@@ -107,11 +106,11 @@ class TransferDocResponse(BaseModel):
 
 class TaxCreditSummaryResponse(BaseModel):
     entity_id: uuid.UUID
-    entity_type: str    # "project" | "portfolio"
+    entity_type: str  # "project" | "portfolio"
     total_estimated: float
     total_claimed: float
     total_transferred: float
     by_qualification: dict[str, float]  # qualification → total
-    by_credit_type: dict[str, float]    # credit_type → total
+    by_credit_type: dict[str, float]  # credit_type → total
     credits: list[TaxCreditResponse]
     currency: str

@@ -8,7 +8,7 @@ import {
 } from "@/lib/deal-rooms"
 import { useProjectQuestions, useCreateQuestion, useQAStats } from "@/lib/qa"
 import {
-  Users, MessageSquare, FileText, Shield, Plus, X, Send,
+  Users, MessageSquare, Plus, X, Send,
   Lock, Eye, Activity, HelpCircle,
 } from "lucide-react"
 

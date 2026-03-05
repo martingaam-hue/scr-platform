@@ -6,7 +6,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # ── Connection schemas ────────────────────────────────────────────────────────
 
 
@@ -18,9 +17,7 @@ class ConnectionCreateRequest(BaseModel):
     connected_org_name: str = Field(..., min_length=1, max_length=200)
     connected_person_name: str | None = Field(None, max_length=200)
     connected_person_email: str | None = Field(None, max_length=200)
-    relationship_strength: str = Field(
-        "moderate", description="weak, moderate, strong"
-    )
+    relationship_strength: str = Field("moderate", description="weak, moderate, strong")
     last_interaction_date: date | None = None
     notes: str | None = None
 

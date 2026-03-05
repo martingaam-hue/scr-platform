@@ -70,9 +70,7 @@ async def create_subscription(
 ) -> WebhookSubscriptionResponse:
     """Register a new webhook endpoint."""
     svc = WebhookService(db)
-    sub = await svc.create_subscription(
-        current_user.org_id, current_user.user_id, body
-    )
+    sub = await svc.create_subscription(current_user.org_id, current_user.user_id, body)
     return WebhookSubscriptionResponse.model_validate(sub)
 
 
@@ -252,5 +250,7 @@ async def rotate_webhook_secret(
     new_secret = secrets_module.token_hex(32)
     subscription.secret = new_secret
     await db.commit()
-    logger.info("webhook.secret_rotated", webhook_id=str(webhook_id), org_id=str(current_user.org_id))
+    logger.info(
+        "webhook.secret_rotated", webhook_id=str(webhook_id), org_id=str(current_user.org_id)
+    )
     return {"id": str(subscription.id), "new_secret": new_secret}

@@ -30,7 +30,6 @@ from app.modules.tax_credits.schemas import (
     TaxCreditResponse,
     TaxCreditSummaryResponse,
     TransferDocRequest,
-    TransferDocResponse,
 )
 
 logger = structlog.get_logger()
@@ -39,7 +38,7 @@ _TIMEOUT = 90.0
 
 # ── Thresholds for optimization ───────────────────────────────────────────────
 
-_TRANSFER_MIN_VALUE = 500_000.0   # USD: below this, claim directly (overhead not worth it)
+_TRANSFER_MIN_VALUE = 500_000.0  # USD: below this, claim directly (overhead not worth it)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -124,13 +123,11 @@ async def get_inventory(
 
     credits = [_to_response(tc, name) for tc, name in rows]
     total_estimated = sum(float(tc.estimated_value) for tc, _ in rows)
-    total_claimed = sum(
-        float(tc.claimed_value) for tc, _ in rows if tc.claimed_value is not None
-    )
+    total_claimed = sum(float(tc.claimed_value) for tc, _ in rows if tc.claimed_value is not None)
     credits_by_type: dict[str, float] = {}
     for tc, _ in rows:
-        credits_by_type[tc.credit_type] = (
-            credits_by_type.get(tc.credit_type, 0.0) + float(tc.estimated_value)
+        credits_by_type[tc.credit_type] = credits_by_type.get(tc.credit_type, 0.0) + float(
+            tc.estimated_value
         )
 
     return TaxCreditInventoryResponse(
@@ -267,9 +264,7 @@ Respond ONLY with valid JSON array:
     )
 
 
-def _fallback_credits(
-    project_type: str, investment: float
-) -> list[IdentifiedCredit]:
+def _fallback_credits(project_type: str, investment: float) -> list[IdentifiedCredit]:
     """Rule-based fallback when AI Gateway is unavailable."""
     credits: list[IdentifiedCredit] = []
     if project_type in ("solar", "wind", "geothermal", "hydro"):
@@ -306,7 +301,10 @@ def _fallback_credits(
                 estimated_value=round(investment * 0.05, 2),
                 qualification="potential",
                 criteria_met=[],
-                criteria_missing=["Low-income census tract qualification", "CDFI intermediary required"],
+                criteria_missing=[
+                    "Low-income census tract qualification",
+                    "CDFI intermediary required",
+                ],
                 notes="Available if project is located in a qualified low-income census tract.",
                 expiry_year=None,
             )
@@ -348,9 +346,7 @@ async def model_optimization(
     # Load project stages for timing determination
     projects: dict[uuid.UUID, Project] = {}
     if project_ids:
-        proj_result = await db.execute(
-            select(Project).where(Project.id.in_(project_ids))
-        )
+        proj_result = await db.execute(select(Project).where(Project.id.in_(project_ids)))
         for proj in proj_result.scalars().all():
             projects[proj.id] = proj
 
@@ -377,10 +373,7 @@ async def model_optimization(
             timing = "pending_qualification"
 
         # Expiry check: avoid transfer if expiring within 12 months
-        expiring_soon = (
-            tc.expiry_date is not None
-            and (tc.expiry_date - today).days < 365
-        )
+        expiring_soon = tc.expiry_date is not None and (tc.expiry_date - today).days < 365
 
         # Decision: transfer if high value, qualified, and not expiring soon
         if (
@@ -541,11 +534,13 @@ def _build_summary(
 ) -> TaxCreditSummaryResponse:
     total_estimated = sum(float(tc.estimated_value) for tc in credits)
     total_claimed = sum(
-        float(tc.claimed_value) for tc in credits
+        float(tc.claimed_value)
+        for tc in credits
         if tc.qualification == TaxCreditQualification.CLAIMED and tc.claimed_value
     )
     total_transferred = sum(
-        float(tc.estimated_value) for tc in credits
+        float(tc.estimated_value)
+        for tc in credits
         if tc.qualification == TaxCreditQualification.TRANSFERRED
     )
     by_qualification: dict[str, float] = {}
@@ -553,8 +548,8 @@ def _build_summary(
     for tc in credits:
         q = tc.qualification.value
         by_qualification[q] = by_qualification.get(q, 0.0) + float(tc.estimated_value)
-        by_credit_type[tc.credit_type] = (
-            by_credit_type.get(tc.credit_type, 0.0) + float(tc.estimated_value)
+        by_credit_type[tc.credit_type] = by_credit_type.get(tc.credit_type, 0.0) + float(
+            tc.estimated_value
         )
 
     return TaxCreditSummaryResponse(

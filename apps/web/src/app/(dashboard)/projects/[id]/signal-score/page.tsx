@@ -45,8 +45,6 @@ import {
   useSignalScoreHistory,
   useRecalculateScore,
   useCalculateScore,
-  scoreColor,
-  scoreBgColor,
   priorityColor,
   type DimensionScore,
   type CriterionScore,

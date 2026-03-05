@@ -53,8 +53,12 @@ async def verify_citation(
         citation = await svc.verify_citation(citation_id, current_user.user_id, is_correct)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    return {"id": str(citation.id), "verified": citation.verified, "confidence": citation.confidence}
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        "id": str(citation.id),
+        "verified": citation.verified,
+        "confidence": citation.confidence,
+    }
 
 
 @router.get("/stats")

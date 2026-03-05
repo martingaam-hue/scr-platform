@@ -103,15 +103,17 @@ class MetricSnapshotService:
         changes = []
         for s in snapshots:
             if s.previous_value is not None and s.previous_value != s.value:
-                changes.append({
-                    "date": s.recorded_at.isoformat(),
-                    "from": s.previous_value,
-                    "to": s.value,
-                    "delta": round(s.value - s.previous_value, 2),
-                    "trigger": s.trigger_event,
-                    "trigger_entity": str(s.trigger_entity_id) if s.trigger_entity_id else None,
-                    "metadata": s.metadata_,
-                })
+                changes.append(
+                    {
+                        "date": s.recorded_at.isoformat(),
+                        "from": s.previous_value,
+                        "to": s.value,
+                        "delta": round(s.value - s.previous_value, 2),
+                        "trigger": s.trigger_event,
+                        "trigger_entity": str(s.trigger_entity_id) if s.trigger_entity_id else None,
+                        "metadata": s.metadata_,
+                    }
+                )
         return changes
 
     async def _get_latest(
@@ -139,8 +141,7 @@ class MetricSnapshotService:
 
         # Count distinct entities with this metric
         total_result = await self.db.execute(
-            select(func.count(func.distinct(MetricSnapshot.entity_id)))
-            .where(
+            select(func.count(func.distinct(MetricSnapshot.entity_id))).where(
                 MetricSnapshot.metric_name == metric_name,
                 MetricSnapshot.entity_type == entity_type,
             )
@@ -163,9 +164,7 @@ class MetricSnapshotService:
             .subquery()
         )
         below_result = await self.db.execute(
-            select(func.count())
-            .select_from(subq)
-            .where(subq.c.latest_val < current.value)
+            select(func.count()).select_from(subq).where(subq.c.latest_val < current.value)
         )
         below_count = below_result.scalar() or 0
         return round((below_count / total_count) * 100, 1)

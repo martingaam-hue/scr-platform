@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import structlog
 from celery import shared_task
@@ -28,7 +28,7 @@ def cleanup_stuck_documents() -> dict:
     from app.core.config import settings
 
     engine = create_engine(settings.DATABASE_URL_SYNC)
-    cutoff = datetime.now(timezone.utc) - timedelta(minutes=_STUCK_TIMEOUT_MINUTES)
+    cutoff = datetime.now(UTC) - timedelta(minutes=_STUCK_TIMEOUT_MINUTES)
     total_fixed = 0
 
     with SyncSession(engine) as session:
@@ -37,13 +37,17 @@ def cleanup_stuck_documents() -> dict:
             from app.models.enums import ReportStatus
             from app.models.reporting import GeneratedReport
 
-            stuck_reports = session.execute(
-                select(GeneratedReport).where(
-                    GeneratedReport.status == ReportStatus.GENERATING,
-                    GeneratedReport.created_at < cutoff,
-                    GeneratedReport.is_deleted.is_(False),
+            stuck_reports = (
+                session.execute(
+                    select(GeneratedReport).where(
+                        GeneratedReport.status == ReportStatus.GENERATING,
+                        GeneratedReport.created_at < cutoff,
+                        GeneratedReport.is_deleted.is_(False),
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             for report in stuck_reports:
                 report.status = ReportStatus.ERROR
@@ -66,12 +70,16 @@ def cleanup_stuck_documents() -> dict:
             from app.models.ai import AITaskLog
             from app.models.enums import AITaskStatus
 
-            stuck_tasks = session.execute(
-                select(AITaskLog).where(
-                    AITaskLog.status == AITaskStatus.PROCESSING,
-                    AITaskLog.created_at < cutoff,
+            stuck_tasks = (
+                session.execute(
+                    select(AITaskLog).where(
+                        AITaskLog.status == AITaskStatus.PROCESSING,
+                        AITaskLog.created_at < cutoff,
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             for task_log in stuck_tasks:
                 task_log.status = AITaskStatus.FAILED
@@ -95,13 +103,17 @@ def cleanup_stuck_documents() -> dict:
             from app.models.dataroom import Document
             from app.models.enums import DocumentStatus
 
-            stuck_docs = session.execute(
-                select(Document).where(
-                    Document.status == DocumentStatus.PROCESSING,
-                    Document.created_at < cutoff,
-                    Document.is_deleted.is_(False),
+            stuck_docs = (
+                session.execute(
+                    select(Document).where(
+                        Document.status == DocumentStatus.PROCESSING,
+                        Document.created_at < cutoff,
+                        Document.is_deleted.is_(False),
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             for doc in stuck_docs:
                 doc.status = DocumentStatus.ERROR
@@ -126,12 +138,16 @@ def cleanup_stuck_documents() -> dict:
         try:
             from app.models.legal import LegalDocument
 
-            stuck_legal = session.execute(
-                select(LegalDocument).where(
-                    LegalDocument.metadata_["generation_status"].astext == "generating",
-                    LegalDocument.created_at < cutoff,
+            stuck_legal = (
+                session.execute(
+                    select(LegalDocument).where(
+                        LegalDocument.metadata_["generation_status"].astext == "generating",
+                        LegalDocument.created_at < cutoff,
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             for doc in stuck_legal:
                 meta = dict(doc.metadata_ or {})

@@ -122,7 +122,11 @@ class RalphAgent:
         # 2. Build context-managed message history
         # history includes the just-saved user message as last entry; exclude it for context manager
         full_history = await service.get_conversation_messages(db, conversation_id)
-        prior_history = full_history[:-1] if full_history and full_history[-1].role == AIMessageRole.USER else full_history
+        prior_history = (
+            full_history[:-1]
+            if full_history and full_history[-1].role == AIMessageRole.USER
+            else full_history
+        )
         rag_context = await _fetch_rag_context(
             self._gateway_url, self._gateway_key, user_content, org_id
         )
@@ -182,11 +186,13 @@ class RalphAgent:
                     all_tool_results.append({"tool": fn_name, "result": tool_result})
 
                     # Append tool result message
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tc["id"],
-                        "content": json.dumps(tool_result),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc["id"],
+                            "content": json.dumps(tool_result),
+                        }
+                    )
 
             else:
                 # end_turn — save final response
@@ -230,7 +236,11 @@ class RalphAgent:
 
         # Build message history
         full_history = await service.get_conversation_messages(db, conversation_id)
-        prior_history = full_history[:-1] if full_history and full_history[-1].role == AIMessageRole.USER else full_history
+        prior_history = (
+            full_history[:-1]
+            if full_history and full_history[-1].role == AIMessageRole.USER
+            else full_history
+        )
         rag_context = await _fetch_rag_context(
             self._gateway_url, self._gateway_key, user_content, org_id
         )
@@ -284,13 +294,20 @@ class RalphAgent:
                     yield {"type": "tool_call", "name": fn_name, "status": "running"}
                     tool_result = await tools_instance.execute(fn_name, fn_args)
                     all_tool_results.append({"tool": fn_name, "result": tool_result})
-                    yield {"type": "tool_call", "name": fn_name, "status": "done", "result": tool_result}
+                    yield {
+                        "type": "tool_call",
+                        "name": fn_name,
+                        "status": "done",
+                        "result": tool_result,
+                    }
 
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tc["id"],
-                        "content": json.dumps(tool_result),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc["id"],
+                            "content": json.dumps(tool_result),
+                        }
+                    )
             else:
                 # Ready to stream final response
                 break
@@ -298,8 +315,9 @@ class RalphAgent:
         # Phase 2: Stream final response
         final_content_parts: list[str] = []
         try:
-            async with httpx.AsyncClient(timeout=120.0) as client:
-                async with client.stream(
+            async with (
+                httpx.AsyncClient(timeout=120.0) as client,
+                client.stream(
                     "POST",
                     f"{self._gateway_url}/v1/completions/stream",
                     json={
@@ -308,32 +326,33 @@ class RalphAgent:
                         "org_id": str(org_id),
                     },
                     headers={"Authorization": f"Bearer {self._gateway_key}"},
-                ) as resp:
-                    if resp.status_code != 200:
-                        # Fall back to non-streaming
-                        fallback = await _call_gateway_with_tools(
-                            gateway_url=self._gateway_url,
-                            gateway_key=self._gateway_key,
-                            messages=messages,
-                        )
-                        content = fallback.get("content", "")
-                        final_content_parts.append(content)
-                        tokens_out += fallback.get("usage", {}).get("completion_tokens", 0)
-                        yield {"type": "token", "content": content}
-                    else:
-                        async for line in resp.aiter_lines():
-                            if line.startswith("data: "):
-                                raw = line[6:]
-                                try:
-                                    data = json.loads(raw)
-                                    if data.get("done"):
-                                        break
-                                    if "token" in data:
-                                        token = data["token"]
-                                        final_content_parts.append(token)
-                                        yield {"type": "token", "content": token}
-                                except json.JSONDecodeError:
-                                    pass
+                ) as resp,
+            ):
+                if resp.status_code != 200:
+                    # Fall back to non-streaming
+                    fallback = await _call_gateway_with_tools(
+                        gateway_url=self._gateway_url,
+                        gateway_key=self._gateway_key,
+                        messages=messages,
+                    )
+                    content = fallback.get("content", "")
+                    final_content_parts.append(content)
+                    tokens_out += fallback.get("usage", {}).get("completion_tokens", 0)
+                    yield {"type": "token", "content": content}
+                else:
+                    async for line in resp.aiter_lines():
+                        if line.startswith("data: "):
+                            raw = line[6:]
+                            try:
+                                data = json.loads(raw)
+                                if data.get("done"):
+                                    break
+                                if "token" in data:
+                                    token = data["token"]
+                                    final_content_parts.append(token)
+                                    yield {"type": "token", "content": token}
+                            except json.JSONDecodeError:
+                                pass
         except Exception as e:
             logger.warning("ralph_stream_error", error=str(e))
             # Non-streaming fallback
@@ -366,6 +385,7 @@ class RalphAgent:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _history_to_dicts(history: list[AIMessage]) -> list[dict[str, Any]]:
     """Convert DB AIMessage objects to plain dicts for the context manager."""
     result: list[dict[str, Any]] = []
@@ -381,19 +401,19 @@ def _history_to_dicts(history: list[AIMessage]) -> list[dict[str, Any]]:
         elif role == "tool_call":
             if msg.tool_results:
                 for item in msg.tool_results.get("results", []):
-                    result.append({
-                        "role": "tool",
-                        "content": json.dumps(item.get("result", {})),
-                        "tool_call_id": item.get("id", "unknown"),
-                    })
+                    result.append(
+                        {
+                            "role": "tool",
+                            "content": json.dumps(item.get("result", {})),
+                            "tool_call_id": item.get("id", "unknown"),
+                        }
+                    )
     return result
 
 
 def _build_messages_for_llm(history: list[AIMessage]) -> list[dict[str, Any]]:
     """Convert DB messages to the format expected by the LLM API."""
-    messages: list[dict[str, Any]] = [
-        {"role": "system", "content": RALPH_SYSTEM_PROMPT}
-    ]
+    messages: list[dict[str, Any]] = [{"role": "system", "content": RALPH_SYSTEM_PROMPT}]
     for msg in history:
         role = msg.role.value
         if role in ("user", "assistant"):
@@ -407,11 +427,13 @@ def _build_messages_for_llm(history: list[AIMessage]) -> list[dict[str, Any]]:
             # Reconstruct tool result messages from stored data
             if msg.tool_results:
                 for item in msg.tool_results.get("results", []):
-                    messages.append({
-                        "role": "tool",
-                        "content": json.dumps(item.get("result", {})),
-                        "tool_call_id": item.get("id", "unknown"),
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "content": json.dumps(item.get("result", {})),
+                            "tool_call_id": item.get("id", "unknown"),
+                        }
+                    )
     return messages
 
 

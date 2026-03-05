@@ -28,10 +28,19 @@ CAPACITY_FACTORS: dict[str, float] = {
 # Methodology recommendations by project type
 METHODOLOGY_MAP: dict[str, tuple[str, str]] = {
     "solar_pv": ("ACM0002", "CDM/Verra ACM0002 — Grid-connected renewable electricity generation"),
-    "onshore_wind": ("ACM0002", "CDM/Verra ACM0002 — Grid-connected renewable electricity generation"),
-    "offshore_wind": ("ACM0002", "CDM/Verra ACM0002 — Grid-connected renewable electricity generation"),
+    "onshore_wind": (
+        "ACM0002",
+        "CDM/Verra ACM0002 — Grid-connected renewable electricity generation",
+    ),
+    "offshore_wind": (
+        "ACM0002",
+        "CDM/Verra ACM0002 — Grid-connected renewable electricity generation",
+    ),
     "hydro": ("ACM0002", "CDM/Verra ACM0002 — Grid-connected renewable electricity generation"),
-    "geothermal": ("ACM0002", "CDM/Verra ACM0002 — Grid-connected renewable electricity generation"),
+    "geothermal": (
+        "ACM0002",
+        "CDM/Verra ACM0002 — Grid-connected renewable electricity generation",
+    ),
     "biomass": ("AMS-I.D", "CDM AMS-I.D — Grid-connected renewable electricity generation"),
     "green_building": ("AMS-II.C", "CDM AMS-II.C — Demand-side energy efficiency activities"),
     "energy_efficiency": ("AMS-II.A", "CDM AMS-II.A — Supply-side energy efficiency improvements"),
@@ -43,7 +52,13 @@ AVAILABLE_METHODOLOGIES = [
         "id": "ACM0002",
         "name": "ACM0002 — Grid-connected Renewable Electricity",
         "registry": "CDM / Verra",
-        "applicable_project_types": ["solar_pv", "onshore_wind", "offshore_wind", "hydro", "geothermal"],
+        "applicable_project_types": [
+            "solar_pv",
+            "onshore_wind",
+            "offshore_wind",
+            "hydro",
+            "geothermal",
+        ],
         "description": "Applicable to projects displacing grid electricity with renewable sources.",
         "verification_complexity": "medium",
     },
@@ -112,7 +127,14 @@ def estimate_credits(
     assumptions: dict[str, Any] = {}
     confidence = "medium"
 
-    if project_type in {"solar_pv", "onshore_wind", "offshore_wind", "hydro", "geothermal", "biomass"}:
+    if project_type in {
+        "solar_pv",
+        "onshore_wind",
+        "offshore_wind",
+        "hydro",
+        "geothermal",
+        "biomass",
+    }:
         if capacity_mw and capacity_mw > 0:
             cf = CAPACITY_FACTORS.get(project_type, CAPACITY_FACTORS["default"])
             annual_mwh = capacity_mw * cf * 8760  # hours/year
@@ -149,7 +171,9 @@ def estimate_credits(
     else:
         annual_tons_co2e = 3000.0
         confidence = "low"
-        assumptions = {"note": "Project type not directly supported — estimate based on similar projects"}
+        assumptions = {
+            "note": "Project type not directly supported — estimate based on similar projects"
+        }
 
     return {
         "annual_tons_co2e": round(annual_tons_co2e, 1),
@@ -172,10 +196,10 @@ def revenue_projection(
     """Project revenue at different carbon price scenarios."""
     if price_scenarios is None:
         price_scenarios = {
-            "conservative": 8.0,   # voluntary market low
-            "base_case": 15.0,     # voluntary market mid
-            "optimistic": 25.0,    # high-quality/Gold Standard
-            "eu_ets": 65.0,        # EU ETS reference
+            "conservative": 8.0,  # voluntary market low
+            "base_case": 15.0,  # voluntary market mid
+            "optimistic": 25.0,  # high-quality/Gold Standard
+            "eu_ets": 65.0,  # EU ETS reference
         }
 
     return {

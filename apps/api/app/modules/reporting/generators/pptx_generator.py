@@ -1,6 +1,9 @@
 """PPTX report generator using python-pptx."""
 
+from __future__ import annotations
+
 import io
+from typing import TYPE_CHECKING, Any
 
 from pptx import Presentation
 from pptx.util import Inches, Pt
@@ -24,18 +27,14 @@ class PPTXGenerator(BaseReportGenerator):
         prs.save(buf)
         return buf.getvalue(), self.CONTENT_TYPE
 
-    def _create_title_slide(self, prs: Presentation, data: dict) -> None:
+    def _create_title_slide(self, prs: Any, data: dict) -> None:
         layout = prs.slide_layouts[0]  # Title slide
         slide = prs.slides.add_slide(layout)
         slide.shapes.title.text = data.get("title", "Report")
         if slide.placeholders[1]:
-            slide.placeholders[1].text = (
-                f"{self.org_name}\n{self.generated_at}"
-            )
+            slide.placeholders[1].text = f"{self.org_name}\n{self.generated_at}"
 
-    def _create_section_slide(
-        self, prs: Presentation, section: dict, data: dict
-    ) -> None:
+    def _create_section_slide(self, prs: Any, section: dict, data: dict) -> None:
         name = section.get("name", "Section")
         section_data = data.get(name, {})
 

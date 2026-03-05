@@ -4,13 +4,18 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import Float, ForeignKey, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.base import BaseModel, ModelMixin, TimestampedModel
-from app.models.enums import DocumentAccessAction, DocumentClassification, DocumentStatus, ExtractionType
+from app.models.enums import (
+    DocumentAccessAction,
+    DocumentClassification,
+    DocumentStatus,
+    ExtractionType,
+)
 
 
 class Document(BaseModel):
@@ -52,9 +57,7 @@ class Document(BaseModel):
         UUID(as_uuid=True),
         ForeignKey("documents.id", ondelete="SET NULL"),
     )
-    status: Mapped[DocumentStatus] = mapped_column(
-        nullable=False, default=DocumentStatus.UPLOADING
-    )
+    status: Mapped[DocumentStatus] = mapped_column(nullable=False, default=DocumentStatus.UPLOADING)
     metadata_: Mapped[dict[str, Any] | None] = mapped_column("metadata", JSONB)
     uploaded_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -211,9 +214,7 @@ class ShareLink(BaseModel):
         default=True, server_default="true", nullable=False
     )
     max_views: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    view_count: Mapped[int] = mapped_column(
-        Integer, default=0, server_default="0", nullable=False
-    )
+    view_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
 
     # Relationships
     document: Mapped["Document"] = relationship()

@@ -129,7 +129,7 @@ export interface MandateCreate {
   is_active?: boolean;
 }
 
-export interface MandateUpdate extends Partial<MandateCreate> {}
+export type MandateUpdate = Partial<MandateCreate>;
 
 export interface RecommendParams {
   sector?: string;

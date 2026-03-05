@@ -13,8 +13,8 @@ class TokenizationRequest(BaseModel):
     token_symbol: str
     total_supply: int
     token_price_usd: float
-    blockchain: str = "Ethereum"       # Ethereum, Polygon, Solana
-    token_type: str = "security"       # security, utility, equity
+    blockchain: str = "Ethereum"  # Ethereum, Polygon, Solana
+    token_type: str = "security"  # security, utility, equity
     regulatory_framework: str = "Reg D"  # Reg D, Reg A+, Reg CF, ERC-3643
     minimum_investment_usd: float = 1000.0
     lock_up_period_days: int = 365
@@ -23,7 +23,7 @@ class TokenizationRequest(BaseModel):
 
 class TokenHolding(BaseModel):
     holder_name: str
-    holder_type: str        # founder, investor, advisor, treasury
+    holder_type: str  # founder, investor, advisor, treasury
     tokens: int
     percentage: float
     locked_until: str | None
@@ -36,13 +36,13 @@ class TokenizationResponse(BaseModel):
     token_symbol: str
     total_supply: int
     token_price_usd: float
-    market_cap_usd: float   # computed
+    market_cap_usd: float  # computed
     blockchain: str
     token_type: str
     regulatory_framework: str
     minimum_investment_usd: float
     lock_up_period_days: int
-    status: str             # draft, pending_review, active, paused
+    status: str  # draft, pending_review, active, paused
     cap_table: list[TokenHolding]
     transfer_history: list[dict[str, Any]]
     created_at: datetime

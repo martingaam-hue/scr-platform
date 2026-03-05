@@ -1,10 +1,11 @@
 """Alley-side Signal Score service — project holder perspective."""
+
 from __future__ import annotations
+
 import uuid
-from datetime import datetime, timezone
 
 import structlog
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.middleware.tenant import tenant_filter
@@ -79,7 +80,9 @@ async def _latest_score(db: AsyncSession, project_id: uuid.UUID) -> SignalScore 
     return result.scalar_one_or_none()
 
 
-async def _prev_score(db: AsyncSession, project_id: uuid.UUID, current_version: int) -> SignalScore | None:
+async def _prev_score(
+    db: AsyncSession, project_id: uuid.UUID, current_version: int
+) -> SignalScore | None:
     if current_version <= 1:
         return None
     result = await db.execute(
@@ -102,6 +105,7 @@ def _trend(current: int, previous: int | None) -> tuple[str, int]:
 
 
 # ── New portfolio overview ─────────────────────────────────────────────────────
+
 
 async def get_portfolio_overview(db: AsyncSession, org_id: uuid.UUID) -> PortfolioScoreResponse:
     """Portfolio stats, scored project list, and improvement guidance."""
@@ -126,22 +130,24 @@ async def get_portfolio_overview(db: AsyncSession, org_id: uuid.UUID) -> Portfol
         stage_attr = getattr(project, "stage", None)
         stage = stage_attr.value if stage_attr is not None else None
 
-        scored_items.append(ProjectScoreListItem(
-            project_id=project.id,
-            project_name=project.name,
-            sector=sector,
-            stage=stage,
-            score=round(score.overall_score / 10, 1),
-            score_label=label,
-            score_label_color=color,
-            status="Ready" if score.overall_score >= 70 else "Needs Review",
-            calculated_at=score.calculated_at,
-            trend=trend,
-        ))
+        scored_items.append(
+            ProjectScoreListItem(
+                project_id=project.id,
+                project_name=project.name,
+                sector=sector,
+                stage=stage,
+                score=round(score.overall_score / 10, 1),
+                score_label=label,
+                score_label_color=color,
+                status="Ready" if score.overall_score >= 70 else "Needs Review",
+                calculated_at=score.calculated_at,
+                trend=trend,
+            )
+        )
         all_raw_scores.append(score.overall_score)
 
         raw_gaps = score.gaps or {}
-        for _, dim_data in (raw_gaps.items() if isinstance(raw_gaps, dict) else []):
+        for _, dim_data in raw_gaps.items() if isinstance(raw_gaps, dict) else []:
             if isinstance(dim_data, list):
                 for gap in dim_data:
                     if isinstance(gap, dict):
@@ -197,6 +203,7 @@ async def get_portfolio_overview(db: AsyncSession, org_id: uuid.UUID) -> Portfol
 
 # ── New project detail ─────────────────────────────────────────────────────────
 
+
 async def get_project_detail(
     db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUID
 ) -> ProjectScoreDetailResponse:
@@ -222,17 +229,23 @@ async def get_project_detail(
     score_factors = score.score_factors if hasattr(score, "score_factors") else {}
     if isinstance(score_factors, dict) and score_factors:
         for key, val in score_factors.items():
-            indicators.append(ReadinessIndicator(
-                label=key.replace("_", " ").title(),
-                met=bool(val),
-            ))
+            indicators.append(
+                ReadinessIndicator(
+                    label=key.replace("_", " ").title(),
+                    met=bool(val),
+                )
+            )
     else:
         # Synthetic fallback indicators from dimension scores
         indicators = [
             ReadinessIndicator(label="Business plan submitted", met=score.overall_score >= 40),
-            ReadinessIndicator(label="Financial projections available", met=score.financial_planning_score >= 50),
+            ReadinessIndicator(
+                label="Financial projections available", met=score.financial_planning_score >= 50
+            ),
             ReadinessIndicator(label="Team profiles complete", met=score.team_strength_score >= 50),
-            ReadinessIndicator(label="Risk assessment completed", met=score.risk_assessment_score >= 50),
+            ReadinessIndicator(
+                label="Risk assessment completed", met=score.risk_assessment_score >= 50
+            ),
             ReadinessIndicator(label="ESG framework in place", met=score.esg_score >= 50),
             ReadinessIndicator(label="Investment ready (≥7.0)", met=score.overall_score >= 70),
         ]
@@ -255,27 +268,31 @@ async def get_project_detail(
                     for c in dim_data["criteria"]
                     if isinstance(c, dict)
                 ]
-                criteria_breakdown.append(DimensionBreakdown(
-                    dimension_id=dim_id,
-                    dimension_name=dim_data.get("name", dim_id),
-                    score=dim_data.get("score", 0),
-                    criteria=criteria,
-                ))
+                criteria_breakdown.append(
+                    DimensionBreakdown(
+                        dimension_id=dim_id,
+                        dimension_name=dim_data.get("name", dim_id),
+                        score=dim_data.get("score", 0),
+                        criteria=criteria,
+                    )
+                )
 
     # Gap analysis
     gap_actions: list[GapAction] = []
     raw_gaps = score.gaps or {}
-    for dim_id, dim_data in (raw_gaps.items() if isinstance(raw_gaps, dict) else []):
+    for dim_id, dim_data in raw_gaps.items() if isinstance(raw_gaps, dict) else []:
         if isinstance(dim_data, list):
             for gap in dim_data:
                 if isinstance(gap, dict):
-                    gap_actions.append(GapAction(
-                        dimension=gap.get("dimension_name", dim_id),
-                        action=gap.get("recommendation", "Upload supporting documentation"),
-                        effort=gap.get("effort_level", "medium"),
-                        timeline=gap.get("timeline", "2–4 weeks"),
-                        estimated_impact=round(gap.get("estimated_impact", 3) / 10, 1),
-                    ))
+                    gap_actions.append(
+                        GapAction(
+                            dimension=gap.get("dimension_name", dim_id),
+                            action=gap.get("recommendation", "Upload supporting documentation"),
+                            effort=gap.get("effort_level", "medium"),
+                            timeline=gap.get("timeline", "2–4 weeks"),
+                            estimated_impact=round(gap.get("estimated_impact", 3) / 10, 1),
+                        )
+                    )
     gap_actions.sort(key=lambda x: x.estimated_impact, reverse=True)
 
     # Score history
@@ -309,6 +326,7 @@ async def get_project_detail(
 
 # ── Generate / Task Status ─────────────────────────────────────────────────────
 
+
 async def trigger_generate(
     db: AsyncSession,
     org_id: uuid.UUID,
@@ -330,6 +348,7 @@ async def trigger_generate(
     await db.refresh(task_log)
 
     from app.modules.alley.signal_score.tasks import run_signal_score_generation
+
     run_signal_score_generation.delay(str(task_log.id), str(org_id), str(project_id))
 
     return GenerateScoreResponse(task_id=str(task_log.id))
@@ -366,6 +385,7 @@ async def get_task_status(
 
 # ── Legacy service functions (kept for backward-compat endpoints) ───────────────
 
+
 async def list_scores(db: AsyncSession, org_id: uuid.UUID) -> list[AlleyProjectScoreSummary]:
     stmt = select(Project).where(Project.is_deleted.is_(False))
     stmt = tenant_filter(stmt, org_id, Project)
@@ -379,21 +399,23 @@ async def list_scores(db: AsyncSession, org_id: uuid.UUID) -> list[AlleyProjectS
             continue
         prev = await _prev_score(db, project.id, score.version)
         trend, change = _trend(score.overall_score, prev.overall_score if prev else None)
-        items.append(AlleyProjectScoreSummary(
-            project_id=project.id,
-            project_name=project.name,
-            overall_score=score.overall_score,
-            project_viability_score=score.project_viability_score,
-            financial_planning_score=score.financial_planning_score,
-            team_strength_score=score.team_strength_score,
-            risk_assessment_score=score.risk_assessment_score,
-            esg_score=score.esg_score,
-            market_opportunity_score=score.market_opportunity_score,
-            version=score.version,
-            calculated_at=score.calculated_at,
-            trend=trend,
-            score_change=change,
-        ))
+        items.append(
+            AlleyProjectScoreSummary(
+                project_id=project.id,
+                project_name=project.name,
+                overall_score=score.overall_score,
+                project_viability_score=score.project_viability_score,
+                financial_planning_score=score.financial_planning_score,
+                team_strength_score=score.team_strength_score,
+                risk_assessment_score=score.risk_assessment_score,
+                esg_score=score.esg_score,
+                market_opportunity_score=score.market_opportunity_score,
+                version=score.version,
+                calculated_at=score.calculated_at,
+                trend=trend,
+                score_change=change,
+            )
+        )
     return items
 
 
@@ -407,21 +429,23 @@ async def get_gap_analysis(
 
     gap_items: list[GapActionItem] = []
     raw_gaps = score.gaps or {}
-    for dim_id, dim_data in (raw_gaps.items() if isinstance(raw_gaps, dict) else []):
+    for dim_id, dim_data in raw_gaps.items() if isinstance(raw_gaps, dict) else []:
         if isinstance(dim_data, list):
             for gap in dim_data:
                 if isinstance(gap, dict):
-                    gap_items.append(GapActionItem(
-                        dimension=gap.get("dimension_name", dim_id),
-                        criterion=gap.get("criterion_name", ""),
-                        current_score=gap.get("current_score", 0),
-                        max_score=gap.get("max_points", 10),
-                        action=gap.get("recommendation", "Upload supporting documentation"),
-                        estimated_impact=gap.get("estimated_impact", 3),
-                        priority=gap.get("priority", "medium"),
-                        effort=gap.get("effort_level", "medium"),
-                        document_types=gap.get("relevant_doc_types", []),
-                    ))
+                    gap_items.append(
+                        GapActionItem(
+                            dimension=gap.get("dimension_name", dim_id),
+                            criterion=gap.get("criterion_name", ""),
+                            current_score=gap.get("current_score", 0),
+                            max_score=gap.get("max_points", 10),
+                            action=gap.get("recommendation", "Upload supporting documentation"),
+                            estimated_impact=gap.get("estimated_impact", 3),
+                            priority=gap.get("priority", "medium"),
+                            effort=gap.get("effort_level", "medium"),
+                            document_types=gap.get("relevant_doc_types", []),
+                        )
+                    )
     gap_items.sort(key=lambda x: x.estimated_impact, reverse=True)
 
     return GapAnalysisResponse(
@@ -445,8 +469,7 @@ async def simulate_score(
         raise LookupError("No score calculated yet")
 
     estimated_gain = sum(
-        3 if v == "met" else 1 if v == "partial" else 0
-        for v in criteria_overrides.values()
+        3 if v == "met" else 1 if v == "partial" else 0 for v in criteria_overrides.values()
     )
     projected = min(score.overall_score + estimated_gain, 100)
     return SimulateResponse(

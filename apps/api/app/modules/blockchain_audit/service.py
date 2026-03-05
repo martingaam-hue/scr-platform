@@ -9,11 +9,11 @@ from datetime import datetime
 from typing import Any
 
 import structlog
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.blockchain import BlockchainAnchor
 from app.core.config import settings
+from app.models.blockchain import BlockchainAnchor
 
 logger = structlog.get_logger()
 
@@ -48,8 +48,9 @@ async def queue_anchor(
     data: dict[str, Any],
 ) -> BlockchainAnchor:
     """Hash data and store as pending anchor."""
-    data_hash = _hash_data({"org_id": str(org_id), "event_type": event_type,
-                             "entity_id": str(entity_id), **data})
+    data_hash = _hash_data(
+        {"org_id": str(org_id), "event_type": event_type, "entity_id": str(entity_id), **data}
+    )
     anchor = BlockchainAnchor(
         org_id=org_id,
         event_type=event_type,
@@ -67,10 +68,12 @@ async def queue_anchor(
 
 async def get_pending_anchors(db: AsyncSession) -> list[BlockchainAnchor]:
     result = await db.execute(
-        select(BlockchainAnchor).where(
+        select(BlockchainAnchor)
+        .where(
             BlockchainAnchor.status == "pending",
-            BlockchainAnchor.is_deleted == False,
-        ).limit(100)
+            BlockchainAnchor.is_deleted is False,
+        )
+        .limit(100)
     )
     return list(result.scalars().all())
 
@@ -97,6 +100,7 @@ async def batch_submit(db: AsyncSession) -> dict[str, Any]:
 
         if polygon_rpc and private_key and contract_address:
             from web3 import Web3
+
             w3 = Web3(Web3.HTTPProvider(polygon_rpc))
             account = w3.eth.account.from_key(private_key)
             nonce = w3.eth.get_transaction_count(account.address)
@@ -113,7 +117,9 @@ async def batch_submit(db: AsyncSession) -> dict[str, Any]:
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash_bytes, timeout=120)
             tx_hash = receipt.transactionHash.hex()
             block_number = receipt.blockNumber
-            logger.info("blockchain.anchored", tx_hash=tx_hash, block=block_number, count=len(pending))
+            logger.info(
+                "blockchain.anchored", tx_hash=tx_hash, block=block_number, count=len(pending)
+            )
         else:
             logger.warning("blockchain.no_credentials", msg="Anchors stored locally only")
     except Exception as exc:
@@ -131,16 +137,24 @@ async def batch_submit(db: AsyncSession) -> dict[str, Any]:
             anchor.block_number = block_number
 
     await db.commit()
-    return {"status": "ok", "batch_id": str(batch_id), "count": len(pending),
-            "merkle_root": merkle_root_hex, "tx_hash": tx_hash}
+    return {
+        "status": "ok",
+        "batch_id": str(batch_id),
+        "count": len(pending),
+        "merkle_root": merkle_root_hex,
+        "tx_hash": tx_hash,
+    }
 
 
 async def verify_anchor(db: AsyncSession, entity_type: str, entity_id: uuid.UUID) -> dict[str, Any]:
     """Verify an entity's most recent anchor."""
     result = await db.execute(
         select(BlockchainAnchor)
-        .where(BlockchainAnchor.entity_type == entity_type, BlockchainAnchor.entity_id == entity_id,
-               BlockchainAnchor.is_deleted == False)
+        .where(
+            BlockchainAnchor.entity_type == entity_type,
+            BlockchainAnchor.entity_id == entity_id,
+            BlockchainAnchor.is_deleted is False,
+        )
         .order_by(BlockchainAnchor.created_at.desc())
         .limit(1)
     )
@@ -165,11 +179,16 @@ async def verify_anchor(db: AsyncSession, entity_type: str, entity_id: uuid.UUID
     }
 
 
-async def list_entity_anchors(db: AsyncSession, entity_type: str, entity_id: uuid.UUID) -> list[BlockchainAnchor]:
+async def list_entity_anchors(
+    db: AsyncSession, entity_type: str, entity_id: uuid.UUID
+) -> list[BlockchainAnchor]:
     result = await db.execute(
         select(BlockchainAnchor)
-        .where(BlockchainAnchor.entity_type == entity_type, BlockchainAnchor.entity_id == entity_id,
-               BlockchainAnchor.is_deleted == False)
+        .where(
+            BlockchainAnchor.entity_type == entity_type,
+            BlockchainAnchor.entity_id == entity_id,
+            BlockchainAnchor.is_deleted is False,
+        )
         .order_by(BlockchainAnchor.created_at.desc())
     )
     return list(result.scalars().all())

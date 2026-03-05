@@ -7,10 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db, get_readonly_session
 from app.modules.deal_intelligence import service
-from app.services.response_cache import cache_key, get_cached, set_cached
 from app.modules.deal_intelligence.schemas import (
     BatchScreenItem,
     BatchScreenRequest,
@@ -26,6 +25,7 @@ from app.modules.deal_intelligence.schemas import (
     ScreeningReportResponse,
 )
 from app.schemas.auth import CurrentUser
+from app.services.response_cache import cache_key, get_cached, set_cached
 
 logger = structlog.get_logger()
 
@@ -147,7 +147,11 @@ async def batch_screen_projects(
 # ── Parameterised endpoints ───────────────────────────────────────────────────
 
 
-@router.get("/{project_id}/screening", summary="Get AI screening report", response_model=ScreeningReportResponse)
+@router.get(
+    "/{project_id}/screening",
+    summary="Get AI screening report",
+    response_model=ScreeningReportResponse,
+)
 async def get_screening_report(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "match")),
@@ -187,7 +191,7 @@ async def trigger_screening(
         )
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     return ScreenAcceptedResponse(
         task_log_id=task_log.id,
@@ -214,7 +218,7 @@ async def trigger_memo(
         )
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     return MemoAcceptedResponse(
         memo_id=report.id,
@@ -223,7 +227,9 @@ async def trigger_memo(
     )
 
 
-@router.get("/{project_id}/memo/{memo_id}", summary="Get investment memo", response_model=MemoResponse)
+@router.get(
+    "/{project_id}/memo/{memo_id}", summary="Get investment memo", response_model=MemoResponse
+)
 async def get_memo(
     project_id: uuid.UUID,
     memo_id: uuid.UUID,
@@ -256,8 +262,8 @@ async def update_deal_status(
         )
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return {"match_id": str(match.id), "status": match.status.value}

@@ -1,7 +1,7 @@
 """Celery tasks for async report generation."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy import select
@@ -29,10 +29,18 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
 
     # Portfolio-related sections
     portfolio_sections = {
-        "portfolio_performance", "performance_summary", "holdings_detail",
-        "nav_summary", "cash_flows", "attribution", "benchmark_comparison",
-        "investment_thesis", "financial_analysis", "risk_assessment",
-        "recommendation", "executive_summary",
+        "portfolio_performance",
+        "performance_summary",
+        "holdings_detail",
+        "nav_summary",
+        "cash_flows",
+        "attribution",
+        "benchmark_comparison",
+        "investment_thesis",
+        "financial_analysis",
+        "risk_assessment",
+        "recommendation",
+        "executive_summary",
     }
     if portfolio_sections & set(section_names):
         portfolio_id = parameters.get("portfolio_id")
@@ -55,12 +63,16 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
                     "strategy": portfolio.strategy.value,
                 }
 
-                holdings = session.execute(
-                    select(PortfolioHolding).where(
-                        PortfolioHolding.portfolio_id == portfolio.id,
-                        PortfolioHolding.is_deleted.is_(False),
+                holdings = (
+                    session.execute(
+                        select(PortfolioHolding).where(
+                            PortfolioHolding.portfolio_id == portfolio.id,
+                            PortfolioHolding.is_deleted.is_(False),
+                        )
                     )
-                ).scalars().all()
+                    .scalars()
+                    .all()
+                )
                 data["holdings_detail"] = [h.to_dict() for h in holdings]
 
                 metrics = session.execute(
@@ -73,19 +85,27 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
                     data["attribution"] = metrics.to_dict()
         else:
             # All portfolios for org
-            portfolios = session.execute(
-                select(Portfolio).where(
-                    Portfolio.org_id == org_id,
-                    Portfolio.is_deleted.is_(False),
+            portfolios = (
+                session.execute(
+                    select(Portfolio).where(
+                        Portfolio.org_id == org_id,
+                        Portfolio.is_deleted.is_(False),
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             data["portfolio_performance"] = [p.to_dict() for p in portfolios]
             data["performance_summary"] = [p.to_dict() for p in portfolios]
 
     # Project-related sections
     project_sections = {
-        "project_overview", "milestones", "budget_summary", "signal_score",
-        "recent_activity", "project_highlights",
+        "project_overview",
+        "milestones",
+        "budget_summary",
+        "signal_score",
+        "recent_activity",
+        "project_highlights",
     }
     if project_sections & set(section_names):
         project_id = parameters.get("project_id")
@@ -101,28 +121,40 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
                 data["project_overview"] = project.to_dict()
                 data["project_highlights"] = project.to_dict()
 
-                milestones = session.execute(
-                    select(ProjectMilestone).where(
-                        ProjectMilestone.project_id == project.id,
-                        ProjectMilestone.is_deleted.is_(False),
+                milestones = (
+                    session.execute(
+                        select(ProjectMilestone).where(
+                            ProjectMilestone.project_id == project.id,
+                            ProjectMilestone.is_deleted.is_(False),
+                        )
                     )
-                ).scalars().all()
+                    .scalars()
+                    .all()
+                )
                 data["milestones"] = [m.to_dict() for m in milestones]
 
-                budget_items = session.execute(
-                    select(ProjectBudgetItem).where(
-                        ProjectBudgetItem.project_id == project.id,
-                        ProjectBudgetItem.is_deleted.is_(False),
+                budget_items = (
+                    session.execute(
+                        select(ProjectBudgetItem).where(
+                            ProjectBudgetItem.project_id == project.id,
+                            ProjectBudgetItem.is_deleted.is_(False),
+                        )
                     )
-                ).scalars().all()
+                    .scalars()
+                    .all()
+                )
                 data["budget_summary"] = [b.to_dict() for b in budget_items]
         else:
-            projects = session.execute(
-                select(Project).where(
-                    Project.org_id == org_id,
-                    Project.is_deleted.is_(False),
+            projects = (
+                session.execute(
+                    select(Project).where(
+                        Project.org_id == org_id,
+                        Project.is_deleted.is_(False),
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             data["project_overview"] = [p.to_dict() for p in projects]
             data["project_highlights"] = [p.to_dict() for p in projects]
 
@@ -137,7 +169,9 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
 # ── Report Generation Task ──────────────────────────────────────────────────
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60, soft_time_limit=120, time_limit=180)
+@celery_app.task(
+    bind=True, max_retries=3, default_retry_delay=60, soft_time_limit=120, time_limit=180
+)
 def generate_report_task(self, report_id: str) -> dict:
     """Generate a report asynchronously.
 
@@ -151,11 +185,10 @@ def generate_report_task(self, report_id: str) -> dict:
       7. Upload to S3
       8. Update report: status=READY, s3_key, completed_at
     """
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session as SyncSession
-
     import boto3
     from botocore.config import Config as BotoConfig
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session as SyncSession
 
     from app.models.core import Organization
     from app.models.enums import ReportStatus
@@ -177,16 +210,20 @@ def generate_report_task(self, report_id: str) -> dict:
             session.commit()
 
             # Step 3: Load template and org settings
-            template = session.get(ReportTemplate, report.template_id) if report.template_id else None
+            template = (
+                session.get(ReportTemplate, report.template_id) if report.template_id else None
+            )
             template_config = template.template_config if template else {}
-            sections_config = template.sections if template else []
+            sections_config: list = template.sections if template else []
             if isinstance(sections_config, dict):
                 sections_config = sections_config.get("sections", [])
 
             org = session.get(Organization, report.org_id)
             org_settings = {
                 "org_name": org.name if org else "SCR Platform",
-                "brand_color": (org.settings or {}).get("brand_color", "#1E3A5F") if org else "#1E3A5F",
+                "brand_color": (org.settings or {}).get("brand_color", "#1E3A5F")
+                if org
+                else "#1E3A5F",
                 "logo_url": (org.settings or {}).get("logo_url") if org else None,
             }
 
@@ -202,7 +239,7 @@ def generate_report_task(self, report_id: str) -> dict:
                 "xlsx": XLSXGenerator,
                 "pptx": PPTXGenerator,
             }
-            generator_cls = generators.get(output_format, PDFGenerator)
+            generator_cls: type[PDFGenerator] | type[XLSXGenerator] | type[PPTXGenerator] = generators.get(output_format, PDFGenerator)
             generator = generator_cls(template_config, org_settings)
 
             # Normalize sections for generator
@@ -214,7 +251,7 @@ def generate_report_task(self, report_id: str) -> dict:
                     sections.append(s)
 
             if not sections:
-                sections = [{"name": k} for k in data.keys() if k not in ("title", "parameters")]
+                sections = [{"name": k} for k in data if k not in ("title", "parameters")]
 
             # Step 6: Generate
             file_bytes, content_type = generator.generate(data, sections)
@@ -259,7 +296,7 @@ def generate_report_task(self, report_id: str) -> dict:
                 "content_type": content_type,
                 "sections_generated": len(sections),
             }
-            report.completed_at = datetime.now(timezone.utc)
+            report.completed_at = datetime.now(UTC)
             session.commit()
 
             logger.info(
@@ -285,4 +322,4 @@ def generate_report_task(self, report_id: str) -> dict:
                 report_id=report_id,
                 error=str(exc),
             )
-            raise self.retry(exc=exc)
+            raise self.retry(exc=exc) from exc

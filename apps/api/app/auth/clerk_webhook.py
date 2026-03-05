@@ -59,9 +59,7 @@ async def handle_user_created(data: dict, db: AsyncSession) -> None:
     image_url = data.get("image_url")
 
     # Idempotency check
-    result = await db.execute(
-        select(User).where(User.external_auth_id == clerk_user_id)
-    )
+    result = await db.execute(select(User).where(User.external_auth_id == clerk_user_id))
     if result.scalar_one_or_none():
         logger.info("webhook_user_already_exists", clerk_id=clerk_user_id)
         return
@@ -80,9 +78,7 @@ async def handle_user_created(data: dict, db: AsyncSession) -> None:
         org = await _create_default_org(db, full_name, email)
 
     # Check if this is the first user in the org (gets admin role)
-    existing_users = await db.execute(
-        select(User.id).where(User.org_id == org.id).limit(1)
-    )
+    existing_users = await db.execute(select(User.id).where(User.org_id == org.id).limit(1))
     role = UserRole.ADMIN if existing_users.scalar_one_or_none() is None else UserRole.VIEWER
 
     user = User(
@@ -102,9 +98,7 @@ async def handle_user_created(data: dict, db: AsyncSession) -> None:
 async def handle_user_updated(data: dict, db: AsyncSession) -> None:
     """Handle user.updated: sync email, name, avatar from Clerk."""
     clerk_user_id = data.get("id", "")
-    result = await db.execute(
-        select(User).where(User.external_auth_id == clerk_user_id)
-    )
+    result = await db.execute(select(User).where(User.external_auth_id == clerk_user_id))
     user = result.scalar_one_or_none()
     if not user:
         logger.warning("webhook_user_not_found", clerk_id=clerk_user_id)
@@ -129,9 +123,7 @@ async def handle_user_updated(data: dict, db: AsyncSession) -> None:
 async def handle_user_deleted(data: dict, db: AsyncSession) -> None:
     """Handle user.deleted: soft-delete the user."""
     clerk_user_id = data.get("id", "")
-    result = await db.execute(
-        select(User).where(User.external_auth_id == clerk_user_id)
-    )
+    result = await db.execute(select(User).where(User.external_auth_id == clerk_user_id))
     user = result.scalar_one_or_none()
     if not user:
         return
@@ -176,9 +168,7 @@ async def _get_or_create_org(
     return org
 
 
-async def _create_default_org(
-    db: AsyncSession, user_name: str, email: str
-) -> Organization:
+async def _create_default_org(db: AsyncSession, user_name: str, email: str) -> Organization:
     """Create a default personal org for a user without one."""
     slug = email.split("@")[0].lower().replace(".", "-").replace("+", "-")
 

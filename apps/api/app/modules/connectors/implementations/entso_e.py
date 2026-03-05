@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import xml.etree.ElementTree as ET
 from datetime import date
-from typing import Any
+from typing import Any, ClassVar
 
 import httpx
 
@@ -21,7 +21,7 @@ class ENTSOEConnector(BaseConnector):
     base_url = "https://web-api.tp.entsoe.eu/api"
     rate_limit_per_minute = 30
 
-    _DOMAIN_CODES = {
+    _DOMAIN_CODES: ClassVar[dict[str, str]] = {
         "DE": "10Y1001A1001A82H",
         "FR": "10YFR-RTE------C",
         "ES": "10YES-REE------0",
@@ -36,7 +36,9 @@ class ENTSOEConnector(BaseConnector):
             return {"Content-Type": "application/xml"}
         return {}
 
-    async def get_day_ahead_prices(self, country_code: str, target_date: str | None = None) -> list[dict[str, Any]]:
+    async def get_day_ahead_prices(
+        self, country_code: str, target_date: str | None = None
+    ) -> list[dict[str, Any]]:
         """Get day-ahead electricity prices for a country."""
         domain = self._DOMAIN_CODES.get(country_code.upper())
         if not domain:
@@ -83,5 +85,9 @@ class ENTSOEConnector(BaseConnector):
         return {
             "connector": self.name,
             "status": "ok",
-            "sample": {"country": "DE", "day_ahead_prices_count": len(prices), "sample": prices[:3]},
+            "sample": {
+                "country": "DE",
+                "day_ahead_prices_count": len(prices),
+                "sample": prices[:3],
+            },
         }

@@ -24,6 +24,7 @@ router = APIRouter(prefix="/admin/prompts", tags=["admin-prompts"])
 
 # ── Request schemas ────────────────────────────────────────────────────────────
 
+
 class PromptCreateRequest(BaseModel):
     task_type: str
     name: str
@@ -43,6 +44,7 @@ class PromptTestRequest(BaseModel):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _require_platform_admin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
     """Restrict prompt management to platform admins."""
@@ -78,6 +80,7 @@ def _template_to_dict(t: PromptTemplate) -> dict[str, Any]:
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
 
 @router.get("")
 async def list_prompts(
@@ -158,7 +161,12 @@ async def create_version(
     db.add(template)
     await db.commit()
     await db.refresh(template)
-    logger.info("prompt.created", task_type=data.task_type, version=next_version, user_id=str(current_user.user_id))
+    logger.info(
+        "prompt.created",
+        task_type=data.task_type,
+        version=next_version,
+        user_id=str(current_user.user_id),
+    )
     return {"id": str(template.id), "version": next_version}
 
 
@@ -233,13 +241,19 @@ async def compare_templates(
         raise HTTPException(status_code=404, detail="Template not found")
     return {
         "template_1": {
-            "id": str(t1.id), "version": t1.version, "name": t1.name,
-            "total_uses": t1.total_uses, "avg_confidence": t1.avg_confidence,
+            "id": str(t1.id),
+            "version": t1.version,
+            "name": t1.name,
+            "total_uses": t1.total_uses,
+            "avg_confidence": t1.avg_confidence,
             "positive_feedback_rate": t1.positive_feedback_rate,
         },
         "template_2": {
-            "id": str(t2.id), "version": t2.version, "name": t2.name,
-            "total_uses": t2.total_uses, "avg_confidence": t2.avg_confidence,
+            "id": str(t2.id),
+            "version": t2.version,
+            "name": t2.name,
+            "total_uses": t2.total_uses,
+            "avg_confidence": t2.avg_confidence,
             "positive_feedback_rate": t2.positive_feedback_rate,
         },
     }

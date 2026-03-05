@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 import structlog
-from sqlalchemy import and_, func, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.compliance import ComplianceDeadline
@@ -18,52 +18,122 @@ logger = structlog.get_logger()
 
 _TEMPLATES: dict[str, list[dict[str, Any]]] = {
     "EU_solar": [
-        {"category": "environmental", "title": "Environmental Impact Assessment Renewal", "recurrence": "annually",
-         "priority": "critical", "regulatory_body": "Local Environmental Authority",
-         "description": "Annual EIA report submission to maintain operational permit."},
-        {"category": "permit", "title": "Grid Connection License Renewal", "recurrence": "annually",
-         "priority": "critical", "regulatory_body": "National Grid Operator",
-         "description": "Renew grid connection agreement and technical compliance certificate."},
-        {"category": "sfdr", "title": "SFDR Quarterly Sustainability Report", "recurrence": "quarterly",
-         "priority": "high", "regulatory_body": "National Competent Authority",
-         "description": "Article 8/9 sustainability indicators quarterly disclosure."},
-        {"category": "reporting", "title": "EU Taxonomy Alignment Report", "recurrence": "annually",
-         "priority": "high", "regulatory_body": "European Securities and Markets Authority",
-         "description": "Annual Do No Significant Harm (DNSH) and minimum social safeguards assessment."},
-        {"category": "insurance", "title": "Annual Insurance Renewal", "recurrence": "annually",
-         "priority": "high", "regulatory_body": "Insurance Provider",
-         "description": "Renew operational, liability, and property insurance policies."},
-        {"category": "tax", "title": "Annual Corporate Tax Filing", "recurrence": "annually",
-         "priority": "high", "regulatory_body": "National Tax Authority",
-         "description": "Corporate income tax return and renewable energy incentive claims."},
+        {
+            "category": "environmental",
+            "title": "Environmental Impact Assessment Renewal",
+            "recurrence": "annually",
+            "priority": "critical",
+            "regulatory_body": "Local Environmental Authority",
+            "description": "Annual EIA report submission to maintain operational permit.",
+        },
+        {
+            "category": "permit",
+            "title": "Grid Connection License Renewal",
+            "recurrence": "annually",
+            "priority": "critical",
+            "regulatory_body": "National Grid Operator",
+            "description": "Renew grid connection agreement and technical compliance certificate.",
+        },
+        {
+            "category": "sfdr",
+            "title": "SFDR Quarterly Sustainability Report",
+            "recurrence": "quarterly",
+            "priority": "high",
+            "regulatory_body": "National Competent Authority",
+            "description": "Article 8/9 sustainability indicators quarterly disclosure.",
+        },
+        {
+            "category": "reporting",
+            "title": "EU Taxonomy Alignment Report",
+            "recurrence": "annually",
+            "priority": "high",
+            "regulatory_body": "European Securities and Markets Authority",
+            "description": "Annual Do No Significant Harm (DNSH) and minimum social safeguards assessment.",
+        },
+        {
+            "category": "insurance",
+            "title": "Annual Insurance Renewal",
+            "recurrence": "annually",
+            "priority": "high",
+            "regulatory_body": "Insurance Provider",
+            "description": "Renew operational, liability, and property insurance policies.",
+        },
+        {
+            "category": "tax",
+            "title": "Annual Corporate Tax Filing",
+            "recurrence": "annually",
+            "priority": "high",
+            "regulatory_body": "National Tax Authority",
+            "description": "Corporate income tax return and renewable energy incentive claims.",
+        },
     ],
     "EU_wind": [
-        {"category": "environmental", "title": "Noise Impact Assessment", "recurrence": "annually",
-         "priority": "critical", "regulatory_body": "Environmental Protection Agency",
-         "description": "Annual noise level monitoring and regulatory reporting."},
-        {"category": "permit", "title": "Aviation Authority Notification", "recurrence": "annually",
-         "priority": "high", "regulatory_body": "Civil Aviation Authority",
-         "description": "Annual update of obstacle lighting status and turbine inventory."},
-        {"category": "sfdr", "title": "SFDR Quarterly Report", "recurrence": "quarterly",
-         "priority": "high", "regulatory_body": "National Competent Authority",
-         "description": "SFDR Article 8/9 quarterly sustainability disclosure."},
-        {"category": "insurance", "title": "Annual Insurance Renewal", "recurrence": "annually",
-         "priority": "high", "regulatory_body": "Insurance Provider",
-         "description": "Renew all-risk, liability, and business interruption insurance."},
+        {
+            "category": "environmental",
+            "title": "Noise Impact Assessment",
+            "recurrence": "annually",
+            "priority": "critical",
+            "regulatory_body": "Environmental Protection Agency",
+            "description": "Annual noise level monitoring and regulatory reporting.",
+        },
+        {
+            "category": "permit",
+            "title": "Aviation Authority Notification",
+            "recurrence": "annually",
+            "priority": "high",
+            "regulatory_body": "Civil Aviation Authority",
+            "description": "Annual update of obstacle lighting status and turbine inventory.",
+        },
+        {
+            "category": "sfdr",
+            "title": "SFDR Quarterly Report",
+            "recurrence": "quarterly",
+            "priority": "high",
+            "regulatory_body": "National Competent Authority",
+            "description": "SFDR Article 8/9 quarterly sustainability disclosure.",
+        },
+        {
+            "category": "insurance",
+            "title": "Annual Insurance Renewal",
+            "recurrence": "annually",
+            "priority": "high",
+            "regulatory_body": "Insurance Provider",
+            "description": "Renew all-risk, liability, and business interruption insurance.",
+        },
     ],
     "EU_general": [
-        {"category": "reporting", "title": "AIFMD Annual Report", "recurrence": "annually",
-         "priority": "critical", "regulatory_body": "National Competent Authority",
-         "description": "Alternative Investment Fund Manager Directive annual regulatory report."},
-        {"category": "sfdr", "title": "SFDR Quarterly Disclosure", "recurrence": "quarterly",
-         "priority": "high", "regulatory_body": "National Competent Authority",
-         "description": "Principal adverse impacts and sustainability risk quarterly report."},
-        {"category": "insurance", "title": "Annual Insurance Renewal", "recurrence": "annually",
-         "priority": "high", "regulatory_body": "Insurance Provider",
-         "description": "Annual professional indemnity and D&O insurance renewal."},
-        {"category": "tax", "title": "Annual Tax Filing", "recurrence": "annually",
-         "priority": "high", "regulatory_body": "Tax Authority",
-         "description": "Annual corporate and partnership tax return filing."},
+        {
+            "category": "reporting",
+            "title": "AIFMD Annual Report",
+            "recurrence": "annually",
+            "priority": "critical",
+            "regulatory_body": "National Competent Authority",
+            "description": "Alternative Investment Fund Manager Directive annual regulatory report.",
+        },
+        {
+            "category": "sfdr",
+            "title": "SFDR Quarterly Disclosure",
+            "recurrence": "quarterly",
+            "priority": "high",
+            "regulatory_body": "National Competent Authority",
+            "description": "Principal adverse impacts and sustainability risk quarterly report.",
+        },
+        {
+            "category": "insurance",
+            "title": "Annual Insurance Renewal",
+            "recurrence": "annually",
+            "priority": "high",
+            "regulatory_body": "Insurance Provider",
+            "description": "Annual professional indemnity and D&O insurance renewal.",
+        },
+        {
+            "category": "tax",
+            "title": "Annual Tax Filing",
+            "recurrence": "annually",
+            "priority": "high",
+            "regulatory_body": "Tax Authority",
+            "description": "Annual corporate and partnership tax return filing.",
+        },
     ],
 }
 
@@ -101,7 +171,7 @@ async def list_deadlines(
 ) -> list[ComplianceDeadline]:
     stmt = select(ComplianceDeadline).where(
         ComplianceDeadline.org_id == org_id,
-        ComplianceDeadline.is_deleted == False,
+        ComplianceDeadline.is_deleted is False,
     )
     if status:
         stmt = stmt.where(ComplianceDeadline.status == status)
@@ -114,12 +184,14 @@ async def list_deadlines(
     return list(result.scalars().all())
 
 
-async def get_deadline(db: AsyncSession, deadline_id: uuid.UUID, org_id: uuid.UUID) -> ComplianceDeadline | None:
+async def get_deadline(
+    db: AsyncSession, deadline_id: uuid.UUID, org_id: uuid.UUID
+) -> ComplianceDeadline | None:
     result = await db.execute(
         select(ComplianceDeadline).where(
             ComplianceDeadline.id == deadline_id,
             ComplianceDeadline.org_id == org_id,
-            ComplianceDeadline.is_deleted == False,
+            ComplianceDeadline.is_deleted is False,
         )
     )
     return result.scalar_one_or_none()
@@ -227,7 +299,7 @@ async def flag_overdue(db: AsyncSession) -> int:
         .where(
             ComplianceDeadline.due_date < today,
             ComplianceDeadline.status.in_(["upcoming", "in_progress"]),
-            ComplianceDeadline.is_deleted == False,
+            ComplianceDeadline.is_deleted is False,
         )
         .values(status="overdue")
         .returning(ComplianceDeadline.id)
@@ -253,15 +325,20 @@ async def get_reminder_candidates(db: AsyncSession, days: int) -> list[Complianc
         select(ComplianceDeadline).where(
             ComplianceDeadline.due_date == target,
             ComplianceDeadline.status.in_(["upcoming", "in_progress"]),
-            flag_col == False,
-            ComplianceDeadline.is_deleted == False,
+            flag_col is False,
+            ComplianceDeadline.is_deleted is False,
         )
     )
     return list(result.scalars().all())
 
 
 async def mark_reminder_sent(db: AsyncSession, deadline: ComplianceDeadline, days: int) -> None:
-    col_map = {30: "reminder_30d_sent", 14: "reminder_14d_sent", 7: "reminder_7d_sent", 1: "reminder_1d_sent"}
+    col_map = {
+        30: "reminder_30d_sent",
+        14: "reminder_14d_sent",
+        7: "reminder_7d_sent",
+        1: "reminder_1d_sent",
+    }
     col = col_map.get(days)
     if col:
         setattr(deadline, col, True)

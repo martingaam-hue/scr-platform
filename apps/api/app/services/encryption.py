@@ -24,6 +24,7 @@ def _get_fernet():
     from cryptography.fernet import Fernet
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
     from app.core.config import settings
 
     raw_key = os.environ.get("CONNECTOR_ENCRYPTION_KEY") or settings.SECRET_KEY
@@ -65,7 +66,7 @@ def decrypt_field(ciphertext: str | None) -> str | None:
         return ciphertext
     try:
         fernet = _get_fernet()
-        token = ciphertext[len(_SENTINEL_PREFIX):].encode("utf-8")
+        token = ciphertext[len(_SENTINEL_PREFIX) :].encode("utf-8")
         return fernet.decrypt(token).decode("utf-8")
     except Exception as exc:
         logger.error("field_decryption_failed", error=str(exc))

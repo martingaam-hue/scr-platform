@@ -1,7 +1,7 @@
 """Custom Domain — 5 endpoints (E03)."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -125,8 +125,8 @@ async def admin_force_verify(
     if not record:
         raise HTTPException(status_code=404, detail="Domain not found for org")
     record.status = "verified"
-    record.verified_at = datetime.now(timezone.utc)
-    record.ssl_provisioned_at = datetime.now(timezone.utc)
+    record.verified_at = datetime.now(UTC)
+    record.ssl_provisioned_at = datetime.now(UTC)
     record.error_message = None
     await db.commit()
     await db.refresh(record)

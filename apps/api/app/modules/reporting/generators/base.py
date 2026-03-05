@@ -1,7 +1,7 @@
 """Abstract base class for report generators."""
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 
@@ -18,7 +18,7 @@ class BaseReportGenerator(ABC):
         self.org_name: str = org.get("org_name", "SCR Platform")
         self.logo_url: str | None = org.get("logo_url")
         self.brand_color: str = org.get("brand_color", "#1E3A5F")
-        self.generated_at: str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        self.generated_at: str = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
 
     @abstractmethod
     def generate(self, data: dict, sections: list[dict]) -> tuple[bytes, str]:
@@ -31,12 +31,10 @@ class BaseReportGenerator(ABC):
     def _format_currency(self, value, currency: str = "USD") -> str:
         try:
             num = Decimal(str(value))
-            if currency == "USD":
-                return f"${num:,.2f}"
-            elif currency == "EUR":
-                return f"\u20ac{num:,.2f}"
-            elif currency == "GBP":
-                return f"\u00a3{num:,.2f}"
+            _symbols = {"USD": "$", "EUR": "\u20ac", "GBP": "\u00a3"}
+            symbol = _symbols.get(currency)
+            if symbol:
+                return f"{symbol}{num:,.2f}"
             return f"{currency} {num:,.2f}"
         except (TypeError, ValueError):
             return str(value)

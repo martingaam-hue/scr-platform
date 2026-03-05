@@ -1,7 +1,8 @@
 """Per-org monthly AI token budget enforcement."""
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -14,16 +15,16 @@ logger = structlog.get_logger()
 
 # Monthly token limits by subscription tier (matches SubscriptionTier enum values)
 TIER_LIMITS: dict[str, int] = {
-    "foundation": 2_000_000,      # 2M tokens/month
-    "professional": 20_000_000,   # 20M tokens/month
-    "enterprise": 200_000_000,    # 200M tokens/month — effectively unlimited
+    "foundation": 2_000_000,  # 2M tokens/month
+    "professional": 20_000_000,  # 20M tokens/month
+    "enterprise": 200_000_000,  # 200M tokens/month — effectively unlimited
 }
 DEFAULT_LIMIT = 2_000_000
 
 
 async def get_monthly_usage(db: AsyncSession, org_id: Any) -> int:
     """Return total AI tokens used by org in the current calendar month."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     result = await db.execute(
@@ -31,9 +32,7 @@ async def get_monthly_usage(db: AsyncSession, org_id: Any) -> int:
             func.coalesce(
                 func.sum(
                     cast(
-                        func.jsonb_extract_path_text(
-                            UsageEvent.event_metadata, "tokens"
-                        ),
+                        func.jsonb_extract_path_text(UsageEvent.event_metadata, "tokens"),
                         Integer,
                     )
                 ),

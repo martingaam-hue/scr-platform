@@ -5,11 +5,13 @@ Revises: f6a7b8c9d0e1
 Create Date: 2026-02-28 00:03:00.000000
 
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "a4b5c6d7e8f9"
 down_revision = "f6a7b8c9d0e1"
@@ -20,7 +22,12 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "professional_connections",
-        sa.Column("id", postgresql.UUID(as_uuid=True), server_default=sa.text("gen_random_uuid()"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            server_default=sa.text("gen_random_uuid()"),
+            nullable=False,
+        ),
         sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
         sa.Column("is_deleted", sa.Boolean(), server_default="false", nullable=False),
@@ -30,7 +37,9 @@ def upgrade() -> None:
         sa.Column("connected_org_name", sa.String(200), nullable=False),
         sa.Column("connected_person_name", sa.String(200), nullable=True),
         sa.Column("connected_person_email", sa.String(200), nullable=True),
-        sa.Column("relationship_strength", sa.String(20), server_default="moderate", nullable=False),
+        sa.Column(
+            "relationship_strength", sa.String(20), server_default="moderate", nullable=False
+        ),
         sa.Column("last_interaction_date", sa.Date(), nullable=True),
         sa.Column("notes", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
@@ -40,7 +49,12 @@ def upgrade() -> None:
 
     op.create_table(
         "introduction_requests",
-        sa.Column("id", postgresql.UUID(as_uuid=True), server_default=sa.text("gen_random_uuid()"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            server_default=sa.text("gen_random_uuid()"),
+            nullable=False,
+        ),
         sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
         sa.Column("is_deleted", sa.Boolean(), server_default="false", nullable=False),
@@ -55,8 +69,12 @@ def upgrade() -> None:
         sa.Column("message", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_introduction_requests_requester_id", "introduction_requests", ["requester_id"])
-    op.create_index("ix_introduction_requests_requester_org_id", "introduction_requests", ["requester_org_id"])
+    op.create_index(
+        "ix_introduction_requests_requester_id", "introduction_requests", ["requester_id"]
+    )
+    op.create_index(
+        "ix_introduction_requests_requester_org_id", "introduction_requests", ["requester_org_id"]
+    )
 
 
 def downgrade() -> None:

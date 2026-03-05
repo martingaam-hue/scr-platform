@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -37,7 +37,7 @@ class EngagementService:
             document_id=document_id,
             user_id=user_id,
             session_id=session_id,
-            opened_at=datetime.now(timezone.utc),
+            opened_at=datetime.now(UTC),
             total_pages=total_pages,
             pages_viewed=[],
             pages_viewed_count=0,
@@ -97,7 +97,7 @@ class EngagementService:
     async def track_close(self, engagement_id: uuid.UUID) -> DocumentEngagement:
         """Mark the session as closed by recording closed_at."""
         engagement = await self._load_engagement(engagement_id)
-        engagement.closed_at = datetime.now(timezone.utc)
+        engagement.closed_at = datetime.now(UTC)
         await self.db.flush()
         await self.db.refresh(engagement)
         return engagement
@@ -133,15 +133,15 @@ class EngagementService:
         unique_viewers = len({s.user_id for s in sessions})
         total_time = sum(s.total_time_seconds for s in sessions)
         avg_time = round(total_time / total_views, 1) if total_views else 0.0
-        avg_completion = round(
-            sum(s.completion_pct for s in sessions) / total_views, 1
-        ) if total_views else 0.0
+        avg_completion = (
+            round(sum(s.completion_pct for s in sessions) / total_views, 1) if total_views else 0.0
+        )
         download_count = sum(1 for s in sessions if s.downloaded)
 
         # Page heatmap: page_number → total_time_seconds across all sessions
         heatmap: dict[int, int] = {}
         for session in sessions:
-            for entry in (session.pages_viewed or []):
+            for entry in session.pages_viewed or []:
                 page = entry.get("page")
                 t = entry.get("time_seconds", 0)
                 if page is not None:
@@ -196,6 +196,7 @@ class EngagementService:
         if deal_room_id is not None:
             # Filter by users who are members of the deal room
             from app.models.deal_rooms import DealRoomMember
+
             member_stmt = select(DealRoomMember.user_id).where(
                 DealRoomMember.room_id == deal_room_id,
                 DealRoomMember.is_deleted.is_(False),
@@ -219,9 +220,7 @@ class EngagementService:
             User.is_deleted.is_(False),
         )
         user_result = await self.db.execute(user_stmt)
-        user_org_map: dict[uuid.UUID, uuid.UUID] = {
-            row[0]: row[1] for row in user_result.all()
-        }
+        user_org_map: dict[uuid.UUID, uuid.UUID] = {row[0]: row[1] for row in user_result.all()}
 
         # Group engagements by investor_org_id
         by_investor: dict[uuid.UUID, list[DocumentEngagement]] = {}
@@ -245,8 +244,10 @@ class EngagementService:
             docs_viewed_pct = (unique_docs / total_docs * 100) if total_docs > 0 else 0.0
             days_since_last = 0.0
             if last_activity:
-                now = datetime.now(timezone.utc)
-                last_aware = last_activity if last_activity.tzinfo else last_activity.replace(tzinfo=timezone.utc)
+                now = datetime.now(UTC)
+                last_aware = (
+                    last_activity if last_activity.tzinfo else last_activity.replace(tzinfo=UTC)
+                )
                 days_since_last = (now - last_aware).total_seconds() / 86400
 
             score = self.compute_engagement_score(
@@ -256,16 +257,18 @@ class EngagementService:
                 days_since_last=days_since_last,
             )
 
-            results.append({
-                "investor_org_id": investor_org_id,
-                "total_sessions": total_sessions,
-                "total_time_seconds": total_time,
-                "unique_documents_viewed": unique_docs,
-                "total_documents_available": total_docs,
-                "documents_downloaded": downloads,
-                "last_activity_at": last_activity,
-                "engagement_score": score,
-            })
+            results.append(
+                {
+                    "investor_org_id": investor_org_id,
+                    "total_sessions": total_sessions,
+                    "total_time_seconds": total_time,
+                    "unique_documents_viewed": unique_docs,
+                    "total_documents_available": total_docs,
+                    "documents_downloaded": downloads,
+                    "last_activity_at": last_activity,
+                    "engagement_score": score,
+                }
+            )
 
         # Sort by engagement_score descending
         results.sort(key=lambda x: x["engagement_score"] or 0.0, reverse=True)
@@ -297,7 +300,7 @@ class EngagementService:
         sessions = await self._load_sessions_for_document(document_id)
         heatmap: dict[int, int] = {}
         for session in sessions:
-            for entry in (session.pages_viewed or []):
+            for entry in session.pages_viewed or []:
                 page = entry.get("page")
                 t = entry.get("time_seconds", 0)
                 if page is not None:
@@ -319,14 +322,14 @@ class EngagementService:
             raise LookupError(f"Engagement session {engagement_id} not found")
         return engagement
 
-    async def _load_sessions_for_document(
-        self, document_id: uuid.UUID
-    ) -> list[DocumentEngagement]:
+    async def _load_sessions_for_document(self, document_id: uuid.UUID) -> list[DocumentEngagement]:
         """Load all engagement sessions for a document scoped to this org."""
         result = await self.db.execute(
-            select(DocumentEngagement).where(
+            select(DocumentEngagement)
+            .where(
                 DocumentEngagement.document_id == document_id,
                 DocumentEngagement.org_id == self.org_id,
-            ).order_by(DocumentEngagement.opened_at.desc())
+            )
+            .order_by(DocumentEngagement.opened_at.desc())
         )
         return list(result.scalars().all())

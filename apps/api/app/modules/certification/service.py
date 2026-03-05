@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy import select
@@ -83,7 +83,7 @@ async def evaluate_certification(
         db.add(cert)
         await db.flush()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if score is None:
         # No score available — ensure status remains not_certified
@@ -95,9 +95,7 @@ async def evaluate_certification(
 
     # 3. Check qualification criteria
     overall_qualifies = overall >= CERTIFICATION_THRESHOLD
-    all_dimensions_qualify = all(
-        v >= MIN_DIMENSION_SCORE for v in dimension_scores.values()
-    )
+    all_dimensions_qualify = all(v >= MIN_DIMENSION_SCORE for v in dimension_scores.values())
     qualifies = overall_qualifies and all_dimensions_qualify
 
     # 4. Apply state machine transitions
@@ -195,20 +193,24 @@ async def get_certification_requirements(
     gaps: list[dict] = []
 
     if overall < CERTIFICATION_THRESHOLD:
-        gaps.append({
-            "type": "overall_score",
-            "current": overall,
-            "needed": CERTIFICATION_THRESHOLD,
-        })
+        gaps.append(
+            {
+                "type": "overall_score",
+                "current": overall,
+                "needed": CERTIFICATION_THRESHOLD,
+            }
+        )
 
     for dim_name, dim_score in dimension_scores.items():
         if float(dim_score) < MIN_DIMENSION_SCORE:
-            gaps.append({
-                "type": "dimension_score",
-                "dimension": dim_name,
-                "current": float(dim_score),
-                "needed": MIN_DIMENSION_SCORE,
-            })
+            gaps.append(
+                {
+                    "type": "dimension_score",
+                    "dimension": dim_name,
+                    "current": float(dim_score),
+                    "needed": MIN_DIMENSION_SCORE,
+                }
+            )
 
     eligible = len(gaps) == 0
 

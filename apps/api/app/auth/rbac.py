@@ -8,7 +8,6 @@ import uuid
 
 from app.models.enums import UserRole
 
-
 # ── Actions ───────────────────────────────────────────────────────────────
 
 

@@ -10,7 +10,9 @@ from app.core.config import settings
 logger = structlog.get_logger()
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=60, soft_time_limit=120, time_limit=180)
+@celery_app.task(
+    bind=True, max_retries=2, default_retry_delay=60, soft_time_limit=120, time_limit=180
+)
 def batch_calculate_matches(self) -> dict:
     """
     Daily batch task: refresh MatchResult scores for all active pairings.
@@ -42,20 +44,28 @@ def batch_calculate_matches(self) -> dict:
     try:
         with SyncSession(engine) as session:
             # Load all published projects
-            projects = session.execute(
-                select(Project).where(
-                    Project.is_published.is_(True),
-                    Project.is_deleted.is_(False),
+            projects = (
+                session.execute(
+                    select(Project).where(
+                        Project.is_published.is_(True),
+                        Project.is_deleted.is_(False),
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             # Load all active mandates
-            mandates = session.execute(
-                select(InvestorMandate).where(
-                    InvestorMandate.is_active.is_(True),
-                    InvestorMandate.is_deleted.is_(False),
+            mandates = (
+                session.execute(
+                    select(InvestorMandate).where(
+                        InvestorMandate.is_active.is_(True),
+                        InvestorMandate.is_deleted.is_(False),
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             logger.info(
                 "batch_match_start",
@@ -76,9 +86,11 @@ def batch_calculate_matches(self) -> dict:
                     signal_scores[proj.id] = ss
 
             # Build existing match lookup
-            existing = session.execute(
-                select(MatchResult).where(MatchResult.is_deleted.is_(False))
-            ).scalars().all()
+            existing = (
+                session.execute(select(MatchResult).where(MatchResult.is_deleted.is_(False)))
+                .scalars()
+                .all()
+            )
             existing_map: dict[tuple[uuid.UUID, uuid.UUID], MatchResult] = {
                 (m.project_id, m.investor_org_id): m for m in existing
             }
@@ -142,4 +154,4 @@ def batch_calculate_matches(self) -> dict:
 
     except Exception as exc:
         logger.error("batch_match_failed", error=str(exc))
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc

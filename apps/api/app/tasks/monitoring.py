@@ -20,13 +20,17 @@ def check_all_covenants() -> dict:
 
         async with async_session_factory() as db:
             org_ids = (
-                await db.execute(
-                    select(distinct(Covenant.org_id)).where(
-                        Covenant.status != "waived",
-                        Covenant.is_deleted.is_(False),
+                (
+                    await db.execute(
+                        select(distinct(Covenant.org_id)).where(
+                            Covenant.status != "waived",
+                            Covenant.is_deleted.is_(False),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             total_changes = 0
             for org_id in org_ids:

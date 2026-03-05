@@ -10,12 +10,14 @@ from celery import shared_task
 logger = structlog.get_logger()
 
 
-@shared_task(name="tasks.check_upcoming_deadlines", bind=True, max_retries=3, default_retry_delay=300)
+@shared_task(
+    name="tasks.check_upcoming_deadlines", bind=True, max_retries=3, default_retry_delay=300
+)
 def check_upcoming_deadlines(self) -> dict:
     """Send 30/14/7/1-day reminder notifications for upcoming compliance deadlines."""
     from app.core.database import async_session_factory
-    from app.modules.compliance.service import get_reminder_candidates, mark_reminder_sent
     from app.models.core import Notification
+    from app.modules.compliance.service import get_reminder_candidates, mark_reminder_sent
 
     async def _run() -> dict:
         sent = 0
@@ -43,7 +45,7 @@ def check_upcoming_deadlines(self) -> dict:
     try:
         return asyncio.run(_run())
     except Exception as exc:
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
 
 
 @shared_task(name="tasks.flag_overdue_deadlines", bind=True, max_retries=3, default_retry_delay=300)
@@ -60,4 +62,4 @@ def flag_overdue_deadlines(self) -> dict:
     try:
         return asyncio.run(_run())
     except Exception as exc:
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc

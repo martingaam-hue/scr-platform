@@ -8,21 +8,18 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.middleware.tenant import tenant_filter
 from app.models.enums import (
     AssetType,
     HoldingStatus,
-    PortfolioStatus,
     PortfolioStrategy,
 )
 from app.models.investors import Portfolio, PortfolioHolding, PortfolioMetrics
 from app.models.projects import Project
 from app.schemas.auth import CurrentUser
-
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -30,9 +27,7 @@ from app.schemas.auth import CurrentUser
 async def _get_portfolio_or_raise(
     db: AsyncSession, portfolio_id: uuid.UUID, org_id: uuid.UUID
 ) -> Portfolio:
-    stmt = select(Portfolio).where(
-        Portfolio.id == portfolio_id, Portfolio.is_deleted.is_(False)
-    )
+    stmt = select(Portfolio).where(Portfolio.id == portfolio_id, Portfolio.is_deleted.is_(False))
     stmt = tenant_filter(stmt, org_id, Portfolio)
     result = await db.execute(stmt)
     portfolio = result.scalar_one_or_none()
@@ -41,9 +36,7 @@ async def _get_portfolio_or_raise(
     return portfolio
 
 
-async def get_latest_metrics(
-    db: AsyncSession, portfolio_id: uuid.UUID
-) -> PortfolioMetrics | None:
+async def get_latest_metrics(db: AsyncSession, portfolio_id: uuid.UUID) -> PortfolioMetrics | None:
     stmt = (
         select(PortfolioMetrics)
         .where(PortfolioMetrics.portfolio_id == portfolio_id)
@@ -57,9 +50,7 @@ async def get_latest_metrics(
 # ── Portfolio CRUD ──────────────────────────────────────────────────────────
 
 
-async def list_portfolios(
-    db: AsyncSession, org_id: uuid.UUID
-) -> list[Portfolio]:
+async def list_portfolios(db: AsyncSession, org_id: uuid.UUID) -> list[Portfolio]:
     stmt = (
         select(Portfolio)
         .where(Portfolio.is_deleted.is_(False))
@@ -70,9 +61,7 @@ async def list_portfolios(
     return list(result.scalars().all())
 
 
-async def get_portfolio(
-    db: AsyncSession, portfolio_id: uuid.UUID, org_id: uuid.UUID
-) -> Portfolio:
+async def get_portfolio(db: AsyncSession, portfolio_id: uuid.UUID, org_id: uuid.UUID) -> Portfolio:
     return await _get_portfolio_or_raise(db, portfolio_id, org_id)
 
 
@@ -217,9 +206,7 @@ async def update_holding(
 # ── Financial Metrics (Deterministic Python) ────────────────────────────────
 
 
-async def compute_metrics(
-    db: AsyncSession, portfolio_id: uuid.UUID, org_id: uuid.UUID
-) -> dict:
+async def compute_metrics(db: AsyncSession, portfolio_id: uuid.UUID, org_id: uuid.UUID) -> dict:
     """Compute portfolio metrics using deterministic Python calculations.
 
     IRR uses numpy-financial (Newton's method / Brent's method).
@@ -244,8 +231,7 @@ async def compute_metrics(
     total_invested = sum(h.investment_amount for h in holdings)
     total_current = sum(h.current_value for h in holdings)
     total_distributions = sum(
-        h.exit_amount for h in holdings
-        if h.status == HoldingStatus.EXITED and h.exit_amount
+        h.exit_amount for h in holdings if h.status == HoldingStatus.EXITED and h.exit_amount
     )
     total_value = total_current + total_distributions
 
@@ -281,6 +267,7 @@ async def compute_metrics(
     # Record metric snapshots (best-effort, uses savepoint to not abort outer tx)
     try:
         from app.modules.metrics.snapshot_service import MetricSnapshotService
+
         async with db.begin_nested():
             svc = MetricSnapshotService(db)
             snapshot_pairs = [
@@ -372,19 +359,23 @@ async def get_cash_flows(
     holdings = await list_holdings(db, portfolio_id, org_id)
     flows = []
     for h in holdings:
-        flows.append({
-            "date": h.investment_date,
-            "amount": -h.investment_amount,  # Negative = outflow
-            "type": "contribution",
-            "holding_name": h.asset_name,
-        })
-        if h.status == HoldingStatus.EXITED and h.exit_date and h.exit_amount:
-            flows.append({
-                "date": h.exit_date,
-                "amount": h.exit_amount,
-                "type": "distribution",
+        flows.append(
+            {
+                "date": h.investment_date,
+                "amount": -h.investment_amount,  # Negative = outflow
+                "type": "contribution",
                 "holding_name": h.asset_name,
-            })
+            }
+        )
+        if h.status == HoldingStatus.EXITED and h.exit_date and h.exit_amount:
+            flows.append(
+                {
+                    "date": h.exit_date,
+                    "amount": h.exit_amount,
+                    "type": "distribution",
+                    "holding_name": h.asset_name,
+                }
+            )
     flows.sort(key=lambda x: x["date"])
     return flows
 
@@ -392,20 +383,15 @@ async def get_cash_flows(
 # ── Allocation ──────────────────────────────────────────────────────────────
 
 
-async def get_allocation(
-    db: AsyncSession, portfolio_id: uuid.UUID, org_id: uuid.UUID
-) -> dict:
+async def get_allocation(db: AsyncSession, portfolio_id: uuid.UUID, org_id: uuid.UUID) -> dict:
     """Compute portfolio allocation breakdowns by sector, geography, stage, asset type."""
     await _get_portfolio_or_raise(db, portfolio_id, org_id)
 
     # Get holdings with linked projects
-    stmt = (
-        select(PortfolioHolding)
-        .where(
-            PortfolioHolding.portfolio_id == portfolio_id,
-            PortfolioHolding.is_deleted.is_(False),
-            PortfolioHolding.status == HoldingStatus.ACTIVE,
-        )
+    stmt = select(PortfolioHolding).where(
+        PortfolioHolding.portfolio_id == portfolio_id,
+        PortfolioHolding.is_deleted.is_(False),
+        PortfolioHolding.status == HoldingStatus.ACTIVE,
     )
     result = await db.execute(stmt)
     holdings = list(result.scalars().all())
@@ -424,9 +410,7 @@ async def get_allocation(
     project_ids = [h.project_id for h in holdings if h.project_id]
     projects_map = {}
     if project_ids:
-        proj_result = await db.execute(
-            select(Project).where(Project.id.in_(project_ids))
-        )
+        proj_result = await db.execute(select(Project).where(Project.id.in_(project_ids)))
         for p in proj_result.scalars().all():
             projects_map[p.id] = p
 
@@ -441,7 +425,9 @@ async def get_allocation(
     # By sector (from linked project type)
     by_sector = _aggregate(
         holdings,
-        lambda h: projects_map[h.project_id].project_type.value if h.project_id and h.project_id in projects_map else "unlinked",
+        lambda h: projects_map[h.project_id].project_type.value
+        if h.project_id and h.project_id in projects_map
+        else "unlinked",
         lambda h: float(h.current_value),
         total_value,
     )
@@ -449,7 +435,9 @@ async def get_allocation(
     # By geography
     by_geography = _aggregate(
         holdings,
-        lambda h: projects_map[h.project_id].geography_country if h.project_id and h.project_id in projects_map else "unlinked",
+        lambda h: projects_map[h.project_id].geography_country
+        if h.project_id and h.project_id in projects_map
+        else "unlinked",
         lambda h: float(h.current_value),
         total_value,
     )
@@ -457,7 +445,9 @@ async def get_allocation(
     # By stage
     by_stage = _aggregate(
         holdings,
-        lambda h: projects_map[h.project_id].stage.value if h.project_id and h.project_id in projects_map else "unlinked",
+        lambda h: projects_map[h.project_id].stage.value
+        if h.project_id and h.project_id in projects_map
+        else "unlinked",
         lambda h: float(h.current_value),
         total_value,
     )
@@ -478,9 +468,11 @@ def _aggregate(items, key_fn, value_fn, total) -> list[dict]:
         buckets[k] = buckets.get(k, 0) + value_fn(item)
     result = []
     for name, value in sorted(buckets.items(), key=lambda x: -x[1]):
-        result.append({
-            "name": name,
-            "value": Decimal(str(round(value, 4))),
-            "percentage": Decimal(str(round(value / total * 100, 2))),
-        })
+        result.append(
+            {
+                "name": name,
+                "value": Decimal(str(round(value, 4))),
+                "percentage": Decimal(str(round(value / total * 100, 2))),
+            }
+        )
     return result

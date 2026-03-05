@@ -8,8 +8,9 @@ Create Date: 2026-03-01 00:00:00.000000
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "g1a2b3c4d5e6"
 down_revision = "e3a2b3c4d5e6"
@@ -39,7 +40,9 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.UniqueConstraint(
-            "source", "series_id", "data_date",
+            "source",
+            "series_id",
+            "data_date",
             name="uq_external_data_point",
         ),
     )

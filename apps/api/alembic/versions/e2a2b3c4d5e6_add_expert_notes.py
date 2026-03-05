@@ -4,11 +4,13 @@ Revision ID: e2a2b3c4d5e6
 Revises: e1a2b3c4d5e6
 Create Date: 2026-03-01 14:00:00.000000
 """
+
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "e2a2b3c4d5e6"
 down_revision = "e1a2b3c4d5e6"
@@ -19,7 +21,12 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "expert_notes",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("org_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("project_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("created_by", postgresql.UUID(as_uuid=True), nullable=True),

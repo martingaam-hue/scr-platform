@@ -4,6 +4,7 @@ import csv
 import io
 import uuid
 from datetime import datetime, timedelta
+from typing import ClassVar
 
 import httpx
 import structlog
@@ -26,13 +27,13 @@ _OPEN_STATUSES = ["open", "assigned", "in_progress"]
 
 
 class QAService:
-    SLA_HOURS: dict[str, int] = {
+    SLA_HOURS: ClassVar[dict[str, int]] = {
         "urgent": 4,
         "high": 24,
         "normal": 72,
         "low": 168,
     }
-    ROUTING: dict[str, str] = {
+    ROUTING: ClassVar[dict[str, str]] = {
         "financial": "finance",
         "legal": "legal",
         "technical": "technical",
@@ -208,9 +209,7 @@ class QAService:
 
     # ── Update / Assign ─────────────────────────────────────────────────────────
 
-    async def update_question(
-        self, question_id: uuid.UUID, body: QAQuestionUpdate
-    ) -> QAQuestion:
+    async def update_question(self, question_id: uuid.UUID, body: QAQuestionUpdate) -> QAQuestion:
         question = await self.get_question(question_id)
         if question is None:
             raise ValueError(f"Question {question_id} not found")
@@ -262,9 +261,7 @@ class QAService:
             QAQuestion.is_deleted.is_(False),
         ]
 
-        total_result = await self.db.execute(
-            select(func.count(QAQuestion.id)).where(*base_where)
-        )
+        total_result = await self.db.execute(select(func.count(QAQuestion.id)).where(*base_where))
         total: int = total_result.scalar_one()
 
         open_result = await self.db.execute(
@@ -326,10 +323,19 @@ class QAService:
 
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow([
-            "Q#", "Category", "Question", "Status", "Priority",
-            "Team", "Answer", "Asked By", "Date",
-        ])
+        writer.writerow(
+            [
+                "Q#",
+                "Category",
+                "Question",
+                "Status",
+                "Priority",
+                "Team",
+                "Answer",
+                "Asked By",
+                "Date",
+            ]
+        )
 
         for q in questions:
             # Use the first official answer if present, otherwise first answer
@@ -337,17 +343,19 @@ class QAService:
             first_answer = official or (q.answers[0] if q.answers else None)
             answer_text = first_answer.content if first_answer else ""
 
-            writer.writerow([
-                q.question_number,
-                q.category,
-                q.question,
-                q.status,
-                q.priority,
-                q.assigned_team or "",
-                answer_text,
-                str(q.asked_by),
-                q.created_at.strftime("%Y-%m-%d %H:%M") if q.created_at else "",
-            ])
+            writer.writerow(
+                [
+                    q.question_number,
+                    q.category,
+                    q.question,
+                    q.status,
+                    q.priority,
+                    q.assigned_team or "",
+                    answer_text,
+                    str(q.asked_by),
+                    q.created_at.strftime("%Y-%m-%d %H:%M") if q.created_at else "",
+                ]
+            )
 
         return output.getvalue().encode("utf-8")
 

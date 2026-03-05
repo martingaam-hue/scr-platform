@@ -13,14 +13,14 @@ Existing data (solar, wind, hydro, etc.) is fully preserved.
 
 from __future__ import annotations
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from alembic import op
 
 revision: str = "7c4e82b31d09"
-down_revision: Union[str, None] = "f3a9d1e72b08"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "f3a9d1e72b08"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 NEW_TYPES = [
     "infrastructure",
@@ -38,9 +38,7 @@ def upgrade() -> None:
     # PostgreSQL requires ALTER TYPE ... ADD VALUE for enum expansion.
     # Each ADD VALUE is a separate DDL statement and cannot run inside a transaction.
     for value in NEW_TYPES:
-        op.execute(
-            f"ALTER TYPE projecttype ADD VALUE IF NOT EXISTS '{value}'"
-        )
+        op.execute(f"ALTER TYPE projecttype ADD VALUE IF NOT EXISTS '{value}'")
 
 
 def downgrade() -> None:

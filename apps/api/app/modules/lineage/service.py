@@ -84,6 +84,7 @@ class LineageService:
         if latest.source_type in ("document_extraction", "document") and latest.source_id:
             try:
                 from app.models.dataroom import Document, DocumentExtraction
+
                 if latest.source_type == "document_extraction":
                     extraction = await self.db.get(DocumentExtraction, latest.source_id)
                     if extraction:

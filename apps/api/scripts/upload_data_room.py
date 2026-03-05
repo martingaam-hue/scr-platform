@@ -114,8 +114,12 @@ def main():
         default=None,
         help="S3 subfolder label for unassigned docs (default: preserves local subfolder structure)",
     )
-    parser.add_argument("--org-id", metavar="UUID", help="Organization UUID (auto-detected if omitted)")
-    parser.add_argument("--user-id", metavar="UUID", help="Uploader user UUID (auto-detected if omitted)")
+    parser.add_argument(
+        "--org-id", metavar="UUID", help="Organization UUID (auto-detected if omitted)"
+    )
+    parser.add_argument(
+        "--user-id", metavar="UUID", help="Uploader user UUID (auto-detected if omitted)"
+    )
     parser.add_argument("--dry-run", action="store_true", help="List files without uploading")
     args = parser.parse_args()
 
@@ -192,8 +196,7 @@ def main():
 
     # ── Discover files ─────────────────────────────────────────────────────
     files = sorted(
-        p for p in folder.rglob("*")
-        if p.is_file() and p.suffix.lower() in ALLOWED_EXTENSIONS
+        p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() in ALLOWED_EXTENSIONS
     )
 
     if not files:
@@ -303,8 +306,8 @@ def main():
     print(f"Uploaded: {uploaded}  Failed: {failed}")
     if uploaded > 0:
         print(
-            f"\nDocuments are in 'processing' status. The Celery worker will extract them\n"
-            f"automatically once processing tasks are triggered."
+            "\nDocuments are in 'processing' status. The Celery worker will extract them\n"
+            "automatically once processing tasks are triggered."
         )
 
     cur.close()

@@ -1,16 +1,9 @@
 """Tests for auth router endpoints."""
 
-import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
-
-from app.auth.dependencies import get_current_user
-from app.main import app
-from app.models.enums import UserRole
-from app.schemas.auth import CurrentUser
-from tests.conftest import SAMPLE_CLERK_ID, SAMPLE_ORG_ID, SAMPLE_USER_ID
 
 
 @pytest.mark.anyio

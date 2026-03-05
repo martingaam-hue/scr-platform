@@ -12,7 +12,7 @@ from app.models.citations import AICitation
 
 logger = structlog.get_logger()
 
-_SOURCE_PATTERN = re.compile(r'\[SOURCE:\s*([^\]]+)\]')
+_SOURCE_PATTERN = re.compile(r"\[SOURCE:\s*([^\]]+)\]")
 _CONTEXT_CHARS = 200  # chars before [SOURCE:] tag to extract as claim text
 
 
@@ -43,7 +43,7 @@ Every number, date, and specific fact MUST have a [SOURCE:] tag.
             resolved = await self._resolve_source(source_ref)
             # Extract claim text: text before this [SOURCE:] tag
             start = max(0, match.start() - _CONTEXT_CHARS)
-            claim_text = ai_output[start:match.start()].strip()
+            claim_text = ai_output[start : match.start()].strip()
             # Remove prior [SOURCE:] tags from claim_text
             claim_text = _SOURCE_PATTERN.sub("", claim_text).strip()[-_CONTEXT_CHARS:]
 
@@ -87,6 +87,7 @@ Every number, date, and specific fact MUST have a [SOURCE:] tag.
 
         try:
             from app.models.dataroom import Document
+
             doc_result = await self.db.execute(
                 select(Document)
                 .where(
@@ -113,9 +114,7 @@ Every number, date, and specific fact MUST have a [SOURCE:] tag.
         """Remove [SOURCE:] tags from user-facing text."""
         return _SOURCE_PATTERN.sub("", text).strip()
 
-    async def get_citations_for_output(
-        self, ai_task_log_id: uuid.UUID
-    ) -> list[AICitation]:
+    async def get_citations_for_output(self, ai_task_log_id: uuid.UUID) -> list[AICitation]:
         """Get all citations for an AI output."""
         result = await self.db.execute(
             select(AICitation)
@@ -141,19 +140,23 @@ Every number, date, and specific fact MUST have a [SOURCE:] tag.
     async def get_stats(self) -> dict[str, Any]:
         """Citation accuracy stats."""
         from sqlalchemy import func
-        total = (await self.db.execute(
-            select(func.count()).where(AICitation.org_id == self.org_id)
-        )).scalar() or 0
-        verified = (await self.db.execute(
-            select(func.count()).where(
-                AICitation.org_id == self.org_id,
-                AICitation.verified.is_(True),
+
+        total = (
+            await self.db.execute(select(func.count()).where(AICitation.org_id == self.org_id))
+        ).scalar() or 0
+        verified = (
+            await self.db.execute(
+                select(func.count()).where(
+                    AICitation.org_id == self.org_id,
+                    AICitation.verified.is_(True),
+                )
             )
-        )).scalar() or 0
-        avg_confidence = (await self.db.execute(
-            select(func.avg(AICitation.confidence))
-            .where(AICitation.org_id == self.org_id)
-        )).scalar()
+        ).scalar() or 0
+        avg_confidence = (
+            await self.db.execute(
+                select(func.avg(AICitation.confidence)).where(AICitation.org_id == self.org_id)
+            )
+        ).scalar()
         return {
             "total_citations": total,
             "verified": verified,

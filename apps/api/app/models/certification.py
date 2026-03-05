@@ -1,6 +1,7 @@
 """Investor Readiness Certification model."""
 
 from __future__ import annotations
+
 import uuid
 from datetime import datetime
 
@@ -19,12 +20,13 @@ class InvestorReadinessCertification(BaseModel):
     )
 
     project_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"),
-        nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     org_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=False
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
     )
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="not_certified", server_default="not_certified"
@@ -38,4 +40,6 @@ class InvestorReadinessCertification(BaseModel):
     tier: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # standard (80-89) | premium (90-95) | elite (96-100)
     certification_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    consecutive_months_certified: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    consecutive_months_certified: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0"
+    )

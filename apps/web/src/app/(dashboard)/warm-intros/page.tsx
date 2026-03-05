@@ -7,7 +7,7 @@ import {
   STRENGTH_BADGE, warmthColor, warmthBg, CONNECTION_TYPES,
   type IntroPath,
 } from "@/lib/warm-intros"
-import { Users, Plus, Flame, X, Send, CheckCircle } from "lucide-react"
+import { Users, Plus, Flame, X, Send } from "lucide-react"
 
 export default function WarmIntrosPage() {
   const [showAddForm, setShowAddForm] = useState(false)

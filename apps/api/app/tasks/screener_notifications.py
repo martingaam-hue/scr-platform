@@ -23,9 +23,7 @@ def check_saved_searches() -> None:
     try:
         engine = create_engine(settings.DATABASE_URL.replace("+asyncpg", ""))
         with Session(engine) as db:
-            stmt = select(SavedSearch).where(
-                SavedSearch.notify_new_matches.is_(True)
-            )
+            stmt = select(SavedSearch).where(SavedSearch.notify_new_matches.is_(True))
             searches = db.execute(stmt).scalars().all()
 
             for search in searches:

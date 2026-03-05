@@ -1,14 +1,17 @@
 """Alley-side Signal Score schemas — developer-focused framing."""
+
 from __future__ import annotations
+
 import uuid
 from datetime import datetime
-from pydantic import BaseModel
 
+from pydantic import BaseModel
 
 # ── Portfolio Overview ─────────────────────────────────────────────────────────
 
+
 class PortfolioStats(BaseModel):
-    avg_score: float        # 0.0–10.0
+    avg_score: float  # 0.0–10.0
     total_projects: int
     investment_ready_count: int
 
@@ -18,24 +21,24 @@ class ProjectScoreListItem(BaseModel):
     project_name: str
     sector: str | None
     stage: str | None
-    score: float            # 0.0–10.0 (stored value ÷ 10)
-    score_label: str        # Excellent | Strong | Good | Needs Review
+    score: float  # 0.0–10.0 (stored value ÷ 10)
+    score_label: str  # Excellent | Strong | Good | Needs Review
     score_label_color: str  # green | yellow | amber | red
-    status: str             # Ready | Needs Review
+    status: str  # Ready | Needs Review
     calculated_at: datetime
-    trend: str              # up | down | stable | new
+    trend: str  # up | down | stable | new
 
 
 class ImprovementFactor(BaseModel):
     dimension: str
-    avg_score: float        # 0.0–10.0
+    avg_score: float  # 0.0–10.0
 
 
 class ImprovementAction(BaseModel):
     action: str
     dimension: str
-    priority: str           # critical | high | medium | low
-    estimated_impact: float # 0.0–10.0 scale
+    priority: str  # critical | high | medium | low
+    estimated_impact: float  # 0.0–10.0 scale
 
 
 class PortfolioScoreResponse(BaseModel):
@@ -47,10 +50,11 @@ class PortfolioScoreResponse(BaseModel):
 
 # ── Project Detail ─────────────────────────────────────────────────────────────
 
+
 class DimensionDetail(BaseModel):
     id: str
     label: str
-    score: int              # 0–100 (raw, used as % width for bar)
+    score: int  # 0–100 (raw, used as % width for bar)
     description: str | None = None
 
 
@@ -62,7 +66,7 @@ class ReadinessIndicator(BaseModel):
 class CriterionDetail(BaseModel):
     id: str
     name: str
-    status: str             # met | partial | not_met
+    status: str  # met | partial | not_met
     points_earned: int
     points_max: int
     evidence_note: str | None = None
@@ -78,20 +82,20 @@ class DimensionBreakdown(BaseModel):
 class GapAction(BaseModel):
     dimension: str
     action: str
-    effort: str             # low | medium | high
+    effort: str  # low | medium | high
     timeline: str
-    estimated_impact: float # 0.0–10.0 scale
+    estimated_impact: float  # 0.0–10.0 scale
 
 
 class ScoreHistoryPoint(BaseModel):
-    date: str               # ISO date "YYYY-MM-DD"
-    score: float            # 0.0–10.0
+    date: str  # ISO date "YYYY-MM-DD"
+    score: float  # 0.0–10.0
 
 
 class ProjectScoreDetailResponse(BaseModel):
     project_id: uuid.UUID
     project_name: str
-    score: float            # 0.0–10.0
+    score: float  # 0.0–10.0
     score_label: str
     score_label_color: str
     dimensions: list[DimensionDetail]
@@ -103,18 +107,20 @@ class ProjectScoreDetailResponse(BaseModel):
 
 # ── Generate / Task Status ─────────────────────────────────────────────────────
 
+
 class GenerateScoreResponse(BaseModel):
     task_id: str
 
 
 class TaskStatusResponse(BaseModel):
     task_id: str
-    status: str             # pending | running | completed | failed
+    status: str  # pending | running | completed | failed
     progress_message: str | None = None
     result: dict | None = None
 
 
 # ── Legacy schemas (kept for backward-compat endpoints) ────────────────────────
+
 
 class AlleyProjectScoreSummary(BaseModel):
     project_id: uuid.UUID

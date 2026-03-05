@@ -1,5 +1,7 @@
 """Alley Pipeline Analytics service — aggregate view of org's project portfolio."""
+
 from __future__ import annotations
+
 import uuid
 
 import structlog
@@ -22,9 +24,28 @@ logger = structlog.get_logger()
 
 # Expected document types per asset type (simplified)
 _EXPECTED_DOCS: dict[str, list[str]] = {
-    "solar": ["financial_model", "land_agreement", "grid_connection", "epc_contract", "environmental_impact"],
-    "wind": ["financial_model", "land_agreement", "grid_connection", "epc_contract", "environmental_impact", "wind_resource_assessment"],
-    "hydro": ["financial_model", "water_rights", "grid_connection", "environmental_impact", "feasibility_study"],
+    "solar": [
+        "financial_model",
+        "land_agreement",
+        "grid_connection",
+        "epc_contract",
+        "environmental_impact",
+    ],
+    "wind": [
+        "financial_model",
+        "land_agreement",
+        "grid_connection",
+        "epc_contract",
+        "environmental_impact",
+        "wind_resource_assessment",
+    ],
+    "hydro": [
+        "financial_model",
+        "water_rights",
+        "grid_connection",
+        "environmental_impact",
+        "feasibility_study",
+    ],
     "default": ["financial_model", "land_agreement", "environmental_impact", "feasibility_study"],
 }
 
@@ -78,7 +99,9 @@ async def get_overview(db: AsyncSession, org_id: uuid.UUID) -> PipelineOverview:
     )
 
 
-async def get_stage_distribution(db: AsyncSession, org_id: uuid.UUID) -> list[StageDistributionItem]:
+async def get_stage_distribution(
+    db: AsyncSession, org_id: uuid.UUID
+) -> list[StageDistributionItem]:
     projects = await _get_all_projects(db, org_id)
     buckets: dict[str, dict] = {}
     for p in projects:
@@ -88,13 +111,12 @@ async def get_stage_distribution(db: AsyncSession, org_id: uuid.UUID) -> list[St
         buckets[stage]["count"] += 1
         buckets[stage]["total_mw"] += float(p.capacity_mw or 0)
         buckets[stage]["total_value"] += float(p.total_investment_required or 0)
-    return [
-        StageDistributionItem(stage=stage, **data)
-        for stage, data in buckets.items()
-    ]
+    return [StageDistributionItem(stage=stage, **data) for stage, data in buckets.items()]
 
 
-async def get_score_distribution(db: AsyncSession, org_id: uuid.UUID) -> list[ScoreDistributionItem]:
+async def get_score_distribution(
+    db: AsyncSession, org_id: uuid.UUID
+) -> list[ScoreDistributionItem]:
     projects = await _get_all_projects(db, org_id)
     counts = {f"{i}-{i+20}": 0 for i in range(0, 100, 20)}
     for p in projects:
@@ -120,21 +142,33 @@ async def get_risk_heatmap(db: AsyncSession, org_id: uuid.UUID) -> list[RiskHeat
         esg = 100 - score.esg_score
         mkt = 100 - score.market_opportunity_score
         avg_risk = (tech + fin + reg + esg + mkt) // 5
-        overall_level = "critical" if avg_risk > 75 else "high" if avg_risk > 55 else "medium" if avg_risk > 35 else "low"
-        cells.append(RiskHeatmapCell(
-            project_id=p.id,
-            project_name=p.name,
-            technical=tech,
-            financial=fin,
-            regulatory=reg,
-            esg=esg,
-            market=mkt,
-            overall_risk_level=overall_level,
-        ))
+        overall_level = (
+            "critical"
+            if avg_risk > 75
+            else "high"
+            if avg_risk > 55
+            else "medium"
+            if avg_risk > 35
+            else "low"
+        )
+        cells.append(
+            RiskHeatmapCell(
+                project_id=p.id,
+                project_name=p.name,
+                technical=tech,
+                financial=fin,
+                regulatory=reg,
+                esg=esg,
+                market=mkt,
+                overall_risk_level=overall_level,
+            )
+        )
     return cells
 
 
-async def get_document_completeness(db: AsyncSession, org_id: uuid.UUID) -> list[DocumentCompletenessItem]:
+async def get_document_completeness(
+    db: AsyncSession, org_id: uuid.UUID
+) -> list[DocumentCompletenessItem]:
     projects = await _get_all_projects(db, org_id)
     items = []
     for p in projects:
@@ -153,16 +187,22 @@ async def get_document_completeness(db: AsyncSession, org_id: uuid.UUID) -> list
         uploaded_count = len(docs)
         expected_count = len(expected)
         missing = [t for t in expected if t not in doc_types_uploaded]
-        pct = max(0, min(100, int(((expected_count - len(missing)) / expected_count) * 100))) if expected_count > 0 else 0
+        pct = (
+            max(0, min(100, int(((expected_count - len(missing)) / expected_count) * 100)))
+            if expected_count > 0
+            else 0
+        )
 
-        items.append(DocumentCompletenessItem(
-            project_id=p.id,
-            project_name=p.name,
-            uploaded_count=uploaded_count,
-            expected_count=expected_count,
-            completeness_pct=pct,
-            missing_types=missing,
-        ))
+        items.append(
+            DocumentCompletenessItem(
+                project_id=p.id,
+                project_name=p.name,
+                uploaded_count=uploaded_count,
+                expected_count=expected_count,
+                completeness_pct=pct,
+                missing_types=missing,
+            )
+        )
     return items
 
 
@@ -181,17 +221,27 @@ async def compare_projects(
         risk_level = "unknown"
         if score:
             avg_risk = 100 - score.overall_score
-            risk_level = "critical" if avg_risk > 75 else "high" if avg_risk > 55 else "medium" if avg_risk > 35 else "low"
-        items.append(ProjectCompareItem(
-            project_id=p.id,
-            project_name=p.name,
-            stage=p.stage.value if p.stage else "unknown",
-            asset_type=p.project_type.value if p.project_type else "unknown",
-            geography=p.geography_country or "",
-            overall_score=score.overall_score if score else 0,
-            total_investment=float(p.total_investment_required or 0),
-            currency=p.currency or "EUR",
-            capacity_mw=float(p.capacity_mw or 0),
-            risk_level=risk_level,
-        ))
+            risk_level = (
+                "critical"
+                if avg_risk > 75
+                else "high"
+                if avg_risk > 55
+                else "medium"
+                if avg_risk > 35
+                else "low"
+            )
+        items.append(
+            ProjectCompareItem(
+                project_id=p.id,
+                project_name=p.name,
+                stage=p.stage.value if p.stage else "unknown",
+                asset_type=p.project_type.value if p.project_type else "unknown",
+                geography=p.geography_country or "",
+                overall_score=score.overall_score if score else 0,
+                total_investment=float(p.total_investment_required or 0),
+                currency=p.currency or "EUR",
+                capacity_mw=float(p.capacity_mw or 0),
+                risk_level=risk_level,
+            )
+        )
     return items

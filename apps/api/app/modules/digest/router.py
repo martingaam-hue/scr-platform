@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from typing import Literal
 
 import structlog
@@ -58,7 +58,7 @@ async def preview_digest(
 
     Returns a structured summary without sending any email.
     """
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
     data = await service.gather_digest_data(db, current_user.org_id, current_user.user_id, since)
     return {"days": days, "summary": data}
 
@@ -75,11 +75,12 @@ async def trigger_digest(
     a narrative, and returns the result. Does not send email — call the email
     dispatch service separately if needed.
     """
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
 
     # Gather org name for narrative context
     try:
         from app.models.core import Organization
+
         org = await db.get(Organization, current_user.org_id)
         org_name = org.name if org else "Your organisation"
     except Exception:
@@ -153,5 +154,5 @@ async def update_digest_preferences(
             db, current_user.user_id, body.is_subscribed, body.frequency
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return DigestPreferences(**updated)

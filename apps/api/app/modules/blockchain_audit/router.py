@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,10 +72,12 @@ async def audit_report(
     db: AsyncSession = Depends(get_db),
 ):
     from sqlalchemy import select
+
     from app.models.blockchain import BlockchainAnchor
+
     result = await db.execute(
         select(BlockchainAnchor)
-        .where(BlockchainAnchor.org_id == current_user.org_id, BlockchainAnchor.is_deleted == False)
+        .where(BlockchainAnchor.org_id == current_user.org_id, BlockchainAnchor.is_deleted is False)
         .order_by(BlockchainAnchor.created_at.desc())
         .limit(200)
     )

@@ -7,9 +7,10 @@ so they are compatible with streaming responses (SSE, chunked).
 import base64
 import json
 import time
+from typing import ClassVar
 
-import structlog
 import redis.asyncio as aioredis
+import structlog
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -21,7 +22,7 @@ logger = structlog.get_logger()
 class SecurityHeadersMiddleware:
     """Append security headers to every HTTP response."""
 
-    _STATIC_HEADERS = [
+    _STATIC_HEADERS: ClassVar[list] = [
         ("x-content-type-options", "nosniff"),
         ("x-frame-options", "DENY"),
         # XSS-Protection 0 is the modern recommendation (disables the broken IE filter)
@@ -99,10 +100,10 @@ class RequestBodySizeLimitMiddleware:
 # (path_prefix, requests_allowed, window_seconds)
 # More specific prefixes must come before generic ones.
 _RATE_RULES: list[tuple[str, int, int]] = [
-    ("/auth/", 20, 60),          # Auth: 20/min per IP (brute-force protection)
-    ("/webhooks/", 200, 60),     # Webhooks: 200/min (Clerk sends many events)
-    ("/ralph/", 60, 60),         # Ralph AI: 60/min per IP
-    ("/investor-signal-score/calculate", 10, 60),   # Score recalc: 10/min
+    ("/auth/", 20, 60),  # Auth: 20/min per IP (brute-force protection)
+    ("/webhooks/", 200, 60),  # Webhooks: 200/min (Clerk sends many events)
+    ("/ralph/", 60, 60),  # Ralph AI: 60/min per IP
+    ("/investor-signal-score/calculate", 10, 60),  # Score recalc: 10/min
     # Share links use the default 300/min IP limit (sufficient + doesn't break tests)
 ]
 _DEFAULT_RATE: tuple[int, int] = (300, 60)  # 300 req/min default per IP
@@ -112,12 +113,12 @@ _DEFAULT_RATE: tuple[int, int] = (300, 60)  # 300 req/min default per IP
 # single-org abuse from affecting other tenants.
 # (path_prefix, requests_allowed, window_seconds)
 _ORG_RATE_RULES: list[tuple[str, int, int]] = [
-    ("/ralph/", 200, 60),                        # 200 AI calls/min per org
-    ("/signal-score/calculate", 50, 60),         # 50 score calcs/min per org
-    ("/dataroom/bulk/analyze", 20, 60),          # 20 bulk analyses/min per org
-    ("/dataroom/upload", 100, 60),               # 100 uploads/min per org
-    ("/webhooks/", 500, 60),                     # 500 webhook events/min per org
-    ("/", 1000, 60),                             # 1000 req/min default per org
+    ("/ralph/", 200, 60),  # 200 AI calls/min per org
+    ("/signal-score/calculate", 50, 60),  # 50 score calcs/min per org
+    ("/dataroom/bulk/analyze", 20, 60),  # 20 bulk analyses/min per org
+    ("/dataroom/upload", 100, 60),  # 100 uploads/min per org
+    ("/webhooks/", 500, 60),  # 500 webhook events/min per org
+    ("/", 1000, 60),  # 1000 req/min default per org
 ]
 
 _SKIP_PATHS: frozenset[str] = frozenset(
@@ -170,11 +171,8 @@ class RateLimitMiddleware:
             payload_b64 += "=" * (4 - len(payload_b64) % 4)
             claims = json.loads(base64.urlsafe_b64decode(payload_b64))
             # Try the SCR custom claim first, then standard metadata
-            return (
-                claims.get("org_id")
-                or claims.get("metadata", {}).get("org_id")
-            )
-        except Exception:  # noqa: BLE001
+            return claims.get("org_id") or claims.get("metadata", {}).get("org_id")
+        except Exception:
             return None
 
     @staticmethod
@@ -233,7 +231,7 @@ class RateLimitMiddleware:
             ip_allowed, ip_remaining = await self._sliding_window(
                 redis, f"rl:ip:{ip}:{segment}", ip_limit, ip_window
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("rate_limit.ip_redis_error", error=str(exc))
 
         if not ip_allowed:
@@ -269,7 +267,7 @@ class RateLimitMiddleware:
                             (b"x-ratelimit-org-remaining", b"0"),
                         ],
                     )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.warning("rate_limit.org_redis_error", error=str(exc))
 
         # ── Pass-through — annotate response headers ────────────────────────────
@@ -294,7 +292,9 @@ class RateLimitMiddleware:
         reason: str = "rate_limit_exceeded",
         extra_headers: list[tuple[bytes, bytes]] | None = None,
     ) -> None:
-        body = json.dumps({"detail": "Too many requests. Please slow down.", "reason": reason}).encode()
+        body = json.dumps(
+            {"detail": "Too many requests. Please slow down.", "reason": reason}
+        ).encode()
         headers: list[tuple[bytes, bytes]] = [
             (b"content-type", b"application/json"),
             (b"content-length", str(len(body)).encode()),

@@ -8,7 +8,7 @@ Token records are stored as AITaskLog entries with:
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -27,7 +27,7 @@ from app.modules.tokenization.schemas import (
 
 def _default_cap_table(total_supply: int, lock_up_days: int) -> list[dict[str, Any]]:
     """Generate a default 60/20/20 cap table."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     locked_until = (now + timedelta(days=lock_up_days)).date().isoformat()
     return [
         {
@@ -199,15 +199,17 @@ async def add_transfer(
 
     data: dict[str, Any] = dict(log.output_data or {})
     transfer_history: list[dict[str, Any]] = list(data.get("transfer_history", []))
-    transfer_history.append({
-        "id": str(uuid.uuid4()),
-        "from_holder": body.from_holder,
-        "to_holder": body.to_holder,
-        "tokens": body.tokens,
-        "price_per_token_usd": body.price_per_token_usd,
-        "notes": body.notes,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    })
+    transfer_history.append(
+        {
+            "id": str(uuid.uuid4()),
+            "from_holder": body.from_holder,
+            "to_holder": body.to_holder,
+            "tokens": body.tokens,
+            "price_per_token_usd": body.price_per_token_usd,
+            "notes": body.notes,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+    )
     data["transfer_history"] = transfer_history
     log.output_data = data
     await db.flush()

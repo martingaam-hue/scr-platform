@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
 from typing import Any
 
 import numpy as np
@@ -54,7 +53,9 @@ _ENERGY_TYPES = {"solar", "wind", "hydro", "biomass", "geothermal", "offshore_wi
 _CONSTRUCTION_STAGES = {"construction", "development", "construction_ready", "under_construction"}
 
 
-def apply_stress(project: dict[str, Any], params: dict[str, Any], rng: np.random.Generator) -> float:
+def apply_stress(
+    project: dict[str, Any], params: dict[str, Any], rng: np.random.Generator
+) -> float:
     """Apply scenario shocks with randomised magnitude to a project's value.
 
     Returns stressed NAV value (always >= 0).
@@ -121,13 +122,15 @@ def run_monte_carlo(
         stressed_median = float(np.median(stressed_vals))
         base_val = float(proj.get("current_value", 0))
         change_pct = ((stressed_median - base_val) / base_val * 100) if base_val > 0 else 0.0
-        sensitivities.append({
-            "project_id": str(proj.get("id", "")),
-            "project_name": proj.get("name", "Unknown"),
-            "base_value": base_val,
-            "stressed_value": stressed_median,
-            "change_pct": round(change_pct, 2),
-        })
+        sensitivities.append(
+            {
+                "project_id": str(proj.get("id", "")),
+                "project_name": proj.get("name", "Unknown"),
+                "base_value": base_val,
+                "stressed_value": stressed_median,
+                "change_pct": round(change_pct, 2),
+            }
+        )
 
     mean_nav = float(np.mean(results))
     median_nav = float(np.median(results))
@@ -141,7 +144,9 @@ def run_monte_carlo(
         "p5_nav": round(p5, 2),
         "p95_nav": round(p95, 2),
         "var_95": round(max(0, base_nav - p5), 2),
-        "max_loss_pct": round(float((np.min(results) - base_nav) / base_nav * 100) if base_nav > 0 else 0, 2),
+        "max_loss_pct": round(
+            float((np.min(results) - base_nav) / base_nav * 100) if base_nav > 0 else 0, 2
+        ),
         "probability_of_loss": round(float(np.sum(results < base_nav) / simulations), 4),
         "histogram": counts.tolist(),
         "histogram_edges": edges.tolist(),

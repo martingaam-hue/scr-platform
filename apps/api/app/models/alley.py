@@ -1,8 +1,8 @@
 """Alley-side models — risk mitigation tracking."""
+
 from __future__ import annotations
 
 import uuid
-from typing import Any
 
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
@@ -13,6 +13,7 @@ from app.models.base import TimestampedModel
 
 class RiskMitigationStatus(TimestampedModel):
     """Tracks a project holder's mitigation progress on a specific risk item."""
+
     __tablename__ = "risk_mitigation_statuses"
 
     project_id: Mapped[uuid.UUID] = mapped_column(

@@ -1,4 +1,5 @@
 """HTTP response caching via Redis with TTL-based invalidation."""
+
 from __future__ import annotations
 
 import json

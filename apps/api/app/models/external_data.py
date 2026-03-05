@@ -42,7 +42,9 @@ class ExternalDataPoint(Base, ModelMixin):
 
     __table_args__ = (
         UniqueConstraint(
-            "source", "series_id", "data_date",
+            "source",
+            "series_id",
+            "data_date",
             name="uq_external_data_point",
         ),
         Index("ix_external_data_source_series", "source", "series_id"),
@@ -50,4 +52,6 @@ class ExternalDataPoint(Base, ModelMixin):
     )
 
     def __repr__(self) -> str:
-        return f"<ExternalDataPoint({self.source}/{self.series_id}={self.value} @ {self.data_date})>"
+        return (
+            f"<ExternalDataPoint({self.source}/{self.series_id}={self.value} @ {self.data_date})>"
+        )

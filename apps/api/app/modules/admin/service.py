@@ -2,7 +2,7 @@
 
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import structlog
@@ -49,9 +49,11 @@ async def list_organizations(
         .subquery()
     )
 
-    base = select(Organization, func.coalesce(user_count_sq.c.user_count, 0).label("user_count")).outerjoin(
-        user_count_sq, Organization.id == user_count_sq.c.org_id
-    ).where(Organization.is_deleted.is_(False))
+    base = (
+        select(Organization, func.coalesce(user_count_sq.c.user_count, 0).label("user_count"))
+        .outerjoin(user_count_sq, Organization.id == user_count_sq.c.org_id)
+        .where(Organization.is_deleted.is_(False))
+    )
 
     if search:
         base = base.where(
@@ -67,7 +69,9 @@ async def list_organizations(
     total = (await db.execute(count_stmt)).scalar_one()
 
     # Paginated rows
-    rows = (await db.execute(base.order_by(Organization.created_at.desc()).offset(offset).limit(limit))).all()
+    rows = (
+        await db.execute(base.order_by(Organization.created_at.desc()).offset(offset).limit(limit))
+    ).all()
 
     items = [
         OrgSummary(
@@ -130,9 +134,7 @@ async def update_org_status(
     return result.rowcount > 0
 
 
-async def update_org_tier(
-    db: AsyncSession, org_id: uuid.UUID, tier: SubscriptionTier
-) -> bool:
+async def update_org_tier(db: AsyncSession, org_id: uuid.UUID, tier: SubscriptionTier) -> bool:
     stmt = (
         update(Organization)
         .where(Organization.id == org_id, Organization.is_deleted.is_(False))
@@ -160,9 +162,7 @@ async def list_users(
         .where(User.is_deleted.is_(False))
     )
     if search:
-        base = base.where(
-            User.email.ilike(f"%{search}%") | User.full_name.ilike(f"%{search}%")
-        )
+        base = base.where(User.email.ilike(f"%{search}%") | User.full_name.ilike(f"%{search}%"))
     if org_id:
         base = base.where(User.org_id == org_id)
     if is_active is not None:
@@ -171,7 +171,9 @@ async def list_users(
     count_stmt = select(func.count()).select_from(base.subquery())
     total = (await db.execute(count_stmt)).scalar_one()
 
-    rows = (await db.execute(base.order_by(User.created_at.desc()).offset(offset).limit(limit))).all()
+    rows = (
+        await db.execute(base.order_by(User.created_at.desc()).offset(offset).limit(limit))
+    ).all()
 
     items = [
         UserSummary(
@@ -192,9 +194,7 @@ async def list_users(
     return items, total
 
 
-async def update_user_status(
-    db: AsyncSession, user_id: uuid.UUID, is_active: bool
-) -> bool:
+async def update_user_status(db: AsyncSession, user_id: uuid.UUID, is_active: bool) -> bool:
     stmt = (
         update(User)
         .where(User.id == user_id, User.is_deleted.is_(False))
@@ -223,8 +223,14 @@ async def get_platform_analytics(db: AsyncSession) -> PlatformAnalytics:
     ).all()
 
     org_totals: dict[str, Any] = {
-        "total": 0, "ally": 0, "investor": 0, "admin": 0,
-        "trial": 0, "active": 0, "suspended": 0, "cancelled": 0,
+        "total": 0,
+        "ally": 0,
+        "investor": 0,
+        "admin": 0,
+        "trial": 0,
+        "active": 0,
+        "suspended": 0,
+        "cancelled": 0,
     }
     for otype, ostatus, cnt in org_rows:
         org_totals["total"] += cnt
@@ -241,8 +247,13 @@ async def get_platform_analytics(db: AsyncSession) -> PlatformAnalytics:
     ).all()
 
     user_totals: dict[str, Any] = {
-        "total": 0, "active": 0, "inactive": 0,
-        "admins": 0, "managers": 0, "analysts": 0, "viewers": 0,
+        "total": 0,
+        "active": 0,
+        "inactive": 0,
+        "admins": 0,
+        "managers": 0,
+        "analysts": 0,
+        "viewers": 0,
     }
     for role, is_active, cnt in user_rows:
         user_totals["total"] += cnt
@@ -254,17 +265,36 @@ async def get_platform_analytics(db: AsyncSession) -> PlatformAnalytics:
         user_totals[role_key] = user_totals.get(role_key, 0) + cnt
 
     # Project / portfolio / conversation / document counts
-    from app.models.projects import Project  # type: ignore[attr-defined]
     from app.models.portfolio import Portfolio  # type: ignore[attr-defined]
+    from app.models.projects import Project  # type: ignore[attr-defined]
 
-    total_projects = (await db.execute(select(func.count()).select_from(Project).where(Project.is_deleted.is_(False)))).scalar_one()  # type: ignore[attr-defined]
-    total_portfolios = (await db.execute(select(func.count()).select_from(Portfolio).where(Portfolio.is_deleted.is_(False)))).scalar_one()  # type: ignore[attr-defined]
-    total_conversations = (await db.execute(select(func.count()).select_from(AIConversation).where(AIConversation.is_deleted.is_(False)))).scalar_one()
+    total_projects = (
+        await db.execute(
+            select(func.count()).select_from(Project).where(Project.is_deleted.is_(False))
+        )
+    ).scalar_one()  # type: ignore[attr-defined]
+    total_portfolios = (
+        await db.execute(
+            select(func.count()).select_from(Portfolio).where(Portfolio.is_deleted.is_(False))
+        )
+    ).scalar_one()  # type: ignore[attr-defined]
+    total_conversations = (
+        await db.execute(
+            select(func.count())
+            .select_from(AIConversation)
+            .where(AIConversation.is_deleted.is_(False))
+        )
+    ).scalar_one()
 
     # Documents (try, may not have module imported yet)
     try:
         from app.models.dataroom import Document  # type: ignore[attr-defined]
-        total_documents = (await db.execute(select(func.count()).select_from(Document).where(Document.is_deleted.is_(False)))).scalar_one()  # type: ignore[attr-defined]
+
+        total_documents = (
+            await db.execute(
+                select(func.count()).select_from(Document).where(Document.is_deleted.is_(False))
+            )
+        ).scalar_one()  # type: ignore[attr-defined]
     except Exception:
         total_documents = 0
 
@@ -275,7 +305,7 @@ async def get_platform_analytics(db: AsyncSession) -> PlatformAnalytics:
         total_portfolios=total_portfolios,
         total_ai_conversations=total_conversations,
         total_documents=total_documents,
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )
 
 
@@ -283,7 +313,7 @@ async def get_platform_analytics(db: AsyncSession) -> PlatformAnalytics:
 
 
 async def get_ai_cost_report(db: AsyncSession, days: int = 30) -> AICostReport:
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
 
     rows = (
         await db.execute(
@@ -297,7 +327,9 @@ async def get_ai_cost_report(db: AsyncSession, days: int = 30) -> AICostReport:
                 func.avg(AITaskLog.processing_time_ms).label("avg_ms"),
             )
             .where(AITaskLog.created_at >= since)
-            .group_by(AITaskLog.agent_type, AITaskLog.model_used, AITaskLog.org_id, AITaskLog.status)
+            .group_by(
+                AITaskLog.agent_type, AITaskLog.model_used, AITaskLog.org_id, AITaskLog.status
+            )
         )
     ).all()
 
@@ -318,7 +350,13 @@ async def get_ai_cost_report(db: AsyncSession, days: int = 30) -> AICostReport:
         # by agent
         key = agent_type.value
         if key not in by_agent:
-            by_agent[key] = {"task_count": 0, "total_tokens": 0, "avg_ms_sum": 0.0, "avg_ms_count": 0, "failed_count": 0}
+            by_agent[key] = {
+                "task_count": 0,
+                "total_tokens": 0,
+                "avg_ms_sum": 0.0,
+                "avg_ms_count": 0,
+                "failed_count": 0,
+            }
         by_agent[key]["task_count"] += count
         by_agent[key]["total_tokens"] += tokens
         if avg_ms:
@@ -330,7 +368,13 @@ async def get_ai_cost_report(db: AsyncSession, days: int = 30) -> AICostReport:
         # by model
         mkey = model_used or "unknown"
         if mkey not in by_model:
-            by_model[mkey] = {"task_count": 0, "total_tokens": 0, "avg_ms_sum": 0.0, "avg_ms_count": 0, "failed_count": 0}
+            by_model[mkey] = {
+                "task_count": 0,
+                "total_tokens": 0,
+                "avg_ms_sum": 0.0,
+                "avg_ms_count": 0,
+                "failed_count": 0,
+            }
         by_model[mkey]["task_count"] += count
         by_model[mkey]["total_tokens"] += tokens
         if avg_ms:
@@ -342,7 +386,13 @@ async def get_ai_cost_report(db: AsyncSession, days: int = 30) -> AICostReport:
         # by org
         okey = str(org_id)
         if okey not in by_org:
-            by_org[okey] = {"task_count": 0, "total_tokens": 0, "avg_ms_sum": 0.0, "avg_ms_count": 0, "failed_count": 0}
+            by_org[okey] = {
+                "task_count": 0,
+                "total_tokens": 0,
+                "avg_ms_sum": 0.0,
+                "avg_ms_count": 0,
+                "failed_count": 0,
+            }
         by_org[okey]["task_count"] += count
         by_org[okey]["total_tokens"] += tokens
         if avg_ms:
@@ -366,9 +416,15 @@ async def get_ai_cost_report(db: AsyncSession, days: int = 30) -> AICostReport:
         total_tasks=total_tasks,
         total_tokens=total_tokens,
         total_failed=total_failed,
-        by_agent=sorted([_to_entry(k, v) for k, v in by_agent.items()], key=lambda x: -x.total_tokens),
-        by_model=sorted([_to_entry(k, v) for k, v in by_model.items()], key=lambda x: -x.total_tokens),
-        by_org=sorted([_to_entry(k, v) for k, v in by_org.items()], key=lambda x: -x.total_tokens)[:10],
+        by_agent=sorted(
+            [_to_entry(k, v) for k, v in by_agent.items()], key=lambda x: -x.total_tokens
+        ),
+        by_model=sorted(
+            [_to_entry(k, v) for k, v in by_model.items()], key=lambda x: -x.total_tokens
+        ),
+        by_org=sorted([_to_entry(k, v) for k, v in by_org.items()], key=lambda x: -x.total_tokens)[
+            :10
+        ],
     )
 
 
@@ -395,8 +451,7 @@ async def list_audit_logs(
     )
     if search:
         base = base.where(
-            AuditLog.action.ilike(f"%{search}%")
-            | AuditLog.entity_type.ilike(f"%{search}%")
+            AuditLog.action.ilike(f"%{search}%") | AuditLog.entity_type.ilike(f"%{search}%")
         )
     if org_id:
         base = base.where(AuditLog.org_id == org_id)
@@ -408,7 +463,9 @@ async def list_audit_logs(
     count_stmt = select(func.count()).select_from(base.subquery())
     total = (await db.execute(count_stmt)).scalar_one()
 
-    rows = (await db.execute(base.order_by(AuditLog.timestamp.desc()).offset(offset).limit(limit))).all()
+    rows = (
+        await db.execute(base.order_by(AuditLog.timestamp.desc()).offset(offset).limit(limit))
+    ).all()
 
     items = [
         AuditLogEntry(
@@ -439,35 +496,55 @@ async def get_system_health(db: AsyncSession) -> SystemHealthResponse:
     try:
         await db.execute(select(func.now()))
         latency = (time.monotonic() - t0) * 1000
-        services.append(ServiceHealth(name="database", status="ok", latency_ms=round(latency, 2), detail=None))
+        services.append(
+            ServiceHealth(name="database", status="ok", latency_ms=round(latency, 2), detail=None)
+        )
     except Exception as exc:
-        services.append(ServiceHealth(name="database", status="down", latency_ms=None, detail=str(exc)))
+        services.append(
+            ServiceHealth(name="database", status="down", latency_ms=None, detail=str(exc))
+        )
 
     # Redis (try to import and ping)
     try:
         import redis.asyncio as aioredis
+
         from app.core.config import settings
+
         t0 = time.monotonic()
         r = aioredis.from_url(settings.REDIS_URL, socket_connect_timeout=1)
         await r.ping()
         await r.aclose()
         latency = (time.monotonic() - t0) * 1000
-        services.append(ServiceHealth(name="redis", status="ok", latency_ms=round(latency, 2), detail=None))
+        services.append(
+            ServiceHealth(name="redis", status="ok", latency_ms=round(latency, 2), detail=None)
+        )
     except Exception as exc:
-        services.append(ServiceHealth(name="redis", status="degraded", latency_ms=None, detail=str(exc)[:100]))
+        services.append(
+            ServiceHealth(name="redis", status="degraded", latency_ms=None, detail=str(exc)[:100])
+        )
 
     # AI Gateway (try HTTP ping)
     try:
         import httpx
+
         from app.core.config import settings
+
         t0 = time.monotonic()
         async with httpx.AsyncClient(timeout=2.0) as client:
             resp = await client.get(f"{settings.AI_GATEWAY_URL}/health")
         latency = (time.monotonic() - t0) * 1000
         status = "ok" if resp.status_code == 200 else "degraded"
-        services.append(ServiceHealth(name="ai-gateway", status=status, latency_ms=round(latency, 2), detail=None))
+        services.append(
+            ServiceHealth(
+                name="ai-gateway", status=status, latency_ms=round(latency, 2), detail=None
+            )
+        )
     except Exception as exc:
-        services.append(ServiceHealth(name="ai-gateway", status="degraded", latency_ms=None, detail=str(exc)[:100]))
+        services.append(
+            ServiceHealth(
+                name="ai-gateway", status="degraded", latency_ms=None, detail=str(exc)[:100]
+            )
+        )
 
     overall = "ok"
     if any(s.status == "down" for s in services):
@@ -478,5 +555,5 @@ async def get_system_health(db: AsyncSession) -> SystemHealthResponse:
     return SystemHealthResponse(
         overall=overall,
         services=services,
-        checked_at=datetime.now(timezone.utc),
+        checked_at=datetime.now(UTC),
     )

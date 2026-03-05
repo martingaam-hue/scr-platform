@@ -15,7 +15,7 @@ class SetDomainRequest(BaseModel):
     def validate_domain(cls, v: str) -> str:
         v = v.lower().strip()
         # Must be a valid hostname, no scheme, no path
-        if not re.match(r'^[a-z0-9]([a-z0-9\-\.]{0,251}[a-z0-9])?$', v):
+        if not re.match(r"^[a-z0-9]([a-z0-9\-\.]{0,251}[a-z0-9])?$", v):
             raise ValueError("Invalid domain format")
         if v.endswith(".scr.io"):
             raise ValueError("Cannot use scr.io subdomains as custom domains")

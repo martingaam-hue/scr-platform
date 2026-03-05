@@ -191,7 +191,9 @@ async def get_project(
 
         # Get document count
         from sqlalchemy import func, select
+
         from app.models.dataroom import Document
+
         doc_count_result = await db.execute(
             select(func.count())
             .select_from(Document)
@@ -231,7 +233,7 @@ async def get_project(
             latest_signal=signal_resp,
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.put(
@@ -256,7 +258,7 @@ async def update_project(
         )
         return await _project_to_response(db, project)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.delete(
@@ -274,7 +276,7 @@ async def delete_project(
     try:
         await service.delete_project(db, project_id, current_user.org_id)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.put(
@@ -293,9 +295,9 @@ async def publish_project(
         project = await service.publish_project(db, project_id, current_user.org_id)
         return await _project_to_response(db, project)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 # ── Milestones ──────────────────────────────────────────────────────────────
@@ -332,7 +334,7 @@ async def list_milestones(
             for m in milestones
         ]
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post(
@@ -360,13 +362,20 @@ async def create_milestone(
             order_index=body.order_index,
         )
         return MilestoneResponse(
-            id=m.id, project_id=m.project_id, name=m.name, description=m.description,
-            target_date=m.target_date, completed_date=m.completed_date, status=m.status,
-            completion_pct=m.completion_pct, order_index=m.order_index,
-            created_at=m.created_at, updated_at=m.updated_at,
+            id=m.id,
+            project_id=m.project_id,
+            name=m.name,
+            description=m.description,
+            target_date=m.target_date,
+            completed_date=m.completed_date,
+            status=m.status,
+            completion_pct=m.completion_pct,
+            order_index=m.order_index,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.put(
@@ -385,17 +394,27 @@ async def update_milestone(
     """Update a milestone."""
     try:
         m = await service.update_milestone(
-            db, milestone_id, project_id, current_user.org_id,
+            db,
+            milestone_id,
+            project_id,
+            current_user.org_id,
             **body.model_dump(exclude_unset=True),
         )
         return MilestoneResponse(
-            id=m.id, project_id=m.project_id, name=m.name, description=m.description,
-            target_date=m.target_date, completed_date=m.completed_date, status=m.status,
-            completion_pct=m.completion_pct, order_index=m.order_index,
-            created_at=m.created_at, updated_at=m.updated_at,
+            id=m.id,
+            project_id=m.project_id,
+            name=m.name,
+            description=m.description,
+            target_date=m.target_date,
+            completed_date=m.completed_date,
+            status=m.status,
+            completion_pct=m.completion_pct,
+            order_index=m.order_index,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.delete(
@@ -414,7 +433,7 @@ async def delete_milestone(
     try:
         await service.delete_milestone(db, milestone_id, project_id, current_user.org_id)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 # ── Budget Items ────────────────────────────────────────────────────────────
@@ -436,15 +455,21 @@ async def list_budget_items(
         items = await service.list_budget_items(db, project_id, current_user.org_id)
         return [
             BudgetItemResponse(
-                id=b.id, project_id=b.project_id, category=b.category,
-                description=b.description, estimated_amount=b.estimated_amount,
-                actual_amount=b.actual_amount, currency=b.currency, status=b.status,
-                created_at=b.created_at, updated_at=b.updated_at,
+                id=b.id,
+                project_id=b.project_id,
+                category=b.category,
+                description=b.description,
+                estimated_amount=b.estimated_amount,
+                actual_amount=b.actual_amount,
+                currency=b.currency,
+                status=b.status,
+                created_at=b.created_at,
+                updated_at=b.updated_at,
             )
             for b in items
         ]
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.post(
@@ -463,18 +488,28 @@ async def create_budget_item(
     """Add a budget item to a project."""
     try:
         b = await service.create_budget_item(
-            db, project_id, current_user.org_id,
-            category=body.category, description=body.description,
-            estimated_amount=body.estimated_amount, currency=body.currency,
+            db,
+            project_id,
+            current_user.org_id,
+            category=body.category,
+            description=body.description,
+            estimated_amount=body.estimated_amount,
+            currency=body.currency,
         )
         return BudgetItemResponse(
-            id=b.id, project_id=b.project_id, category=b.category,
-            description=b.description, estimated_amount=b.estimated_amount,
-            actual_amount=b.actual_amount, currency=b.currency, status=b.status,
-            created_at=b.created_at, updated_at=b.updated_at,
+            id=b.id,
+            project_id=b.project_id,
+            category=b.category,
+            description=b.description,
+            estimated_amount=b.estimated_amount,
+            actual_amount=b.actual_amount,
+            currency=b.currency,
+            status=b.status,
+            created_at=b.created_at,
+            updated_at=b.updated_at,
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.put(
@@ -493,17 +528,26 @@ async def update_budget_item(
     """Update a budget item."""
     try:
         b = await service.update_budget_item(
-            db, budget_id, project_id, current_user.org_id,
+            db,
+            budget_id,
+            project_id,
+            current_user.org_id,
             **body.model_dump(exclude_unset=True),
         )
         return BudgetItemResponse(
-            id=b.id, project_id=b.project_id, category=b.category,
-            description=b.description, estimated_amount=b.estimated_amount,
-            actual_amount=b.actual_amount, currency=b.currency, status=b.status,
-            created_at=b.created_at, updated_at=b.updated_at,
+            id=b.id,
+            project_id=b.project_id,
+            category=b.category,
+            description=b.description,
+            estimated_amount=b.estimated_amount,
+            actual_amount=b.actual_amount,
+            currency=b.currency,
+            status=b.status,
+            created_at=b.created_at,
+            updated_at=b.updated_at,
         )
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 @router.delete(
@@ -522,7 +566,7 @@ async def delete_budget_item(
     try:
         await service.delete_budget_item(db, budget_id, project_id, current_user.org_id)
     except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 # ── Bulk Operations ─────────────────────────────────────────────────────────
@@ -553,7 +597,9 @@ async def bulk_tag_projects(
     if len(req.project_ids) > 100:
         raise HTTPException(status_code=400, detail="Max 100 items per bulk request")
     if req.operation not in ("add", "remove", "replace"):
-        raise HTTPException(status_code=400, detail="operation must be 'add', 'remove', or 'replace'")
+        raise HTTPException(
+            status_code=400, detail="operation must be 'add', 'remove', or 'replace'"
+        )
 
     updated = 0
     failed: list[str] = []
@@ -598,8 +644,13 @@ async def bulk_tag_projects(
 # ── Business Plan AI ─────────────────────────────────────────────────────────
 
 VALID_ACTION_TYPES = {
-    "executive_summary", "financial_overview", "market_analysis",
-    "risk_narrative", "esg_statement", "technical_summary", "investor_pitch",
+    "executive_summary",
+    "financial_overview",
+    "market_analysis",
+    "risk_narrative",
+    "esg_statement",
+    "technical_summary",
+    "investor_pitch",
 }
 
 
@@ -626,7 +677,7 @@ async def generate_business_plan_content(
             db, project_id, current_user.org_id, current_user.user_id, action_type
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     return BusinessPlanActionResponse(
         task_log_id=task_log.id,

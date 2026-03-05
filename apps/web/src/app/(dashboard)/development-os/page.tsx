@@ -4,12 +4,8 @@ import Link from "next/link";
 import {
   ArrowRight,
   Calendar,
-  CheckCircle2,
-  Clock,
-  Construction,
   Loader2,
   Monitor,
-  Package,
 } from "lucide-react";
 import { Badge, Button, Card, CardContent, EmptyState, cn } from "@scr/ui";
 import { useProjects } from "@/lib/projects";

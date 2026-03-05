@@ -213,7 +213,9 @@ class UnassignedPresignedUploadRequest(BaseModel):
     file_type: str
     file_size_bytes: int = Field(..., gt=0)
     checksum_sha256: str = Field(..., min_length=64, max_length=64)
-    category: str | None = Field(None, max_length=100, description="Subfolder label (e.g. 'financial')")
+    category: str | None = Field(
+        None, max_length=100, description="Subfolder label (e.g. 'financial')"
+    )
 
     @field_validator("file_type")
     @classmethod
@@ -260,7 +262,7 @@ class BulkUploadFileItem(BaseModel):
     @classmethod
     def validate_file_size(cls, v: int) -> int:
         if v > MAX_FILE_SIZE_BYTES:
-            raise ValueError(f"File size exceeds 100 MB limit.")
+            raise ValueError("File size exceeds 100 MB limit.")
         return v
 
 

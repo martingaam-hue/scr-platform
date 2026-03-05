@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 from typing import Any
 
 import structlog
@@ -15,51 +14,143 @@ from app.models.gamification import Badge, ImprovementQuest, UserBadge
 logger = structlog.get_logger()
 
 _BADGE_CATALOG = [
-    {"slug": "first_steps", "name": "First Steps", "icon": "🚀", "category": "onboarding",
-     "criteria": {"event": "onboarding_complete"}, "points": 10, "rarity": "common",
-     "description": "Completed platform onboarding."},
-    {"slug": "first_upload", "name": "First Upload", "icon": "📄", "category": "data_room",
-     "criteria": {"event": "document_upload", "count": 1}, "points": 5, "rarity": "common",
-     "description": "Uploaded first document to the data room."},
-    {"slug": "data_room_pro", "name": "Data Room Pro", "icon": "📁", "category": "data_room",
-     "criteria": {"event": "document_upload", "count": 10}, "points": 25, "rarity": "uncommon",
-     "description": "Uploaded 10 documents to the data room."},
-    {"slug": "score_50", "name": "Getting Noticed", "icon": "⭐", "category": "signal_score",
-     "criteria": {"signal_score_min": 50}, "points": 20, "rarity": "common",
-     "description": "Achieved a Signal Score of 50+."},
-    {"slug": "score_60", "name": "Rising Star", "icon": "🌟", "category": "signal_score",
-     "criteria": {"signal_score_min": 60}, "points": 30, "rarity": "uncommon",
-     "description": "Achieved a Signal Score of 60+."},
-    {"slug": "score_70", "name": "Investment Grade", "icon": "💎", "category": "signal_score",
-     "criteria": {"signal_score_min": 70}, "points": 40, "rarity": "rare",
-     "description": "Achieved a Signal Score of 70+."},
-    {"slug": "score_80", "name": "Investor Ready", "icon": "🏆", "category": "signal_score",
-     "criteria": {"signal_score_min": 80}, "points": 100, "rarity": "epic",
-     "description": "Achieved a Signal Score of 80+."},
-    {"slug": "score_90", "name": "Elite Project", "icon": "👑", "category": "signal_score",
-     "criteria": {"signal_score_min": 90}, "points": 200, "rarity": "legendary",
-     "description": "Achieved a Signal Score of 90+."},
-    {"slug": "first_match", "name": "First Match", "icon": "🤝", "category": "matching",
-     "criteria": {"event": "investor_match", "count": 1}, "points": 30, "rarity": "uncommon",
-     "description": "Received first investor match."},
-    {"slug": "popular_project", "name": "Popular Project", "icon": "🔥", "category": "matching",
-     "criteria": {"event": "investor_match", "count": 5}, "points": 50, "rarity": "rare",
-     "description": "Received 5 investor matches."},
-    {"slug": "certified", "name": "Certified", "icon": "✅", "category": "certification",
-     "criteria": {"event": "certification_earned"}, "points": 75, "rarity": "rare",
-     "description": "Earned Investor Readiness Certification."},
-    {"slug": "dd_starter", "name": "DD Starter", "icon": "🔍", "category": "due_diligence",
-     "criteria": {"event": "dd_item_complete", "count": 1}, "points": 10, "rarity": "common",
-     "description": "Completed first due diligence checklist item."},
-    {"slug": "dd_master", "name": "DD Master", "icon": "📋", "category": "due_diligence",
-     "criteria": {"event": "dd_item_complete", "count": 10}, "points": 50, "rarity": "uncommon",
-     "description": "Completed 10 due diligence checklist items."},
+    {
+        "slug": "first_steps",
+        "name": "First Steps",
+        "icon": "🚀",
+        "category": "onboarding",
+        "criteria": {"event": "onboarding_complete"},
+        "points": 10,
+        "rarity": "common",
+        "description": "Completed platform onboarding.",
+    },
+    {
+        "slug": "first_upload",
+        "name": "First Upload",
+        "icon": "📄",
+        "category": "data_room",
+        "criteria": {"event": "document_upload", "count": 1},
+        "points": 5,
+        "rarity": "common",
+        "description": "Uploaded first document to the data room.",
+    },
+    {
+        "slug": "data_room_pro",
+        "name": "Data Room Pro",
+        "icon": "📁",
+        "category": "data_room",
+        "criteria": {"event": "document_upload", "count": 10},
+        "points": 25,
+        "rarity": "uncommon",
+        "description": "Uploaded 10 documents to the data room.",
+    },
+    {
+        "slug": "score_50",
+        "name": "Getting Noticed",
+        "icon": "⭐",
+        "category": "signal_score",
+        "criteria": {"signal_score_min": 50},
+        "points": 20,
+        "rarity": "common",
+        "description": "Achieved a Signal Score of 50+.",
+    },
+    {
+        "slug": "score_60",
+        "name": "Rising Star",
+        "icon": "🌟",
+        "category": "signal_score",
+        "criteria": {"signal_score_min": 60},
+        "points": 30,
+        "rarity": "uncommon",
+        "description": "Achieved a Signal Score of 60+.",
+    },
+    {
+        "slug": "score_70",
+        "name": "Investment Grade",
+        "icon": "💎",
+        "category": "signal_score",
+        "criteria": {"signal_score_min": 70},
+        "points": 40,
+        "rarity": "rare",
+        "description": "Achieved a Signal Score of 70+.",
+    },
+    {
+        "slug": "score_80",
+        "name": "Investor Ready",
+        "icon": "🏆",
+        "category": "signal_score",
+        "criteria": {"signal_score_min": 80},
+        "points": 100,
+        "rarity": "epic",
+        "description": "Achieved a Signal Score of 80+.",
+    },
+    {
+        "slug": "score_90",
+        "name": "Elite Project",
+        "icon": "👑",
+        "category": "signal_score",
+        "criteria": {"signal_score_min": 90},
+        "points": 200,
+        "rarity": "legendary",
+        "description": "Achieved a Signal Score of 90+.",
+    },
+    {
+        "slug": "first_match",
+        "name": "First Match",
+        "icon": "🤝",
+        "category": "matching",
+        "criteria": {"event": "investor_match", "count": 1},
+        "points": 30,
+        "rarity": "uncommon",
+        "description": "Received first investor match.",
+    },
+    {
+        "slug": "popular_project",
+        "name": "Popular Project",
+        "icon": "🔥",
+        "category": "matching",
+        "criteria": {"event": "investor_match", "count": 5},
+        "points": 50,
+        "rarity": "rare",
+        "description": "Received 5 investor matches.",
+    },
+    {
+        "slug": "certified",
+        "name": "Certified",
+        "icon": "✅",
+        "category": "certification",
+        "criteria": {"event": "certification_earned"},
+        "points": 75,
+        "rarity": "rare",
+        "description": "Earned Investor Readiness Certification.",
+    },
+    {
+        "slug": "dd_starter",
+        "name": "DD Starter",
+        "icon": "🔍",
+        "category": "due_diligence",
+        "criteria": {"event": "dd_item_complete", "count": 1},
+        "points": 10,
+        "rarity": "common",
+        "description": "Completed first due diligence checklist item.",
+    },
+    {
+        "slug": "dd_master",
+        "name": "DD Master",
+        "icon": "📋",
+        "category": "due_diligence",
+        "criteria": {"event": "dd_item_complete", "count": 10},
+        "points": 50,
+        "rarity": "uncommon",
+        "description": "Completed 10 due diligence checklist items.",
+    },
 ]
 
 
 async def seed_badges(db: AsyncSession) -> None:
     """Upsert badge catalog (run at startup)."""
     from sqlalchemy.dialects.postgresql import insert as pg_insert
+
     for badge_data in _BADGE_CATALOG:
         stmt = (
             pg_insert(Badge)
@@ -85,15 +176,17 @@ async def _check_criteria(
             # Count how many times user has triggered this event (via document count, match count, etc.)
             if criteria["event"] == "document_upload" and project_id:
                 from app.models.dataroom import Document
+
                 result = await db.execute(
                     select(func.count(Document.id)).where(
-                        Document.project_id == project_id, Document.is_deleted == False
+                        Document.project_id == project_id, Document.is_deleted is False
                     )
                 )
                 count = result.scalar_one() or 0
                 return count >= criteria["count"]
             if criteria["event"] == "investor_match" and project_id:
                 from app.models.matching import MatchResult
+
                 result = await db.execute(
                     select(func.count(MatchResult.id)).where(MatchResult.project_id == project_id)
                 )
@@ -101,6 +194,7 @@ async def _check_criteria(
                 return count >= criteria["count"]
             if criteria["event"] == "dd_item_complete":
                 from app.models.due_diligence import DDItemStatus as DDItemStatusModel
+
                 result = await db.execute(
                     select(func.count(DDItemStatusModel.id)).where(
                         DDItemStatusModel.reviewer_id == user_id,
@@ -114,6 +208,7 @@ async def _check_criteria(
 
     if "signal_score_min" in criteria and project_id:
         from app.models.projects import SignalScore
+
         result = await db.execute(
             select(SignalScore)
             .where(SignalScore.project_id == project_id)
@@ -131,14 +226,14 @@ async def evaluate_badges(
     db: AsyncSession, user_id: uuid.UUID, project_id: uuid.UUID | None, event: str | None
 ) -> list[UserBadge]:
     """Check all badges and award newly qualifying ones."""
-    all_badges_result = await db.execute(select(Badge).where(Badge.is_deleted == False))
+    all_badges_result = await db.execute(select(Badge).where(Badge.is_deleted is False))
     all_badges = all_badges_result.scalars().all()
 
     # Get slugs already earned
     earned_result = await db.execute(
-        select(Badge.slug).join(UserBadge, UserBadge.badge_id == Badge.id).where(
-            UserBadge.user_id == user_id, UserBadge.project_id == project_id
-        )
+        select(Badge.slug)
+        .join(UserBadge, UserBadge.badge_id == Badge.id)
+        .where(UserBadge.user_id == user_id, UserBadge.project_id == project_id)
     )
     earned_slugs = {r[0] for r in earned_result.all()}
 
@@ -161,7 +256,9 @@ async def evaluate_badges(
     return newly_earned
 
 
-async def get_user_badges(db: AsyncSession, user_id: uuid.UUID, project_id: uuid.UUID | None = None) -> list[dict]:
+async def get_user_badges(
+    db: AsyncSession, user_id: uuid.UUID, project_id: uuid.UUID | None = None
+) -> list[dict]:
     stmt = (
         select(UserBadge, Badge)
         .join(Badge, UserBadge.badge_id == Badge.id)
@@ -194,7 +291,7 @@ async def generate_quests(db: AsyncSession, project_id: uuid.UUID) -> list[Impro
         select(ImprovementQuest).where(
             ImprovementQuest.project_id == project_id,
             ImprovementQuest.status == "active",
-            ImprovementQuest.is_deleted == False,
+            ImprovementQuest.is_deleted is False,
         )
     )
     for q in existing_result.scalars().all():
@@ -206,9 +303,12 @@ async def generate_quests(db: AsyncSession, project_id: uuid.UUID) -> list[Impro
     # Signal score gap quest
     try:
         from app.models.projects import SignalScore
+
         score_result = await db.execute(
-            select(SignalScore).where(SignalScore.project_id == project_id)
-            .order_by(SignalScore.created_at.desc()).limit(1)
+            select(SignalScore)
+            .where(SignalScore.project_id == project_id)
+            .order_by(SignalScore.created_at.desc())
+            .limit(1)
         )
         score = score_result.scalar_one_or_none()
         if score:
@@ -216,36 +316,42 @@ async def generate_quests(db: AsyncSession, project_id: uuid.UUID) -> list[Impro
             dims = score.dimensions or {}
             if dims:
                 weakest_dim, weakest_val = min(dims.items(), key=lambda x: x[1])
-                quests.append(ImprovementQuest(
-                    project_id=project_id,
-                    title=f"Improve {weakest_dim.replace('_', ' ').title()}",
-                    description=f"Your {weakest_dim} score is {weakest_val}/100. Upload supporting documents to improve it.",
-                    action_type="improve_dimension",
-                    target_dimension=weakest_dim,
-                    estimated_score_impact=8,
-                ))
+                quests.append(
+                    ImprovementQuest(
+                        project_id=project_id,
+                        title=f"Improve {weakest_dim.replace('_', ' ').title()}",
+                        description=f"Your {weakest_dim} score is {weakest_val}/100. Upload supporting documents to improve it.",
+                        action_type="improve_dimension",
+                        target_dimension=weakest_dim,
+                        estimated_score_impact=8,
+                    )
+                )
             # Next milestone
             current = score.overall_score or 0
             next_milestone = next((m for m in [50, 60, 70, 80, 90] if m > current), None)
             if next_milestone:
-                quests.append(ImprovementQuest(
-                    project_id=project_id,
-                    title=f"Reach Signal Score {next_milestone}",
-                    description=f"You're {next_milestone - current} points away from the next milestone badge!",
-                    action_type="improve_dimension",
-                    estimated_score_impact=next_milestone - current,
-                ))
+                quests.append(
+                    ImprovementQuest(
+                        project_id=project_id,
+                        title=f"Reach Signal Score {next_milestone}",
+                        description=f"You're {next_milestone - current} points away from the next milestone badge!",
+                        action_type="improve_dimension",
+                        estimated_score_impact=next_milestone - current,
+                    )
+                )
     except Exception as exc:
         logger.warning("gamification.quest_gen_failed", error=str(exc))
 
     # Document upload quest
-    quests.append(ImprovementQuest(
-        project_id=project_id,
-        title="Complete Your Data Room",
-        description="Investors expect a complete data room. Ensure all key documents are uploaded.",
-        action_type="upload_document",
-        estimated_score_impact=5,
-    ))
+    quests.append(
+        ImprovementQuest(
+            project_id=project_id,
+            title="Complete Your Data Room",
+            description="Investors expect a complete data room. Ensure all key documents are uploaded.",
+            action_type="upload_document",
+            estimated_score_impact=5,
+        )
+    )
 
     for q in quests:
         db.add(q)
@@ -262,15 +368,18 @@ async def get_progress(db: AsyncSession, user_id: uuid.UUID, project_id: uuid.UU
         select(ImprovementQuest).where(
             ImprovementQuest.project_id == project_id,
             ImprovementQuest.status == "active",
-            ImprovementQuest.is_deleted == False,
+            ImprovementQuest.is_deleted is False,
         )
     )
     quests = quests_result.scalars().all()
 
     from app.models.projects import SignalScore
+
     score_result = await db.execute(
-        select(SignalScore).where(SignalScore.project_id == project_id)
-        .order_by(SignalScore.created_at.desc()).limit(1)
+        select(SignalScore)
+        .where(SignalScore.project_id == project_id)
+        .order_by(SignalScore.created_at.desc())
+        .limit(1)
     )
     score = score_result.scalar_one_or_none()
     current_score = score.overall_score if score else 0

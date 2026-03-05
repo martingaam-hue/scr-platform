@@ -2,7 +2,6 @@
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -12,9 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_permission
 from app.core.database import get_db, get_readonly_session
-from app.services.ai_budget import enforce_ai_budget
 from app.modules.signal_score import service
-from app.services.response_cache import cache_key, get_cached, set_cached
 from app.modules.signal_score.criteria import DIMENSIONS
 from app.modules.signal_score.schemas import (
     BatchScoreItem,
@@ -37,6 +34,8 @@ from app.modules.signal_score.schemas import (
     TaskStatusResponse,
 )
 from app.schemas.auth import CurrentUser
+from app.services.ai_budget import enforce_ai_budget
+from app.services.response_cache import cache_key, get_cached, set_cached
 
 logger = structlog.get_logger()
 
@@ -46,7 +45,9 @@ router = APIRouter(prefix="/signal-score", tags=["signal-score"])
 # ── Task status (fixed path before parameterised) ──────────────────────────
 
 
-@router.get("/task/{task_log_id}", summary="Get calculation task status", response_model=TaskStatusResponse)
+@router.get(
+    "/task/{task_log_id}", summary="Get calculation task status", response_model=TaskStatusResponse
+)
 async def get_task_status(
     task_log_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
@@ -148,8 +149,8 @@ async def calculate_score(
             db, project_id, current_user.org_id, current_user.user_id
         )
         await db.commit()
-    except LookupError:
-        raise HTTPException(status_code=404, detail="Project not found")
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
 
     return CalculateAcceptedResponse(
         task_log_id=task_log.id,
@@ -175,8 +176,8 @@ async def recalculate_score(
             db, project_id, current_user.org_id, current_user.user_id
         )
         await db.commit()
-    except LookupError:
-        raise HTTPException(status_code=404, detail="Project not found")
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
 
     return CalculateAcceptedResponse(
         task_log_id=task_log.id,
@@ -188,7 +189,9 @@ async def recalculate_score(
 # ── Live Score (synchronous, no documents) ───────────────────────────────────
 
 
-@router.post("/{project_id}/live", summary="Get live metadata score", response_model=LiveScoreResponse)
+@router.post(
+    "/{project_id}/live", summary="Get live metadata score", response_model=LiveScoreResponse
+)
 async def live_score(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -200,11 +203,9 @@ async def live_score(
     Use /calculate for a full AI-powered signal score.
     """
     try:
-        result = await service.get_live_score(
-            db, project_id, current_user.org_id
-        )
-    except LookupError:
-        raise HTTPException(status_code=404, detail="Project not found")
+        result = await service.get_live_score(db, project_id, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
 
     return LiveScoreResponse(
         overall_score=result["overall_score"],
@@ -216,7 +217,9 @@ async def live_score(
 # ── Read endpoints ──────────────────────────────────────────────────────────
 
 
-@router.get("/{project_id}", summary="Get latest signal score", response_model=SignalScoreDetailResponse)
+@router.get(
+    "/{project_id}", summary="Get latest signal score", response_model=SignalScoreDetailResponse
+)
 async def get_latest_score(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -229,11 +232,9 @@ async def get_latest_score(
         return cached
 
     try:
-        score = await service.get_latest_score(
-            db, project_id, current_user.org_id
-        )
-    except LookupError:
-        raise HTTPException(status_code=404, detail="Project not found")
+        score = await service.get_latest_score(db, project_id, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
 
     if not score:
         raise HTTPException(status_code=404, detail="No signal score found")
@@ -243,7 +244,11 @@ async def get_latest_score(
     return result
 
 
-@router.get("/{project_id}/details", summary="Get score dimension breakdown", response_model=SignalScoreDetailResponse)
+@router.get(
+    "/{project_id}/details",
+    summary="Get score dimension breakdown",
+    response_model=SignalScoreDetailResponse,
+)
 async def get_score_details(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -251,11 +256,9 @@ async def get_score_details(
 ):
     """Get detailed scoring breakdown with criteria and AI assessments."""
     try:
-        score = await service.get_latest_score(
-            db, project_id, current_user.org_id
-        )
-    except LookupError:
-        raise HTTPException(status_code=404, detail="Project not found")
+        score = await service.get_latest_score(db, project_id, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
 
     if not score:
         raise HTTPException(status_code=404, detail="No signal score found")
@@ -271,11 +274,9 @@ async def get_gaps(
 ):
     """Get gap analysis with prioritized recommendations."""
     try:
-        score = await service.get_latest_score(
-            db, project_id, current_user.org_id
-        )
-    except LookupError:
-        raise HTTPException(status_code=404, detail="Project not found")
+        score = await service.get_latest_score(db, project_id, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
 
     if not score:
         raise HTTPException(status_code=404, detail="No signal score found")
@@ -285,7 +286,9 @@ async def get_gaps(
     return GapsResponse(items=items, total=len(items))
 
 
-@router.get("/{project_id}/strengths", summary="Get score strengths", response_model=StrengthsResponse)
+@router.get(
+    "/{project_id}/strengths", summary="Get score strengths", response_model=StrengthsResponse
+)
 async def get_strengths(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -293,11 +296,9 @@ async def get_strengths(
 ):
     """Get strengths identified by the scoring engine."""
     try:
-        score = await service.get_latest_score(
-            db, project_id, current_user.org_id
-        )
-    except LookupError:
-        raise HTTPException(status_code=404, detail="Project not found")
+        score = await service.get_latest_score(db, project_id, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
 
     if not score:
         raise HTTPException(status_code=404, detail="No signal score found")
@@ -307,7 +308,11 @@ async def get_strengths(
     return StrengthsResponse(items=items, total=len(items))
 
 
-@router.get("/{project_id}/improvement-guidance", summary="Get improvement guidance", response_model=ImprovementGuidanceResponse)
+@router.get(
+    "/{project_id}/improvement-guidance",
+    summary="Get improvement guidance",
+    response_model=ImprovementGuidanceResponse,
+)
 async def get_improvement_guidance(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -315,11 +320,9 @@ async def get_improvement_guidance(
 ):
     """Get structured improvement guidance from the latest signal score."""
     try:
-        score = await service.get_latest_score(
-            db, project_id, current_user.org_id
-        )
-    except LookupError:
-        raise HTTPException(status_code=404, detail="Project not found")
+        score = await service.get_latest_score(db, project_id, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
 
     if not score:
         raise HTTPException(status_code=404, detail="No signal score found")
@@ -331,15 +334,14 @@ async def get_improvement_guidance(
         high_priority_count=guidance.get("high_priority_count", 0),
         medium_priority_count=guidance.get("medium_priority_count", 0),
         estimated_max_gain=guidance.get("estimated_max_gain", 0),
-        top_actions=[
-            ImprovementAction(**action)
-            for action in guidance.get("top_actions", [])
-        ],
+        top_actions=[ImprovementAction(**action) for action in guidance.get("top_actions", [])],
         based_on_version=score.version,
     )
 
 
-@router.get("/{project_id}/history", summary="Get score history", response_model=ScoreHistoryResponse)
+@router.get(
+    "/{project_id}/history", summary="Get score history", response_model=ScoreHistoryResponse
+)
 async def get_score_history(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -347,11 +349,9 @@ async def get_score_history(
 ):
     """Get signal score history across all versions."""
     try:
-        scores = await service.get_score_history(
-            db, project_id, current_user.org_id
-        )
-    except LookupError:
-        raise HTTPException(status_code=404, detail="Project not found")
+        scores = await service.get_score_history(db, project_id, current_user.org_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
 
     items = [
         ScoreHistoryItem(
@@ -424,17 +424,18 @@ def _build_detail_response(score) -> SignalScoreDetailResponse:
 @router.get("/{project_id}/history-trend", summary="Get score trend over time")
 async def get_score_history_trend(
     project_id: uuid.UUID,
-    from_date: Optional[datetime] = Query(None),
-    to_date: Optional[datetime] = Query(None),
+    from_date: datetime | None = Query(None),
+    to_date: datetime | None = Query(None),
     current_user: CurrentUser = Depends(require_permission("view", "project")),
     db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get signal score trend over time from metric snapshots."""
     from app.modules.metrics.snapshot_service import MetricSnapshotService
+
     try:
         await service.get_latest_score(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     svc = MetricSnapshotService(db)
     snapshots = await svc.get_trend("project", project_id, "signal_score", from_date, to_date)
     return [
@@ -453,17 +454,18 @@ async def get_score_history_trend(
 @router.get("/{project_id}/changes", summary="Get score change explanations")
 async def get_score_changes(
     project_id: uuid.UUID,
-    from_date: Optional[datetime] = Query(None),
-    to_date: Optional[datetime] = Query(None),
+    from_date: datetime | None = Query(None),
+    to_date: datetime | None = Query(None),
     current_user: CurrentUser = Depends(require_permission("view", "project")),
     db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get change explanations with triggers explaining what caused score movements."""
     from app.modules.signal_score.explainability import ScoreExplainability
+
     try:
         await service.get_latest_score(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     explainer = ScoreExplainability(db)
     return await explainer.explain_changes(project_id, from_date, to_date)
 
@@ -477,10 +479,11 @@ async def get_score_volatility(
 ):
     """Get score stability indicator."""
     from app.modules.signal_score.explainability import ScoreExplainability
+
     try:
         await service.get_latest_score(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     explainer = ScoreExplainability(db)
     return await explainer.get_score_volatility(project_id, period_months)
 
@@ -488,17 +491,18 @@ async def get_score_volatility(
 @router.get("/{project_id}/dimension-history", summary="Get per-dimension score history")
 async def get_dimension_history(
     project_id: uuid.UUID,
-    from_date: Optional[datetime] = Query(None),
-    to_date: Optional[datetime] = Query(None),
+    from_date: datetime | None = Query(None),
+    to_date: datetime | None = Query(None),
     current_user: CurrentUser = Depends(require_permission("view", "project")),
     db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get per-dimension score breakdown over time."""
     from app.modules.signal_score.explainability import ScoreExplainability
+
     try:
         await service.get_latest_score(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     explainer = ScoreExplainability(db)
     return await explainer.get_dimension_history(project_id, from_date, to_date)
 
@@ -534,16 +538,20 @@ async def bulk_compute_scores(
 
     for project_id in req.project_ids:
         try:
-            task_log = await service.trigger_calculation(
+            await service.trigger_calculation(
                 db, project_id, current_user.org_id, current_user.user_id
             )
             await db.flush()
             queued += 1
         except LookupError as exc:
-            logger.warning("bulk_compute.project_not_found", project_id=str(project_id), error=str(exc))
+            logger.warning(
+                "bulk_compute.project_not_found", project_id=str(project_id), error=str(exc)
+            )
             failed.append(str(project_id))
         except Exception as exc:
-            logger.warning("bulk_compute.project_failed", project_id=str(project_id), error=str(exc))
+            logger.warning(
+                "bulk_compute.project_failed", project_id=str(project_id), error=str(exc)
+            )
             failed.append(str(project_id))
 
     if queued:

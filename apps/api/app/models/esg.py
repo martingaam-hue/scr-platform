@@ -14,12 +14,8 @@ from app.models.base import BaseModel
 class ESGMetrics(BaseModel):
     __tablename__ = "esg_metrics"
 
-    project_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, index=True
-    )
-    org_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False, index=True
-    )
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     period: Mapped[str] = mapped_column(String(20), nullable=False)  # e.g. "2024-Q4"
 
     # ── Environmental ─────────────────────────────────────────────────────────
@@ -60,6 +56,4 @@ class ESGMetrics(BaseModel):
     # ── AI-generated narrative ────────────────────────────────────────────────
     esg_narrative: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    __table_args__ = (
-        UniqueConstraint("project_id", "period", name="uq_esg_project_period"),
-    )
+    __table_args__ = (UniqueConstraint("project_id", "period", name="uq_esg_project_period"),)

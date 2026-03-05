@@ -1,13 +1,11 @@
 """Comprehensive tests for the Projects module."""
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -23,7 +21,7 @@ from app.models.enums import (
     ProjectType,
     UserRole,
 )
-from app.models.projects import Project, ProjectBudgetItem, ProjectMilestone, SignalScore
+from app.models.projects import Project, SignalScore
 from app.modules.projects import service
 from app.schemas.auth import CurrentUser
 
@@ -57,6 +55,7 @@ VIEWER_USER = CurrentUser(
 def _override_auth(user: CurrentUser):
     async def _override():
         return user
+
     return _override
 
 
@@ -70,15 +69,23 @@ async def seed_data(db: AsyncSession) -> None:
     )
     db.add(other_org)
     user = User(
-        id=USER_ID, org_id=ORG_ID, email="test@example.com",
-        full_name="Test User", role=UserRole.ADMIN,
-        external_auth_id="user_test_123", is_active=True,
+        id=USER_ID,
+        org_id=ORG_ID,
+        email="test@example.com",
+        full_name="Test User",
+        role=UserRole.ADMIN,
+        external_auth_id="user_test_123",
+        is_active=True,
     )
     db.add(user)
     viewer = User(
-        id=VIEWER_USER_ID, org_id=ORG_ID, email="viewer@example.com",
-        full_name="Viewer User", role=UserRole.VIEWER,
-        external_auth_id="user_test_viewer", is_active=True,
+        id=VIEWER_USER_ID,
+        org_id=ORG_ID,
+        email="viewer@example.com",
+        full_name="Viewer User",
+        role=UserRole.VIEWER,
+        external_auth_id="user_test_viewer",
+        is_active=True,
     )
     db.add(viewer)
     await db.flush()
@@ -89,9 +96,7 @@ async def test_client(db: AsyncSession, seed_data) -> AsyncClient:
     """Client with admin auth and DB override."""
     app.dependency_overrides[get_current_user] = _override_auth(CURRENT_USER)
     app.dependency_overrides[get_db] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
 
@@ -101,9 +106,7 @@ async def viewer_client(db: AsyncSession, seed_data) -> AsyncClient:
     """Client with viewer auth (read-only)."""
     app.dependency_overrides[get_current_user] = _override_auth(VIEWER_USER)
     app.dependency_overrides[get_db] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
 
@@ -151,7 +154,8 @@ def test_slugify_multiple_spaces():
 @pytest.mark.asyncio
 async def test_create_project(db: AsyncSession, seed_data):
     project = await service.create_project(
-        db, CURRENT_USER,
+        db,
+        CURRENT_USER,
         name="Wind Farm Beta",
         project_type=ProjectType.WIND,
         description="Offshore wind project",
@@ -171,7 +175,8 @@ async def test_create_project(db: AsyncSession, seed_data):
 async def test_create_project_duplicate_slug(db: AsyncSession, seed_data, sample_project):
     """Second project with same name gets a unique slug."""
     project = await service.create_project(
-        db, CURRENT_USER,
+        db,
+        CURRENT_USER,
         name="Solar Farm Alpha",
         project_type=ProjectType.SOLAR,
         geography_country="Spain",
@@ -296,7 +301,7 @@ async def test_publish_project_missing_fields(db: AsyncSession, seed_data):
 async def test_get_project_stats(db: AsyncSession, seed_data, sample_project):
     stats = await service.get_project_stats(db, ORG_ID)
     assert stats["total_projects"] >= 1
-    assert isinstance(stats["total_funding_needed"], (int, float, Decimal))
+    assert isinstance(stats["total_funding_needed"], int | float | Decimal)
 
 
 # ── Service: Milestones ──────────────────────────────────────────────────────
@@ -305,7 +310,9 @@ async def test_get_project_stats(db: AsyncSession, seed_data, sample_project):
 @pytest.mark.asyncio
 async def test_create_milestone(db: AsyncSession, seed_data, sample_project):
     milestone = await service.create_milestone(
-        db, sample_project.id, ORG_ID,
+        db,
+        sample_project.id,
+        ORG_ID,
         name="Phase 1 Complete",
         target_date=date(2025, 6, 30),
         description="Initial development phase",
@@ -318,12 +325,18 @@ async def test_create_milestone(db: AsyncSession, seed_data, sample_project):
 @pytest.mark.asyncio
 async def test_list_milestones(db: AsyncSession, seed_data, sample_project):
     await service.create_milestone(
-        db, sample_project.id, ORG_ID,
-        name="Milestone 1", target_date=date(2025, 3, 1),
+        db,
+        sample_project.id,
+        ORG_ID,
+        name="Milestone 1",
+        target_date=date(2025, 3, 1),
     )
     await service.create_milestone(
-        db, sample_project.id, ORG_ID,
-        name="Milestone 2", target_date=date(2025, 6, 1),
+        db,
+        sample_project.id,
+        ORG_ID,
+        name="Milestone 2",
+        target_date=date(2025, 6, 1),
     )
     milestones = await service.list_milestones(db, sample_project.id, ORG_ID)
     assert len(milestones) >= 2
@@ -332,12 +345,19 @@ async def test_list_milestones(db: AsyncSession, seed_data, sample_project):
 @pytest.mark.asyncio
 async def test_update_milestone(db: AsyncSession, seed_data, sample_project):
     milestone = await service.create_milestone(
-        db, sample_project.id, ORG_ID,
-        name="Milestone X", target_date=date(2025, 3, 1),
+        db,
+        sample_project.id,
+        ORG_ID,
+        name="Milestone X",
+        target_date=date(2025, 3, 1),
     )
     updated = await service.update_milestone(
-        db, milestone.id, sample_project.id, ORG_ID,
-        name="Milestone X Updated", completion_pct=50,
+        db,
+        milestone.id,
+        sample_project.id,
+        ORG_ID,
+        name="Milestone X Updated",
+        completion_pct=50,
     )
     assert updated.name == "Milestone X Updated"
     assert updated.completion_pct == 50
@@ -347,11 +367,17 @@ async def test_update_milestone(db: AsyncSession, seed_data, sample_project):
 async def test_update_milestone_auto_complete(db: AsyncSession, seed_data, sample_project):
     """Setting status to COMPLETED should auto-set completed_date and 100%."""
     milestone = await service.create_milestone(
-        db, sample_project.id, ORG_ID,
-        name="Auto Complete", target_date=date(2025, 3, 1),
+        db,
+        sample_project.id,
+        ORG_ID,
+        name="Auto Complete",
+        target_date=date(2025, 3, 1),
     )
     updated = await service.update_milestone(
-        db, milestone.id, sample_project.id, ORG_ID,
+        db,
+        milestone.id,
+        sample_project.id,
+        ORG_ID,
         status=MilestoneStatus.COMPLETED,
     )
     assert updated.status == MilestoneStatus.COMPLETED
@@ -362,8 +388,11 @@ async def test_update_milestone_auto_complete(db: AsyncSession, seed_data, sampl
 @pytest.mark.asyncio
 async def test_delete_milestone(db: AsyncSession, seed_data, sample_project):
     milestone = await service.create_milestone(
-        db, sample_project.id, ORG_ID,
-        name="To Delete", target_date=date(2025, 3, 1),
+        db,
+        sample_project.id,
+        ORG_ID,
+        name="To Delete",
+        target_date=date(2025, 3, 1),
     )
     await service.delete_milestone(db, milestone.id, sample_project.id, ORG_ID)
     milestones = await service.list_milestones(db, sample_project.id, ORG_ID)
@@ -374,14 +403,15 @@ async def test_delete_milestone(db: AsyncSession, seed_data, sample_project):
 async def test_milestone_wrong_project(db: AsyncSession, seed_data, sample_project):
     """Milestone on another project should not be accessible."""
     milestone = await service.create_milestone(
-        db, sample_project.id, ORG_ID,
-        name="Test", target_date=date(2025, 3, 1),
+        db,
+        sample_project.id,
+        ORG_ID,
+        name="Test",
+        target_date=date(2025, 3, 1),
     )
     fake_project_id = uuid.uuid4()
     with pytest.raises(LookupError):
-        await service.update_milestone(
-            db, milestone.id, fake_project_id, ORG_ID, name="Fail"
-        )
+        await service.update_milestone(db, milestone.id, fake_project_id, ORG_ID, name="Fail")
 
 
 # ── Service: Budget Items ────────────────────────────────────────────────────
@@ -390,7 +420,9 @@ async def test_milestone_wrong_project(db: AsyncSession, seed_data, sample_proje
 @pytest.mark.asyncio
 async def test_create_budget_item(db: AsyncSession, seed_data, sample_project):
     item = await service.create_budget_item(
-        db, sample_project.id, ORG_ID,
+        db,
+        sample_project.id,
+        ORG_ID,
         category="Equipment",
         description="Solar panels",
         estimated_amount=Decimal("500000"),
@@ -403,12 +435,18 @@ async def test_create_budget_item(db: AsyncSession, seed_data, sample_project):
 @pytest.mark.asyncio
 async def test_list_budget_items(db: AsyncSession, seed_data, sample_project):
     await service.create_budget_item(
-        db, sample_project.id, ORG_ID,
-        category="Equipment", estimated_amount=Decimal("500000"),
+        db,
+        sample_project.id,
+        ORG_ID,
+        category="Equipment",
+        estimated_amount=Decimal("500000"),
     )
     await service.create_budget_item(
-        db, sample_project.id, ORG_ID,
-        category="Labor", estimated_amount=Decimal("200000"),
+        db,
+        sample_project.id,
+        ORG_ID,
+        category="Labor",
+        estimated_amount=Decimal("200000"),
     )
     items = await service.list_budget_items(db, sample_project.id, ORG_ID)
     assert len(items) >= 2
@@ -417,11 +455,17 @@ async def test_list_budget_items(db: AsyncSession, seed_data, sample_project):
 @pytest.mark.asyncio
 async def test_update_budget_item(db: AsyncSession, seed_data, sample_project):
     item = await service.create_budget_item(
-        db, sample_project.id, ORG_ID,
-        category="Equipment", estimated_amount=Decimal("500000"),
+        db,
+        sample_project.id,
+        ORG_ID,
+        category="Equipment",
+        estimated_amount=Decimal("500000"),
     )
     updated = await service.update_budget_item(
-        db, item.id, sample_project.id, ORG_ID,
+        db,
+        item.id,
+        sample_project.id,
+        ORG_ID,
         actual_amount=Decimal("480000"),
         status=BudgetItemStatus.COMMITTED,
     )
@@ -432,8 +476,11 @@ async def test_update_budget_item(db: AsyncSession, seed_data, sample_project):
 @pytest.mark.asyncio
 async def test_delete_budget_item(db: AsyncSession, seed_data, sample_project):
     item = await service.create_budget_item(
-        db, sample_project.id, ORG_ID,
-        category="To Delete", estimated_amount=Decimal("1000"),
+        db,
+        sample_project.id,
+        ORG_ID,
+        category="To Delete",
+        estimated_amount=Decimal("1000"),
     )
     await service.delete_budget_item(db, item.id, sample_project.id, ORG_ID)
     items = await service.list_budget_items(db, sample_project.id, ORG_ID)
@@ -445,13 +492,16 @@ async def test_delete_budget_item(db: AsyncSession, seed_data, sample_project):
 
 @pytest.mark.asyncio
 async def test_api_create_project(test_client: AsyncClient):
-    resp = await test_client.post("/v1/projects", json={
-        "name": "API Test Project",
-        "project_type": "solar",
-        "geography_country": "Germany",
-        "total_investment_required": "25000000",
-        "description": "Created via API test",
-    })
+    resp = await test_client.post(
+        "/v1/projects",
+        json={
+            "name": "API Test Project",
+            "project_type": "solar",
+            "geography_country": "Germany",
+            "total_investment_required": "25000000",
+            "description": "Created via API test",
+        },
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == "API Test Project"
@@ -470,11 +520,14 @@ async def test_api_list_projects(test_client: AsyncClient, sample_project):
 
 @pytest.mark.asyncio
 async def test_api_list_projects_with_filters(test_client: AsyncClient, sample_project):
-    resp = await test_client.get("/v1/projects", params={
-        "status": "active",
-        "type": "solar",
-        "geography": "Spain",
-    })
+    resp = await test_client.get(
+        "/v1/projects",
+        params={
+            "status": "active",
+            "type": "solar",
+            "geography": "Spain",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] >= 1
@@ -500,9 +553,12 @@ async def test_api_get_project_not_found(test_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_api_update_project(test_client: AsyncClient, sample_project):
-    resp = await test_client.put(f"/v1/projects/{sample_project.id}", json={
-        "name": "Updated Solar Farm",
-    })
+    resp = await test_client.put(
+        f"/v1/projects/{sample_project.id}",
+        json={
+            "name": "Updated Solar Farm",
+        },
+    )
     assert resp.status_code == 200
     assert resp.json()["name"] == "Updated Solar Farm"
 
@@ -539,11 +595,14 @@ async def test_api_stats(test_client: AsyncClient, sample_project):
 
 @pytest.mark.asyncio
 async def test_api_create_milestone(test_client: AsyncClient, sample_project):
-    resp = await test_client.post(f"/v1/projects/{sample_project.id}/milestones", json={
-        "name": "API Milestone",
-        "target_date": "2025-06-30",
-        "description": "Test milestone",
-    })
+    resp = await test_client.post(
+        f"/v1/projects/{sample_project.id}/milestones",
+        json={
+            "name": "API Milestone",
+            "target_date": "2025-06-30",
+            "description": "Test milestone",
+        },
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == "API Milestone"
@@ -553,8 +612,11 @@ async def test_api_create_milestone(test_client: AsyncClient, sample_project):
 @pytest.mark.asyncio
 async def test_api_list_milestones(test_client: AsyncClient, sample_project, db: AsyncSession):
     await service.create_milestone(
-        db, sample_project.id, ORG_ID,
-        name="M1", target_date=date(2025, 3, 1),
+        db,
+        sample_project.id,
+        ORG_ID,
+        name="M1",
+        target_date=date(2025, 3, 1),
     )
     resp = await test_client.get(f"/v1/projects/{sample_project.id}/milestones")
     assert resp.status_code == 200
@@ -564,8 +626,11 @@ async def test_api_list_milestones(test_client: AsyncClient, sample_project, db:
 @pytest.mark.asyncio
 async def test_api_update_milestone(test_client: AsyncClient, sample_project, db: AsyncSession):
     m = await service.create_milestone(
-        db, sample_project.id, ORG_ID,
-        name="To Update", target_date=date(2025, 3, 1),
+        db,
+        sample_project.id,
+        ORG_ID,
+        name="To Update",
+        target_date=date(2025, 3, 1),
     )
     resp = await test_client.put(
         f"/v1/projects/{sample_project.id}/milestones/{m.id}",
@@ -579,8 +644,11 @@ async def test_api_update_milestone(test_client: AsyncClient, sample_project, db
 @pytest.mark.asyncio
 async def test_api_delete_milestone(test_client: AsyncClient, sample_project, db: AsyncSession):
     m = await service.create_milestone(
-        db, sample_project.id, ORG_ID,
-        name="To Delete", target_date=date(2025, 3, 1),
+        db,
+        sample_project.id,
+        ORG_ID,
+        name="To Delete",
+        target_date=date(2025, 3, 1),
     )
     resp = await test_client.delete(f"/v1/projects/{sample_project.id}/milestones/{m.id}")
     assert resp.status_code == 204
@@ -591,11 +659,14 @@ async def test_api_delete_milestone(test_client: AsyncClient, sample_project, db
 
 @pytest.mark.asyncio
 async def test_api_create_budget_item(test_client: AsyncClient, sample_project):
-    resp = await test_client.post(f"/v1/projects/{sample_project.id}/budget", json={
-        "category": "Equipment",
-        "description": "Solar panels",
-        "estimated_amount": "500000",
-    })
+    resp = await test_client.post(
+        f"/v1/projects/{sample_project.id}/budget",
+        json={
+            "category": "Equipment",
+            "description": "Solar panels",
+            "estimated_amount": "500000",
+        },
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["category"] == "Equipment"
@@ -605,8 +676,11 @@ async def test_api_create_budget_item(test_client: AsyncClient, sample_project):
 @pytest.mark.asyncio
 async def test_api_list_budget_items(test_client: AsyncClient, sample_project, db: AsyncSession):
     await service.create_budget_item(
-        db, sample_project.id, ORG_ID,
-        category="Labor", estimated_amount=Decimal("200000"),
+        db,
+        sample_project.id,
+        ORG_ID,
+        category="Labor",
+        estimated_amount=Decimal("200000"),
     )
     resp = await test_client.get(f"/v1/projects/{sample_project.id}/budget")
     assert resp.status_code == 200
@@ -616,8 +690,11 @@ async def test_api_list_budget_items(test_client: AsyncClient, sample_project, d
 @pytest.mark.asyncio
 async def test_api_update_budget_item(test_client: AsyncClient, sample_project, db: AsyncSession):
     b = await service.create_budget_item(
-        db, sample_project.id, ORG_ID,
-        category="Equipment", estimated_amount=Decimal("500000"),
+        db,
+        sample_project.id,
+        ORG_ID,
+        category="Equipment",
+        estimated_amount=Decimal("500000"),
     )
     resp = await test_client.put(
         f"/v1/projects/{sample_project.id}/budget/{b.id}",
@@ -630,8 +707,11 @@ async def test_api_update_budget_item(test_client: AsyncClient, sample_project, 
 @pytest.mark.asyncio
 async def test_api_delete_budget_item(test_client: AsyncClient, sample_project, db: AsyncSession):
     b = await service.create_budget_item(
-        db, sample_project.id, ORG_ID,
-        category="To Delete", estimated_amount=Decimal("1000"),
+        db,
+        sample_project.id,
+        ORG_ID,
+        category="To Delete",
+        estimated_amount=Decimal("1000"),
     )
     resp = await test_client.delete(f"/v1/projects/{sample_project.id}/budget/{b.id}")
     assert resp.status_code == 204
@@ -642,12 +722,15 @@ async def test_api_delete_budget_item(test_client: AsyncClient, sample_project, 
 
 @pytest.mark.asyncio
 async def test_viewer_cannot_create_project(viewer_client: AsyncClient):
-    resp = await viewer_client.post("/v1/projects", json={
-        "name": "Viewer Project",
-        "project_type": "solar",
-        "geography_country": "Spain",
-        "total_investment_required": "1000000",
-    })
+    resp = await viewer_client.post(
+        "/v1/projects",
+        json={
+            "name": "Viewer Project",
+            "project_type": "solar",
+            "geography_country": "Spain",
+            "total_investment_required": "1000000",
+        },
+    )
     assert resp.status_code == 403
 
 

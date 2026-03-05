@@ -1,8 +1,8 @@
-import structlog
 from decimal import Decimal
+from typing import ClassVar
 
+import structlog
 from sqlalchemy import Numeric
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -15,16 +15,16 @@ engine = create_async_engine(
     echo=settings.APP_DEBUG,
     pool_size=20,
     max_overflow=10,
-    pool_pre_ping=True,               # Drop stale connections before use
-    pool_recycle=1800,                 # Recycle connections every 30 min (avoids server-side timeouts)
-    pool_timeout=30,                   # Wait max 30s for a pool connection before raising
+    pool_pre_ping=True,  # Drop stale connections before use
+    pool_recycle=1800,  # Recycle connections every 30 min (avoids server-side timeouts)
+    pool_timeout=30,  # Wait max 30s for a pool connection before raising
     connect_args={
         "server_settings": {
-            "statement_timeout": "30000",                    # 30s max per SQL statement
+            "statement_timeout": "30000",  # 30s max per SQL statement
             "idle_in_transaction_session_timeout": "60000",  # Kill idle-in-tx sessions after 60s
-            "lock_timeout": "10000",                         # 10s max waiting for a row lock
+            "lock_timeout": "10000",  # 10s max waiting for a row lock
         },
-        "command_timeout": 30,         # asyncpg network-level command timeout (seconds)
+        "command_timeout": 30,  # asyncpg network-level command timeout (seconds)
     },
 )
 
@@ -68,7 +68,7 @@ read_only_session_factory = async_sessionmaker(
 
 
 class Base(DeclarativeBase):
-    type_annotation_map = {
+    type_annotation_map: ClassVar[dict] = {
         Decimal: Numeric(19, 4),
     }
 

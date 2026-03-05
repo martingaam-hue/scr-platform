@@ -9,16 +9,14 @@ Tests:
 from __future__ import annotations
 
 import uuid
-from datetime import date
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.core import Organization, User
-from app.models.enums import OrgType, UserRole
+from app.models.enums import OrgType, ProjectStatus, ProjectType, UserRole
 from app.models.projects import Project
-from app.models.enums import ProjectType, ProjectStatus
 
 pytestmark = pytest.mark.anyio
 
@@ -78,15 +76,14 @@ async def s16_project(db: AsyncSession, s16_org: Organization) -> Project:
 
 
 @pytest.fixture
-async def s16_client(
-    db: AsyncSession, s16_user: User
-) -> AsyncClient:
+async def s16_client(db: AsyncSession, s16_user: User) -> AsyncClient:
     """Authenticated AsyncClient for sprint 16 fixtures."""
+    from httpx import ASGITransport
+
     from app.auth.dependencies import get_current_user
     from app.core.database import get_db
     from app.main import app as _app
     from app.schemas.auth import CurrentUser
-    from httpx import ASGITransport
 
     current = CurrentUser(
         user_id=S16_USER_ID,
@@ -97,9 +94,7 @@ async def s16_client(
     )
     _app.dependency_overrides[get_current_user] = lambda: current
     _app.dependency_overrides[get_db] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=_app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=_app), base_url="http://test") as ac:
         yield ac
     _app.dependency_overrides.pop(get_current_user, None)
     _app.dependency_overrides.pop(get_db, None)
@@ -134,9 +129,7 @@ class TestInsuranceQuotes:
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
-    async def test_list_quotes_after_create(
-        self, s16_client: AsyncClient, s16_project: Project
-    ):
+    async def test_list_quotes_after_create(self, s16_client: AsyncClient, s16_project: Project):
         # Create a quote
         await s16_client.post(
             "/v1/insurance/quotes",
@@ -156,7 +149,9 @@ class TestInsuranceQuotes:
         items = resp.json()
         assert any(q["provider_name"] == "AIG" for q in items)
 
-    async def test_create_quote_without_project(self, s16_client: AsyncClient, s16_org: Organization):
+    async def test_create_quote_without_project(
+        self, s16_client: AsyncClient, s16_org: Organization
+    ):
         """Quotes can be created without a project_id."""
         resp = await s16_client.post(
             "/v1/insurance/quotes",
@@ -222,9 +217,7 @@ class TestInsurancePolicies:
         assert resp.status_code == 201
         return resp.json()["id"]
 
-    async def test_create_policy_201(
-        self, s16_client: AsyncClient, s16_project: Project
-    ):
+    async def test_create_policy_201(self, s16_client: AsyncClient, s16_project: Project):
         quote_id = await self._create_quote(s16_client)
         resp = await s16_client.post(
             "/v1/insurance/policies",
@@ -253,9 +246,7 @@ class TestInsurancePolicies:
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
-    async def test_list_policies_after_create(
-        self, s16_client: AsyncClient, s16_project: Project
-    ):
+    async def test_list_policies_after_create(self, s16_client: AsyncClient, s16_project: Project):
         quote_id = await self._create_quote(s16_client)
         await s16_client.post(
             "/v1/insurance/policies",
@@ -279,9 +270,7 @@ class TestInsurancePolicies:
         items = resp.json()
         assert any(p["policy_number"] == "POL-2026-002" for p in items)
 
-    async def test_delete_policy_204(
-        self, s16_client: AsyncClient, s16_project: Project
-    ):
+    async def test_delete_policy_204(self, s16_client: AsyncClient, s16_project: Project):
         quote_id = await self._create_quote(s16_client)
         create_resp = await s16_client.post(
             "/v1/insurance/policies",
@@ -320,9 +309,7 @@ class TestInsurancePolicies:
 
 
 class TestDigestPreferences:
-    async def test_get_preferences_returns_defaults(
-        self, s16_client: AsyncClient, s16_user: User
-    ):
+    async def test_get_preferences_returns_defaults(self, s16_client: AsyncClient, s16_user: User):
         resp = await s16_client.get("/v1/digest/preferences")
         assert resp.status_code == 200
         data = resp.json()
@@ -330,9 +317,7 @@ class TestDigestPreferences:
         assert "frequency" in data
         assert data["frequency"] in ("daily", "weekly", "monthly")
 
-    async def test_update_preferences_200(
-        self, s16_client: AsyncClient, s16_user: User
-    ):
+    async def test_update_preferences_200(self, s16_client: AsyncClient, s16_user: User):
         resp = await s16_client.put(
             "/v1/digest/preferences",
             json={"is_subscribed": True, "frequency": "weekly"},
@@ -350,9 +335,7 @@ class TestDigestPreferences:
         assert resp.status_code == 200
         assert resp.json()["is_subscribed"] is False
 
-    async def test_get_preferences_after_update(
-        self, s16_client: AsyncClient, s16_user: User
-    ):
+    async def test_get_preferences_after_update(self, s16_client: AsyncClient, s16_user: User):
         # Set daily
         await s16_client.put(
             "/v1/digest/preferences",
@@ -363,9 +346,7 @@ class TestDigestPreferences:
         assert get_resp.status_code == 200
         assert get_resp.json()["frequency"] == "daily"
 
-    async def test_invalid_frequency_422(
-        self, s16_client: AsyncClient, s16_user: User
-    ):
+    async def test_invalid_frequency_422(self, s16_client: AsyncClient, s16_user: User):
         resp = await s16_client.put(
             "/v1/digest/preferences",
             json={"is_subscribed": True, "frequency": "quarterly"},

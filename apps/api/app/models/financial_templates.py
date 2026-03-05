@@ -16,8 +16,15 @@ class FinancialTemplate(BaseModel):
 
     __tablename__ = "financial_templates"
 
-    taxonomy_code: Mapped[str] = mapped_column(String(50), ForeignKey("industry_taxonomy.code", ondelete="CASCADE"), nullable=False, index=True)
-    org_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True)  # NULL = public/system template
+    taxonomy_code: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("industry_taxonomy.code", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    org_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True
+    )  # NULL = public/system template
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     # Assumption sliders: {"capex_per_mw": {"default": 800000, "min": 500000, "max": 1200000, "unit": "EUR/MW"}, ...}

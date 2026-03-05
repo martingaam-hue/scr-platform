@@ -10,7 +10,6 @@ import {
   ZoomIn,
   ZoomOut,
   Loader2,
-  AlertCircle,
 } from "lucide-react";
 import { Button, cn } from "@scr/ui";
 

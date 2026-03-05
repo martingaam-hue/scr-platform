@@ -1,8 +1,6 @@
 """RAG pipeline — chunk, embed, store, retrieve, augment, complete."""
 from __future__ import annotations
 
-import hashlib
-import uuid
 from typing import Any
 
 import structlog
@@ -35,6 +33,7 @@ async def _embed_text(text: str) -> list[float]:
     """Generate embeddings via litellm."""
     try:
         import litellm
+
         from app.core.config import settings
 
         response = await litellm.aembedding(
@@ -141,8 +140,8 @@ class RAGPipeline:
         max_tokens: int = 4096,
     ) -> dict[str, Any]:
         """RAG completion: search → inject context → complete."""
-        from app.services.llm_router import route_completion
         from app.core.config import settings as cfg
+        from app.services.llm_router import route_completion
 
         # 1. Retrieve relevant context
         results = await self.query(query=query, org_id=org_id, index_type=index_type, filters=filters, top_k=top_k)

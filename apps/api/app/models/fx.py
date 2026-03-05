@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import uuid
 from datetime import date
 
 from sqlalchemy import Date, Float, Index, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import TimestampedModel
@@ -26,9 +24,7 @@ class FXRate(TimestampedModel):
     )
 
     __table_args__ = (
-        UniqueConstraint(
-            "base_currency", "quote_currency", "rate_date", name="uq_fx_pair_date"
-        ),
+        UniqueConstraint("base_currency", "quote_currency", "rate_date", name="uq_fx_pair_date"),
         Index("ix_fx_pair_date_lookup", "base_currency", "quote_currency", "rate_date"),
     )
 

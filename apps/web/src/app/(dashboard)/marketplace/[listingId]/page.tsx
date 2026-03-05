@@ -20,7 +20,6 @@ import {
   listingStatusVariant,
   LISTING_TYPE_LABELS,
   formatPrice,
-  type ListingResponse,
 } from "@/lib/marketplace";
 
 // ── RFQ form ──────────────────────────────────────────────────────────────────

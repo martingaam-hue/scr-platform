@@ -13,7 +13,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import {
-  Badge,
   Button,
   Card,
   CardContent,

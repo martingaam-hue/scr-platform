@@ -6,6 +6,7 @@ to decouple from the request lifecycle.
 """
 
 import asyncio
+import contextlib
 import uuid
 
 import structlog
@@ -19,13 +20,15 @@ logger = structlog.get_logger()
 
 AUDITED_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
-AUDIT_EXEMPT_PATHS = frozenset({
-    "/health",
-    "/docs",
-    "/redoc",
-    "/openapi.json",
-    "/auth/webhook",
-})
+AUDIT_EXEMPT_PATHS = frozenset(
+    {
+        "/health",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/auth/webhook",
+    }
+)
 
 
 class AuditMiddleware:
@@ -33,6 +36,7 @@ class AuditMiddleware:
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
+        self._background_tasks: set[asyncio.Task] = set()
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -64,13 +68,11 @@ class AuditMiddleware:
 
         # Only audit successful mutations (2xx)
         if 200 <= response_status < 300:
-            asyncio.create_task(
-                self._write_audit_log(scope, request, method, path)
-            )
+            _task = asyncio.create_task(self._write_audit_log(scope, request, method, path))
+            self._background_tasks.add(_task)
+            _task.add_done_callback(self._background_tasks.discard)
 
-    async def _write_audit_log(
-        self, scope: dict, request: Request, method: str, path: str
-    ) -> None:
+    async def _write_audit_log(self, scope: dict, request: Request, method: str, path: str) -> None:
         """Write audit log in a separate DB session (fire-and-forget)."""
         try:
             state = scope.get("state", {})
@@ -138,9 +140,7 @@ def _parse_entity_from_path(path: str) -> tuple[str, uuid.UUID | None]:
         entity_type = parts[0].rstrip("s")  # naive de-pluralize
 
     if len(parts) >= 2:
-        try:
+        with contextlib.suppress(ValueError):
             entity_id = uuid.UUID(parts[1])
-        except ValueError:
-            pass
 
     return entity_type, entity_id

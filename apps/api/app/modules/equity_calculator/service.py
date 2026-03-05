@@ -2,6 +2,7 @@
 
 import uuid
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -107,9 +108,7 @@ def _to_response(scenario: EquityScenario) -> EquityScenarioResponse:
             else None
         ),
         participation_cap=(
-            float(scenario.participation_cap)
-            if scenario.participation_cap is not None
-            else None
+            float(scenario.participation_cap) if scenario.participation_cap is not None else None
         ),
         anti_dilution_type=anti_dilution_str,
         cap_table=cap_table,
@@ -173,9 +172,7 @@ async def create_scenario(
             else None
         ),
         participation_cap=(
-            Decimal(str(body.participation_cap))
-            if body.participation_cap is not None
-            else None
+            Decimal(str(body.participation_cap)) if body.participation_cap is not None else None
         ),
         anti_dilution_type=anti_dilution_enum,
         vesting_schedule=vesting_schedule,
@@ -230,7 +227,7 @@ async def compare_scenarios(
         except LookupError:
             continue
 
-        waterfall = scenario.waterfall_analysis or []
+        waterfall: list[dict[str, Any]] = list(scenario.waterfall_analysis) if scenario.waterfall_analysis else []
         # Find proceeds at 2x and 5x multiples
         proceeds_2x = next(
             (w["investor_proceeds"] for w in waterfall if w.get("multiple") == 2.0), 0.0
@@ -251,19 +248,21 @@ async def compare_scenarios(
             else str(scenario.security_type)
         )
 
-        scenarios_data.append({
-            "id": str(scenario.id),
-            "scenario_name": scenario.scenario_name,
-            "security_type": security_type_str,
-            "Pre-money Valuation": float(scenario.pre_money_valuation),
-            "Investment Amount": float(scenario.investment_amount),
-            "Equity %": float(scenario.equity_percentage),
-            "Post-money Valuation": float(scenario.post_money_valuation),
-            "Price per Share": float(scenario.price_per_share),
-            "Investor Proceeds at 2x": float(proceeds_2x),
-            "Investor Proceeds at 5x": float(proceeds_5x),
-            "Dilution %": float(dilution.get("dilution_percentage", 0)),
-            "Anti-dilution": anti_dilution_str,
-        })
+        scenarios_data.append(
+            {
+                "id": str(scenario.id),
+                "scenario_name": scenario.scenario_name,
+                "security_type": security_type_str,
+                "Pre-money Valuation": float(scenario.pre_money_valuation),
+                "Investment Amount": float(scenario.investment_amount),
+                "Equity %": float(scenario.equity_percentage),
+                "Post-money Valuation": float(scenario.post_money_valuation),
+                "Price per Share": float(scenario.price_per_share),
+                "Investor Proceeds at 2x": float(proceeds_2x),
+                "Investor Proceeds at 5x": float(proceeds_5x),
+                "Dilution %": float(dilution.get("dilution_percentage", 0)),
+                "Anti-dilution": anti_dilution_str,
+            }
+        )
 
     return CompareResponse(scenarios=scenarios_data, dimensions=_COMPARE_DIMENSIONS)

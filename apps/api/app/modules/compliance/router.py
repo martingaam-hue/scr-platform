@@ -9,7 +9,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db
 from app.modules.compliance import service
 from app.modules.compliance.schemas import (
@@ -51,7 +51,9 @@ async def list_deadlines(
     return DeadlineListResponse(
         items=items,
         total=len(items),
-        overdue_count=sum(1 for d in deadlines if d.due_date < today and d.status not in ("completed", "waived")),
+        overdue_count=sum(
+            1 for d in deadlines if d.due_date < today and d.status not in ("completed", "waived")
+        ),
         due_this_week=sum(1 for d in deadlines if 0 <= (d.due_date - today).days <= 7),
         due_this_month=sum(1 for d in deadlines if 0 <= (d.due_date - today).days <= 30),
     )

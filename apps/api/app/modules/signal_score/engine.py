@@ -4,7 +4,7 @@ Runs synchronously inside Celery workers using sync DB sessions.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy import func, select
@@ -50,7 +50,9 @@ class SignalScoreEngine:
                     Document.is_deleted.is_(False),
                     Document.status == DocumentStatus.READY,
                 )
-            ).scalars().all()
+            )
+            .scalars()
+            .all()
         )
 
         # 3. Load all extractions for those documents
@@ -59,10 +61,10 @@ class SignalScoreEngine:
         if doc_ids:
             extractions = list(
                 self.session.execute(
-                    select(DocumentExtraction).where(
-                        DocumentExtraction.document_id.in_(doc_ids)
-                    )
-                ).scalars().all()
+                    select(DocumentExtraction).where(DocumentExtraction.document_id.in_(doc_ids))
+                )
+                .scalars()
+                .all()
             )
 
         # Build extraction lookup by document_id
@@ -85,9 +87,7 @@ class SignalScoreEngine:
         model_used = "deterministic"
 
         for dimension in DIMENSIONS:
-            result = self._score_dimension(
-                dimension, documents, extraction_map, project_context
-            )
+            result = self._score_dimension(dimension, documents, extraction_map, project_context)
             dimension_results[dimension.id] = result
             total_tokens += result.get("tokens_used", 0)
             if result.get("model_used"):
@@ -107,14 +107,12 @@ class SignalScoreEngine:
 
         # 7. Determine version
         latest_version = self.session.execute(
-            select(func.max(SignalScore.version)).where(
-                SignalScore.project_id == project_id
-            )
+            select(func.max(SignalScore.version)).where(SignalScore.project_id == project_id)
         ).scalar()
         next_version = (latest_version or 0) + 1
 
         # 8. Build scoring_details
-        scoring_details = {"dimensions": {}}
+        scoring_details: dict[str, dict] = {"dimensions": {}}
         for dim_id, result in dimension_results.items():
             scoring_details["dimensions"][dim_id] = {
                 "score": result["score"],
@@ -124,9 +122,7 @@ class SignalScoreEngine:
             }
 
         # 9. Build improvement guidance summary
-        improvement_guidance = self._build_improvement_guidance(
-            dimension_results, gaps
-        )
+        improvement_guidance = self._build_improvement_guidance(dimension_results, gaps)
 
         # 10. Create SignalScore record
         signal_score = SignalScore(
@@ -146,7 +142,7 @@ class SignalScoreEngine:
             is_live=False,
             model_used=model_used,
             version=next_version,
-            calculated_at=datetime.now(timezone.utc),
+            calculated_at=datetime.now(UTC),
         )
         self.session.add(signal_score)
         self.session.flush()
@@ -204,9 +200,7 @@ class SignalScoreEngine:
                             criterion.description,
                             project_context,
                         )
-                    quality_points = round(
-                        criterion.max_points * ai_assessment["score"] / 100
-                    )
+                    quality_points = round(criterion.max_points * ai_assessment["score"] / 100)
                     tokens_used += ai_assessment.get("tokens_used", 0)
                     if ai_assessment.get("model_used"):
                         model_used = ai_assessment["model_used"]
@@ -216,27 +210,31 @@ class SignalScoreEngine:
 
             # Combined criterion score: completeness 40% + quality 60%
             if has_document:
-                criterion_score = round(
-                    completeness_points * 0.4 + quality_points * 0.6
-                )
+                criterion_score = round(completeness_points * 0.4 + quality_points * 0.6)
             else:
                 criterion_score = 0
 
-            criteria_results.append({
-                "id": criterion.id,
-                "name": criterion.name,
-                "max_points": criterion.max_points,
-                "score": criterion_score,
-                "has_document": has_document,
-                "document_ids": [str(d.id) for d in matching_docs],
-                "ai_assessment": ai_assessment,
-            })
+            criteria_results.append(
+                {
+                    "id": criterion.id,
+                    "name": criterion.name,
+                    "max_points": criterion.max_points,
+                    "score": criterion_score,
+                    "has_document": has_document,
+                    "document_ids": [str(d.id) for d in matching_docs],
+                    "ai_assessment": ai_assessment,
+                }
+            )
 
         # Dimension score: sum of criterion scores as percentage
         total_scored = sum(c["score"] for c in criteria_results)
-        dimension_score = round(total_scored / total_max_points * 100) if total_max_points > 0 else 0
+        dimension_score = (
+            round(total_scored / total_max_points * 100) if total_max_points > 0 else 0
+        )
 
-        completeness_pct = round(total_completeness / total_max_points * 100) if total_max_points > 0 else 0
+        completeness_pct = (
+            round(total_completeness / total_max_points * 100) if total_max_points > 0 else 0
+        )
         quality_pct = round(total_quality / total_max_points * 100) if total_max_points > 0 else 0
 
         return {
@@ -261,12 +259,13 @@ class SignalScoreEngine:
         """
         try:
             from app.models.enums import ExtractionType
+
             doc_ids = [d.id for d in documents]
             ext = self.session.execute(
-                select(DocumentExtraction).where(
+                select(DocumentExtraction)
+                .where(
                     DocumentExtraction.document_id.in_(doc_ids),
-                    DocumentExtraction.extraction_type
-                    == ExtractionType.QUALITY_ASSESSMENT,
+                    DocumentExtraction.extraction_type == ExtractionType.QUALITY_ASSESSMENT,
                     DocumentExtraction.confidence_score > 0,
                 )
                 .order_by(DocumentExtraction.created_at.desc())
@@ -290,7 +289,10 @@ class SignalScoreEngine:
         """Find documents matching a criterion's relevant classifications."""
         matching = []
         for doc in documents:
-            if doc.classification and doc.classification.value in criterion.relevant_classifications:
+            if (
+                doc.classification
+                and doc.classification.value in criterion.relevant_classifications
+            ):
                 matching.append(doc)
         return matching
 
@@ -329,13 +331,12 @@ class SignalScoreEngine:
             for crit_result in dim_result["criteria"]:
                 criterion_pct = (
                     crit_result["score"] / crit_result["max_points"] * 100
-                    if crit_result["max_points"] > 0 else 0
+                    if crit_result["max_points"] > 0
+                    else 0
                 )
                 if criterion_pct < 50:
                     # Determine priority based on points and score
-                    if crit_result["score"] == 0:
-                        priority = "high"
-                    elif criterion_pct < 25:
+                    if crit_result["score"] == 0 or criterion_pct < 25:
                         priority = "high"
                     else:
                         priority = "medium"
@@ -348,44 +349,39 @@ class SignalScoreEngine:
 
                     # Look up criterion for doc types
                     from app.modules.signal_score.criteria import ALL_CRITERIA
+
                     criterion = ALL_CRITERIA.get(crit_result["id"])
                     doc_types = list(criterion.relevant_classifications) if criterion else []
 
-                    gaps.append({
-                        "dimension_id": dim.id,
-                        "dimension_name": dim.name,
-                        "criterion_id": crit_result["id"],
-                        "criterion_name": crit_result["name"],
-                        "current_score": crit_result["score"],
-                        "max_points": crit_result["max_points"],
-                        "priority": priority,
-                        "recommendation": recommendation,
-                        "relevant_doc_types": doc_types,
-                    })
+                    gaps.append(
+                        {
+                            "dimension_id": dim.id,
+                            "dimension_name": dim.name,
+                            "criterion_id": crit_result["id"],
+                            "criterion_name": crit_result["name"],
+                            "current_score": crit_result["score"],
+                            "max_points": crit_result["max_points"],
+                            "priority": priority,
+                            "recommendation": recommendation,
+                            "relevant_doc_types": doc_types,
+                        }
+                    )
 
         # Sort by priority (high first) then by max_points descending
         priority_order = {"high": 0, "medium": 1, "low": 2}
         gaps.sort(key=lambda g: (priority_order.get(g["priority"], 2), -g["max_points"]))
         return gaps
 
-    def _build_improvement_guidance(
-        self, dimension_results: dict, gaps: list[dict]
-    ) -> dict:
+    def _build_improvement_guidance(self, dimension_results: dict, gaps: list[dict]) -> dict:
         """Derive structured improvement guidance from gaps and dimension scores."""
         high_gaps = [g for g in gaps if g["priority"] == "high"]
         medium_gaps = [g for g in gaps if g["priority"] == "medium"]
 
         # Quick wins: medium-priority gaps with low max_points (easy wins)
-        quick_wins = [
-            g["recommendation"]
-            for g in medium_gaps
-            if g["max_points"] <= 10
-        ][:3]
+        quick_wins = [g["recommendation"] for g in medium_gaps if g["max_points"] <= 10][:3]
 
         # Lowest scoring dimension
-        dim_scores = {
-            dim.id: dimension_results[dim.id]["score"] for dim in DIMENSIONS
-        }
+        dim_scores = {dim.id: dimension_results[dim.id]["score"] for dim in DIMENSIONS}
         weakest_dim_id = min(dim_scores, key=lambda k: dim_scores[k])
         weakest_dim = next((d for d in DIMENSIONS if d.id == weakest_dim_id), None)
 
@@ -408,10 +404,9 @@ class SignalScoreEngine:
                     "dimension_id": g["dimension_id"],
                     "dimension_name": g["dimension_name"],
                     "action": g["recommendation"],
-                    "expected_gain": round(
-                        (g["max_points"] - g["current_score"])
-                        / total_max * 100
-                    ) if total_max > 0 else 0,
+                    "expected_gain": round((g["max_points"] - g["current_score"]) / total_max * 100)
+                    if total_max > 0
+                    else 0,
                     "effort": "high" if g["max_points"] >= 15 else "medium",
                     "doc_types_needed": g["relevant_doc_types"],
                 }
@@ -427,7 +422,8 @@ class SignalScoreEngine:
             for crit_result in dim_result["criteria"]:
                 criterion_pct = (
                     crit_result["score"] / crit_result["max_points"] * 100
-                    if crit_result["max_points"] > 0 else 0
+                    if crit_result["max_points"] > 0
+                    else 0
                 )
                 if criterion_pct >= 80:
                     summary = ""
@@ -435,12 +431,14 @@ class SignalScoreEngine:
                         ai_strengths = crit_result["ai_assessment"].get("strengths", [])
                         summary = ai_strengths[0] if ai_strengths else ""
 
-                    strengths.append({
-                        "dimension_id": dim.id,
-                        "dimension_name": dim.name,
-                        "criterion_id": crit_result["id"],
-                        "criterion_name": crit_result["name"],
-                        "score": crit_result["score"],
-                        "summary": summary,
-                    })
+                    strengths.append(
+                        {
+                            "dimension_id": dim.id,
+                            "dimension_name": dim.name,
+                            "criterion_id": crit_result["id"],
+                            "criterion_name": crit_result["name"],
+                            "score": crit_result["score"],
+                            "summary": summary,
+                        }
+                    )
         return strengths

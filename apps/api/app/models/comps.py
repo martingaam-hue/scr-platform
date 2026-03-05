@@ -21,9 +21,7 @@ class ComparableTransaction(BaseModel):
 
     __tablename__ = "comparable_transactions"
 
-    org_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True, index=True
-    )
+    org_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     # NULL = global/public comp, non-null = org-private comp
 
     # ── Deal identity ─────────────────────────────────────────────────────────
@@ -60,9 +58,7 @@ class ComparableTransaction(BaseModel):
     # construction_ready, operational, development
     offtake_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     # ppa, merchant, cfd, subsidy
-    offtake_counterparty_rating: Mapped[str | None] = mapped_column(
-        String(10), nullable=True
-    )
+    offtake_counterparty_rating: Mapped[str | None] = mapped_column(String(10), nullable=True)
     # AAA, AA, A, BBB, BB, B, NR
 
     # ── Parties (anonymised) ──────────────────────────────────────────────────
@@ -87,6 +83,4 @@ class ComparableTransaction(BaseModel):
 
     # ── Audit ─────────────────────────────────────────────────────────────────
 
-    added_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True
-    )
+    added_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)

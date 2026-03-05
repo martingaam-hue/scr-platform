@@ -71,6 +71,4 @@ async def compare_scenarios(
     db: AsyncSession = Depends(get_db),
 ) -> CompareResponse:
     """Side-by-side comparison of 2–5 equity scenarios."""
-    return await service.compare_scenarios(
-        db, body.scenario_ids, current_user.org_id
-    )
+    return await service.compare_scenarios(db, body.scenario_ids, current_user.org_id)

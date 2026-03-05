@@ -3,22 +3,23 @@
 Pricing as of March 2026 — update when Anthropic / OpenAI change rates.
 All values are USD per 1 million tokens.
 """
+
 from decimal import Decimal
 
 # (input_usd_per_1m, output_usd_per_1m)
 MODEL_COSTS: dict[str, tuple[Decimal, Decimal]] = {
     # Claude 4 family
-    "claude-opus-4-6":                   (Decimal("15.00"), Decimal("75.00")),
-    "claude-sonnet-4-6":                 (Decimal("3.00"),  Decimal("15.00")),
-    "claude-haiku-4-5-20251001":         (Decimal("0.80"),  Decimal("4.00")),
+    "claude-opus-4-6": (Decimal("15.00"), Decimal("75.00")),
+    "claude-sonnet-4-6": (Decimal("3.00"), Decimal("15.00")),
+    "claude-haiku-4-5-20251001": (Decimal("0.80"), Decimal("4.00")),
     # Legacy Claude 3 (still in use)
-    "claude-3-5-sonnet-20241022":        (Decimal("3.00"),  Decimal("15.00")),
-    "claude-3-5-haiku-20241022":         (Decimal("0.80"),  Decimal("4.00")),
-    "claude-3-opus-20240229":            (Decimal("15.00"), Decimal("75.00")),
+    "claude-3-5-sonnet-20241022": (Decimal("3.00"), Decimal("15.00")),
+    "claude-3-5-haiku-20241022": (Decimal("0.80"), Decimal("4.00")),
+    "claude-3-opus-20240229": (Decimal("15.00"), Decimal("75.00")),
     # OpenAI
-    "gpt-4o":                            (Decimal("2.50"),  Decimal("10.00")),
-    "gpt-4o-mini":                       (Decimal("0.15"),  Decimal("0.60")),
-    "gpt-4-turbo":                       (Decimal("10.00"), Decimal("30.00")),
+    "gpt-4o": (Decimal("2.50"), Decimal("10.00")),
+    "gpt-4o-mini": (Decimal("0.15"), Decimal("0.60")),
+    "gpt-4-turbo": (Decimal("10.00"), Decimal("30.00")),
 }
 
 # Fallback for unknown models — conservative estimate

@@ -83,7 +83,7 @@ async def get_persona(
     try:
         persona = await service.get_persona(db, persona_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return _serialize_persona(persona)
 
 
@@ -96,13 +96,11 @@ async def update_persona(
 ):
     """Partially update an investor persona."""
     try:
-        persona = await service.update_persona(
-            db, persona_id, current_user.org_id, body
-        )
+        persona = await service.update_persona(db, persona_id, current_user.org_id, body)
         await db.commit()
         await db.refresh(persona)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return _serialize_persona(persona)
 
 
@@ -116,7 +114,7 @@ async def get_persona_matches(
     try:
         matches = await service.get_persona_matches(db, persona_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return matches
 
 
@@ -135,14 +133,24 @@ def _serialize_persona(persona: Any) -> PersonaResponse:
         strategy_type=persona.strategy_type.value
         if hasattr(persona.strategy_type, "value")
         else str(persona.strategy_type),
-        target_irr_min=float(persona.target_irr_min) if persona.target_irr_min is not None else None,
-        target_irr_max=float(persona.target_irr_max) if persona.target_irr_max is not None else None,
-        target_moic_min=float(persona.target_moic_min) if persona.target_moic_min is not None else None,
+        target_irr_min=float(persona.target_irr_min)
+        if persona.target_irr_min is not None
+        else None,
+        target_irr_max=float(persona.target_irr_max)
+        if persona.target_irr_max is not None
+        else None,
+        target_moic_min=float(persona.target_moic_min)
+        if persona.target_moic_min is not None
+        else None,
         preferred_asset_types=_list_from_jsonb(persona.preferred_asset_types),
         preferred_geographies=_list_from_jsonb(persona.preferred_geographies),
         preferred_stages=_list_from_jsonb(persona.preferred_stages),
-        ticket_size_min=float(persona.ticket_size_min) if persona.ticket_size_min is not None else None,
-        ticket_size_max=float(persona.ticket_size_max) if persona.ticket_size_max is not None else None,
+        ticket_size_min=float(persona.ticket_size_min)
+        if persona.ticket_size_min is not None
+        else None,
+        ticket_size_max=float(persona.ticket_size_max)
+        if persona.ticket_size_max is not None
+        else None,
         esg_requirements=persona.esg_requirements,
         risk_tolerance=persona.risk_tolerance,
         co_investment_preference=persona.co_investment_preference,

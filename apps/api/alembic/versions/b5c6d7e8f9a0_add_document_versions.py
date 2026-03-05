@@ -5,11 +5,13 @@ Revises: b2c3d4e5f6a7
 Create Date: 2026-02-28 00:04:00.000000
 
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "b5c6d7e8f9a0"
 down_revision = "b2c3d4e5f6a7"
@@ -20,7 +22,12 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "document_versions",
-        sa.Column("id", postgresql.UUID(as_uuid=True), server_default=sa.text("gen_random_uuid()"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            server_default=sa.text("gen_random_uuid()"),
+            nullable=False,
+        ),
         sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
         sa.Column("document_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("org_id", postgresql.UUID(as_uuid=True), nullable=False),
@@ -38,7 +45,9 @@ def upgrade() -> None:
     )
     op.create_index("ix_document_versions_document_id", "document_versions", ["document_id"])
     op.create_index("ix_document_versions_org_id", "document_versions", ["org_id"])
-    op.create_index("ix_doc_version_doc_num", "document_versions", ["document_id", "version_number"])
+    op.create_index(
+        "ix_doc_version_doc_num", "document_versions", ["document_id", "version_number"]
+    )
 
 
 def downgrade() -> None:

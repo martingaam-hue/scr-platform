@@ -6,8 +6,6 @@ import {
   Badge,
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   LineChart,
   cn,
 } from "@scr/ui";

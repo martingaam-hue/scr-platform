@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-import uuid
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -67,9 +66,11 @@ class BaseConnector(ABC):
                 resp.raise_for_status()
                 return resp.json()
         except httpx.HTTPStatusError as exc:
-            raise RuntimeError(f"Connector {self.name} error {exc.response.status_code}: {exc.response.text[:200]}")
+            raise RuntimeError(
+                f"Connector {self.name} error {exc.response.status_code}: {exc.response.text[:200]}"
+            ) from exc
         except httpx.RequestError as exc:
-            raise RuntimeError(f"Connector {self.name} network error: {exc}")
+            raise RuntimeError(f"Connector {self.name} network error: {exc}") from exc
 
     async def post(self, endpoint: str, data: dict | None = None) -> dict[str, Any]:
         """Make authenticated POST request."""
@@ -83,7 +84,7 @@ class BaseConnector(ABC):
                 resp.raise_for_status()
                 return resp.json()
         except httpx.HTTPStatusError as exc:
-            raise RuntimeError(f"Connector {self.name} error {exc.response.status_code}")
+            raise RuntimeError(f"Connector {self.name} error {exc.response.status_code}") from exc
 
     @abstractmethod
     async def health_check(self) -> bool:

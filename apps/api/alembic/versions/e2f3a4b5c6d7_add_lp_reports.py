@@ -5,11 +5,13 @@ Revises: c9d0e1f2a3b4
 Create Date: 2026-02-28 00:01:00.000000
 
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "e2f3a4b5c6d7"
 down_revision = "c9d0e1f2a3b4"
@@ -20,7 +22,12 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "lp_reports",
-        sa.Column("id", postgresql.UUID(as_uuid=True), server_default=sa.text("gen_random_uuid()"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            server_default=sa.text("gen_random_uuid()"),
+            nullable=False,
+        ),
         sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
         sa.Column("is_deleted", sa.Boolean(), server_default="false", nullable=False),

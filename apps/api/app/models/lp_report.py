@@ -36,10 +36,10 @@ class LPReport(BaseModel):
     # Financial metrics — computed deterministically in Python (NEVER by LLM)
     gross_irr: Mapped[float | None] = mapped_column(Float, nullable=True)
     net_irr: Mapped[float | None] = mapped_column(Float, nullable=True)
-    tvpi: Mapped[float | None] = mapped_column(Float, nullable=True)   # Total Value to Paid-In
-    dpi: Mapped[float | None] = mapped_column(Float, nullable=True)    # Distributions to Paid-In
-    rvpi: Mapped[float | None] = mapped_column(Float, nullable=True)   # Residual Value to Paid-In
-    moic: Mapped[float | None] = mapped_column(Float, nullable=True)   # Multiple on Invested Capital
+    tvpi: Mapped[float | None] = mapped_column(Float, nullable=True)  # Total Value to Paid-In
+    dpi: Mapped[float | None] = mapped_column(Float, nullable=True)  # Distributions to Paid-In
+    rvpi: Mapped[float | None] = mapped_column(Float, nullable=True)  # Residual Value to Paid-In
+    moic: Mapped[float | None] = mapped_column(Float, nullable=True)  # Multiple on Invested Capital
 
     total_committed: Mapped[float | None] = mapped_column(Float, nullable=True)
     total_invested: Mapped[float | None] = mapped_column(Float, nullable=True)

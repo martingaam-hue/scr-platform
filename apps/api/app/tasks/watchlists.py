@@ -27,9 +27,13 @@ def check_watchlists(self) -> dict:
                 except Exception as exc:
                     logger.error("watchlist.check_error", watchlist_id=str(wl.id), error=str(exc))
         logger.info("watchlists.checked", count=len(watchlists), alerts=total_alerts)
-        return {"status": "ok", "watchlists_checked": len(watchlists), "alerts_created": total_alerts}
+        return {
+            "status": "ok",
+            "watchlists_checked": len(watchlists),
+            "alerts_created": total_alerts,
+        }
 
     try:
         return asyncio.run(_run())
     except Exception as exc:
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import math
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 
 import boto3
@@ -21,7 +21,7 @@ import httpx
 import numpy_financial as npf
 import structlog
 from botocore.config import Config as BotoConfig
-from jinja2 import Environment, BaseLoader
+from jinja2 import BaseLoader, Environment
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -201,7 +201,12 @@ Write four narrative sections for the LP report. Respond ONLY with valid JSON:
         validated = data.get("validated_data")
         if validated and all(
             k in validated
-            for k in ("executive_summary", "portfolio_commentary", "market_outlook", "esg_highlights")
+            for k in (
+                "executive_summary",
+                "portfolio_commentary",
+                "market_outlook",
+                "esg_highlights",
+            )
         ):
             return {
                 "executive_summary": validated["executive_summary"],
@@ -477,7 +482,7 @@ def _render_html_report(report: LPReport) -> str:
         period_start=str(report.period_start),
         period_end=str(report.period_end),
         status=report.status.upper(),
-        generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        generated_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         narrative=narrative_obj,
         gross_irr=_fmt_pct(report.gross_irr),
         net_irr=_fmt_pct(report.net_irr),
@@ -496,9 +501,7 @@ def _render_html_report(report: LPReport) -> str:
 # ── DB query helpers ──────────────────────────────────────────────────────────
 
 
-async def _get_report(
-    db: AsyncSession, report_id: uuid.UUID, org_id: uuid.UUID
-) -> LPReport | None:
+async def _get_report(db: AsyncSession, report_id: uuid.UUID, org_id: uuid.UUID) -> LPReport | None:
     stmt = select(LPReport).where(
         LPReport.id == report_id,
         LPReport.org_id == org_id,
@@ -541,8 +544,12 @@ async def create_report(
     )
 
     # If explicit totals provided, override the derived ones
-    metrics["total_invested"] = total_invested if total_invested is not None else metrics["total_invested"]
-    metrics["total_returned"] = total_returned if total_returned is not None else metrics["total_returned"]
+    metrics["total_invested"] = (
+        total_invested if total_invested is not None else metrics["total_invested"]
+    )
+    metrics["total_returned"] = (
+        total_returned if total_returned is not None else metrics["total_returned"]
+    )
     metrics["total_nav"] = total_nav if total_nav is not None else metrics["total_nav"]
 
     # Step 2: generate AI narrative
@@ -611,9 +618,7 @@ async def list_reports(
     return list(result.scalars().all()), total
 
 
-async def get_report(
-    db: AsyncSession, report_id: uuid.UUID, org_id: uuid.UUID
-) -> LPReport | None:
+async def get_report(db: AsyncSession, report_id: uuid.UUID, org_id: uuid.UUID) -> LPReport | None:
     """Fetch a single LP report by ID, scoped to org."""
     return await _get_report(db, report_id, org_id)
 
@@ -667,7 +672,7 @@ async def approve_report(
 
     report.status = "approved"
     report.approved_by = approver_id
-    report.approved_at = datetime.now(timezone.utc)
+    report.approved_at = datetime.now(UTC)
     await db.flush()
     return report
 
@@ -710,7 +715,7 @@ async def generate_html_report(
         s3_key = f"local/{report_id}/report.html"
 
     report.pdf_s3_key = s3_key
-    report.generated_at = datetime.now(timezone.utc)
+    report.generated_at = datetime.now(UTC)
     await db.flush()
 
     return s3_key, presigned_url

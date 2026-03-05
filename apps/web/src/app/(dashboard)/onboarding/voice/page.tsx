@@ -4,8 +4,8 @@ import { useState, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useProcessAudio } from "@/lib/voice-input"
 import {
-  Mic, MicOff, Upload, Loader2, CheckCircle, ChevronRight,
-  Volume2, AudioLines, FileAudio, AlertCircle, ArrowRight
+  Mic, MicOff, Upload, Loader2, CheckCircle,
+  FileAudio, AlertCircle, ArrowRight
 } from "lucide-react"
 
 interface ExtractedProject {
@@ -40,7 +40,7 @@ export default function VoiceInputPage() {
   const [transcript, setTranscript] = useState("")
   const [extracted, setExtracted] = useState<ExtractedProject | null>(null)
   const [editedFields, setEditedFields] = useState<Partial<ExtractedProject>>({})
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const [_audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [audioSeconds, setAudioSeconds] = useState(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -69,10 +69,8 @@ export default function VoiceInputPage() {
         recognition.continuous = true
         recognition.interimResults = true
         recognition.onresult = (e: SpeechRecognitionType) => {
-          let interim = ""
           for (let i = e.resultIndex; i < e.results.length; i++) {
             if (e.results[i].isFinal) setTranscript(t => t + e.results[i][0].transcript + " ")
-            else interim += e.results[i][0].transcript
           }
         }
         recognition.start()
@@ -101,12 +99,6 @@ export default function VoiceInputPage() {
     if (timerRef.current) clearInterval(timerRef.current)
     setRecordingState("processing")
   }, [])
-
-  const processAudio = useCallback(() => {
-    if (!audioBlob) return
-    const file = new File([audioBlob], "recording.webm", { type: audioBlob.type })
-    processMutation.mutate(file, { onSuccess: onProcessSuccess, onError: onProcessError })
-  }, [audioBlob, processMutation, onProcessSuccess, onProcessError])
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -146,7 +138,7 @@ export default function VoiceInputPage() {
       {/* Header */}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-900">Voice Project Input</h1>
-        <p className="text-sm text-gray-500 mt-1">Describe your project naturally — we'll extract the details automatically</p>
+        <p className="text-sm text-gray-500 mt-1">Describe your project naturally — we&apos;ll extract the details automatically</p>
       </div>
 
       {/* Recording panel */}

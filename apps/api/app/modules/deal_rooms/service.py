@@ -12,19 +12,51 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.deal_rooms import DealRoom, DealRoomActivity, DealRoomDocument, DealRoomMember, DealRoomMessage
+from app.models.deal_rooms import (
+    DealRoom,
+    DealRoomActivity,
+    DealRoomDocument,
+    DealRoomMember,
+    DealRoomMessage,
+)
 
 logger = structlog.get_logger()
 
 _DEFAULT_PERMISSIONS = {
-    "owner": {"can_upload": True, "can_download": True, "can_comment": True, "can_view_financials": True, "can_invite": True},
-    "admin": {"can_upload": True, "can_download": True, "can_comment": True, "can_view_financials": True, "can_invite": True},
-    "member": {"can_upload": True, "can_download": True, "can_comment": True, "can_view_financials": False, "can_invite": False},
-    "viewer": {"can_upload": False, "can_download": False, "can_comment": True, "can_view_financials": False, "can_invite": False},
+    "owner": {
+        "can_upload": True,
+        "can_download": True,
+        "can_comment": True,
+        "can_view_financials": True,
+        "can_invite": True,
+    },
+    "admin": {
+        "can_upload": True,
+        "can_download": True,
+        "can_comment": True,
+        "can_view_financials": True,
+        "can_invite": True,
+    },
+    "member": {
+        "can_upload": True,
+        "can_download": True,
+        "can_comment": True,
+        "can_view_financials": False,
+        "can_invite": False,
+    },
+    "viewer": {
+        "can_upload": False,
+        "can_download": False,
+        "can_comment": True,
+        "can_view_financials": False,
+        "can_invite": False,
+    },
 }
 
 
-async def create_room(db: AsyncSession, org_id: uuid.UUID, user_id: uuid.UUID, body: Any) -> DealRoom:
+async def create_room(
+    db: AsyncSession, org_id: uuid.UUID, user_id: uuid.UUID, body: Any
+) -> DealRoom:
     room = DealRoom(
         org_id=org_id,
         project_id=body.project_id,
@@ -45,7 +77,9 @@ async def create_room(db: AsyncSession, org_id: uuid.UUID, user_id: uuid.UUID, b
         joined_at=datetime.utcnow(),
     )
     db.add(member)
-    await log_activity(db, room.id, user_id, "room_created", description=f"Deal room '{room.name}' created")
+    await log_activity(
+        db, room.id, user_id, "room_created", description=f"Deal room '{room.name}' created"
+    )
     await db.commit()
     await db.refresh(room)
     return room
@@ -54,7 +88,7 @@ async def create_room(db: AsyncSession, org_id: uuid.UUID, user_id: uuid.UUID, b
 async def get_room(db: AsyncSession, room_id: uuid.UUID, org_id: uuid.UUID) -> DealRoom | None:
     result = await db.execute(
         select(DealRoom)
-        .where(DealRoom.id == room_id, DealRoom.org_id == org_id, DealRoom.is_deleted == False)
+        .where(DealRoom.id == room_id, DealRoom.org_id == org_id, DealRoom.is_deleted is False)
         .options(selectinload(DealRoom.members))  # type: ignore[attr-defined]
     )
     return result.scalar_one_or_none()
@@ -62,7 +96,8 @@ async def get_room(db: AsyncSession, room_id: uuid.UUID, org_id: uuid.UUID) -> D
 
 async def list_rooms(db: AsyncSession, org_id: uuid.UUID) -> list[DealRoom]:
     result = await db.execute(
-        select(DealRoom).where(DealRoom.org_id == org_id, DealRoom.is_deleted == False)
+        select(DealRoom)
+        .where(DealRoom.org_id == org_id, DealRoom.is_deleted is False)
         .order_by(DealRoom.created_at.desc())
     )
     return list(result.scalars().all())
@@ -71,7 +106,9 @@ async def list_rooms(db: AsyncSession, org_id: uuid.UUID) -> list[DealRoom]:
 async def invite_member(
     db: AsyncSession, room_id: uuid.UUID, invited_by: uuid.UUID, body: Any
 ) -> DealRoomMember:
-    permissions = body.permissions or _DEFAULT_PERMISSIONS.get(body.role, _DEFAULT_PERMISSIONS["member"])
+    permissions = body.permissions or _DEFAULT_PERMISSIONS.get(
+        body.role, _DEFAULT_PERMISSIONS["member"]
+    )
     token = secrets.token_urlsafe(32)
     member = DealRoomMember(
         room_id=room_id,
@@ -83,7 +120,13 @@ async def invite_member(
         invite_token=token,
     )
     db.add(member)
-    await log_activity(db, room_id, invited_by, "member_invited", description=f"Invited {body.email} as {body.role}")
+    await log_activity(
+        db,
+        room_id,
+        invited_by,
+        "member_invited",
+        description=f"Invited {body.email} as {body.role}",
+    )
     await db.commit()
     await db.refresh(member)
     return member
@@ -96,7 +139,9 @@ async def accept_invite(db: AsyncSession, token: str, user_id: uuid.UUID) -> Dea
         member.user_id = user_id
         member.joined_at = datetime.utcnow()
         member.invite_token = None
-        await log_activity(db, member.room_id, user_id, "member_joined", description="Member joined room")
+        await log_activity(
+            db, member.room_id, user_id, "member_joined", description="Member joined room"
+        )
         await db.commit()
         await db.refresh(member)
     return member
@@ -107,7 +152,9 @@ async def share_document(
 ) -> DealRoomDocument:
     doc = DealRoomDocument(room_id=room_id, document_id=document_id, shared_by=shared_by)
     db.add(doc)
-    await log_activity(db, room_id, shared_by, "doc_shared", entity_type="document", entity_id=document_id)
+    await log_activity(
+        db, room_id, shared_by, "doc_shared", entity_type="document", entity_id=document_id
+    )
     await db.commit()
     await db.refresh(doc)
     return doc
@@ -130,7 +177,9 @@ async def send_message(
     return msg
 
 
-async def get_activity_feed(db: AsyncSession, room_id: uuid.UUID, limit: int = 50) -> list[DealRoomActivity]:
+async def get_activity_feed(
+    db: AsyncSession, room_id: uuid.UUID, limit: int = 50
+) -> list[DealRoomActivity]:
     result = await db.execute(
         select(DealRoomActivity)
         .where(DealRoomActivity.room_id == room_id)
@@ -143,7 +192,7 @@ async def get_activity_feed(db: AsyncSession, room_id: uuid.UUID, limit: int = 5
 async def get_messages(db: AsyncSession, room_id: uuid.UUID) -> list[DealRoomMessage]:
     result = await db.execute(
         select(DealRoomMessage)
-        .where(DealRoomMessage.room_id == room_id, DealRoomMessage.is_deleted == False)
+        .where(DealRoomMessage.room_id == room_id, DealRoomMessage.is_deleted is False)
         .order_by(DealRoomMessage.created_at)
     )
     return list(result.scalars().all())

@@ -8,14 +8,11 @@ import {
   ChevronRight,
   RefreshCw,
   CheckCircle2,
-  Circle,
 } from "lucide-react";
 import {
   Badge,
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -28,7 +25,6 @@ import {
   useRiskDomains,
   useRunRiskCheck,
   useUpdateMitigation,
-  severityVariant,
   severityClasses,
   riskScoreColor,
   MITIGATION_STATUS_LABELS,
@@ -259,14 +255,6 @@ function ProjectRiskRow({
   canEdit: boolean;
 }) {
   const riskColor = riskScoreColor(project.overall_risk_score);
-  const riskLabel =
-    project.overall_risk_score >= 75
-      ? "Critical"
-      : project.overall_risk_score >= 50
-        ? "High"
-        : project.overall_risk_score >= 25
-          ? "Medium"
-          : "Low";
 
   return (
     <div className="border border-neutral-200 rounded-lg bg-white overflow-hidden">

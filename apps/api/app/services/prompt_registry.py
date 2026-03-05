@@ -54,10 +54,12 @@ class PromptRegistry:
 
         messages: list[dict[str, Any]] = []
         if template.system_prompt:
-            messages.append({
-                "role": "system",
-                "content": self._fill(template.system_prompt, variables),
-            })
+            messages.append(
+                {
+                    "role": "system",
+                    "content": self._fill(template.system_prompt, variables),
+                }
+            )
 
         user_text = self._fill(template.user_prompt_template, variables)
         if template.output_format_instruction:
@@ -127,7 +129,7 @@ class PromptRegistry:
         for key, value in variables.items():
             placeholder = "{" + key + "}"
             if placeholder in result:
-                if isinstance(value, (dict, list)):
+                if isinstance(value, dict | list):
                     result = result.replace(placeholder, json.dumps(value, indent=2, default=str))
                 else:
                     result = result.replace(placeholder, str(value))

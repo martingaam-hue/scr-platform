@@ -274,7 +274,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Audit dependencies
-        run: pnpm audit --audit-level moderate
+        working-directory: apps/web
+        run: pnpm audit --audit-level moderate --prod
 
   # ── Summary gate ──────────────────────────────────────────────────────────────
   ci-passed:

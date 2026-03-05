@@ -1,14 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { formatPct } from "@/lib/format"
 import {
   useMyBadges, useProjectBadges, useProjectQuests,
   useGamificationProgress, useLeaderboard, useCompleteQuest,
   RARITY_STYLE, RARITY_TEXT,
 } from "@/lib/gamification"
 import {
-  Trophy, Star, Zap, Target, ChevronRight, Award,
+  Trophy, Star, Target, Award,
   TrendingUp, Users, CheckCircle, Lock, Flame
 } from "lucide-react"
 
@@ -98,7 +97,7 @@ export default function GamificationPage() {
           {[
             { label: "Badges Earned", value: earnedBadges.length, icon: Award, color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
             { label: "Total Points", value: earnedBadges.reduce((s, b) => s + b.points, 0).toLocaleString(), icon: Star, color: "text-purple-600", bg: "bg-purple-50 border-purple-200" },
-            { label: "Leaderboard", value: `#${leaderboard.findIndex(e => false) + 1 || "—"}`, icon: TrendingUp, color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
+            { label: "Leaderboard", value: `#${leaderboard.findIndex(_e => false) + 1 || "—"}`, icon: TrendingUp, color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
           ].map(({ label, value, icon: Icon, color, bg }) => (
             <div key={label} className={`rounded-xl border p-4 ${bg}`}>
               <div className="flex items-center gap-2">

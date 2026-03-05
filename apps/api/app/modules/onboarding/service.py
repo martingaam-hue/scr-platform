@@ -14,8 +14,6 @@ from app.models.enums import (
     OrgType,
     PortfolioStatus,
     PortfolioStrategy,
-    ProjectStage,
-    ProjectStatus,
     ProjectType,
     RiskTolerance,
     SFDRClassification,
@@ -95,6 +93,7 @@ async def complete_onboarding(
     # Award onboarding badge
     try:
         from app.modules.gamification import service as gamification_service
+
         project_id = uuid.UUID(created.get("project_id")) if created.get("project_id") else None
         await gamification_service.evaluate_badges(
             db, current_user.user_id, project_id, "onboarding_complete"
@@ -197,9 +196,7 @@ async def _setup_ally(
             project_type=ProjectType(fa.get("project_type", "solar")),
             description=fa.get("description", ""),
             geography_country=fa.get("geography_country", ""),
-            total_investment_required=_safe_decimal(
-                str(fa.get("total_investment_required", "0"))
-            ),
+            total_investment_required=_safe_decimal(str(fa.get("total_investment_required", "0"))),
             currency=fa.get("currency", "USD"),
         )
         created["project_id"] = str(project.id)

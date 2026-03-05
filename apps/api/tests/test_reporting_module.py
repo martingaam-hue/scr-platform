@@ -16,11 +16,10 @@ from app.models.core import Organization, User
 from app.models.enums import (
     OrgType,
     ReportCategory,
-    ReportFrequency,
     ReportStatus,
     UserRole,
 )
-from app.models.reporting import GeneratedReport, ReportTemplate, ScheduledReport
+from app.models.reporting import GeneratedReport, ReportTemplate
 from app.schemas.auth import CurrentUser
 
 pytestmark = pytest.mark.anyio
@@ -108,7 +107,9 @@ async def rp_system_template(db: AsyncSession) -> ReportTemplate:
 
 
 @pytest.fixture
-async def rp_report(db: AsyncSession, rp_org: Organization, rp_template: ReportTemplate, rp_user: User) -> GeneratedReport:
+async def rp_report(
+    db: AsyncSession, rp_org: Organization, rp_template: ReportTemplate, rp_user: User
+) -> GeneratedReport:
     """A queued generated report for delete/get tests."""
     report = GeneratedReport(
         org_id=RP_ORG_ID,
@@ -127,9 +128,7 @@ async def rp_report(db: AsyncSession, rp_org: Organization, rp_template: ReportT
 async def rp_client(db: AsyncSession, rp_user: User) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: RP_CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
@@ -189,9 +188,7 @@ class TestReportTemplateEndpoints:
         assert data["name"] == "RP Portfolio Report"
         assert data["category"] == "portfolio"
 
-    async def test_get_template_not_found_404(
-        self, rp_client: AsyncClient, rp_user: User
-    ) -> None:
+    async def test_get_template_not_found_404(self, rp_client: AsyncClient, rp_user: User) -> None:
         """GET /v1/reports/templates/{id} for unknown template returns 404."""
         resp = await rp_client.get(f"/v1/reports/templates/{uuid.uuid4()}")
         assert resp.status_code == 404
@@ -279,13 +276,9 @@ class TestGeneratedReportListAndGet:
         assert data["title"] == "RP Queued Report"
         assert data["status"] == "queued"
 
-    async def test_get_report_not_found_404(
-        self, rp_client: AsyncClient, rp_user: User
-    ) -> None:
+    async def test_get_report_not_found_404(self, rp_client: AsyncClient, rp_user: User) -> None:
         """GET /v1/reports/{id} for unknown report returns 404."""
-        resp = await rp_client.get(
-            "/v1/reports/00000000-0000-0000-0000-000000000099"
-        )
+        resp = await rp_client.get("/v1/reports/00000000-0000-0000-0000-000000000099")
         assert resp.status_code == 404
 
     async def test_delete_report_204(
@@ -298,22 +291,16 @@ class TestGeneratedReportListAndGet:
         get_resp = await rp_client.get(f"/v1/reports/{rp_report.id}")
         assert get_resp.status_code == 404
 
-    async def test_delete_report_not_found_404(
-        self, rp_client: AsyncClient, rp_user: User
-    ) -> None:
+    async def test_delete_report_not_found_404(self, rp_client: AsyncClient, rp_user: User) -> None:
         """DELETE /v1/reports/{id} for unknown report returns 404."""
-        resp = await rp_client.delete(
-            f"/v1/reports/{uuid.uuid4()}"
-        )
+        resp = await rp_client.delete(f"/v1/reports/{uuid.uuid4()}")
         assert resp.status_code == 404
 
 
 class TestScheduleEndpoints:
     """Tests for /v1/reports/schedules."""
 
-    async def test_list_schedules_empty_200(
-        self, rp_client: AsyncClient, rp_user: User
-    ) -> None:
+    async def test_list_schedules_empty_200(self, rp_client: AsyncClient, rp_user: User) -> None:
         """GET /v1/reports/schedules returns 200 with items structure."""
         resp = await rp_client.get("/v1/reports/schedules")
         assert resp.status_code == 200
@@ -360,9 +347,7 @@ class TestScheduleEndpoints:
         self, rp_client: AsyncClient, rp_user: User
     ) -> None:
         """DELETE /v1/reports/schedules/{id} for unknown schedule returns 404."""
-        resp = await rp_client.delete(
-            f"/v1/reports/schedules/{uuid.uuid4()}"
-        )
+        resp = await rp_client.delete(f"/v1/reports/schedules/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_create_then_delete_schedule_204(

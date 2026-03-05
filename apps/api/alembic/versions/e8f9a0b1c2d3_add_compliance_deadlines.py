@@ -5,11 +5,13 @@ Revises: d7e8f9a0b1c2
 Create Date: 2026-02-28 01:00:00.000000
 
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "e8f9a0b1c2d3"
 down_revision = "d7e8f9a0b1c2"
@@ -20,7 +22,12 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "compliance_deadlines",
-        sa.Column("id", postgresql.UUID(as_uuid=True), server_default=sa.text("gen_random_uuid()"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            server_default=sa.text("gen_random_uuid()"),
+            nullable=False,
+        ),
         sa.Column("org_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("project_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("portfolio_id", postgresql.UUID(as_uuid=True), nullable=True),
@@ -39,8 +46,18 @@ def upgrade() -> None:
         sa.Column("reminder_14d_sent", sa.Boolean, server_default="false", nullable=False),
         sa.Column("reminder_7d_sent", sa.Boolean, server_default="false", nullable=False),
         sa.Column("reminder_1d_sent", sa.Boolean, server_default="false", nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("is_deleted", sa.Boolean, server_default="false", nullable=False),
         sa.ForeignKeyConstraint(["assigned_to"], ["users.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["portfolio_id"], ["portfolios.id"], ondelete="SET NULL"),

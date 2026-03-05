@@ -249,7 +249,7 @@ function PreviewTab({ isAdmin }: { isAdmin: boolean }) {
             </div>
           ) : !generating ? (
             <p className="text-sm text-gray-400 italic">
-              Click "Generate" to create an AI-written narrative summarising recent activity.
+              Click &quot;Generate&quot; to create an AI-written narrative summarising recent activity.
             </p>
           ) : null}
         </CardContent>
@@ -537,7 +537,7 @@ export default function DigestPage() {
           Weekly AI Digest
         </h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          AI-generated summaries of your organisation's platform activity
+          AI-generated summaries of your organisation&apos;s platform activity
         </p>
       </div>
 

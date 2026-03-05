@@ -9,10 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db
 from app.modules.valuation import service
-from app.services.response_cache import cache_key, get_cached, set_cached
 from app.modules.valuation.schemas import (
     AssumptionSuggestion,
     BatchValuationItem,
@@ -28,6 +27,7 @@ from app.modules.valuation.schemas import (
     ValuationUpdateRequest,
 )
 from app.schemas.auth import CurrentUser
+from app.services.response_cache import cache_key, get_cached, set_cached
 
 logger = structlog.get_logger()
 
@@ -108,19 +108,21 @@ async def batch_valuations(
     )
 
 
-@router.post("/suggest-assumptions", summary="Suggest DCF assumptions", response_model=AssumptionSuggestion)
+@router.post(
+    "/suggest-assumptions", summary="Suggest DCF assumptions", response_model=AssumptionSuggestion
+)
 async def suggest_assumptions(
     body: SuggestAssumptionsRequest,
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("view", "project")),
 ):
     """AI-assisted assumption suggestions for DCF valuation."""
-    return await service.suggest_assumptions(
-        body.project_type, body.geography, body.stage, db=db
-    )
+    return await service.suggest_assumptions(body.project_type, body.geography, body.stage, db=db)
 
 
-@router.post("/compare", summary="Compare multiple valuations", response_model=list[ValuationResponse])
+@router.post(
+    "/compare", summary="Compare multiple valuations", response_model=list[ValuationResponse]
+)
 async def compare_valuations(
     valuation_ids: list[uuid.UUID],
     current_user: CurrentUser = Depends(require_permission("view", "project")),
@@ -153,16 +155,14 @@ async def create_valuation(
 ):
     """Create a new valuation for a project."""
     try:
-        val = await service.create_valuation(
-            db, current_user.org_id, current_user.user_id, body
-        )
+        val = await service.create_valuation(db, current_user.org_id, current_user.user_id, body)
         await db.commit()
         await db.refresh(val)
         return service._to_response(val)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("", summary="List valuations", response_model=ValuationListResponse)
@@ -197,7 +197,7 @@ async def get_valuation(
         await set_cached(ck, jsonable_encoder(result), ttl=600)
         return result
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.put("/{valuation_id}", summary="Update valuation", response_model=ValuationResponse)
@@ -214,12 +214,14 @@ async def update_valuation(
         await db.refresh(val)
         return service._to_response(val)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-@router.put("/{valuation_id}/approve", summary="Approve valuation", response_model=ValuationResponse)
+@router.put(
+    "/{valuation_id}/approve", summary="Approve valuation", response_model=ValuationResponse
+)
 async def approve_valuation(
     valuation_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("approve", "project")),
@@ -234,15 +236,19 @@ async def approve_valuation(
         await db.refresh(val)
         return service._to_response(val)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 # ── Analysis ──────────────────────────────────────────────────────────────────
 
 
-@router.post("/{valuation_id}/sensitivity", summary="Run sensitivity matrix", response_model=SensitivityMatrix)
+@router.post(
+    "/{valuation_id}/sensitivity",
+    summary="Run sensitivity matrix",
+    response_model=SensitivityMatrix,
+)
 async def run_sensitivity(
     valuation_id: uuid.UUID,
     body: SensitivityRequest,
@@ -251,13 +257,11 @@ async def run_sensitivity(
 ):
     """Run a two-variable sensitivity matrix on a DCF valuation."""
     try:
-        return await service.run_sensitivity(
-            db, valuation_id, current_user.org_id, body
-        )
+        return await service.run_sensitivity(db, valuation_id, current_user.org_id, body)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post(
@@ -280,6 +284,7 @@ async def trigger_report(
         await db.refresh(report)
 
         from app.modules.valuation.tasks import generate_valuation_report_task
+
         generate_valuation_report_task.delay(str(report.id))
 
         return ValuationReportResponse(
@@ -288,4 +293,4 @@ async def trigger_report(
             message="Valuation report queued for generation.",
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

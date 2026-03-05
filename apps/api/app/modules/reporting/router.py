@@ -7,17 +7,16 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db
 from app.models.enums import ReportCategory, ReportStatus
 from app.modules.reporting import service
 from app.modules.reporting.schemas import (
     CreateScheduleRequest,
-    GenerateReportAcceptedResponse,
-    GenerateReportRequest,
     GeneratedReportListResponse,
     GeneratedReportResponse,
-    OutputFormat,
+    GenerateReportAcceptedResponse,
+    GenerateReportRequest,
     ReportTemplateListResponse,
     ReportTemplateResponse,
     ScheduledReportListResponse,
@@ -136,7 +135,12 @@ async def generate_report(
 
     title = body.title or f"{template.name} — {body.output_format.value.upper()}"
     report = await service.create_generated_report(
-        db, current_user, body.template_id, title, body.parameters, body.output_format,
+        db,
+        current_user,
+        body.template_id,
+        title,
+        body.parameters,
+        body.output_format,
     )
     await db.commit()
 
@@ -225,6 +229,7 @@ async def update_schedule(
     # Re-query after commit to get fresh data with eagerly loaded template
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
+
     from app.models.reporting import ScheduledReport as _ScheduledReport
 
     stmt = (
@@ -262,7 +267,12 @@ async def list_reports(
     db: AsyncSession = Depends(get_db),
 ):
     reports, total = await service.list_generated_reports(
-        db, current_user.org_id, status_filter, template_id, page, page_size,
+        db,
+        current_user.org_id,
+        status_filter,
+        template_id,
+        page,
+        page_size,
     )
     total_pages = math.ceil(total / page_size) if total > 0 else 0
     return GeneratedReportListResponse(

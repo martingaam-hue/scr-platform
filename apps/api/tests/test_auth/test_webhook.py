@@ -34,9 +34,7 @@ class TestHandleUserCreated:
         }
         await handle_user_created(data, db)
 
-        result = await db.execute(
-            select(User).where(User.external_auth_id == "user_test_new_123")
-        )
+        result = await db.execute(select(User).where(User.external_auth_id == "user_test_new_123"))
         user = result.scalar_one()
         assert user.email == "newuser@example.com"
         assert user.full_name == "New User"
@@ -69,9 +67,7 @@ class TestHandleUserCreated:
         }
         await handle_user_created(data, db)
 
-        result = await db.execute(
-            select(User).where(User.external_auth_id == clerk_id)
-        )
+        result = await db.execute(select(User).where(User.external_auth_id == clerk_id))
         user = result.scalar_one()
         assert user.org_id == org.id
 
@@ -180,9 +176,7 @@ class TestHandleOrganizationCreated:
         }
         await handle_organization_created(data, db)
 
-        result = await db.execute(
-            select(Organization).where(Organization.slug == slug)
-        )
+        result = await db.execute(select(Organization).where(Organization.slug == slug))
         org = result.scalar_one()
         assert org.name == "New Org"
         assert org.type == OrgType.ALLY
@@ -198,8 +192,6 @@ class TestHandleOrganizationCreated:
         await handle_organization_created(data, db)
         await handle_organization_created(data, db)
 
-        result = await db.execute(
-            select(Organization).where(Organization.slug == slug)
-        )
+        result = await db.execute(select(Organization).where(Organization.slug == slug))
         orgs = result.scalars().all()
         assert len(orgs) == 1

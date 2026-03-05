@@ -5,11 +5,13 @@ Revises: a7b8c9d0e1f2
 Create Date: 2026-02-28 00:02:00.000000
 
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "f3a4b5c6d7e8"
 down_revision = "a7b8c9d0e1f2"
@@ -20,7 +22,12 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "comparable_transactions",
-        sa.Column("id", postgresql.UUID(as_uuid=True), server_default=sa.text("gen_random_uuid()"), nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            server_default=sa.text("gen_random_uuid()"),
+            nullable=False,
+        ),
         sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
         sa.Column("is_deleted", sa.Boolean(), server_default="false", nullable=False),
@@ -52,8 +59,12 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_comparable_transactions_org_id", "comparable_transactions", ["org_id"])
-    op.create_index("ix_comparable_transactions_asset_type", "comparable_transactions", ["asset_type"])
-    op.create_index("ix_comparable_transactions_close_year", "comparable_transactions", ["close_year"])
+    op.create_index(
+        "ix_comparable_transactions_asset_type", "comparable_transactions", ["asset_type"]
+    )
+    op.create_index(
+        "ix_comparable_transactions_close_year", "comparable_transactions", ["close_year"]
+    )
 
 
 def downgrade() -> None:

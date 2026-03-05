@@ -10,10 +10,10 @@ Usage (FastAPI dependency):
     ):
         ...
 """
+
 from __future__ import annotations
 
-import calendar
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import structlog
@@ -32,18 +32,19 @@ logger = structlog.get_logger()
 
 # Tier-default monthly USD budgets (can be overridden per org in DB)
 _TIER_BUDGETS: dict[SubscriptionTier, float] = {
-    SubscriptionTier.FOUNDATION:   50.0,    # ~$50/month
-    SubscriptionTier.PROFESSIONAL: 500.0,   # ~$500/month
-    SubscriptionTier.ENTERPRISE:   5000.0,  # ~$5k/month
+    SubscriptionTier.FOUNDATION: 50.0,  # ~$50/month
+    SubscriptionTier.PROFESSIONAL: 500.0,  # ~$500/month
+    SubscriptionTier.ENTERPRISE: 5000.0,  # ~$5k/month
 }
 
 
 async def get_org_monthly_spend(db: AsyncSession, org_id: str) -> Decimal:
     """Return total USD spent by *org_id* in the current calendar month."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     first_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     from uuid import UUID
+
     org_uuid = UUID(str(org_id))
 
     result = await db.execute(
@@ -62,6 +63,7 @@ async def get_org_budget(db: AsyncSession, org_id: str) -> float:
     Uses the explicit DB override if set; falls back to the tier default.
     """
     from uuid import UUID
+
     org_uuid = UUID(str(org_id))
 
     result = await db.execute(
@@ -114,17 +116,9 @@ async def check_budget(db: AsyncSession, org_id: str) -> None:
             )
     except HTTPException:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("ai_budget_check_failed", error=str(exc))
         # Fail open — don't block requests on DB errors
-
-
-async def enforce_ai_budget(
-    current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(lambda: None),  # overridden below
-) -> None:
-    """FastAPI dependency that enforces org-level AI budget."""
-    pass  # placeholder — real implementation below
 
 
 # Proper dependency using FastAPI's DI

@@ -7,8 +7,8 @@ helper ensures all queries are scoped to the current org.
 
 import uuid
 
-from starlette.types import ASGIApp, Receive, Scope, Send
 from sqlalchemy.sql import Select
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 
 class TenantMiddleware:

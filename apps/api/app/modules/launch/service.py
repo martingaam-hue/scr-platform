@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import structlog
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.launch import FeatureFlag, FeatureFlagOverride, UsageEvent, WaitlistEntry
@@ -34,9 +34,7 @@ async def seed_default_flags(db: AsyncSession) -> None:
     Called from the FastAPI lifespan startup hook.
     """
     for name, description, enabled in DEFAULT_FLAGS:
-        existing = await db.execute(
-            select(FeatureFlag).where(FeatureFlag.name == name)
-        )
+        existing = await db.execute(select(FeatureFlag).where(FeatureFlag.name == name))
         if existing.scalar_one_or_none() is None:
             flag = FeatureFlag(
                 name=name,
@@ -109,12 +107,9 @@ class LaunchService:
         flags_stmt = select(FeatureFlag).order_by(FeatureFlag.name)
         flags = list((await self.db.execute(flags_stmt)).scalars().all())
 
-        overrides_stmt = select(FeatureFlagOverride).where(
-            FeatureFlagOverride.org_id == org_id
-        )
+        overrides_stmt = select(FeatureFlagOverride).where(FeatureFlagOverride.org_id == org_id)
         overrides = {
-            o.flag_name: o.enabled
-            for o in (await self.db.execute(overrides_stmt)).scalars().all()
+            o.flag_name: o.enabled for o in (await self.db.execute(overrides_stmt)).scalars().all()
         }
 
         return [
@@ -153,9 +148,7 @@ class LaunchService:
         await self.db.refresh(event)
         return event
 
-    async def get_usage_summary(
-        self, org_id: uuid.UUID, days: int = 30
-    ) -> dict[str, Any]:
+    async def get_usage_summary(self, org_id: uuid.UUID, days: int = 30) -> dict[str, Any]:
         """Return usage event counts grouped by event_type for the last N days."""
         since = datetime.utcnow() - timedelta(days=days)
 
@@ -219,9 +212,7 @@ class LaunchService:
         await self.db.refresh(entry)
         return entry
 
-    async def list_waitlist(
-        self, status_filter: str | None = None
-    ) -> list[WaitlistEntry]:
+    async def list_waitlist(self, status_filter: str | None = None) -> list[WaitlistEntry]:
         """List waitlist entries, optionally filtered by status."""
         stmt = select(WaitlistEntry).order_by(WaitlistEntry.created_at.desc())
         if status_filter:

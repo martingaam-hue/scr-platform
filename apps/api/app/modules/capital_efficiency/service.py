@@ -2,7 +2,7 @@
 
 import hashlib
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -87,7 +87,7 @@ def _synthetic_metrics(org_id: uuid.UUID) -> EfficiencyMetricsResponse:
     avg_close_days = 72.0 - (seed % 15)
     efficiency_score = min(95.0, 68.0 + seed * 0.3)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     period_end = date(now.year, now.month, 1)
     period_start = date(now.year - 1, now.month, 1)
 
@@ -124,28 +124,28 @@ async def _compute_live_metrics(
     org_id: uuid.UUID,
 ) -> EfficiencyMetricsResponse | None:
     """Compute efficiency metrics from actual platform activity. Returns None if no data yet."""
-    from decimal import Decimal
-    from app.models.ai import AITaskLog
-    from app.models.deal_flow import DealStageTransition
-    from app.models.legal import LegalDocument
-    from app.models.financial import TaxCredit
-    from app.models.enums import AITaskStatus, TaxCreditQualification
     from sqlalchemy import func
 
-    now = datetime.now(timezone.utc)
+    from app.models.ai import AITaskLog
+    from app.models.deal_flow import DealStageTransition
+    from app.models.enums import AITaskStatus, TaxCreditQualification
+    from app.models.financial import TaxCredit
+    from app.models.legal import LegalDocument
+
+    now = datetime.now(UTC)
     period_end = date(now.year, now.month, 1)
     period_start = date(now.year - 1, now.month, 1)
 
     # --- Deal metrics from DealStageTransition ---
     trans_result = await db.execute(
-        select(func.count(DealStageTransition.id.distinct()))
-        .where(DealStageTransition.org_id == org_id)
+        select(func.count(DealStageTransition.id.distinct())).where(
+            DealStageTransition.org_id == org_id
+        )
     )
     deals_screened = trans_result.scalar() or 0
 
     closed_result = await db.execute(
-        select(func.count(DealStageTransition.project_id.distinct()))
-        .where(
+        select(func.count(DealStageTransition.project_id.distinct())).where(
             DealStageTransition.org_id == org_id,
             DealStageTransition.to_stage == "closed",
         )
@@ -157,8 +157,7 @@ async def _compute_live_metrics(
 
     # --- AI task time savings (2h per completed task) ---
     ai_result = await db.execute(
-        select(func.count(AITaskLog.id))
-        .where(
+        select(func.count(AITaskLog.id)).where(
             AITaskLog.org_id == org_id,
             AITaskLog.status == AITaskStatus.COMPLETED,
         )
@@ -168,16 +167,14 @@ async def _compute_live_metrics(
 
     # --- Legal automation savings ---
     legal_result = await db.execute(
-        select(func.count(LegalDocument.id))
-        .where(LegalDocument.org_id == org_id)
+        select(func.count(LegalDocument.id)).where(LegalDocument.org_id == org_id)
     )
     legal_docs = legal_result.scalar() or 0
     legal_savings = round(legal_docs * 3_000.0, 2)  # ~$3k avg legal doc cost saved
 
     # --- Tax credit value captured ---
     tax_result = await db.execute(
-        select(func.coalesce(func.sum(TaxCredit.claimed_value), 0))
-        .where(
+        select(func.coalesce(func.sum(TaxCredit.claimed_value), 0)).where(
             TaxCredit.org_id == org_id,
             TaxCredit.qualification == TaxCreditQualification.CLAIMED,
         )
@@ -186,7 +183,9 @@ async def _compute_live_metrics(
 
     # --- DD savings: deals_screened * industry_avg reduced by platform efficiency ---
     dd_savings = round(deals_screened * INDUSTRY_BENCHMARKS["avg_dd_cost_usd"] * 0.45, 2)
-    risk_savings = round(deals_screened * INDUSTRY_BENCHMARKS["avg_risk_assessment_cost_usd"] * 0.4, 2)
+    risk_savings = round(
+        deals_screened * INDUSTRY_BENCHMARKS["avg_risk_assessment_cost_usd"] * 0.4, 2
+    )
 
     # --- Avg days to close ---
     if deals_closed > 0:
@@ -195,20 +194,29 @@ async def _compute_live_metrics(
                 func.avg(
                     func.extract(
                         "epoch",
-                        func.max(DealStageTransition.created_at) - func.min(DealStageTransition.created_at)
-                    ) / 86400
+                        func.max(DealStageTransition.created_at)
+                        - func.min(DealStageTransition.created_at),
+                    )
+                    / 86400
                 )
             )
             .where(DealStageTransition.org_id == org_id)
             .group_by(DealStageTransition.project_id)
             .having(func.bool_or(DealStageTransition.to_stage == "closed"))
         )
-        avg_close_days = float(avg_close_result.scalar() or INDUSTRY_BENCHMARKS["avg_time_to_close_days"])
+        avg_close_days = float(
+            avg_close_result.scalar() or INDUSTRY_BENCHMARKS["avg_time_to_close_days"]
+        )
     else:
         avg_close_days = float(INDUSTRY_BENCHMARKS["avg_time_to_close_days"])
 
     total = dd_savings + legal_savings + risk_savings + tax_captured
-    efficiency_score = min(95.0, 50.0 + (deals_closed / max(deals_screened, 1)) * 30.0 + (ai_tasks_done / max(deals_screened, 1)) * 15.0)
+    efficiency_score = min(
+        95.0,
+        50.0
+        + (deals_closed / max(deals_screened, 1)) * 30.0
+        + (ai_tasks_done / max(deals_screened, 1)) * 15.0,
+    )
 
     synthetic_id = uuid.UUID(int=int.from_bytes(str(org_id).encode()[:16], "big") % (2**128))
 

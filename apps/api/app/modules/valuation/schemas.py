@@ -8,17 +8,16 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, field_validator, model_validator
 
-
 # ── DCF ──────────────────────────────────────────────────────────────────────
 
 
 class DCFParams(BaseModel):
-    cash_flows: list[float]           # yearly amounts in valuation currency
-    discount_rate: float              # 0.0–1.0  (e.g. 0.10 = 10 %)
+    cash_flows: list[float]  # yearly amounts in valuation currency
+    discount_rate: float  # 0.0–1.0  (e.g. 0.10 = 10 %)
     terminal_growth_rate: float = 0.02
     terminal_method: Literal["gordon", "exit_multiple"] = "gordon"
     exit_multiple: float | None = None
-    net_debt: float = 0.0             # subtracted from EV to get equity value
+    net_debt: float = 0.0  # subtracted from EV to get equity value
 
     @field_validator("discount_rate")
     @classmethod
@@ -64,9 +63,9 @@ class DCFResult(BaseModel):
 
 class ComparableCompany(BaseModel):
     name: str
-    ev_ebitda: float | None = None    # EV / EBITDA multiple
-    ev_mw: float | None = None        # EV / MW for power assets (USD per MW)
-    ev_revenue: float | None = None   # EV / Revenue multiple
+    ev_ebitda: float | None = None  # EV / EBITDA multiple
+    ev_mw: float | None = None  # EV / MW for power assets (USD per MW)
+    ev_revenue: float | None = None  # EV / Revenue multiple
     transaction_date: str | None = None
     geography: str | None = None
     notes: str | None = None
@@ -79,7 +78,9 @@ class ComparableParams(BaseModel):
     subject_revenue: float | None = None
     net_debt: float = 0.0
     multiple_types: list[Literal["ev_ebitda", "ev_mw", "ev_revenue"]] = [
-        "ev_ebitda", "ev_mw", "ev_revenue"
+        "ev_ebitda",
+        "ev_mw",
+        "ev_revenue",
     ]
 
     @field_validator("comparables")
@@ -99,7 +100,7 @@ class MultipleResult(BaseModel):
 
 
 class ComparableResult(BaseModel):
-    enterprise_value: float    # = weighted_average_value
+    enterprise_value: float  # = weighted_average_value
     equity_value: float
     by_multiple: dict[str, MultipleResult]
     weighted_average_value: float
@@ -114,7 +115,7 @@ class ReplacementCostParams(BaseModel):
     component_costs: dict[str, float]  # label → amount in valuation currency
     land_value: float = 0.0
     development_costs: float = 0.0
-    depreciation_pct: float = 0.0      # 0–100 %
+    depreciation_pct: float = 0.0  # 0–100 %
     net_debt: float = 0.0
 
     @field_validator("depreciation_pct")
@@ -144,9 +145,9 @@ class ReplacementResult(BaseModel):
 
 
 class BlendedComponent(BaseModel):
-    method: str           # "dcf" | "comparables" | "replacement_cost" | custom label
+    method: str  # "dcf" | "comparables" | "replacement_cost" | custom label
     enterprise_value: float
-    weight: float         # will be normalised to sum to 1
+    weight: float  # will be normalised to sum to 1
 
 
 class BlendedParams(BaseModel):
@@ -164,7 +165,7 @@ class BlendedParams(BaseModel):
 class BlendedBreakdownItem(BaseModel):
     method: str
     enterprise_value: float
-    weight: float           # normalised
+    weight: float  # normalised
     weighted_value: float
 
 
@@ -183,9 +184,9 @@ class BlendedResult(BaseModel):
 class SensitivityRequest(BaseModel):
     base_params: DCFParams
     row_variable: Literal["discount_rate", "terminal_growth_rate"]
-    row_values: list[float]   # 3–7 values
+    row_values: list[float]  # 3–7 values
     col_variable: Literal["discount_rate", "terminal_growth_rate"]
-    col_values: list[float]   # 3–7 values
+    col_values: list[float]  # 3–7 values
 
     @model_validator(mode="after")
     def vars_differ(self) -> SensitivityRequest:
@@ -270,7 +271,7 @@ class ValuationResponse(BaseModel):
     project_id: uuid.UUID
     org_id: uuid.UUID
     method: str
-    enterprise_value: str   # Decimal as string
+    enterprise_value: str  # Decimal as string
     equity_value: str
     currency: str
     status: str

@@ -75,7 +75,7 @@ async def update_covenant(
     try:
         covenant = await svc.update_covenant(covenant_id, body)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return CovenantResponse.model_validate(covenant)
 
 
@@ -92,11 +92,9 @@ async def waive_covenant(
     """Waive a covenant breach with a documented reason."""
     svc = MonitoringService(db, current_user.org_id)
     try:
-        covenant = await svc.waive_covenant(
-            covenant_id, current_user.user_id, body.reason
-        )
+        covenant = await svc.waive_covenant(covenant_id, current_user.user_id, body.reason)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return CovenantResponse.model_validate(covenant)
 
 
@@ -128,9 +126,7 @@ async def record_kpi_actual(
 ):
     """Record an actual KPI value for a project period."""
     svc = MonitoringService(db, current_user.org_id)
-    actual = await svc.record_kpi_actual(
-        project_id, body, entered_by=current_user.user_id
-    )
+    actual = await svc.record_kpi_actual(project_id, body, entered_by=current_user.user_id)
     return KPIActualResponse.model_validate(actual)
 
 
@@ -210,9 +206,7 @@ async def get_portfolio_dashboard(
         MonitoringDashboardItem(
             project_id=item["project_id"],
             project_name=item["project_name"],
-            covenants=[
-                CovenantSummary.model_validate(c) for c in item["covenants"]
-            ],
+            covenants=[CovenantSummary.model_validate(c) for c in item["covenants"]],
             overall_status=item["overall_status"],
         )
         for item in raw

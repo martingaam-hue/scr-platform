@@ -6,7 +6,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import require_permission
 from app.core.database import get_db
 from app.modules.matching import service
 from app.modules.matching.schemas import (
@@ -65,11 +65,9 @@ async def get_ally_recommendations(
 ):
     """Investors matching this project's profile, scored by alignment."""
     try:
-        return await service.get_ally_recommendations(
-            db, project_id, current_user.org_id
-        )
+        return await service.get_ally_recommendations(db, project_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Mandate CRUD (fixed paths before /{match_id}) ────────────────────────────
@@ -100,7 +98,7 @@ async def create_mandate(
         mandate = await service.create_mandate(db, current_user.org_id, body)
         await db.commit()
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return service._mandate_to_response(mandate)
 
 
@@ -113,14 +111,12 @@ async def update_mandate(
 ):
     """Update an existing mandate."""
     try:
-        mandate = await service.update_mandate(
-            db, current_user.org_id, mandate_id, body
-        )
+        mandate = await service.update_mandate(db, current_user.org_id, mandate_id, body)
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return service._mandate_to_response(mandate)
 
 
@@ -143,7 +139,7 @@ async def express_interest(
         )
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return result
 
 
@@ -163,7 +159,7 @@ async def request_intro(
         )
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return result
 
 
@@ -186,9 +182,9 @@ async def update_match_status(
         )
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return result
 
 
@@ -200,11 +196,9 @@ async def get_messages(
 ):
     """Get the secure messaging thread for a match."""
     try:
-        return await service.get_messages(
-            db, match_id, current_user.org_id
-        )
+        return await service.get_messages(db, match_id, current_user.org_id)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post(
@@ -229,5 +223,5 @@ async def send_message(
         )
         await db.commit()
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return msg

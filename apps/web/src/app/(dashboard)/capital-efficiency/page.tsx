@@ -22,7 +22,6 @@ import {
   useEfficiencyBenchmark,
   formatSavings,
   efficiencyScoreColor,
-  efficiencyScoreBg,
   percentileLabel,
 } from "@/lib/capital-efficiency";
 

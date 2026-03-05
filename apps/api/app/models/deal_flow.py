@@ -1,6 +1,7 @@
 """Deal Flow Analytics — stage transition event log."""
 
 from __future__ import annotations
+
 import uuid
 
 from sqlalchemy import ForeignKey, Index, String
@@ -37,9 +38,7 @@ class DealStageTransition(TimestampedModel):
     from_stage: Mapped[str | None] = mapped_column(String(50), nullable=True)
     to_stage: Mapped[str] = mapped_column(String(50), nullable=False)
     reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    metadata_: Mapped[dict] = mapped_column(
-        "metadata", JSONB, default=dict, server_default="{}"
-    )
+    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, default=dict, server_default="{}")
     transitioned_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),

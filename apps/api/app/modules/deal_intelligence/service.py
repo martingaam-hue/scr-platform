@@ -1,10 +1,10 @@
 """Deal Intelligence service: pipeline, discovery, screening, comparison, memo."""
 
+import contextlib
 import uuid
-from decimal import Decimal
 
 import structlog
-from sqlalchemy import and_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.ai import AITaskLog
@@ -47,9 +47,7 @@ _STATUS_TO_COLUMN: dict[MatchStatus, str] = {
 # ── Latest SignalScore subquery helper ───────────────────────────────────────
 
 
-async def _get_latest_signal_score(
-    db: AsyncSession, project_id: uuid.UUID
-) -> SignalScore | None:
+async def _get_latest_signal_score(db: AsyncSession, project_id: uuid.UUID) -> SignalScore | None:
     stmt = (
         select(SignalScore)
         .where(SignalScore.project_id == project_id)
@@ -96,9 +94,7 @@ def _calc_alignment(
 
     # Ticket size in range: 20 pts
     investment = project.total_investment_required
-    if (
-        mandate.ticket_size_min <= investment <= mandate.ticket_size_max
-    ):
+    if mandate.ticket_size_min <= investment <= mandate.ticket_size_max:
         score += 20
         reasons.append("Investment size within mandate range")
 
@@ -184,12 +180,8 @@ async def _get_active_mandate(
     return result.scalar_one_or_none()
 
 
-async def _get_pipeline_project_ids(
-    db: AsyncSession, investor_org_id: uuid.UUID
-) -> set[uuid.UUID]:
-    stmt = select(MatchResult.project_id).where(
-        MatchResult.investor_org_id == investor_org_id
-    )
+async def _get_pipeline_project_ids(db: AsyncSession, investor_org_id: uuid.UUID) -> set[uuid.UUID]:
+    stmt = select(MatchResult.project_id).where(MatchResult.investor_org_id == investor_org_id)
     result = await db.execute(stmt)
     return {row[0] for row in result.all()}
 
@@ -223,9 +215,7 @@ async def discover_deals(
     for project in projects:
         is_in_pipeline = project.id in pipeline_ids
         signal_score = await _get_latest_signal_score(db, project.id)
-        alignment_score, alignment_reasons = _calc_alignment(
-            project, mandate, signal_score
-        )
+        alignment_score, alignment_reasons = _calc_alignment(project, mandate, signal_score)
 
         ss_val = signal_score.overall_score if signal_score else None
 
@@ -390,9 +380,7 @@ async def compare_projects(
 
     project_names = [p.name if p else "Unknown" for p in projects]
 
-    def _best_worst(
-        values: list, higher_is_better: bool = True
-    ) -> tuple[int | None, int | None]:
+    def _best_worst(values: list, higher_is_better: bool = True) -> tuple[int | None, int | None]:
         numeric = [(i, v) for i, v in enumerate(values) if v is not None]
         if len(numeric) < 2:
             return None, None
@@ -413,9 +401,7 @@ async def compare_projects(
         )
 
     def _str_row(dimension: str, values: list) -> CompareRow:
-        return CompareRow(
-            dimension=dimension, values=values, best_index=None, worst_index=None
-        )
+        return CompareRow(dimension=dimension, values=values, best_index=None, worst_index=None)
 
     rows: list[CompareRow] = [
         _str_row("Project Type", [p.project_type.value if p else None for p in projects]),
@@ -434,10 +420,7 @@ async def compare_projects(
         _row("Team Score", [s.team_strength_score if s else None for s in scores]),
         _row(
             "Capacity (MW)",
-            [
-                float(p.capacity_mw) if p and p.capacity_mw else None
-                for p in projects
-            ],
+            [float(p.capacity_mw) if p and p.capacity_mw else None for p in projects],
         ),
     ]
 
@@ -509,10 +492,8 @@ async def get_memo(
 
     download_url: str | None = None
     if report.status == ReportStatus.READY and report.s3_key:
-        try:
+        with contextlib.suppress(Exception):
             download_url = generate_download_url(report.s3_key)
-        except Exception:
-            pass
 
     result_data = report.result_data or {}
     content = result_data.get("content") if report.status == ReportStatus.READY else None
@@ -543,8 +524,8 @@ async def update_deal_status(
     """Update or create a MatchResult for the given project/investor pair."""
     try:
         new_status = MatchStatus(status)
-    except ValueError:
-        raise ValueError(f"Invalid status: {status}")
+    except ValueError as exc:
+        raise ValueError(f"Invalid status: {status}") from exc
 
     stmt = select(MatchResult).where(
         MatchResult.project_id == project_id,

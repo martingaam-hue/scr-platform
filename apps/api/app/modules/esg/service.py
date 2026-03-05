@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import io
 import json
-import time
 import uuid
 from collections import defaultdict
 from typing import Any
@@ -120,12 +119,8 @@ async def get_portfolio_esg_summary(
     latest = list(latest_by_project.values())
     total_projects = len(latest)
 
-    total_carbon_avoided = sum(
-        (m.carbon_avoided_tco2e or 0.0) for m in latest
-    )
-    total_renewable_energy = sum(
-        (m.renewable_energy_mwh or 0.0) for m in latest
-    )
+    total_carbon_avoided = sum((m.carbon_avoided_tco2e or 0.0) for m in latest)
+    total_renewable_energy = sum((m.renewable_energy_mwh or 0.0) for m in latest)
     total_jobs = sum((m.jobs_created or 0) for m in latest)
     taxonomy_aligned_count = sum(1 for m in latest if m.taxonomy_aligned)
     taxonomy_aligned_pct = (
@@ -276,10 +271,15 @@ async def upsert_esg_metrics(
     # Record ESG metric snapshot (best-effort, uses savepoint to not abort outer tx)
     try:
         from app.modules.metrics.snapshot_service import MetricSnapshotService
+
         async with db.begin_nested():
             svc = MetricSnapshotService(db)
-            fields = data.model_dump(exclude={"period", "regenerate_narrative", "esg_narrative"}, exclude_unset=True)
-            esg_value = fields.get("carbon_reduction_tons") or fields.get("renewable_energy_kwh") or 0.0
+            fields = data.model_dump(
+                exclude={"period", "regenerate_narrative", "esg_narrative"}, exclude_unset=True
+            )
+            esg_value = (
+                fields.get("carbon_reduction_tons") or fields.get("renewable_energy_kwh") or 0.0
+            )
             await svc.record_snapshot(
                 org_id=org_id,
                 entity_type="project",
@@ -353,10 +353,13 @@ def _build_narrative_prompt(metrics: dict) -> str:
     sfdr = metrics.get("sfdr_article")
     sdgs = metrics.get("sdg_contributions") or {}
 
-    sdg_list = ", ".join(
-        f"SDG {k} ({v.get('contribution_level', 'contributing')})"
-        for k, v in sdgs.items()
-    ) if sdgs else "None specified"
+    sdg_list = (
+        ", ".join(
+            f"SDG {k} ({v.get('contribution_level', 'contributing')})" for k, v in sdgs.items()
+        )
+        if sdgs
+        else "None specified"
+    )
 
     return f"""You are an ESG analyst generating a performance summary for an impact investment project.
 
@@ -418,13 +421,26 @@ async def export_portfolio_csv(
     records = list(result.scalars().all())
 
     headers = [
-        "project_id", "period",
-        "carbon_footprint_tco2e", "carbon_avoided_tco2e", "renewable_energy_mwh",
-        "water_usage_cubic_m", "waste_diverted_tonnes", "biodiversity_score",
-        "jobs_created", "jobs_supported", "local_procurement_pct",
-        "community_investment_eur", "gender_diversity_pct", "health_safety_incidents",
-        "board_independence_pct", "audit_completed", "esg_reporting_standard",
-        "taxonomy_eligible", "taxonomy_aligned", "taxonomy_activity",
+        "project_id",
+        "period",
+        "carbon_footprint_tco2e",
+        "carbon_avoided_tco2e",
+        "renewable_energy_mwh",
+        "water_usage_cubic_m",
+        "waste_diverted_tonnes",
+        "biodiversity_score",
+        "jobs_created",
+        "jobs_supported",
+        "local_procurement_pct",
+        "community_investment_eur",
+        "gender_diversity_pct",
+        "health_safety_incidents",
+        "board_independence_pct",
+        "audit_completed",
+        "esg_reporting_standard",
+        "taxonomy_eligible",
+        "taxonomy_aligned",
+        "taxonomy_activity",
         "sfdr_article",
     ]
 
@@ -432,17 +448,27 @@ async def export_portfolio_csv(
     output.write(",".join(headers) + "\n")
     for m in records:
         row = [
-            str(m.project_id), m.period,
-            str(m.carbon_footprint_tco2e or ""), str(m.carbon_avoided_tco2e or ""),
-            str(m.renewable_energy_mwh or ""), str(m.water_usage_cubic_m or ""),
-            str(m.waste_diverted_tonnes or ""), str(m.biodiversity_score or ""),
-            str(m.jobs_created or ""), str(m.jobs_supported or ""),
-            str(m.local_procurement_pct or ""), str(m.community_investment_eur or ""),
-            str(m.gender_diversity_pct or ""), str(m.health_safety_incidents or ""),
-            str(m.board_independence_pct or ""), str(m.audit_completed),
+            str(m.project_id),
+            m.period,
+            str(m.carbon_footprint_tco2e or ""),
+            str(m.carbon_avoided_tco2e or ""),
+            str(m.renewable_energy_mwh or ""),
+            str(m.water_usage_cubic_m or ""),
+            str(m.waste_diverted_tonnes or ""),
+            str(m.biodiversity_score or ""),
+            str(m.jobs_created or ""),
+            str(m.jobs_supported or ""),
+            str(m.local_procurement_pct or ""),
+            str(m.community_investment_eur or ""),
+            str(m.gender_diversity_pct or ""),
+            str(m.health_safety_incidents or ""),
+            str(m.board_independence_pct or ""),
+            str(m.audit_completed),
             m.esg_reporting_standard or "",
-            str(m.taxonomy_eligible), str(m.taxonomy_aligned),
-            m.taxonomy_activity or "", str(m.sfdr_article or ""),
+            str(m.taxonomy_eligible),
+            str(m.taxonomy_aligned),
+            m.taxonomy_activity or "",
+            str(m.sfdr_article or ""),
         ]
         output.write(",".join(row) + "\n")
 

@@ -15,7 +15,6 @@ from app.models.enums import (
     ProjectType,
 )
 
-
 # ── Projects ────────────────────────────────────────────────────────────────
 
 

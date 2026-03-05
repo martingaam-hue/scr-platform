@@ -22,7 +22,6 @@ import {
   Trophy,
 } from "lucide-react";
 import {
-  Badge,
   Button,
   Card,
   CardContent,
@@ -302,7 +301,7 @@ function ScoreHistorySection({ items }: { items: ScoreHistoryItem[] }) {
       </CardHeader>
       <CardContent>
         <div className="flex items-end gap-1.5 h-16">
-          {items.map((item, i) => {
+          {items.map((item, _i) => {
             const height = Math.max(
               8,
               Math.round(((item.overall_score - min) / range) * 56 + 8)
@@ -515,7 +514,7 @@ function ScoreFactorsSection({ factors }: { factors: ScoreFactorItem[] }) {
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-500" />
-              What's Working ({positive.length})
+              What&apos;s Working ({positive.length})
             </CardTitle>
           </CardHeader>
           <CardContent>

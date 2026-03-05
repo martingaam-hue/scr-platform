@@ -8,8 +8,6 @@ import {
   RefreshCw,
   ShieldCheck,
   CheckCircle2,
-  AlertTriangle,
-  XCircle,
   Circle,
 } from "lucide-react";
 import {
@@ -17,8 +15,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   EmptyState,
   cn,
 } from "@scr/ui";
@@ -36,14 +32,6 @@ import {
 // ── Domain section ────────────────────────────────────────────────────────────
 
 const DOMAIN_ORDER = ["regulatory", "financial", "technical", "esg", "market"];
-
-const DOMAIN_ICONS: Record<string, React.ElementType> = {
-  regulatory: ShieldCheck,
-  financial: AlertTriangle,
-  technical: Circle,
-  esg: CheckCircle2,
-  market: XCircle,
-};
 
 function domainRiskLevel(items: RiskItemSummary[]): "critical" | "high" | "medium" | "low" | "clear" {
   if (items.some((r) => r.severity === "critical")) return "critical";

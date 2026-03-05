@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import uuid
 from difflib import SequenceMatcher, unified_diff
 from typing import Any
@@ -48,7 +47,9 @@ def generate_diff(old_text: str, new_text: str) -> dict[str, Any]:
 # ── AI summary ────────────────────────────────────────────────────────────────
 
 
-async def ai_summarize_changes(diff: dict[str, Any], doc_classification: str | None) -> dict[str, Any]:
+async def ai_summarize_changes(
+    diff: dict[str, Any], doc_classification: str | None
+) -> dict[str, Any]:
     """Call AI gateway to summarise document changes."""
     context = {
         "diff_stats": diff["stats"],
@@ -89,7 +90,9 @@ def _infer_significance(stats: dict[str, Any]) -> str:
 # ── CRUD ──────────────────────────────────────────────────────────────────────
 
 
-async def get_latest_version(db: AsyncSession, document_id: uuid.UUID, org_id: uuid.UUID) -> DocumentVersion | None:
+async def get_latest_version(
+    db: AsyncSession, document_id: uuid.UUID, org_id: uuid.UUID
+) -> DocumentVersion | None:
     result = await db.execute(
         select(DocumentVersion)
         .where(DocumentVersion.document_id == document_id, DocumentVersion.org_id == org_id)
@@ -99,7 +102,9 @@ async def get_latest_version(db: AsyncSession, document_id: uuid.UUID, org_id: u
     return result.scalar_one_or_none()
 
 
-async def list_versions(db: AsyncSession, document_id: uuid.UUID, org_id: uuid.UUID) -> list[DocumentVersion]:
+async def list_versions(
+    db: AsyncSession, document_id: uuid.UUID, org_id: uuid.UUID
+) -> list[DocumentVersion]:
     result = await db.execute(
         select(DocumentVersion)
         .where(DocumentVersion.document_id == document_id, DocumentVersion.org_id == org_id)
@@ -108,10 +113,13 @@ async def list_versions(db: AsyncSession, document_id: uuid.UUID, org_id: uuid.U
     return list(result.scalars().all())
 
 
-async def get_version(db: AsyncSession, version_id: uuid.UUID, org_id: uuid.UUID) -> DocumentVersion | None:
+async def get_version(
+    db: AsyncSession, version_id: uuid.UUID, org_id: uuid.UUID
+) -> DocumentVersion | None:
     result = await db.execute(
-        select(DocumentVersion)
-        .where(DocumentVersion.id == version_id, DocumentVersion.org_id == org_id)
+        select(DocumentVersion).where(
+            DocumentVersion.id == version_id, DocumentVersion.org_id == org_id
+        )
     )
     return result.scalar_one_or_none()
 
@@ -176,8 +184,7 @@ async def compare_versions(
 ) -> tuple[DocumentVersion | None, DocumentVersion | None]:
     """Retrieve two specific versions for comparison."""
     result = await db.execute(
-        select(DocumentVersion)
-        .where(
+        select(DocumentVersion).where(
             DocumentVersion.document_id == document_id,
             DocumentVersion.org_id == org_id,
             DocumentVersion.version_number.in_([version_a_num, version_b_num]),

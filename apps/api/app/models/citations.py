@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -13,6 +13,7 @@ from app.models.base import ModelMixin
 
 class AICitation(Base, ModelMixin):
     """Links an AI-generated claim to its source evidence."""
+
     __tablename__ = "ai_citations"
     __table_args__ = (
         Index("ix_ai_citations_task_log", "ai_task_log_id"),
@@ -21,8 +22,10 @@ class AICitation(Base, ModelMixin):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
-        server_default=func.gen_random_uuid()
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=func.gen_random_uuid(),
     )
     org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     ai_task_log_id: Mapped[uuid.UUID] = mapped_column(
@@ -51,7 +54,9 @@ class AICitation(Base, ModelMixin):
     )
 
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    verified: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
+    verified: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
     verified_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(

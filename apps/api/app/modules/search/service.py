@@ -6,8 +6,8 @@ import uuid
 
 import structlog
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.core.elasticsearch import (
     INDEX_DOCUMENTS,
@@ -15,7 +15,7 @@ from app.core.elasticsearch import (
     INDEX_PROJECTS,
     get_es_client,
 )
-from app.models.dataroom import Document, DocumentExtraction
+from app.models.dataroom import Document
 from app.models.enums import DocumentStatus, ExtractionType, ListingStatus
 from app.models.marketplace import Listing
 from app.models.projects import Project
@@ -217,16 +217,19 @@ async def reindex_all(db: AsyncSession) -> ReindexResponse:
     errors: list[str] = []
     if client is None:
         logger.warning("reindex.skipped", reason="elasticsearch not configured")
-        return ReindexResponse(indexed_projects=0, indexed_listings=0, indexed_documents=0, errors=["Elasticsearch not configured"])
+        return ReindexResponse(
+            indexed_projects=0,
+            indexed_listings=0,
+            indexed_documents=0,
+            errors=["Elasticsearch not configured"],
+        )
     indexed_projects = 0
     indexed_listings = 0
     indexed_documents = 0
 
     # ── Projects ──────────────────────────────────────────────────────────────
     try:
-        result = await db.execute(
-            select(Project).where(Project.is_deleted.is_(False))
-        )
+        result = await db.execute(select(Project).where(Project.is_deleted.is_(False)))
         project_rows = result.scalars().all()
 
         if project_rows:
@@ -317,11 +320,7 @@ async def reindex_all(db: AsyncSession) -> ReindexResponse:
                 extracted_text = ""
                 for ext in d.extractions:
                     if ext.extraction_type == ExtractionType.SUMMARY:
-                        extracted_text = (
-                            ext.result.get("text")
-                            or ext.result.get("summary")
-                            or ""
-                        )
+                        extracted_text = ext.result.get("text") or ext.result.get("summary") or ""
                         break
 
                 actions.append({"index": {"_index": INDEX_DOCUMENTS, "_id": str(d.id)}})

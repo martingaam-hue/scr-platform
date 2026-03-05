@@ -38,8 +38,6 @@ import {
   formatTokens,
   healthColor,
   statusColor,
-  tierColor,
-  tierLabel,
   type OrgSummary,
   type UserSummary,
   type AICostEntry,

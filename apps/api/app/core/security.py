@@ -2,11 +2,11 @@
 # This module is retained for potential service-to-service HS256 tokens
 # (e.g. API-to-AI-Gateway internal calls).
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 
 from app.core.config import settings
 
@@ -15,14 +15,18 @@ bearer_scheme = HTTPBearer()
 ALGORITHM = "HS256"
 
 
-def create_access_token(data: dict[str, str | datetime], expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    data: dict[str, str | datetime], expires_delta: timedelta | None = None
+) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(hours=24))
+    expire = datetime.now(UTC) + (expires_delta or timedelta(hours=24))
     to_encode["exp"] = expire
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> dict[str, str]:
+def verify_token(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> dict[str, str]:
     token = credentials.credentials
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])

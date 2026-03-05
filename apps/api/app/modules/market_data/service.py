@@ -22,20 +22,36 @@ logger = structlog.get_logger()
 # ── FRED series to fetch ──────────────────────────────────────────────────────
 
 FRED_SERIES: list[dict[str, str]] = [
-    {"series_id": "DGS10",    "series_name": "10-Year Treasury Constant Maturity Rate", "unit": "percent"},
-    {"series_id": "FEDFUNDS", "series_name": "Federal Funds Effective Rate",             "unit": "percent"},
-    {"series_id": "UNRATE",   "series_name": "Unemployment Rate",                        "unit": "percent"},
-    {"series_id": "CPIAUCSL", "series_name": "Consumer Price Index (All Urban)",          "unit": "index"},
-    {"series_id": "SP500",    "series_name": "S&P 500 Index",                            "unit": "index"},
-    {"series_id": "MORTGAGE30US", "series_name": "30-Year Fixed Rate Mortgage Average",  "unit": "percent"},
+    {
+        "series_id": "DGS10",
+        "series_name": "10-Year Treasury Constant Maturity Rate",
+        "unit": "percent",
+    },
+    {"series_id": "FEDFUNDS", "series_name": "Federal Funds Effective Rate", "unit": "percent"},
+    {"series_id": "UNRATE", "series_name": "Unemployment Rate", "unit": "percent"},
+    {"series_id": "CPIAUCSL", "series_name": "Consumer Price Index (All Urban)", "unit": "index"},
+    {"series_id": "SP500", "series_name": "S&P 500 Index", "unit": "index"},
+    {
+        "series_id": "MORTGAGE30US",
+        "series_name": "30-Year Fixed Rate Mortgage Average",
+        "unit": "percent",
+    },
 ]
 
 # ── World Bank indicators to fetch ───────────────────────────────────────────
 
 WORLDBANK_INDICATORS: list[dict[str, str]] = [
-    {"series_id": "NY.GDP.MKTP.KD.ZG", "series_name": "GDP Growth Rate (annual %)", "unit": "percent"},
-    {"series_id": "FP.CPI.TOTL.ZG",    "series_name": "Inflation (CPI, annual %)",  "unit": "percent"},
-    {"series_id": "SL.UEM.TOTL.ZS",    "series_name": "Unemployment, Total (% of labor force)", "unit": "percent"},
+    {
+        "series_id": "NY.GDP.MKTP.KD.ZG",
+        "series_name": "GDP Growth Rate (annual %)",
+        "unit": "percent",
+    },
+    {"series_id": "FP.CPI.TOTL.ZG", "series_name": "Inflation (CPI, annual %)", "unit": "percent"},
+    {
+        "series_id": "SL.UEM.TOTL.ZS",
+        "series_name": "Unemployment, Total (% of labor force)",
+        "unit": "percent",
+    },
 ]
 WORLDBANK_COUNTRIES = ["WLD", "US", "EU", "GB"]  # World, US, Euro area, UK
 
@@ -43,12 +59,12 @@ WORLDBANK_COUNTRIES = ["WLD", "US", "EU", "GB"]  # World, US, Euro area, UK
 # ── Mock data helpers ─────────────────────────────────────────────────────────
 
 _MOCK_BASE: dict[str, float] = {
-    "DGS10":         4.25,
-    "FEDFUNDS":      5.33,
-    "UNRATE":        3.7,
-    "CPIAUCSL":      312.0,
-    "SP500":         5200.0,
-    "MORTGAGE30US":  6.82,
+    "DGS10": 4.25,
+    "FEDFUNDS": 5.33,
+    "UNRATE": 3.7,
+    "CPIAUCSL": 312.0,
+    "SP500": 5200.0,
+    "MORTGAGE30US": 6.82,
 }
 
 
@@ -87,7 +103,9 @@ async def _upsert_points(
 
     inserted = 0
     for obs in observations:
-        obs_date = obs["date"] if isinstance(obs["date"], date) else date.fromisoformat(str(obs["date"]))
+        obs_date = (
+            obs["date"] if isinstance(obs["date"], date) else date.fromisoformat(str(obs["date"]))
+        )
         raw_value = obs["value"]
         if raw_value is None:
             continue
@@ -192,9 +210,13 @@ async def ingest_worldbank_data(db: AsyncSession) -> int:
 
             series_id = f"{country}:{ind_id}"
             series_name = f"{ind_name} — {country}"
-            count = await _upsert_points(db, "worldbank", series_id, series_name, unit, observations)
+            count = await _upsert_points(
+                db, "worldbank", series_id, series_name, unit, observations
+            )
             total += count
-            logger.info("market_data.worldbank.ingested", indicator=ind_id, country=country, rows=count)
+            logger.info(
+                "market_data.worldbank.ingested", indicator=ind_id, country=country, rows=count
+            )
 
     return total
 
@@ -211,7 +233,12 @@ async def _fetch_worldbank_indicator(indicator_id: str, country: str) -> list[di
             resp.raise_for_status()
             payload = resp.json()
     except Exception as exc:
-        logger.warning("market_data.worldbank.fetch_error", indicator=indicator_id, country=country, error=str(exc))
+        logger.warning(
+            "market_data.worldbank.fetch_error",
+            indicator=indicator_id,
+            country=country,
+            error=str(exc),
+        )
         return []
 
     if not isinstance(payload, list) or len(payload) < 2:
@@ -231,8 +258,8 @@ async def _fetch_worldbank_indicator(indicator_id: str, country: str) -> list[di
 
 _MOCK_WB: dict[str, float] = {
     "NY.GDP.MKTP.KD.ZG": 2.5,
-    "FP.CPI.TOTL.ZG":    3.2,
-    "SL.UEM.TOTL.ZS":    5.1,
+    "FP.CPI.TOTL.ZG": 3.2,
+    "SL.UEM.TOTL.ZS": 5.1,
 }
 
 
@@ -355,11 +382,31 @@ async def get_summary(db: AsyncSession) -> list[MarketDataSummary]:
 # ── IRENA ─────────────────────────────────────────────────────────────────────
 
 IRENA_SERIES: list[dict[str, str]] = [
-    {"series_id": "global_renewable_capacity_gw",  "series_name": "Global Installed Renewable Capacity (GW)", "unit": "gw"},
-    {"series_id": "solar_pv_capacity_gw",          "series_name": "Global Solar PV Installed Capacity (GW)",  "unit": "gw"},
-    {"series_id": "wind_capacity_gw",              "series_name": "Global Wind Power Installed Capacity (GW)", "unit": "gw"},
-    {"series_id": "solar_lcoe_usd_kwh",            "series_name": "Utility-Scale Solar PV LCOE (USD/kWh)",    "unit": "usd_kwh"},
-    {"series_id": "onshore_wind_lcoe_usd_kwh",     "series_name": "Onshore Wind LCOE (USD/kWh)",              "unit": "usd_kwh"},
+    {
+        "series_id": "global_renewable_capacity_gw",
+        "series_name": "Global Installed Renewable Capacity (GW)",
+        "unit": "gw",
+    },
+    {
+        "series_id": "solar_pv_capacity_gw",
+        "series_name": "Global Solar PV Installed Capacity (GW)",
+        "unit": "gw",
+    },
+    {
+        "series_id": "wind_capacity_gw",
+        "series_name": "Global Wind Power Installed Capacity (GW)",
+        "unit": "gw",
+    },
+    {
+        "series_id": "solar_lcoe_usd_kwh",
+        "series_name": "Utility-Scale Solar PV LCOE (USD/kWh)",
+        "unit": "usd_kwh",
+    },
+    {
+        "series_id": "onshore_wind_lcoe_usd_kwh",
+        "series_name": "Onshore Wind LCOE (USD/kWh)",
+        "unit": "usd_kwh",
+    },
 ]
 
 _MOCK_IRENA: dict[str, float] = {
@@ -390,7 +437,9 @@ async def ingest_irena_data(db: AsyncSession) -> int:
     total = 0
     for s in IRENA_SERIES:
         observations = _mock_irena_annual(s["series_id"])
-        count = await _upsert_points(db, "irena", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "irena", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.irena.ingested", series_id=s["series_id"], rows=count)
     return total
@@ -399,10 +448,26 @@ async def ingest_irena_data(db: AsyncSession) -> int:
 # ── EU ETS / Ember ─────────────────────────────────────────────────────────────
 
 EU_ETS_SERIES: list[dict[str, str]] = [
-    {"series_id": "eua_price_eur",              "series_name": "EU Allowance Spot Price (EUR/tCO2)",          "unit": "eur_tco2"},
-    {"series_id": "eu_carbon_intensity_gco2_kwh", "series_name": "EU Average Grid Carbon Intensity (gCO2/kWh)", "unit": "gco2_kwh"},
-    {"series_id": "global_coal_share_pct",      "series_name": "Global Coal Share of Electricity (%)",        "unit": "percent"},
-    {"series_id": "global_renewable_share_pct", "series_name": "Global Renewable Share of Electricity (%)",   "unit": "percent"},
+    {
+        "series_id": "eua_price_eur",
+        "series_name": "EU Allowance Spot Price (EUR/tCO2)",
+        "unit": "eur_tco2",
+    },
+    {
+        "series_id": "eu_carbon_intensity_gco2_kwh",
+        "series_name": "EU Average Grid Carbon Intensity (gCO2/kWh)",
+        "unit": "gco2_kwh",
+    },
+    {
+        "series_id": "global_coal_share_pct",
+        "series_name": "Global Coal Share of Electricity (%)",
+        "unit": "percent",
+    },
+    {
+        "series_id": "global_renewable_share_pct",
+        "series_name": "Global Renewable Share of Electricity (%)",
+        "unit": "percent",
+    },
 ]
 
 _MOCK_EU_ETS: dict[str, float] = {
@@ -439,7 +504,9 @@ async def ingest_eu_ets_data(db: AsyncSession) -> int:
         else:
             observations = _mock_eu_ets(s["series_id"])
 
-        count = await _upsert_points(db, "eu_ets", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "eu_ets", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.eu_ets.ingested", series_id=s["series_id"], rows=count)
 
@@ -460,7 +527,9 @@ async def _fetch_ember_carbon_price(api_key: str) -> list[dict[str, Any]]:
             data = resp.json()
             observations = []
             for row in data.get("data", []):
-                obs_date = date.fromisoformat(str(row.get("date", ""))[:10]) if row.get("date") else None
+                obs_date = (
+                    date.fromisoformat(str(row.get("date", ""))[:10]) if row.get("date") else None
+                )
                 value = row.get("price")
                 if obs_date and value is not None:
                     observations.append({"date": obs_date, "value": value})
@@ -473,9 +542,21 @@ async def _fetch_ember_carbon_price(api_key: str) -> list[dict[str, Any]]:
 # ── Companies House ────────────────────────────────────────────────────────────
 
 CH_SERIES: list[dict[str, str]] = [
-    {"series_id": "uk_new_incorporations_monthly", "series_name": "UK New Company Incorporations (monthly)", "unit": "count"},
-    {"series_id": "uk_dissolutions_monthly",       "series_name": "UK Company Dissolutions (monthly)",       "unit": "count"},
-    {"series_id": "uk_active_companies_total",     "series_name": "UK Total Active Companies",               "unit": "count"},
+    {
+        "series_id": "uk_new_incorporations_monthly",
+        "series_name": "UK New Company Incorporations (monthly)",
+        "unit": "count",
+    },
+    {
+        "series_id": "uk_dissolutions_monthly",
+        "series_name": "UK Company Dissolutions (monthly)",
+        "unit": "count",
+    },
+    {
+        "series_id": "uk_active_companies_total",
+        "series_name": "UK Total Active Companies",
+        "unit": "count",
+    },
 ]
 
 _MOCK_CH: dict[str, float] = {
@@ -491,8 +572,11 @@ def _mock_companies_house(series_id: str) -> list[dict[str, Any]]:
     today = date.today()
     return [
         {
-            "date": date(today.year, today.month - i if today.month > i else today.month + 12 - i,
-                         1) if today.month > i else date(today.year - 1, today.month + 12 - i, 1),
+            "date": date(
+                today.year, today.month - i if today.month > i else today.month + 12 - i, 1
+            )
+            if today.month > i
+            else date(today.year - 1, today.month + 12 - i, 1),
             "value": round(base * (1 + rng.gauss(0, 0.08)), 0),
         }
         for i in range(11, -1, -1)
@@ -510,7 +594,9 @@ async def ingest_companies_house_data(db: AsyncSession) -> int:
         else:
             observations = _mock_companies_house(s["series_id"])
 
-        count = await _upsert_points(db, "companies_house", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "companies_house", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.companies_house.ingested", series_id=s["series_id"], rows=count)
 
@@ -545,26 +631,44 @@ async def _fetch_ch_stats(api_key: str, series_id: str) -> list[dict[str, Any]]:
 # ── Alpha Vantage ──────────────────────────────────────────────────────────────
 
 AV_SERIES: list[dict[str, str]] = [
-    {"series_id": "WTI",    "series_name": "WTI Crude Oil Price (USD/barrel)", "unit": "usd_barrel"},
-    {"series_id": "BRENT",  "series_name": "Brent Crude Oil Price (USD/barrel)", "unit": "usd_barrel"},
-    {"series_id": "NATURAL_GAS", "series_name": "Henry Hub Natural Gas (USD/MMBtu)", "unit": "usd_mmbtu"},
-    {"series_id": "COPPER", "series_name": "Copper Price (USD/lb)",            "unit": "usd_lb"},
-    {"series_id": "XLE",    "series_name": "Energy Select Sector ETF (USD)",   "unit": "usd"},
-    {"series_id": "ICLN",   "series_name": "iShares Global Clean Energy ETF (USD)", "unit": "usd"},
-    {"series_id": "VIX",    "series_name": "CBOE Volatility Index",            "unit": "index"},
+    {"series_id": "WTI", "series_name": "WTI Crude Oil Price (USD/barrel)", "unit": "usd_barrel"},
+    {
+        "series_id": "BRENT",
+        "series_name": "Brent Crude Oil Price (USD/barrel)",
+        "unit": "usd_barrel",
+    },
+    {
+        "series_id": "NATURAL_GAS",
+        "series_name": "Henry Hub Natural Gas (USD/MMBtu)",
+        "unit": "usd_mmbtu",
+    },
+    {"series_id": "COPPER", "series_name": "Copper Price (USD/lb)", "unit": "usd_lb"},
+    {"series_id": "XLE", "series_name": "Energy Select Sector ETF (USD)", "unit": "usd"},
+    {"series_id": "ICLN", "series_name": "iShares Global Clean Energy ETF (USD)", "unit": "usd"},
+    {"series_id": "VIX", "series_name": "CBOE Volatility Index", "unit": "index"},
 ]
 
 _MOCK_AV: dict[str, float] = {
-    "WTI": 78.5, "BRENT": 82.3, "NATURAL_GAS": 2.45, "COPPER": 4.15,
-    "XLE": 91.0, "ICLN": 14.2, "VIX": 18.5,
+    "WTI": 78.5,
+    "BRENT": 82.3,
+    "NATURAL_GAS": 2.45,
+    "COPPER": 4.15,
+    "XLE": 91.0,
+    "ICLN": 14.2,
+    "VIX": 18.5,
 }
 
 # AV commodity function mapping
 _AV_COMMODITY_FUNCTIONS: dict[str, str] = {
-    "WTI": "WTI", "BRENT": "BRENT", "NATURAL_GAS": "NATURAL_GAS", "COPPER": "COPPER",
+    "WTI": "WTI",
+    "BRENT": "BRENT",
+    "NATURAL_GAS": "NATURAL_GAS",
+    "COPPER": "COPPER",
 }
 _AV_QUOTE_SYMBOLS: dict[str, str] = {
-    "XLE": "XLE", "ICLN": "ICLN", "VIX": "^VIX",
+    "XLE": "XLE",
+    "ICLN": "ICLN",
+    "VIX": "^VIX",
 }
 
 
@@ -595,7 +699,9 @@ async def ingest_alpha_vantage_data(db: AsyncSession) -> int:
             logger.debug("market_data.alpha_vantage.no_api_key_mock", series_id=s["series_id"])
             observations = _mock_av(s["series_id"])
 
-        count = await _upsert_points(db, "alpha_vantage", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "alpha_vantage", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.alpha_vantage.ingested", series_id=s["series_id"], rows=count)
 
@@ -608,9 +714,14 @@ async def _fetch_av_series(series_id: str, api_key: str) -> list[dict[str, Any]]
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             if series_id in _AV_COMMODITY_FUNCTIONS:
-                resp = await client.get(base_url, params={
-                    "function": series_id, "interval": "monthly", "apikey": api_key,
-                })
+                resp = await client.get(
+                    base_url,
+                    params={
+                        "function": series_id,
+                        "interval": "monthly",
+                        "apikey": api_key,
+                    },
+                )
                 resp.raise_for_status()
                 data = resp.json()
                 rows = data.get("data", [])
@@ -621,9 +732,14 @@ async def _fetch_av_series(series_id: str, api_key: str) -> list[dict[str, Any]]
                 ]
             else:
                 symbol = _AV_QUOTE_SYMBOLS.get(series_id, series_id)
-                resp = await client.get(base_url, params={
-                    "function": "GLOBAL_QUOTE", "symbol": symbol, "apikey": api_key,
-                })
+                resp = await client.get(
+                    base_url,
+                    params={
+                        "function": "GLOBAL_QUOTE",
+                        "symbol": symbol,
+                        "apikey": api_key,
+                    },
+                )
                 resp.raise_for_status()
                 data = resp.json()
                 quote = data.get("Global Quote", {})
@@ -639,16 +755,39 @@ async def _fetch_av_series(series_id: str, api_key: str) -> list[dict[str, Any]]
 # ── ENTSOE ─────────────────────────────────────────────────────────────────────
 
 ENTSOE_SERIES: list[dict[str, str]] = [
-    {"series_id": "day_ahead_price_de",  "series_name": "Germany Day-Ahead Electricity Price (EUR/MWh)", "unit": "eur_mwh"},
-    {"series_id": "day_ahead_price_fr",  "series_name": "France Day-Ahead Electricity Price (EUR/MWh)",  "unit": "eur_mwh"},
-    {"series_id": "day_ahead_price_es",  "series_name": "Spain Day-Ahead Electricity Price (EUR/MWh)",   "unit": "eur_mwh"},
-    {"series_id": "day_ahead_price_gb",  "series_name": "GB Day-Ahead Electricity Price (GBP/MWh)",      "unit": "gbp_mwh"},
-    {"series_id": "day_ahead_price_nl",  "series_name": "Netherlands Day-Ahead Electricity Price (EUR/MWh)", "unit": "eur_mwh"},
+    {
+        "series_id": "day_ahead_price_de",
+        "series_name": "Germany Day-Ahead Electricity Price (EUR/MWh)",
+        "unit": "eur_mwh",
+    },
+    {
+        "series_id": "day_ahead_price_fr",
+        "series_name": "France Day-Ahead Electricity Price (EUR/MWh)",
+        "unit": "eur_mwh",
+    },
+    {
+        "series_id": "day_ahead_price_es",
+        "series_name": "Spain Day-Ahead Electricity Price (EUR/MWh)",
+        "unit": "eur_mwh",
+    },
+    {
+        "series_id": "day_ahead_price_gb",
+        "series_name": "GB Day-Ahead Electricity Price (GBP/MWh)",
+        "unit": "gbp_mwh",
+    },
+    {
+        "series_id": "day_ahead_price_nl",
+        "series_name": "Netherlands Day-Ahead Electricity Price (EUR/MWh)",
+        "unit": "eur_mwh",
+    },
 ]
 
 _MOCK_ENTSOE: dict[str, float] = {
-    "day_ahead_price_de": 95.0, "day_ahead_price_fr": 92.0, "day_ahead_price_es": 88.0,
-    "day_ahead_price_gb": 85.0, "day_ahead_price_nl": 96.0,
+    "day_ahead_price_de": 95.0,
+    "day_ahead_price_fr": 92.0,
+    "day_ahead_price_es": 88.0,
+    "day_ahead_price_gb": 85.0,
+    "day_ahead_price_nl": 96.0,
 }
 
 # ENTSOE bidding zone EIC codes
@@ -681,19 +820,25 @@ async def ingest_entsoe_data(db: AsyncSession) -> int:
 
     for s in ENTSOE_SERIES:
         if api_key:
-            observations = await _fetch_entsoe_prices(api_key, s["series_id"], _ENTSOE_ZONES[s["series_id"]])
+            observations = await _fetch_entsoe_prices(
+                api_key, s["series_id"], _ENTSOE_ZONES[s["series_id"]]
+            )
         else:
             logger.debug("market_data.entsoe.no_api_key_mock", series_id=s["series_id"])
             observations = _mock_entsoe(s["series_id"])
 
-        count = await _upsert_points(db, "entsoe", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "entsoe", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.entsoe.ingested", series_id=s["series_id"], rows=count)
 
     return total
 
 
-async def _fetch_entsoe_prices(api_key: str, series_id: str, in_domain: str) -> list[dict[str, Any]]:
+async def _fetch_entsoe_prices(
+    api_key: str, series_id: str, in_domain: str
+) -> list[dict[str, Any]]:
     """Fetch ENTSOE day-ahead prices via transparency REST API (XML format)."""
     import xml.etree.ElementTree as ET
 
@@ -722,7 +867,12 @@ async def _fetch_entsoe_prices(api_key: str, series_id: str, in_domain: str) -> 
                 price = point.findtext("ns:price.amount", namespaces=ns)
                 if pos and price:
                     obs_date = date.today() - timedelta(days=7) + timedelta(hours=int(pos) - 1)
-                    observations.append({"date": obs_date.date() if hasattr(obs_date, "date") else obs_date, "value": float(price)})
+                    observations.append(
+                        {
+                            "date": obs_date.date() if hasattr(obs_date, "date") else obs_date,
+                            "value": float(price),
+                        }
+                    )
 
             return observations or _mock_entsoe(series_id)
     except Exception as exc:
@@ -734,17 +884,17 @@ async def _fetch_entsoe_prices(api_key: str, series_id: str, in_domain: str) -> 
 
 # Pre-defined European energy hub locations
 OW_LOCATIONS: list[dict[str, Any]] = [
-    {"series_id": "berlin_de",    "series_name": "Berlin, Germany",     "lat": 52.52,  "lon": 13.40},
-    {"series_id": "madrid_es",    "series_name": "Madrid, Spain",       "lat": 40.42,  "lon": -3.70},
-    {"series_id": "london_gb",    "series_name": "London, UK",          "lat": 51.51,  "lon": -0.13},
-    {"series_id": "amsterdam_nl", "series_name": "Amsterdam, NL",       "lat": 52.37,  "lon": 4.90},
-    {"series_id": "oslo_no",      "series_name": "Oslo, Norway",        "lat": 59.91,  "lon": 10.75},
+    {"series_id": "berlin_de", "series_name": "Berlin, Germany", "lat": 52.52, "lon": 13.40},
+    {"series_id": "madrid_es", "series_name": "Madrid, Spain", "lat": 40.42, "lon": -3.70},
+    {"series_id": "london_gb", "series_name": "London, UK", "lat": 51.51, "lon": -0.13},
+    {"series_id": "amsterdam_nl", "series_name": "Amsterdam, NL", "lat": 52.37, "lon": 4.90},
+    {"series_id": "oslo_no", "series_name": "Oslo, Norway", "lat": 59.91, "lon": 10.75},
 ]
 
 OW_INDICATORS: list[dict[str, str]] = [
-    {"indicator": "wind_speed_ms", "series_name_suffix": "Wind Speed (m/s)",     "unit": "ms"},
-    {"indicator": "temperature_c", "series_name_suffix": "Temperature (°C)",      "unit": "celsius"},
-    {"indicator": "cloud_cover_pct", "series_name_suffix": "Cloud Cover (%)",     "unit": "percent"},
+    {"indicator": "wind_speed_ms", "series_name_suffix": "Wind Speed (m/s)", "unit": "ms"},
+    {"indicator": "temperature_c", "series_name_suffix": "Temperature (°C)", "unit": "celsius"},
+    {"indicator": "cloud_cover_pct", "series_name_suffix": "Cloud Cover (%)", "unit": "percent"},
 ]
 
 
@@ -770,23 +920,31 @@ async def ingest_openweather_data(db: AsyncSession) -> int:
             series_name = f"{loc['series_name']} — {ind['series_name_suffix']}"
 
             if api_key:
-                observations = await _fetch_openweather_point(api_key, loc["lat"], loc["lon"], ind["indicator"])
+                observations = await _fetch_openweather_point(
+                    api_key, loc["lat"], loc["lon"], ind["indicator"]
+                )
             else:
                 observations = _mock_openweather(loc["series_id"], ind["indicator"])
 
-            count = await _upsert_points(db, "openweather", series_id, series_name, ind["unit"], observations)
+            count = await _upsert_points(
+                db, "openweather", series_id, series_name, ind["unit"], observations
+            )
             total += count
 
     logger.info("market_data.openweather.ingested", rows=total)
     return total
 
 
-async def _fetch_openweather_point(api_key: str, lat: float, lon: float, indicator: str) -> list[dict[str, Any]]:
+async def _fetch_openweather_point(
+    api_key: str, lat: float, lon: float, indicator: str
+) -> list[dict[str, Any]]:
     """Fetch current weather for a location from OpenWeather API."""
     url = "https://api.openweathermap.org/data/2.5/weather"
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.get(url, params={"lat": lat, "lon": lon, "appid": api_key, "units": "metric"})
+            resp = await client.get(
+                url, params={"lat": lat, "lon": lon, "appid": api_key, "units": "metric"}
+            )
             resp.raise_for_status()
             data = resp.json()
             value: float | None = None
@@ -807,20 +965,39 @@ async def _fetch_openweather_point(api_key: str, lat: float, lon: float, indicat
 # ── Eurostat ───────────────────────────────────────────────────────────────────
 
 EUROSTAT_SERIES: list[dict[str, str]] = [
-    {"series_id": "eu_renewable_share_pct",        "series_name": "EU Renewable Share of Gross Final Energy (%)", "unit": "percent"},
-    {"series_id": "eu_gdp_growth_pct",             "series_name": "EU GDP Growth Rate (%)",                       "unit": "percent"},
-    {"series_id": "eu_unemployment_pct",           "series_name": "EU Unemployment Rate (%)",                     "unit": "percent"},
-    {"series_id": "eu_energy_intensity_toe_keur",  "series_name": "EU Energy Intensity (toe per €1000 GDP)",      "unit": "toe_keur"},
-    {"series_id": "eu_co2_emissions_index",        "series_name": "EU Greenhouse Gas Emissions Index (2005=100)",  "unit": "index"},
+    {
+        "series_id": "eu_renewable_share_pct",
+        "series_name": "EU Renewable Share of Gross Final Energy (%)",
+        "unit": "percent",
+    },
+    {"series_id": "eu_gdp_growth_pct", "series_name": "EU GDP Growth Rate (%)", "unit": "percent"},
+    {
+        "series_id": "eu_unemployment_pct",
+        "series_name": "EU Unemployment Rate (%)",
+        "unit": "percent",
+    },
+    {
+        "series_id": "eu_energy_intensity_toe_keur",
+        "series_name": "EU Energy Intensity (toe per €1000 GDP)",
+        "unit": "toe_keur",
+    },
+    {
+        "series_id": "eu_co2_emissions_index",
+        "series_name": "EU Greenhouse Gas Emissions Index (2005=100)",
+        "unit": "index",
+    },
 ]
 
 # Eurostat dataset codes
 _EUROSTAT_DATASETS: dict[str, tuple[str, dict[str, str]]] = {
-    "eu_renewable_share_pct":        ("nrg_ind_ren",  {"unit": "PC", "nrg_bal": "REN", "geo": "EU27_2020"}),
-    "eu_gdp_growth_pct":             ("tec00115",     {"unit": "PCH_PRE_PER", "geo": "EU27_2020"}),
-    "eu_unemployment_pct":           ("une_rt_m",     {"unit": "PC_ACT", "s_adj": "NSA", "age": "TOTAL", "sex": "T", "geo": "EU27_2020"}),
-    "eu_energy_intensity_toe_keur":  ("nrg_ind_ei",   {"unit": "KTOE_KEUR", "geo": "EU27_2020"}),
-    "eu_co2_emissions_index":        ("t2020_30",     {"unit": "INX_2005_100", "geo": "EU27_2020"}),
+    "eu_renewable_share_pct": ("nrg_ind_ren", {"unit": "PC", "nrg_bal": "REN", "geo": "EU27_2020"}),
+    "eu_gdp_growth_pct": ("tec00115", {"unit": "PCH_PRE_PER", "geo": "EU27_2020"}),
+    "eu_unemployment_pct": (
+        "une_rt_m",
+        {"unit": "PC_ACT", "s_adj": "NSA", "age": "TOTAL", "sex": "T", "geo": "EU27_2020"},
+    ),
+    "eu_energy_intensity_toe_keur": ("nrg_ind_ei", {"unit": "KTOE_KEUR", "geo": "EU27_2020"}),
+    "eu_co2_emissions_index": ("t2020_30", {"unit": "INX_2005_100", "geo": "EU27_2020"}),
 }
 
 _MOCK_EUROSTAT: dict[str, float] = {
@@ -836,7 +1013,13 @@ def _mock_eurostat_annual(series_id: str) -> list[dict[str, Any]]:
     base = _MOCK_EUROSTAT.get(series_id, 5.0)
     rng = random.Random(hash("eurostat:" + series_id) & 0xFFFF)
     today = date.today()
-    trend = 0.02 if "renewable" in series_id else -0.01 if "co2" in series_id or "intensity" in series_id else 0.0
+    trend = (
+        0.02
+        if "renewable" in series_id
+        else -0.01
+        if "co2" in series_id or "intensity" in series_id
+        else 0.0
+    )
     return [
         {
             "date": date(today.year - i, 12, 31),
@@ -855,7 +1038,9 @@ async def ingest_eurostat_data(db: AsyncSession) -> int:
         if not observations:
             observations = _mock_eurostat_annual(s["series_id"])
 
-        count = await _upsert_points(db, "eurostat", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "eurostat", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.eurostat.ingested", series_id=s["series_id"], rows=count)
 
@@ -896,10 +1081,26 @@ async def _fetch_eurostat_indicator(series_id: str) -> list[dict[str, Any]]:
 # ── IEA ───────────────────────────────────────────────────────────────────────
 
 IEA_SERIES: list[dict[str, str]] = [
-    {"series_id": "global_clean_energy_investment_bn_usd", "series_name": "Global Clean Energy Investment ($bn)",      "unit": "bn_usd"},
-    {"series_id": "global_renewable_capacity_additions_gw", "series_name": "Global Renewable Capacity Additions (GW)", "unit": "gw"},
-    {"series_id": "global_ev_sales_millions",              "series_name": "Global Electric Vehicle Sales (millions)",  "unit": "millions"},
-    {"series_id": "fossil_fuel_subsidies_bn_usd",          "series_name": "Global Fossil Fuel Subsidies ($bn)",        "unit": "bn_usd"},
+    {
+        "series_id": "global_clean_energy_investment_bn_usd",
+        "series_name": "Global Clean Energy Investment ($bn)",
+        "unit": "bn_usd",
+    },
+    {
+        "series_id": "global_renewable_capacity_additions_gw",
+        "series_name": "Global Renewable Capacity Additions (GW)",
+        "unit": "gw",
+    },
+    {
+        "series_id": "global_ev_sales_millions",
+        "series_name": "Global Electric Vehicle Sales (millions)",
+        "unit": "millions",
+    },
+    {
+        "series_id": "fossil_fuel_subsidies_bn_usd",
+        "series_name": "Global Fossil Fuel Subsidies ($bn)",
+        "unit": "bn_usd",
+    },
 ]
 
 _MOCK_IEA: dict[str, float] = {
@@ -914,7 +1115,11 @@ def _mock_iea_annual(series_id: str) -> list[dict[str, Any]]:
     base = _MOCK_IEA.get(series_id, 100.0)
     rng = random.Random(hash("iea:" + series_id) & 0xFFFF)
     today = date.today()
-    growth = 0.12 if "clean_energy" in series_id or "ev" in series_id or "renewable" in series_id else -0.04
+    growth = (
+        0.12
+        if "clean_energy" in series_id or "ev" in series_id or "renewable" in series_id
+        else -0.04
+    )
     return [
         {
             "date": date(today.year - i, 12, 31),
@@ -929,7 +1134,9 @@ async def ingest_iea_data(db: AsyncSession) -> int:
     total = 0
     for s in IEA_SERIES:
         observations = _mock_iea_annual(s["series_id"])
-        count = await _upsert_points(db, "iea", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "iea", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.iea.ingested", series_id=s["series_id"], rows=count)
     return total
@@ -938,10 +1145,26 @@ async def ingest_iea_data(db: AsyncSession) -> int:
 # ── S&P Global ────────────────────────────────────────────────────────────────
 
 SP_SERIES: list[dict[str, str]] = [
-    {"series_id": "sp500_esg_score_avg",          "series_name": "S&P 500 Average ESG Score",              "unit": "score"},
-    {"series_id": "infra_sector_esg_score",       "series_name": "Infrastructure Sector ESG Score",        "unit": "score"},
-    {"series_id": "renewable_energy_credit_avg",  "series_name": "Renewable Energy Credit Average Score",  "unit": "score"},
-    {"series_id": "probability_of_default_bb_pct", "series_name": "BB-Rated Prob. of Default 1Y (%)",     "unit": "percent"},
+    {
+        "series_id": "sp500_esg_score_avg",
+        "series_name": "S&P 500 Average ESG Score",
+        "unit": "score",
+    },
+    {
+        "series_id": "infra_sector_esg_score",
+        "series_name": "Infrastructure Sector ESG Score",
+        "unit": "score",
+    },
+    {
+        "series_id": "renewable_energy_credit_avg",
+        "series_name": "Renewable Energy Credit Average Score",
+        "unit": "score",
+    },
+    {
+        "series_id": "probability_of_default_bb_pct",
+        "series_name": "BB-Rated Prob. of Default 1Y (%)",
+        "unit": "percent",
+    },
 ]
 
 _MOCK_SP: dict[str, float] = {
@@ -972,7 +1195,9 @@ async def ingest_sp_global_data(db: AsyncSession) -> int:
     total = 0
     for s in SP_SERIES:
         observations = _mock_sp_annual(s["series_id"])
-        count = await _upsert_points(db, "sp_global", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "sp_global", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.sp_global.ingested", series_id=s["series_id"], rows=count)
     return total
@@ -981,12 +1206,36 @@ async def ingest_sp_global_data(db: AsyncSession) -> int:
 # ── BNEF ──────────────────────────────────────────────────────────────────────
 
 BNEF_SERIES: list[dict[str, str]] = [
-    {"series_id": "global_clean_energy_investment_bn_usd", "series_name": "BNEF Global Clean Energy Investment ($bn)", "unit": "bn_usd"},
-    {"series_id": "corporate_ppa_price_usd_mwh",          "series_name": "Corporate PPA Average Price (USD/MWh)",     "unit": "usd_mwh"},
-    {"series_id": "solar_auction_price_usd_mwh",          "series_name": "Solar Auction Clearing Price (USD/MWh)",    "unit": "usd_mwh"},
-    {"series_id": "wind_auction_price_usd_mwh",           "series_name": "Wind Auction Clearing Price (USD/MWh)",     "unit": "usd_mwh"},
-    {"series_id": "lcoe_solar_utility_usd_mwh",           "series_name": "BNEF Solar LCOE Benchmark (USD/MWh)",       "unit": "usd_mwh"},
-    {"series_id": "lcoe_wind_onshore_usd_mwh",            "series_name": "BNEF Onshore Wind LCOE Benchmark (USD/MWh)", "unit": "usd_mwh"},
+    {
+        "series_id": "global_clean_energy_investment_bn_usd",
+        "series_name": "BNEF Global Clean Energy Investment ($bn)",
+        "unit": "bn_usd",
+    },
+    {
+        "series_id": "corporate_ppa_price_usd_mwh",
+        "series_name": "Corporate PPA Average Price (USD/MWh)",
+        "unit": "usd_mwh",
+    },
+    {
+        "series_id": "solar_auction_price_usd_mwh",
+        "series_name": "Solar Auction Clearing Price (USD/MWh)",
+        "unit": "usd_mwh",
+    },
+    {
+        "series_id": "wind_auction_price_usd_mwh",
+        "series_name": "Wind Auction Clearing Price (USD/MWh)",
+        "unit": "usd_mwh",
+    },
+    {
+        "series_id": "lcoe_solar_utility_usd_mwh",
+        "series_name": "BNEF Solar LCOE Benchmark (USD/MWh)",
+        "unit": "usd_mwh",
+    },
+    {
+        "series_id": "lcoe_wind_onshore_usd_mwh",
+        "series_name": "BNEF Onshore Wind LCOE Benchmark (USD/MWh)",
+        "unit": "usd_mwh",
+    },
 ]
 
 _MOCK_BNEF: dict[str, float] = {
@@ -1022,7 +1271,9 @@ async def ingest_bnef_data(db: AsyncSession) -> int:
     total = 0
     for s in BNEF_SERIES:
         observations = _mock_bnef_annual(s["series_id"])
-        count = await _upsert_points(db, "bnef", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "bnef", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.bnef.ingested", series_id=s["series_id"], rows=count)
     return total
@@ -1031,11 +1282,31 @@ async def ingest_bnef_data(db: AsyncSession) -> int:
 # ── MSCI ESG ──────────────────────────────────────────────────────────────────
 
 MSCI_SERIES: list[dict[str, str]] = [
-    {"series_id": "infra_sector_esg_score",       "series_name": "MSCI Infrastructure Sector ESG Score (0-10)", "unit": "score"},
-    {"series_id": "renewable_energy_esg_score",   "series_name": "MSCI Renewable Energy ESG Score (0-10)",      "unit": "score"},
-    {"series_id": "infra_carbon_intensity_avg",   "series_name": "Infra Sector Avg Carbon Intensity (tCO2/$M)", "unit": "tco2_musd"},
-    {"series_id": "implied_temp_rise_infra_c",    "series_name": "Infrastructure Sector Implied Temperature Rise (°C)", "unit": "celsius"},
-    {"series_id": "climate_var_infra_pct",        "series_name": "Infrastructure Climate Value-at-Risk (%)",    "unit": "percent"},
+    {
+        "series_id": "infra_sector_esg_score",
+        "series_name": "MSCI Infrastructure Sector ESG Score (0-10)",
+        "unit": "score",
+    },
+    {
+        "series_id": "renewable_energy_esg_score",
+        "series_name": "MSCI Renewable Energy ESG Score (0-10)",
+        "unit": "score",
+    },
+    {
+        "series_id": "infra_carbon_intensity_avg",
+        "series_name": "Infra Sector Avg Carbon Intensity (tCO2/$M)",
+        "unit": "tco2_musd",
+    },
+    {
+        "series_id": "implied_temp_rise_infra_c",
+        "series_name": "Infrastructure Sector Implied Temperature Rise (°C)",
+        "unit": "celsius",
+    },
+    {
+        "series_id": "climate_var_infra_pct",
+        "series_name": "Infrastructure Climate Value-at-Risk (%)",
+        "unit": "percent",
+    },
 ]
 
 _MOCK_MSCI: dict[str, float] = {
@@ -1051,9 +1322,18 @@ def _mock_msci_annual(series_id: str) -> list[dict[str, Any]]:
     base = _MOCK_MSCI.get(series_id, 5.0)
     rng = random.Random(hash("msci:" + series_id) & 0xFFFF)
     today = date.today()
-    trend = 0.03 if "esg" in series_id else -0.04 if "carbon" in series_id or "temp" in series_id else 0.0
+    trend = (
+        0.03
+        if "esg" in series_id
+        else -0.04
+        if "carbon" in series_id or "temp" in series_id
+        else 0.0
+    )
     return [
-        {"date": date(today.year - i, 12, 31), "value": round(base * (1 + trend * i) * (1 + rng.gauss(0, 0.03)), 3)}
+        {
+            "date": date(today.year - i, 12, 31),
+            "value": round(base * (1 + trend * i) * (1 + rng.gauss(0, 0.03)), 3),
+        }
         for i in range(4, -1, -1)
     ]
 
@@ -1067,7 +1347,9 @@ async def ingest_msci_esg_data(db: AsyncSession) -> int:
     total = 0
     for s in MSCI_SERIES:
         observations = _mock_msci_annual(s["series_id"])
-        count = await _upsert_points(db, "msci_esg", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "msci_esg", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.msci_esg.ingested", series_id=s["series_id"], rows=count)
     return total
@@ -1076,10 +1358,26 @@ async def ingest_msci_esg_data(db: AsyncSession) -> int:
 # ── UN SDG ─────────────────────────────────────────────────────────────────────
 
 UN_SDG_SERIES: list[dict[str, str]] = [
-    {"series_id": "7.2.1_renewable_share_pct",    "series_name": "SDG 7.2.1 Renewable Energy Share (%)",        "unit": "percent"},
-    {"series_id": "7.3.1_energy_intensity",       "series_name": "SDG 7.3.1 Energy Intensity (MJ/$2017 GDP)",   "unit": "mj_gdp"},
-    {"series_id": "9.4.1_co2_per_gdp",            "series_name": "SDG 9.4.1 CO2 Emissions per unit GDP",        "unit": "kgco2_gdp"},
-    {"series_id": "13.a.1_climate_finance_bn_usd","series_name": "SDG 13.a.1 Climate Finance Mobilized ($bn)",  "unit": "bn_usd"},
+    {
+        "series_id": "7.2.1_renewable_share_pct",
+        "series_name": "SDG 7.2.1 Renewable Energy Share (%)",
+        "unit": "percent",
+    },
+    {
+        "series_id": "7.3.1_energy_intensity",
+        "series_name": "SDG 7.3.1 Energy Intensity (MJ/$2017 GDP)",
+        "unit": "mj_gdp",
+    },
+    {
+        "series_id": "9.4.1_co2_per_gdp",
+        "series_name": "SDG 9.4.1 CO2 Emissions per unit GDP",
+        "unit": "kgco2_gdp",
+    },
+    {
+        "series_id": "13.a.1_climate_finance_bn_usd",
+        "series_name": "SDG 13.a.1 Climate Finance Mobilized ($bn)",
+        "unit": "bn_usd",
+    },
 ]
 
 _MOCK_UN_SDG: dict[str, float] = {
@@ -1114,7 +1412,9 @@ async def ingest_un_sdg_data(db: AsyncSession) -> int:
         if not observations:
             observations = _mock_un_sdg_annual(s["series_id"])
 
-        count = await _upsert_points(db, "un_sdg", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "un_sdg", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.un_sdg.ingested", series_id=s["series_id"], rows=count)
 
@@ -1126,7 +1426,9 @@ async def _fetch_un_sdg_indicator(indicator_code: str) -> list[dict[str, Any]]:
     url = "https://unstats.un.org/sdgs/UNSDGAPIV5/v1/sdg/Indicator/Data"
     try:
         async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.get(url, params={"indicator": indicator_code, "areaCode": "WORLD", "limit": 10})
+            resp = await client.get(
+                url, params={"indicator": indicator_code, "areaCode": "WORLD", "limit": 10}
+            )
             resp.raise_for_status()
             data = resp.json()
             observations = []
@@ -1148,12 +1450,36 @@ async def _fetch_un_sdg_indicator(indicator_code: str) -> list[dict[str, Any]]:
 # ── Preqin ────────────────────────────────────────────────────────────────────
 
 PREQIN_SERIES: list[dict[str, str]] = [
-    {"series_id": "infra_fund_irr_median_pct",        "series_name": "Infra Fund Median Net IRR (%)",           "unit": "percent"},
-    {"series_id": "infra_fund_irr_top_quartile_pct",  "series_name": "Infra Fund Top Quartile Net IRR (%)",     "unit": "percent"},
-    {"series_id": "infra_dry_powder_bn_usd",          "series_name": "Infrastructure Dry Powder ($bn)",         "unit": "bn_usd"},
-    {"series_id": "infra_deal_count_quarterly",       "series_name": "Quarterly Infrastructure Deal Count",     "unit": "count"},
-    {"series_id": "infra_avg_deal_size_m_usd",        "series_name": "Average Infrastructure Deal Size ($M)",   "unit": "m_usd"},
-    {"series_id": "renewable_fund_irr_median_pct",    "series_name": "Renewable Energy Fund Median IRR (%)",    "unit": "percent"},
+    {
+        "series_id": "infra_fund_irr_median_pct",
+        "series_name": "Infra Fund Median Net IRR (%)",
+        "unit": "percent",
+    },
+    {
+        "series_id": "infra_fund_irr_top_quartile_pct",
+        "series_name": "Infra Fund Top Quartile Net IRR (%)",
+        "unit": "percent",
+    },
+    {
+        "series_id": "infra_dry_powder_bn_usd",
+        "series_name": "Infrastructure Dry Powder ($bn)",
+        "unit": "bn_usd",
+    },
+    {
+        "series_id": "infra_deal_count_quarterly",
+        "series_name": "Quarterly Infrastructure Deal Count",
+        "unit": "count",
+    },
+    {
+        "series_id": "infra_avg_deal_size_m_usd",
+        "series_name": "Average Infrastructure Deal Size ($M)",
+        "unit": "m_usd",
+    },
+    {
+        "series_id": "renewable_fund_irr_median_pct",
+        "series_name": "Renewable Energy Fund Median IRR (%)",
+        "unit": "percent",
+    },
 ]
 
 _MOCK_PREQIN: dict[str, float] = {
@@ -1193,7 +1519,9 @@ async def ingest_preqin_data(db: AsyncSession) -> int:
     total = 0
     for s in PREQIN_SERIES:
         observations = _mock_preqin_quarterly(s["series_id"])
-        count = await _upsert_points(db, "preqin", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "preqin", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.preqin.ingested", series_id=s["series_id"], rows=count)
     return total
@@ -1202,13 +1530,41 @@ async def ingest_preqin_data(db: AsyncSession) -> int:
 # ── EIA ───────────────────────────────────────────────────────────────────────
 
 EIA_SERIES: list[dict[str, str]] = [
-    {"series_id": "us_solar_generation_gwh",      "series_name": "US Solar Electricity Generation (GWh)",     "unit": "gwh"},
-    {"series_id": "us_wind_generation_gwh",       "series_name": "US Wind Electricity Generation (GWh)",      "unit": "gwh"},
-    {"series_id": "us_total_generation_gwh",      "series_name": "US Total Electricity Generation (GWh)",     "unit": "gwh"},
-    {"series_id": "us_renewable_share_pct",       "series_name": "US Renewable Share of Generation (%)",      "unit": "percent"},
-    {"series_id": "us_solar_capacity_factor_pct", "series_name": "US Average Solar Capacity Factor (%)",      "unit": "percent"},
-    {"series_id": "us_wind_capacity_factor_pct",  "series_name": "US Average Wind Capacity Factor (%)",       "unit": "percent"},
-    {"series_id": "us_interconnection_queue_gw",  "series_name": "US Total Interconnection Queue Capacity (GW)", "unit": "gw"},
+    {
+        "series_id": "us_solar_generation_gwh",
+        "series_name": "US Solar Electricity Generation (GWh)",
+        "unit": "gwh",
+    },
+    {
+        "series_id": "us_wind_generation_gwh",
+        "series_name": "US Wind Electricity Generation (GWh)",
+        "unit": "gwh",
+    },
+    {
+        "series_id": "us_total_generation_gwh",
+        "series_name": "US Total Electricity Generation (GWh)",
+        "unit": "gwh",
+    },
+    {
+        "series_id": "us_renewable_share_pct",
+        "series_name": "US Renewable Share of Generation (%)",
+        "unit": "percent",
+    },
+    {
+        "series_id": "us_solar_capacity_factor_pct",
+        "series_name": "US Average Solar Capacity Factor (%)",
+        "unit": "percent",
+    },
+    {
+        "series_id": "us_wind_capacity_factor_pct",
+        "series_name": "US Average Wind Capacity Factor (%)",
+        "unit": "percent",
+    },
+    {
+        "series_id": "us_interconnection_queue_gw",
+        "series_name": "US Total Interconnection Queue Capacity (GW)",
+        "unit": "gw",
+    },
 ]
 
 _MOCK_EIA: dict[str, float] = {
@@ -1223,11 +1579,26 @@ _MOCK_EIA: dict[str, float] = {
 
 # EIA v2 API route and facet for each series
 _EIA_ROUTES: dict[str, dict[str, Any]] = {
-    "us_solar_generation_gwh":      {"route": "electricity/electric-power-operational-data", "fueltypeid": "SUN"},
-    "us_wind_generation_gwh":       {"route": "electricity/electric-power-operational-data", "fueltypeid": "WND"},
-    "us_total_generation_gwh":      {"route": "electricity/electric-power-operational-data", "fueltypeid": "ALL"},
-    "us_solar_capacity_factor_pct": {"route": "electricity/electric-power-operational-data", "fueltypeid": "SUN"},
-    "us_wind_capacity_factor_pct":  {"route": "electricity/electric-power-operational-data", "fueltypeid": "WND"},
+    "us_solar_generation_gwh": {
+        "route": "electricity/electric-power-operational-data",
+        "fueltypeid": "SUN",
+    },
+    "us_wind_generation_gwh": {
+        "route": "electricity/electric-power-operational-data",
+        "fueltypeid": "WND",
+    },
+    "us_total_generation_gwh": {
+        "route": "electricity/electric-power-operational-data",
+        "fueltypeid": "ALL",
+    },
+    "us_solar_capacity_factor_pct": {
+        "route": "electricity/electric-power-operational-data",
+        "fueltypeid": "SUN",
+    },
+    "us_wind_capacity_factor_pct": {
+        "route": "electricity/electric-power-operational-data",
+        "fueltypeid": "WND",
+    },
 }
 
 
@@ -1243,10 +1614,12 @@ def _mock_eia_monthly(series_id: str, months: int = 24) -> list[dict[str, Any]]:
             month += 12
             year -= 1
         seasonal = 1 + 0.15 * (1 if month in (6, 7, 8) else -0.05)
-        result.append({
-            "date": date(year, month, 1),
-            "value": round(base * seasonal * (1 + rng.gauss(0, 0.05)), 2),
-        })
+        result.append(
+            {
+                "date": date(year, month, 1),
+                "value": round(base * seasonal * (1 + rng.gauss(0, 0.05)), 2),
+            }
+        )
     return result
 
 
@@ -1262,7 +1635,9 @@ async def ingest_eia_data(db: AsyncSession) -> int:
             logger.debug("market_data.eia.no_api_key_mock", series_id=s["series_id"])
             observations = _mock_eia_monthly(s["series_id"])
 
-        count = await _upsert_points(db, "eia", s["series_id"], s["series_name"], s["unit"], observations)
+        count = await _upsert_points(
+            db, "eia", s["series_id"], s["series_name"], s["unit"], observations
+        )
         total += count
         logger.info("market_data.eia.ingested", series_id=s["series_id"], rows=count)
 

@@ -7,17 +7,15 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.middleware.tenant import tenant_filter
 from app.models.enums import LegalDocumentStatus, LegalDocumentType
 from app.models.legal import LegalDocument
 from app.modules.legal.schemas import (
+    ClauseAnalysis,
     LegalDocumentCreate,
     LegalDocumentResponse,
     ReviewResultResponse,
-    ClauseAnalysis,
 )
 from app.modules.legal.templates import SYSTEM_TEMPLATES
-
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -244,9 +242,7 @@ async def get_review_result(
     output = task_log.output_data or {}
     input_data = task_log.input_data or {}
 
-    clauses = [
-        ClauseAnalysis(**c) for c in output.get("clause_analyses", [])
-    ]
+    clauses = [ClauseAnalysis(**c) for c in output.get("clause_analyses", [])]
 
     return ReviewResultResponse(
         review_id=task_log.id,
@@ -319,6 +315,7 @@ async def get_download_url(
 
     import boto3
     from botocore.config import Config as BotoConfig
+
     from app.core.config import settings
 
     s3 = boto3.client(

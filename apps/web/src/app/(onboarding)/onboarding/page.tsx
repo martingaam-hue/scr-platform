@@ -11,7 +11,7 @@ import {
   Rocket,
   Sparkles,
 } from "lucide-react";
-import { Button, Card, CardContent, Badge, cn } from "@scr/ui";
+import { Button, Card, CardContent, cn } from "@scr/ui";
 import { useCompleteOnboarding, type OnboardingData } from "@/lib/onboarding";
 
 // ── Step indicator ──────────────────────────────────────────────────────

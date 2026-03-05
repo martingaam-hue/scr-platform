@@ -14,21 +14,13 @@ from app.core.database import get_db
 from app.main import app
 from app.models.core import Organization, User
 from app.models.enums import (
-    FundType,
-    HoldingStatus,
     MatchInitiator,
     MatchStatus,
     OrgType,
-    PortfolioStatus,
-    PortfolioStrategy,
     ProjectStatus,
-    ProjectStage,
     ProjectType,
-    RiskTolerance,
-    SFDRClassification,
     UserRole,
 )
-from app.models.investors import InvestorMandate, Portfolio, PortfolioHolding
 from app.models.matching import MatchResult
 from app.models.projects import Project
 from app.schemas.auth import CurrentUser
@@ -147,9 +139,7 @@ async def mx_project(db: AsyncSession, mx_org: Organization) -> Project:
 async def mx_client(db: AsyncSession, mx_user: User) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: MX_CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
@@ -160,9 +150,7 @@ async def mx_inv_client(db: AsyncSession, mx_inv_user: User) -> AsyncClient:
     """Authenticated client for the investor org."""
     app.dependency_overrides[get_current_user] = lambda: MX_INV_CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
@@ -174,18 +162,14 @@ async def mx_inv_client(db: AsyncSession, mx_inv_user: User) -> AsyncClient:
 class TestMandateCRUD:
     """Tests for /v1/matching/mandates."""
 
-    async def test_list_mandates_empty_200(
-        self, mx_client: AsyncClient, mx_user: User
-    ) -> None:
+    async def test_list_mandates_empty_200(self, mx_client: AsyncClient, mx_user: User) -> None:
         """GET /v1/matching/mandates returns empty list when none exist."""
         resp = await mx_client.get("/v1/matching/mandates")
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
 
-    async def test_create_mandate_201(
-        self, mx_client: AsyncClient, mx_user: User
-    ) -> None:
+    async def test_create_mandate_201(self, mx_client: AsyncClient, mx_user: User) -> None:
         """POST /v1/matching/mandates with valid data returns 201."""
         resp = await mx_client.post(
             "/v1/matching/mandates",
@@ -246,9 +230,7 @@ class TestMandateCRUD:
         reason="Sequential POST→PUT refreshes updated_at via SELECT; triggers MissingGreenlet "
         "under NullPool test sessions. Works correctly in production with connection pool."
     )
-    async def test_update_mandate_200(
-        self, mx_client: AsyncClient, mx_user: User
-    ) -> None:
+    async def test_update_mandate_200(self, mx_client: AsyncClient, mx_user: User) -> None:
         """PUT /v1/matching/mandates/{id} updates fields and returns 200."""
         create_resp = await mx_client.post(
             "/v1/matching/mandates",
@@ -307,18 +289,14 @@ class TestAllyRecommendations:
         self, mx_client: AsyncClient, mx_user: User
     ) -> None:
         """GET ally recommendations for an unknown project returns 404."""
-        resp = await mx_client.get(
-            f"/v1/matching/ally/recommendations/{uuid.uuid4()}"
-        )
+        resp = await mx_client.get(f"/v1/matching/ally/recommendations/{uuid.uuid4()}")
         assert resp.status_code == 404
 
     async def test_ally_recommendations_known_project_200(
         self, mx_client: AsyncClient, mx_project: Project
     ) -> None:
         """GET ally recommendations for a known project returns 200 with structure."""
-        resp = await mx_client.get(
-            f"/v1/matching/ally/recommendations/{MX_PROJECT_ID}"
-        )
+        resp = await mx_client.get(f"/v1/matching/ally/recommendations/{MX_PROJECT_ID}")
         assert resp.status_code == 200
         data = resp.json()
         assert "project_id" in data
@@ -351,18 +329,14 @@ class TestMatchLifecycle:
         self, mx_inv_client: AsyncClient, mx_inv_user: User
     ) -> None:
         """GET messages for unknown match returns 404."""
-        resp = await mx_inv_client.get(
-            f"/v1/matching/{uuid.uuid4()}/messages"
-        )
+        resp = await mx_inv_client.get(f"/v1/matching/{uuid.uuid4()}/messages")
         assert resp.status_code == 404
 
     async def test_express_interest_unknown_match_404(
         self, mx_inv_client: AsyncClient, mx_inv_user: User
     ) -> None:
         """POST /interest on unknown match returns 404."""
-        resp = await mx_inv_client.post(
-            f"/v1/matching/{uuid.uuid4()}/interest"
-        )
+        resp = await mx_inv_client.post(f"/v1/matching/{uuid.uuid4()}/interest")
         assert resp.status_code == 404
 
     async def test_get_messages_known_match_200(
@@ -375,9 +349,7 @@ class TestMatchLifecycle:
     ) -> None:
         """GET messages for a valid match returns 200 with messages structure."""
         match = await self._create_match(db)
-        resp = await mx_inv_client.get(
-            f"/v1/matching/{match.id}/messages"
-        )
+        resp = await mx_inv_client.get(f"/v1/matching/{match.id}/messages")
         assert resp.status_code == 200
         data = resp.json()
         assert "items" in data

@@ -91,7 +91,9 @@ def calculate_risk_scores(answers: dict) -> dict:
     horizon_score = _closest_key(HORIZON_SCORES, min(answers["investment_horizon_years"], 10))
     loss_score = _closest_key(LOSS_TOLERANCE_SCORES, answers["loss_tolerance_percentage"])
     liquidity_score = LIQUIDITY_SCORES.get(answers["liquidity_needs"], 50)
-    concentration_score = _closest_key(CONCENTRATION_SCORES, answers["concentration_max_percentage"])
+    concentration_score = _closest_key(
+        CONCENTRATION_SCORES, answers["concentration_max_percentage"]
+    )
     drawdown_score = _closest_key(DRAWDOWN_SCORES, answers["max_drawdown_tolerance"])
 
     risk_appetite = (

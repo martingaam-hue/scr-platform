@@ -6,16 +6,12 @@ import {
   Globe,
   Loader2,
   RefreshCw,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react";
 import {
-  Badge,
   Button,
   Card,
   CardContent,
   EmptyState,
-  cn,
 } from "@scr/ui";
 import {
   useFXRates,

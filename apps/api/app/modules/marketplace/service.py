@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any
 
 import structlog
 from sqlalchemy import func, select
@@ -18,7 +17,7 @@ from app.models.enums import (
     RFQStatus,
     TransactionStatus,
 )
-from app.models.marketplace import Listing, RFQ, Transaction
+from app.models.marketplace import RFQ, Listing, Transaction
 from app.models.projects import Project, SignalScore
 from app.modules.marketplace.schemas import (
     ListingCreateRequest,
@@ -40,9 +39,7 @@ logger = structlog.get_logger()
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-async def _get_latest_signal_score(
-    db: AsyncSession, project_id: uuid.UUID
-) -> int | None:
+async def _get_latest_signal_score(db: AsyncSession, project_id: uuid.UUID) -> int | None:
     result = await db.execute(
         select(SignalScore.overall_score)
         .where(SignalScore.project_id == project_id)
@@ -62,9 +59,7 @@ async def _rfq_count_for_listing(db: AsyncSession, listing_id: uuid.UUID) -> int
     return result.scalar_one() or 0
 
 
-async def _enrich_listing(
-    db: AsyncSession, listing: Listing
-) -> ListingResponse:
+async def _enrich_listing(db: AsyncSession, listing: Listing) -> ListingResponse:
     project = None
     signal_score = None
     if listing.project_id:
@@ -83,7 +78,9 @@ async def _enrich_listing(
         status=listing.status.value,
         visibility=listing.visibility.value,
         asking_price=str(listing.asking_price) if listing.asking_price is not None else None,
-        minimum_investment=str(listing.minimum_investment) if listing.minimum_investment is not None else None,
+        minimum_investment=str(listing.minimum_investment)
+        if listing.minimum_investment is not None
+        else None,
         currency=listing.currency,
         details=listing.details or {},
         expires_at=listing.expires_at,
@@ -157,7 +154,9 @@ async def create_listing(
         status=ListingStatus.ACTIVE,
         visibility=ListingVisibility(body.visibility),
         asking_price=Decimal(str(body.asking_price)) if body.asking_price is not None else None,
-        minimum_investment=Decimal(str(body.minimum_investment)) if body.minimum_investment is not None else None,
+        minimum_investment=Decimal(str(body.minimum_investment))
+        if body.minimum_investment is not None
+        else None,
         currency=body.currency,
         details=body.details or {},
         expires_at=body.expires_at,
@@ -208,7 +207,9 @@ async def list_listings(
         stmt = stmt.where(Listing.status == ListingStatus(status))
     else:
         # Default: show active + under_negotiation listings
-        stmt = stmt.where(Listing.status.in_([ListingStatus.ACTIVE, ListingStatus.UNDER_NEGOTIATION]))
+        stmt = stmt.where(
+            Listing.status.in_([ListingStatus.ACTIVE, ListingStatus.UNDER_NEGOTIATION])
+        )
 
     if listing_type:
         stmt = stmt.where(Listing.listing_type == ListingType(listing_type))
@@ -228,7 +229,11 @@ async def list_listings(
         item = await _enrich_listing(db, lst)
         if sector and item.project_type != sector:
             continue
-        if geography and item.geography_country and geography.lower() not in item.geography_country.lower():
+        if (
+            geography
+            and item.geography_country
+            and geography.lower() not in item.geography_country.lower()
+        ):
             continue
         enriched.append(item)
 
@@ -331,9 +336,7 @@ async def submit_rfq(
     return rfq
 
 
-async def list_sent_rfqs(
-    db: AsyncSession, buyer_org_id: uuid.UUID
-) -> RFQListResponse:
+async def list_sent_rfqs(db: AsyncSession, buyer_org_id: uuid.UUID) -> RFQListResponse:
     result = await db.execute(
         select(RFQ, Listing.title)
         .join(Listing, RFQ.listing_id == Listing.id)
@@ -348,9 +351,7 @@ async def list_sent_rfqs(
     return RFQListResponse(items=items, total=len(items))
 
 
-async def list_received_rfqs(
-    db: AsyncSession, seller_org_id: uuid.UUID
-) -> RFQListResponse:
+async def list_received_rfqs(db: AsyncSession, seller_org_id: uuid.UUID) -> RFQListResponse:
     result = await db.execute(
         select(RFQ, Listing.title)
         .join(Listing, RFQ.listing_id == Listing.id)
@@ -452,13 +453,11 @@ async def complete_transaction(
         raise ValueError("Cannot complete a cancelled transaction")
 
     tx.status = TransactionStatus.COMPLETED
-    tx.completed_at = datetime.now(timezone.utc)
+    tx.completed_at = datetime.now(UTC)
     return tx
 
 
-async def list_transactions(
-    db: AsyncSession, org_id: uuid.UUID
-) -> TransactionListResponse:
+async def list_transactions(db: AsyncSession, org_id: uuid.UUID) -> TransactionListResponse:
     result = await db.execute(
         select(Transaction, Listing.title)
         .join(Listing, Transaction.listing_id == Listing.id)
@@ -507,10 +506,10 @@ async def suggest_price(
 
     # Rule-based fallback
     fallback: dict[str, tuple[float, float, float]] = {
-        "equity_sale":    (5_000_000.0, 1_000_000.0, 50_000_000.0),
-        "debt_sale":      (2_000_000.0, 500_000.0,   20_000_000.0),
-        "co_investment":  (1_000_000.0, 250_000.0,   10_000_000.0),
-        "carbon_credit":  (25.0,         10.0,         75.0),
+        "equity_sale": (5_000_000.0, 1_000_000.0, 50_000_000.0),
+        "debt_sale": (2_000_000.0, 500_000.0, 20_000_000.0),
+        "co_investment": (1_000_000.0, 250_000.0, 10_000_000.0),
+        "carbon_credit": (25.0, 10.0, 75.0),
     }
     mid, lo, hi = fallback.get(listing_type, (1_000_000.0, 100_000.0, 10_000_000.0))
     return PriceSuggestion(

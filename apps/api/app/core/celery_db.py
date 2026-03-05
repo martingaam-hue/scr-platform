@@ -5,8 +5,8 @@ This module exposes a shared SYNC engine and session factory so that
 worker processes don't create a new connection pool on every task invocation.
 """
 
-from contextlib import contextmanager
 from collections.abc import Generator
+from contextlib import contextmanager
 
 import structlog
 from sqlalchemy import create_engine
@@ -30,12 +30,12 @@ _engine = create_engine(
     _sync_url,
     pool_size=5,
     max_overflow=5,
-    pool_pre_ping=True,        # Drop stale connections before reuse
-    pool_recycle=1800,         # Recycle connections every 30 min
+    pool_pre_ping=True,  # Drop stale connections before reuse
+    pool_recycle=1800,  # Recycle connections every 30 min
     connect_args={
         "options": (
-            "-c statement_timeout=60000 "                   # 60s per statement
-            "-c idle_in_transaction_session_timeout=120000" # 120s idle-in-tx
+            "-c statement_timeout=60000 "  # 60s per statement
+            "-c idle_in_transaction_session_timeout=120000"  # 120s idle-in-tx
         )
     },
 )

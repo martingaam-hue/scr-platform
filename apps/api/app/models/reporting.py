@@ -30,18 +30,12 @@ class ReportTemplate(BaseModel):
         JSONB, nullable=False, server_default="{}"
     )
     sections: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    is_system: Mapped[bool] = mapped_column(
-        default=False, server_default="false", nullable=False
-    )
+    is_system: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     # Relationships
-    generated_reports: Mapped[list["GeneratedReport"]] = relationship(
-        back_populates="template"
-    )
-    scheduled_reports: Mapped[list["ScheduledReport"]] = relationship(
-        back_populates="template"
-    )
+    generated_reports: Mapped[list["GeneratedReport"]] = relationship(back_populates="template")
+    scheduled_reports: Mapped[list["ScheduledReport"]] = relationship(back_populates="template")
 
     def __repr__(self) -> str:
         return f"<ReportTemplate(id={self.id}, name={self.name!r}, category={self.category.value})>"
@@ -66,9 +60,7 @@ class GeneratedReport(BaseModel):
         ForeignKey("report_templates.id", ondelete="SET NULL"),
     )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
-    status: Mapped[ReportStatus] = mapped_column(
-        nullable=False, default=ReportStatus.QUEUED
-    )
+    status: Mapped[ReportStatus] = mapped_column(nullable=False, default=ReportStatus.QUEUED)
     parameters: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     result_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     s3_key: Mapped[str | None] = mapped_column(String(1000))
@@ -81,9 +73,7 @@ class GeneratedReport(BaseModel):
     completed_at: Mapped[datetime | None] = mapped_column()
 
     # Relationships
-    template: Mapped["ReportTemplate | None"] = relationship(
-        back_populates="generated_reports"
-    )
+    template: Mapped["ReportTemplate | None"] = relationship(back_populates="generated_reports")
 
     def __repr__(self) -> str:
         return f"<GeneratedReport(id={self.id}, title={self.title!r}, status={self.status.value})>"
@@ -111,16 +101,14 @@ class ScheduledReport(BaseModel):
     frequency: Mapped[ReportFrequency] = mapped_column(nullable=False)
     parameters: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     recipients: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    is_active: Mapped[bool] = mapped_column(
-        default=True, server_default="true", nullable=False
-    )
+    is_active: Mapped[bool] = mapped_column(default=True, server_default="true", nullable=False)
     last_run_at: Mapped[datetime | None] = mapped_column()
     next_run_at: Mapped[datetime | None] = mapped_column()
 
     # Relationships
-    template: Mapped["ReportTemplate"] = relationship(
-        back_populates="scheduled_reports"
-    )
+    template: Mapped["ReportTemplate"] = relationship(back_populates="scheduled_reports")
 
     def __repr__(self) -> str:
-        return f"<ScheduledReport(id={self.id}, name={self.name!r}, frequency={self.frequency.value})>"
+        return (
+            f"<ScheduledReport(id={self.id}, name={self.name!r}, frequency={self.frequency.value})>"
+        )

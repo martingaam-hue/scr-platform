@@ -10,7 +10,9 @@ from app.core.config import settings
 logger = structlog.get_logger()
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
+@celery_app.task(
+    bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180
+)
 def generate_legal_doc_task(
     self,
     doc_id: str,
@@ -47,14 +49,20 @@ def generate_legal_doc_task(
             answers = meta.get("questionnaire_answers", {})
             template = next((t for t in SYSTEM_TEMPLATES if t["id"] == template_id), None)
 
-            template_text = template["template_text"] if template else "Legal Document\n\n[Content to be generated]"
+            template_text = (
+                template["template_text"]
+                if template
+                else "Legal Document\n\n[Content to be generated]"
+            )
             template_name = template["name"] if template else "Legal Document"
 
             # Fill in template placeholders with answers
             filled_template = template_text
             for key, value in answers.items():
                 if isinstance(value, bool):
-                    filled_template = filled_template.replace(f"{{{{{key}}}}}", "Yes" if value else "No")
+                    filled_template = filled_template.replace(
+                        f"{{{{{key}}}}}", "Yes" if value else "No"
+                    )
                 elif value is not None:
                     filled_template = filled_template.replace(f"{{{{{key}}}}}", str(value))
 
@@ -76,8 +84,9 @@ def generate_legal_doc_task(
             _legal_gen_messages: list[dict] = []
             try:
                 import asyncio as _asyncio
-                from app.services.prompt_registry import PromptRegistry as _PR
+
                 from app.core.database import async_session_factory as _asf
+                from app.services.prompt_registry import PromptRegistry as _PR
 
                 async def _render_legal_gen() -> tuple:
                     async with _asf() as _adb:
@@ -91,9 +100,7 @@ def generate_legal_doc_task(
 
                 _lg_loop = _asyncio.new_event_loop()
                 try:
-                    _legal_gen_messages, _, _ = (
-                        _lg_loop.run_until_complete(_render_legal_gen())
-                    )
+                    _legal_gen_messages, _, _ = _lg_loop.run_until_complete(_render_legal_gen())
                 finally:
                     _lg_loop.close()
             except Exception:
@@ -167,10 +174,12 @@ def generate_legal_doc_task(
                     err_session.commit()
 
             logger.error("legal_doc_generation_failed", doc_id=doc_id, error=str(exc))
-            raise self.retry(exc=exc)
+            raise self.retry(exc=exc) from exc
 
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180)
+@celery_app.task(
+    bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=120, time_limit=180
+)
 def review_legal_doc_task(
     self,
     task_log_id: str,
@@ -238,8 +247,9 @@ def review_legal_doc_task(
             _legal_rev_messages: list[dict] = []
             try:
                 import asyncio as _asyncio
-                from app.services.prompt_registry import PromptRegistry as _PR
+
                 from app.core.database import async_session_factory as _asf
+                from app.services.prompt_registry import PromptRegistry as _PR
 
                 async def _render_legal_rev() -> tuple:
                     async with _asf() as _adb:
@@ -255,9 +265,7 @@ def review_legal_doc_task(
 
                 _lr_loop = _asyncio.new_event_loop()
                 try:
-                    _legal_rev_messages, _, _ = (
-                        _lr_loop.run_until_complete(_render_legal_rev())
-                    )
+                    _legal_rev_messages, _, _ = _lr_loop.run_until_complete(_render_legal_rev())
                 finally:
                     _lr_loop.close()
             except Exception:
@@ -287,6 +295,7 @@ def review_legal_doc_task(
             # Parse JSON with markdown fallback
             import json
             import re
+
             try:
                 output = json.loads(content)
             except json.JSONDecodeError:
@@ -313,4 +322,4 @@ def review_legal_doc_task(
                     err_session.commit()
 
             logger.error("legal_review_failed", task_log_id=task_log_id, error=str(exc))
-            raise self.retry(exc=exc)
+            raise self.retry(exc=exc) from exc

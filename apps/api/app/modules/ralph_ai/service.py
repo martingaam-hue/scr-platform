@@ -8,7 +8,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.middleware.tenant import tenant_filter
 from app.models.ai import AIConversation, AIMessage
 from app.models.enums import AIContextType, AIMessageRole
 from app.modules.ralph_ai.schemas import ConversationCreate
@@ -37,7 +36,9 @@ async def create_conversation(
     db.add(conversation)
     await db.flush()
     await db.refresh(conversation)
-    logger.info("ralph_conversation_created", conversation_id=str(conversation.id), org_id=str(org_id))
+    logger.info(
+        "ralph_conversation_created", conversation_id=str(conversation.id), org_id=str(org_id)
+    )
     return conversation
 
 
@@ -71,9 +72,7 @@ async def get_conversation(
             AIConversation.org_id == org_id,
             AIConversation.is_deleted.is_(False),
         )
-        .options(
-            selectinload(AIConversation.messages)
-        )
+        .options(selectinload(AIConversation.messages))
         .execution_options(populate_existing=True)
     )
     result = await db.execute(stmt)
