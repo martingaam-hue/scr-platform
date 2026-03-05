@@ -52,6 +52,7 @@ export interface DataTableProps<TData> {
   emptyState?: React.ReactNode;
   renderExpandedRow?: (row: Row<TData>) => React.ReactNode;
   getRowId?: (row: TData) => string;
+  onRowClick?: (row: TData) => void;
   className?: string;
 }
 
@@ -75,6 +76,7 @@ function DataTable<TData>({
   emptyState,
   renderExpandedRow,
   getRowId,
+  onRowClick,
   className,
 }: DataTableProps<TData>) {
   const [internalSorting, setInternalSorting] = React.useState<SortingState>(
@@ -310,7 +312,13 @@ function DataTable<TData>({
             ) : (
               table.getRowModel().rows.map((row) => (
                 <React.Fragment key={row.id}>
-                  <tr className="border-b border-neutral-100 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/30">
+                  <tr
+                    className={cn(
+                      "border-b border-neutral-100 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/30",
+                      onRowClick && "cursor-pointer"
+                    )}
+                    onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <td
                         key={cell.id}

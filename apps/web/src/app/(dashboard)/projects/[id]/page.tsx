@@ -10,8 +10,11 @@ import {
   DollarSign,
   FileText,
   Globe,
+  Lightbulb,
   MapPin,
   RefreshCw,
+  ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Target,
   TrendingUp,
@@ -51,10 +54,54 @@ import {
   formatCurrency,
   type MilestoneResponse,
   type BudgetItemResponse,
-  type BusinessPlanResultResponse,
 } from "@/lib/projects";
 
-// ── AI Tools Tab ─────────────────────────────────────────────────────────────
+// ── Project Tools config ──────────────────────────────────────────────────────
+
+const PROJECT_TOOLS = [
+  {
+    key: "signal-score",
+    label: "Signal Score",
+    description: "AI-powered investment readiness score across 6 dimensions.",
+    icon: Target,
+    href: (id: string) => `/projects/${id}/signal-score`,
+    color: "bg-indigo-50 text-indigo-600",
+  },
+  {
+    key: "expert-insights",
+    label: "Expert Insights",
+    description: "Capture and enrich expert notes, meetings, and feedback.",
+    icon: Lightbulb,
+    href: (id: string) => `/projects/${id}/expert-insights`,
+    color: "bg-amber-50 text-amber-600",
+  },
+  {
+    key: "due-diligence",
+    label: "Due Diligence",
+    description: "Structured checklist for comprehensive project review.",
+    icon: CheckCircle2,
+    href: (id: string) => `/projects/${id}/due-diligence`,
+    color: "bg-green-50 text-green-600",
+  },
+  {
+    key: "risk",
+    label: "Risk Dashboard",
+    description: "Project risk profile with severity tracking and mitigation.",
+    icon: ShieldAlert,
+    href: (id: string) => `/projects/${id}/risk`,
+    color: "bg-red-50 text-red-600",
+  },
+  {
+    key: "risk-analysis",
+    label: "Risk Analysis & Compliance",
+    description: "Domain-level risk breakdown and regulatory compliance view.",
+    icon: ShieldCheck,
+    href: (id: string) => `/projects/${id}/risk-analysis`,
+    color: "bg-orange-50 text-orange-600",
+  },
+] as const;
+
+// ── AI Tools ─────────────────────────────────────────────────────────────────
 
 function AIToolResultCard({
   projectId,
@@ -140,10 +187,14 @@ function AIToolResultCard({
   );
 }
 
-function AIToolsTab({ projectId }: { projectId: string }) {
+function AIToolsSection({ projectId }: { projectId: string }) {
   const actionKeys = Object.keys(BUSINESS_PLAN_ACTIONS) as BusinessPlanActionKey[];
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-neutral-500" />
+        <h3 className="font-semibold text-neutral-900">AI Tools</h3>
+      </div>
       <p className="text-sm text-neutral-500">
         Generate AI-powered content for your project. Each action uses your project data to produce relevant, investment-ready text.
       </p>
@@ -311,13 +362,11 @@ export default function ProjectDetailPage() {
           </TabsTrigger>
           <TabsTrigger value="signal">Signal Score</TabsTrigger>
           <TabsTrigger value="due-diligence">Due Diligence</TabsTrigger>
-          {canAnalyze && (
-            <TabsTrigger value="ai-tools">AI Tools</TabsTrigger>
-          )}
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="mt-6 space-y-6">
+          {/* Description + Details */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Description */}
             <Card className="lg:col-span-2">
@@ -329,7 +378,7 @@ export default function ProjectDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Quick stats */}
+            {/* Details — includes funding required (bold) */}
             <Card>
               <CardContent className="space-y-4 p-6">
                 <h3 className="font-semibold text-neutral-900">Details</h3>
@@ -352,9 +401,15 @@ export default function ProjectDetailPage() {
                         : "—"}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-neutral-500">Currency</span>
-                    <span className="font-medium">{project.currency}</span>
+                  {/* Funding Required — bold, replaces Currency line */}
+                  <div className="flex justify-between items-baseline pt-1 border-t border-neutral-100">
+                    <span className="text-neutral-500">Funding Required</span>
+                    <span className="font-bold text-neutral-900 text-base">
+                      {formatCurrency(
+                        project.total_investment_required,
+                        project.currency
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-neutral-500">Published</span>
@@ -375,20 +430,39 @@ export default function ProjectDetailPage() {
             </Card>
           </div>
 
-          {/* Funding progress */}
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="mb-3 font-semibold text-neutral-900">
-                Funding Required
-              </h3>
-              <div className="text-3xl font-bold text-neutral-900">
-                {formatCurrency(
-                  project.total_investment_required,
-                  project.currency
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          {/* AI Tools — directly below description and details */}
+          {canAnalyze && <AIToolsSection projectId={id} />}
+
+          {/* Project Tools navigation */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-neutral-900">Project Tools</h3>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {PROJECT_TOOLS.map((tool) => {
+                const Icon = tool.icon;
+                return (
+                  <button
+                    key={tool.key}
+                    onClick={() => router.push(tool.href(id))}
+                    className="flex items-start gap-4 rounded-lg border border-neutral-200 bg-white p-4 text-left transition-colors hover:border-primary-300 hover:bg-primary-50/30"
+                  >
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${tool.color}`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-neutral-900 text-sm">
+                        {tool.label}
+                      </p>
+                      <p className="mt-0.5 text-xs text-neutral-500 leading-snug">
+                        {tool.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </TabsContent>
 
         {/* Milestones Tab */}
@@ -550,13 +624,6 @@ export default function ProjectDetailPage() {
             </Button>
           </div>
         </TabsContent>
-
-        {/* AI Tools Tab */}
-        {canAnalyze && (
-          <TabsContent value="ai-tools" className="mt-6">
-            <AIToolsTab projectId={id} />
-          </TabsContent>
-        )}
 
         {/* Signal Score Tab */}
         <TabsContent value="signal" className="mt-6">

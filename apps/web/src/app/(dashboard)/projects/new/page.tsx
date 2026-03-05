@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -27,8 +27,13 @@ import {
   Heart,
   Star,
   Wheat,
+  FileText,
+  X,
+  Upload,
+  Loader2,
 } from "lucide-react";
-import { Button, Card, CardContent, cn } from "@scr/ui";
+import { Button, Card, CardContent, FileUploader, cn } from "@scr/ui";
+import type { FileItem } from "@scr/ui";
 import {
   useCreateProject,
   type ProjectType,
@@ -36,6 +41,13 @@ import {
   type ProjectStatus,
   projectTypeLabel,
 } from "@/lib/projects";
+import {
+  useCreateFolder,
+  usePresignedUpload,
+  useConfirmUpload,
+  computeSHA256,
+  formatFileSize,
+} from "@/lib/dataroom";
 import { VoiceInput } from "@/components/voice-input";
 import { type ExtractedProjectData } from "@/lib/voice-input";
 
@@ -76,7 +88,8 @@ const STEPS = [
   { label: "Location", number: 2 },
   { label: "Technical", number: 3 },
   { label: "Financial", number: 4 },
-  { label: "Review", number: 5 },
+  { label: "Documents", number: 5 },
+  { label: "Review", number: 6 },
 ];
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -144,17 +157,26 @@ const STAGE_OPTIONS: { label: string; value: ProjectStage }[] = [
 ];
 
 const CURRENCIES = ["USD", "EUR", "GBP", "CHF", "JPY", "AUD", "CAD"];
+const ALLOWED_EXTENSIONS = ".pdf,.docx,.xlsx,.pptx,.csv,.jpg,.png";
 
 // ── Page ────────────────────────────────────────────────────────────────────
 
 export default function NewProjectPage() {
   const router = useRouter();
   const createProject = useCreateProject();
+  const createFolder = useCreateFolder();
+  const presignedUpload = usePresignedUpload();
+  const confirmUpload = useConfirmUpload();
+
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
   const [showVoice, setShowVoice] = useState(false);
+
+  // Step 5: document staging state (files staged locally, uploaded after project creation)
+  const [stagedFiles, setStagedFiles] = useState<FileItem[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
   const update = (field: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -173,6 +195,19 @@ export default function NewProjectPage() {
     }));
     setShowVoice(false);
   };
+
+  const handleFilesSelected = useCallback((newFiles: File[]) => {
+    const items: FileItem[] = newFiles.map((file) => ({
+      file,
+      progress: 0,
+      status: "pending" as const,
+    }));
+    setStagedFiles((prev) => [...prev, ...items]);
+  }, []);
+
+  const handleRemoveFile = useCallback((index: number) => {
+    setStagedFiles((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const validateStep = (): boolean => {
     const errs: Record<string, string> = {};
@@ -197,7 +232,7 @@ export default function NewProjectPage() {
 
   const handleNext = () => {
     if (validateStep()) {
-      setStep((s) => Math.min(s + 1, 5));
+      setStep((s) => Math.min(s + 1, 6));
     }
   };
 
@@ -205,9 +240,12 @@ export default function NewProjectPage() {
     setStep((s) => Math.max(s - 1, 1));
   };
 
-  const handleSubmit = (asDraft: boolean) => {
-    createProject.mutate(
-      {
+  const handleSubmit = async (asDraft: boolean) => {
+    setIsSubmitting(true);
+    try {
+      // 1. Create the project
+      setUploadProgress("Creating project…");
+      const project = await createProject.mutateAsync({
         name: form.name,
         project_type: form.project_type as ProjectType,
         description: form.description,
@@ -219,14 +257,54 @@ export default function NewProjectPage() {
         currency: form.currency,
         target_close_date: form.target_close_date || undefined,
         status: (asDraft ? "draft" : "active") as ProjectStatus,
-      },
-      {
-        onSuccess: (project) => {
-          router.push(`/projects/${project.id}`);
-        },
+      });
+
+      // 2. Upload staged files to data room (if any)
+      if (stagedFiles.length > 0) {
+        setUploadProgress(`Creating data room folder "${form.name}"…`);
+        const folder = await createFolder.mutateAsync({
+          name: form.name,
+          project_id: project.id,
+        });
+
+        for (let i = 0; i < stagedFiles.length; i++) {
+          const fileItem = stagedFiles[i];
+          setUploadProgress(
+            `Uploading ${fileItem.file.name} (${i + 1}/${stagedFiles.length})…`
+          );
+          try {
+            const checksum = await computeSHA256(fileItem.file);
+            const ext = fileItem.file.name.split(".").pop()?.toLowerCase() ?? "";
+            const presigned = await presignedUpload.mutateAsync({
+              file_name: fileItem.file.name,
+              file_type: ext,
+              file_size_bytes: fileItem.file.size,
+              project_id: project.id,
+              folder_id: folder.id,
+              checksum_sha256: checksum,
+            });
+            await fetch(presigned.upload_url, {
+              method: "PUT",
+              body: fileItem.file,
+              headers: {
+                "Content-Type": fileItem.file.type || "application/octet-stream",
+              },
+            });
+            await confirmUpload.mutateAsync({ document_id: presigned.document_id });
+          } catch {
+            // Non-fatal: continue uploading remaining files
+          }
+        }
       }
-    );
+
+      router.push(`/projects/${project.id}`);
+    } catch {
+      setIsSubmitting(false);
+      setUploadProgress(null);
+    }
   };
+
+  const totalFileSize = stagedFiles.reduce((s, f) => s + f.file.size, 0);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -242,7 +320,7 @@ export default function NewProjectPage() {
       <h1 className="text-2xl font-bold text-neutral-900">New Project</h1>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {STEPS.map((s) => (
           <div key={s.number} className="flex items-center gap-2">
             <button
@@ -275,7 +353,7 @@ export default function NewProjectPage() {
               {s.label}
             </span>
             {s.number < STEPS.length && (
-              <div className="mx-2 h-px w-8 bg-neutral-200" />
+              <div className="mx-2 h-px w-6 bg-neutral-200" />
             )}
           </div>
         ))}
@@ -428,9 +506,7 @@ export default function NewProjectPage() {
                 </label>
                 <select
                   value={form.stage}
-                  onChange={(e) =>
-                    update("stage", e.target.value)
-                  }
+                  onChange={(e) => update("stage", e.target.value)}
                   className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
                 >
                   {STAGE_OPTIONS.map((o) => (
@@ -508,21 +584,85 @@ export default function NewProjectPage() {
                 <input
                   type="date"
                   value={form.target_close_date}
-                  onChange={(e) =>
-                    update("target_close_date", e.target.value)
-                  }
+                  onChange={(e) => update("target_close_date", e.target.value)}
                   className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
                 />
               </div>
             </div>
           )}
 
-          {/* Step 5: Review */}
+          {/* Step 5: Document Upload */}
           {step === 5 && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-base font-semibold text-neutral-900 mb-1">
+                  Upload Supporting Documents
+                </h3>
+                <p className="text-sm text-neutral-500">
+                  Upload any files related to this project — financial models, feasibility studies,
+                  permits, presentations, etc. These will be placed in a new Data Room folder named
+                  after your project and used as the base data set for AI analysis.
+                </p>
+              </div>
+
+              <FileUploader
+                accept={ALLOWED_EXTENSIONS}
+                multiple
+                maxSizeMB={100}
+                onFilesSelected={handleFilesSelected}
+                files={stagedFiles}
+                onRemove={handleRemoveFile}
+              />
+
+              {stagedFiles.length > 0 && (
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
+                  <p className="text-xs text-neutral-500 mb-2">
+                    {stagedFiles.length} file{stagedFiles.length !== 1 ? "s" : ""} selected ·{" "}
+                    {formatFileSize(totalFileSize)} total
+                  </p>
+                  <div className="space-y-1.5">
+                    {stagedFiles.map((item, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between gap-2 text-sm"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="h-3.5 w-3.5 text-neutral-400 shrink-0" />
+                          <span className="truncate text-neutral-700">
+                            {item.file.name}
+                          </span>
+                          <span className="text-neutral-400 shrink-0">
+                            {formatFileSize(item.file.size)}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveFile(i)}
+                          className="text-neutral-400 hover:text-neutral-600 shrink-0"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {stagedFiles.length === 0 && (
+                <p className="text-xs text-neutral-400 text-center">
+                  You can skip this step and upload documents later from the Data Room.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Step 6: Review */}
+          {step === 6 && (
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-neutral-900">
                 Review your project
               </h3>
+
+              {/* Project details */}
               <div className="divide-y rounded-lg border">
                 <ReviewRow label="Name" value={form.name} />
                 <ReviewRow
@@ -533,15 +673,9 @@ export default function NewProjectPage() {
                       : ""
                   }
                 />
-                <ReviewRow
-                  label="Description"
-                  value={form.description || "—"}
-                />
+                <ReviewRow label="Description" value={form.description || "—"} />
                 <ReviewRow label="Country" value={form.geography_country} />
-                <ReviewRow
-                  label="Region"
-                  value={form.geography_region || "—"}
-                />
+                <ReviewRow label="Region" value={form.geography_region || "—"} />
                 <ReviewRow
                   label="Stage"
                   value={
@@ -562,6 +696,50 @@ export default function NewProjectPage() {
                   value={form.target_close_date || "—"}
                 />
               </div>
+
+              {/* Uploaded documents summary */}
+              <div className="rounded-lg border">
+                <div className="px-4 py-3 bg-neutral-50 border-b rounded-t-lg">
+                  <p className="text-sm font-medium text-neutral-700">
+                    Documents to upload{" "}
+                    <span className="font-normal text-neutral-500">
+                      ({stagedFiles.length} file{stagedFiles.length !== 1 ? "s" : ""})
+                    </span>
+                  </p>
+                  {stagedFiles.length > 0 && (
+                    <p className="text-xs text-neutral-400 mt-0.5">
+                      Will be placed in a new Data Room folder: &ldquo;{form.name}&rdquo;
+                    </p>
+                  )}
+                </div>
+                {stagedFiles.length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-neutral-400">
+                    No documents staged — you can upload later from the Data Room.
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {stagedFiles.map((item, i) => (
+                      <div key={i} className="flex items-center gap-2 px-4 py-2.5 text-sm">
+                        <FileText className="h-4 w-4 text-neutral-400 shrink-0" />
+                        <span className="truncate text-neutral-700 flex-1">
+                          {item.file.name}
+                        </span>
+                        <span className="text-neutral-400 shrink-0">
+                          {formatFileSize(item.file.size)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Upload progress (shown during submission) */}
+              {isSubmitting && uploadProgress && (
+                <div className="flex items-center gap-2 rounded-lg bg-primary-50 px-4 py-3 text-sm text-primary-700">
+                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                  {uploadProgress}
+                </div>
+              )}
             </div>
           )}
 
@@ -569,33 +747,40 @@ export default function NewProjectPage() {
           <div className="mt-8 flex items-center justify-between">
             <div>
               {step > 1 && (
-                <Button variant="outline" onClick={handleBack}>
+                <Button variant="outline" onClick={handleBack} disabled={isSubmitting}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
               )}
             </div>
             <div className="flex gap-3">
-              {step === 5 ? (
+              {step === 6 ? (
                 <>
                   <Button
                     variant="outline"
                     onClick={() => handleSubmit(true)}
-                    disabled={createProject.isPending}
+                    disabled={isSubmitting}
                   >
+                    {isSubmitting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
                     Save as Draft
                   </Button>
                   <Button
                     onClick={() => handleSubmit(false)}
-                    disabled={createProject.isPending}
+                    disabled={isSubmitting}
                   >
-                    <Check className="mr-2 h-4 w-4" />
+                    {isSubmitting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="mr-2 h-4 w-4" />
+                    )}
                     Create Project
                   </Button>
                 </>
               ) : (
                 <Button onClick={handleNext}>
-                  Next
+                  {step === 5 && stagedFiles.length === 0 ? "Skip" : "Next"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               )}

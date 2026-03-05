@@ -367,6 +367,7 @@ export default function ProjectsPage() {
             columns={columns}
             data={data?.items ?? []}
             loading={isLoading}
+            onRowClick={(project) => router.push(`/projects/${project.id}`)}
           />
           {/* Pagination */}
           {data && data.total_pages > 1 && (
