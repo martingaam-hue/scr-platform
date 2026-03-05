@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-staging
-  cancel-in-progress: false  # Never cancel in-progress deploys
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   AWS_REGION: eu-north-1
