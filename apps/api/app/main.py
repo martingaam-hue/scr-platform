@@ -68,6 +68,7 @@ from app.modules.legal.router import router as legal_router
 from app.modules.lineage.router import router as lineage_router
 from app.modules.lp_reporting.router import router as lp_reporting_router
 from app.modules.market_data.router import router as market_data_router
+from app.modules.market_enrichment.router import router as market_enrichment_router
 from app.modules.marketplace.router import router as marketplace_router
 from app.modules.matching.router import router as matching_router
 from app.modules.meeting_prep.router import router as meeting_prep_router
@@ -389,6 +390,7 @@ api_v1.include_router(webhooks_router)
 api_v1.include_router(document_annotations_router)
 api_v1.include_router(redaction_router)
 api_v1.include_router(market_data_router)
+api_v1.include_router(market_enrichment_router)
 api_v1.include_router(launch_router)
 api_v1.include_router(custom_domain_router)
 api_v1.include_router(alley_signal_score_router)

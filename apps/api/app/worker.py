@@ -50,6 +50,7 @@ celery_app.conf.include = [
     "app.modules.alley.risk.tasks",
     "app.modules.alley.advisor.tasks",
     "app.modules.alley.score_performance.tasks",
+    "app.modules.market_enrichment.tasks",
 ]
 
 celery_app.conf.beat_schedule = {
@@ -244,5 +245,16 @@ celery_app.conf.beat_schedule = {
     "fetch-un-sdg-monthly": {
         "task": "tasks.fetch_un_sdg_data",
         "schedule": crontab(minute=0, hour=3, day_of_month=1),
+    },
+    # ── Market Enrichment scheduled fetches ───────────────────────────────────
+    "market-enrichment-tier1-hourly": {
+        "task": "market_enrichment.run_scheduled_fetches",
+        "schedule": crontab(minute=0),  # :00 each hour
+        "kwargs": {"tier": 1},
+    },
+    "market-enrichment-tier2-4hourly": {
+        "task": "market_enrichment.run_scheduled_fetches",
+        "schedule": crontab(hour="0,4,8,12,16,20", minute=30),
+        "kwargs": {"tier": 2},
     },
 }

@@ -56,6 +56,7 @@ import {
   BarChart2,
   ArrowLeftRight,
   Route,
+  Database,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { cn } from "@scr/ui";
@@ -96,6 +97,7 @@ const investorNav: NavSection[] = [
       { label: "Monitoring", href: "/monitoring", icon: Monitor },
       { label: "FX Exposure", href: "/fx", icon: Globe },
       { label: "Market Intelligence", href: "/market-data", icon: BarChart2 },
+      { label: "Data Enrichment", href: "/market-enrichment", icon: Database },
       { label: "Stress Testing", href: "/stress-test", icon: Activity },
       { label: "ESG Dashboard", href: "/esg", icon: Leaf },
       { label: "LP Reports", href: "/lp-reports", icon: FileText },
@@ -275,6 +277,7 @@ const adminNav: NavSection[] = [
       { label: "Monitoring", href: "/monitoring", icon: Monitor },
       { label: "FX Exposure", href: "/fx", icon: Globe },
       { label: "Market Intelligence", href: "/market-data", icon: BarChart2 },
+      { label: "Data Enrichment", href: "/market-enrichment", icon: Database },
       { label: "Stress Testing", href: "/stress-test", icon: Activity },
       { label: "ESG Dashboard", href: "/esg", icon: Leaf },
       { label: "LP Reports", href: "/lp-reports", icon: FileText },

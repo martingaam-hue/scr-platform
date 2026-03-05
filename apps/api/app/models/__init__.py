@@ -198,6 +198,15 @@ from app.models.legal import LegalDocument, LegalTemplate
 # LP Reporting
 from app.models.lp_report import LPReport
 
+# Market Data Enrichment
+from app.models.market_enrichment import (
+    DataReviewQueue,
+    MarketDataProcessed,
+    MarketDataRaw,
+    MarketDataSource,
+    MarketEnrichmentFetchLog,
+)
+
 # Marketplace
 from app.models.marketplace import RFQ, Listing, Transaction
 
@@ -349,6 +358,12 @@ __all__ = [
     # Legal
     "LegalDocument",
     "LegalTemplate",
+    # Market Data Enrichment
+    "DataReviewQueue",
+    "MarketDataProcessed",
+    "MarketDataRaw",
+    "MarketDataSource",
+    "MarketEnrichmentFetchLog",
     # Marketplace
     "Listing",
     "MatchMessage",

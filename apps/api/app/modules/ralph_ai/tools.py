@@ -376,6 +376,38 @@ class RalphTools:
         except Exception as e:
             return {"error": str(e)}
 
+    # ── Market data tools ─────────────────────────────────────────────────────
+
+    async def _tool_search_market_data(
+        self,
+        query: str,
+        data_type: str | None = None,
+        region: str | None = None,
+    ) -> dict[str, Any]:
+        """Search structured market data enrichment records."""
+        from app.modules.market_enrichment.service import search_for_ralph
+
+        try:
+            results = await search_for_ralph(
+                self.db, self.org_id, query, data_type=data_type, region=region
+            )
+            if not results:
+                return {"results": [], "summary": "No matching market data found."}
+
+            lines = [
+                f"| {r['category']} | {r['data_type']} | {r['region'] or '—'} "
+                f"| {r['effective_date'] or '—'} | {r['value_numeric']} {r['unit'] or ''} |"
+                for r in results
+            ]
+            table = (
+                "| Category | Type | Region | Date | Value |\n"
+                "|----------|------|--------|------|-------|\n"
+                + "\n".join(lines)
+            )
+            return {"results": results, "summary": table}
+        except Exception as e:
+            return {"results": [], "error": str(e)}
+
     # ── Legal tools ───────────────────────────────────────────────────────────
 
     async def _tool_review_legal_document(self, document_id: str) -> dict[str, Any]:
@@ -816,6 +848,32 @@ RALPH_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                         "description": "UUID of the portfolio (optional, defaults to primary portfolio)",
                     },
                 },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_market_data",
+            "description": "Search structured market data records including renewable energy prices, policy updates, macro indicators, and project pipeline data. Use this when the user asks about market conditions, energy prices, capacity factors, or policy landscape.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query (e.g. 'solar PPA price', 'feed-in tariff', 'offshore wind capacity')",
+                    },
+                    "data_type": {
+                        "type": "string",
+                        "enum": ["price", "policy", "project_pipeline", "macro_indicator", "news"],
+                        "description": "Optional filter by data type",
+                    },
+                    "region": {
+                        "type": "string",
+                        "description": "Optional filter by region or country",
+                    },
+                },
+                "required": ["query"],
             },
         },
     },
