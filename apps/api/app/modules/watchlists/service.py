@@ -49,7 +49,7 @@ async def create_watchlist(
 async def list_watchlists(db: AsyncSession, user_id: uuid.UUID) -> list[Watchlist]:
     result = await db.execute(
         select(Watchlist)
-        .where(Watchlist.user_id == user_id, Watchlist.is_deleted is False)
+        .where(Watchlist.user_id == user_id, Watchlist.is_deleted.is_(False))
         .order_by(Watchlist.created_at.desc())
     )
     return list(result.scalars().all())
@@ -58,7 +58,7 @@ async def list_watchlists(db: AsyncSession, user_id: uuid.UUID) -> list[Watchlis
 async def get_watchlist(db: AsyncSession, wl_id: uuid.UUID, user_id: uuid.UUID) -> Watchlist | None:
     result = await db.execute(
         select(Watchlist).where(
-            Watchlist.id == wl_id, Watchlist.user_id == user_id, Watchlist.is_deleted is False
+            Watchlist.id == wl_id, Watchlist.user_id == user_id, Watchlist.is_deleted.is_(False)
         )
     )
     return result.scalar_one_or_none()
@@ -161,7 +161,7 @@ async def delete_alert(db: AsyncSession, alert_id: uuid.UUID, user_id: uuid.UUID
 
 async def get_active_watchlists(db: AsyncSession) -> list[Watchlist]:
     result = await db.execute(
-        select(Watchlist).where(Watchlist.is_active is True, Watchlist.is_deleted is False)
+        select(Watchlist).where(Watchlist.is_active.is_(True), Watchlist.is_deleted.is_(False))
     )
     return list(result.scalars().all())
 
@@ -183,7 +183,7 @@ async def check_watchlist(db: AsyncSession, wl: Watchlist) -> int:
             criteria = wl.criteria or {}
             stmt = select(Project).where(
                 Project.org_id != wl.org_id,  # other orgs' projects
-                Project.is_deleted is False,
+                Project.is_deleted.is_(False),
                 Project.created_at >= since,
             )
             if criteria.get("project_type"):

@@ -15,26 +15,34 @@ export const TEST_CREDENTIALS = {
   },
 };
 
-export async function loginAsAlly(page: Page): Promise<void> {
+/** Sign in using Clerk's multi-step embedded UI (email → Continue → password → Continue). */
+async function clerkSignIn(
+  page: Page,
+  email: string,
+  password: string,
+): Promise<void> {
   await page.goto("/sign-in");
-  await page.getByLabel(/email/i).fill(TEST_CREDENTIALS.ally.email);
-  await page.getByLabel(/password/i).fill(TEST_CREDENTIALS.ally.password);
-  await page.getByRole("button", { name: /sign in|log in/i }).click();
+
+  // Step 1: email
+  await page.getByLabel(/email address/i).fill(email);
+  await page.getByRole("button", { name: /continue/i }).click();
+
+  // Step 2: password (appears after email is accepted)
+  await page.getByLabel(/^password$/i).fill(password);
+  await page.getByRole("button", { name: /continue/i }).click();
+}
+
+export async function loginAsAlly(page: Page): Promise<void> {
+  await clerkSignIn(page, TEST_CREDENTIALS.ally.email, TEST_CREDENTIALS.ally.password);
   await expect(page).toHaveURL(/\/(dashboard|projects|$)/);
 }
 
 export async function loginAsInvestor(page: Page): Promise<void> {
-  await page.goto("/sign-in");
-  await page.getByLabel(/email/i).fill(TEST_CREDENTIALS.investor.email);
-  await page.getByLabel(/password/i).fill(TEST_CREDENTIALS.investor.password);
-  await page.getByRole("button", { name: /sign in|log in/i }).click();
+  await clerkSignIn(page, TEST_CREDENTIALS.investor.email, TEST_CREDENTIALS.investor.password);
   await expect(page).toHaveURL(/\/(dashboard|portfolio|$)/);
 }
 
 export async function loginAsAdmin(page: Page): Promise<void> {
-  await page.goto("/sign-in");
-  await page.getByLabel(/email/i).fill(TEST_CREDENTIALS.admin.email);
-  await page.getByLabel(/password/i).fill(TEST_CREDENTIALS.admin.password);
-  await page.getByRole("button", { name: /sign in|log in/i }).click();
+  await clerkSignIn(page, TEST_CREDENTIALS.admin.email, TEST_CREDENTIALS.admin.password);
   await expect(page).toHaveURL(/\/(dashboard|admin|$)/);
 }

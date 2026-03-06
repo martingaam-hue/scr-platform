@@ -41,7 +41,7 @@ async def _get_project(db: AsyncSession, project_id: uuid.UUID, org_id: uuid.UUI
 
     result = await db.execute(
         select(Project).where(
-            Project.id == project_id, Project.org_id == org_id, Project.is_deleted is False
+            Project.id == project_id, Project.org_id == org_id, Project.is_deleted.is_(False)
         )
     )
     return result.scalar_one_or_none()
@@ -91,7 +91,7 @@ async def _get_doc_count(db: AsyncSession, project_id: uuid.UUID) -> int:
     result = await db.execute(
         select(func.count(Document.id)).where(
             Document.project_id == project_id,
-            Document.is_deleted is False,
+            Document.is_deleted.is_(False),
         )
     )
     return result.scalar_one() or 0
@@ -266,7 +266,7 @@ async def list_briefings(
         select(MeetingBriefing)
         .where(
             MeetingBriefing.org_id == org_id,
-            MeetingBriefing.is_deleted is False,
+            MeetingBriefing.is_deleted.is_(False),
         )
         .order_by(MeetingBriefing.created_at.desc())
     )
@@ -283,7 +283,7 @@ async def get_briefing(
         select(MeetingBriefing).where(
             MeetingBriefing.id == briefing_id,
             MeetingBriefing.org_id == org_id,
-            MeetingBriefing.is_deleted is False,
+            MeetingBriefing.is_deleted.is_(False),
         )
     )
     return result.scalar_one_or_none()

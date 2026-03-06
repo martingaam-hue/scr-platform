@@ -29,8 +29,8 @@ async def _get_portfolio_projects(
         .where(
             PortfolioHolding.portfolio_id == portfolio_id,
             Portfolio.org_id == org_id,
-            PortfolioHolding.is_deleted is False,
-            Project.is_deleted is False,
+            PortfolioHolding.is_deleted.is_(False),
+            Project.is_deleted.is_(False),
         )
     )
     rows = result.all()
@@ -106,7 +106,7 @@ async def list_stress_tests(
         .where(
             StressTestRun.org_id == org_id,
             StressTestRun.portfolio_id == portfolio_id,
-            StressTestRun.is_deleted is False,
+            StressTestRun.is_deleted.is_(False),
         )
         .order_by(StressTestRun.created_at.desc())
     )
@@ -120,7 +120,7 @@ async def get_stress_test(
         select(StressTestRun).where(
             StressTestRun.id == run_id,
             StressTestRun.org_id == org_id,
-            StressTestRun.is_deleted is False,
+            StressTestRun.is_deleted.is_(False),
         )
     )
     return result.scalar_one_or_none()

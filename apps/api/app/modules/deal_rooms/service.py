@@ -88,7 +88,7 @@ async def create_room(
 async def get_room(db: AsyncSession, room_id: uuid.UUID, org_id: uuid.UUID) -> DealRoom | None:
     result = await db.execute(
         select(DealRoom)
-        .where(DealRoom.id == room_id, DealRoom.org_id == org_id, DealRoom.is_deleted is False)
+        .where(DealRoom.id == room_id, DealRoom.org_id == org_id, DealRoom.is_deleted.is_(False))
         .options(selectinload(DealRoom.members))  # type: ignore[attr-defined]
     )
     return result.scalar_one_or_none()
@@ -97,7 +97,7 @@ async def get_room(db: AsyncSession, room_id: uuid.UUID, org_id: uuid.UUID) -> D
 async def list_rooms(db: AsyncSession, org_id: uuid.UUID) -> list[DealRoom]:
     result = await db.execute(
         select(DealRoom)
-        .where(DealRoom.org_id == org_id, DealRoom.is_deleted is False)
+        .where(DealRoom.org_id == org_id, DealRoom.is_deleted.is_(False))
         .order_by(DealRoom.created_at.desc())
     )
     return list(result.scalars().all())
@@ -192,7 +192,7 @@ async def get_activity_feed(
 async def get_messages(db: AsyncSession, room_id: uuid.UUID) -> list[DealRoomMessage]:
     result = await db.execute(
         select(DealRoomMessage)
-        .where(DealRoomMessage.room_id == room_id, DealRoomMessage.is_deleted is False)
+        .where(DealRoomMessage.room_id == room_id, DealRoomMessage.is_deleted.is_(False))
         .order_by(DealRoomMessage.created_at)
     )
     return list(result.scalars().all())

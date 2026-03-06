@@ -50,7 +50,7 @@ async def get_quests(
         select(ImprovementQuest).where(
             ImprovementQuest.project_id == project_id,
             ImprovementQuest.status == "active",
-            ImprovementQuest.is_deleted is False,
+            ImprovementQuest.is_deleted.is_(False),
         )
     )
     quests = result.scalars().all()
@@ -95,7 +95,7 @@ async def leaderboard(
         result = await db.execute(
             select(Project, SignalScore)
             .join(SignalScore, SignalScore.project_id == Project.id)
-            .where(Project.is_deleted is False)
+            .where(Project.is_deleted.is_(False))
             .order_by(SignalScore.overall_score.desc())
             .limit(20)
         )

@@ -179,7 +179,7 @@ async def _check_criteria(
 
                 result = await db.execute(
                     select(func.count(Document.id)).where(
-                        Document.project_id == project_id, Document.is_deleted is False
+                        Document.project_id == project_id, Document.is_deleted.is_(False)
                     )
                 )
                 count = result.scalar_one() or 0
@@ -226,7 +226,7 @@ async def evaluate_badges(
     db: AsyncSession, user_id: uuid.UUID, project_id: uuid.UUID | None, event: str | None
 ) -> list[UserBadge]:
     """Check all badges and award newly qualifying ones."""
-    all_badges_result = await db.execute(select(Badge).where(Badge.is_deleted is False))
+    all_badges_result = await db.execute(select(Badge).where(Badge.is_deleted.is_(False)))
     all_badges = all_badges_result.scalars().all()
 
     # Get slugs already earned
@@ -291,7 +291,7 @@ async def generate_quests(db: AsyncSession, project_id: uuid.UUID) -> list[Impro
         select(ImprovementQuest).where(
             ImprovementQuest.project_id == project_id,
             ImprovementQuest.status == "active",
-            ImprovementQuest.is_deleted is False,
+            ImprovementQuest.is_deleted.is_(False),
         )
     )
     for q in existing_result.scalars().all():
@@ -368,7 +368,7 @@ async def get_progress(db: AsyncSession, user_id: uuid.UUID, project_id: uuid.UU
         select(ImprovementQuest).where(
             ImprovementQuest.project_id == project_id,
             ImprovementQuest.status == "active",
-            ImprovementQuest.is_deleted is False,
+            ImprovementQuest.is_deleted.is_(False),
         )
     )
     quests = quests_result.scalars().all()

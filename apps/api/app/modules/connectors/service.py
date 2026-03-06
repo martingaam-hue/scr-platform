@@ -220,7 +220,7 @@ def _get_connector_instance(name: str, api_key: str | None, config: dict | None)
 async def list_connectors(db: AsyncSession) -> list[DataConnector]:
     result = await db.execute(
         select(DataConnector).where(
-            DataConnector.is_deleted is False, DataConnector.is_available is True
+            DataConnector.is_deleted.is_(False), DataConnector.is_available.is_(True)
         )
     )
     return list(result.scalars().all())
@@ -233,7 +233,7 @@ async def get_org_config(
         select(OrgConnectorConfig).where(
             OrgConnectorConfig.org_id == org_id,
             OrgConnectorConfig.connector_id == connector_id,
-            OrgConnectorConfig.is_deleted is False,
+            OrgConnectorConfig.is_deleted.is_(False),
         )
     )
     return result.scalar_one_or_none()
@@ -242,7 +242,7 @@ async def get_org_config(
 async def list_org_configs(db: AsyncSession, org_id: uuid.UUID) -> list[OrgConnectorConfig]:
     result = await db.execute(
         select(OrgConnectorConfig).where(
-            OrgConnectorConfig.org_id == org_id, OrgConnectorConfig.is_deleted is False
+            OrgConnectorConfig.org_id == org_id, OrgConnectorConfig.is_deleted.is_(False)
         )
     )
     return list(result.scalars().all())

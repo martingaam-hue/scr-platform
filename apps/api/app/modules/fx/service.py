@@ -184,7 +184,7 @@ async def get_fx_exposure(
             func.sum(Valuation.equity_value).label("total_equity"),
         )
         .outerjoin(Valuation, Valuation.project_id == Project.id)
-        .where(Project.org_id == org_id, Project.is_deleted is False)
+        .where(Project.org_id == org_id, Project.is_deleted.is_(False))
         .group_by(Project.project_currency)
     )
     if portfolio_id:

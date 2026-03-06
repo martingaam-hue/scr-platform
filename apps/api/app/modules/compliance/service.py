@@ -171,7 +171,7 @@ async def list_deadlines(
 ) -> list[ComplianceDeadline]:
     stmt = select(ComplianceDeadline).where(
         ComplianceDeadline.org_id == org_id,
-        ComplianceDeadline.is_deleted is False,
+        ComplianceDeadline.is_deleted.is_(False),
     )
     if status:
         stmt = stmt.where(ComplianceDeadline.status == status)
@@ -191,7 +191,7 @@ async def get_deadline(
         select(ComplianceDeadline).where(
             ComplianceDeadline.id == deadline_id,
             ComplianceDeadline.org_id == org_id,
-            ComplianceDeadline.is_deleted is False,
+            ComplianceDeadline.is_deleted.is_(False),
         )
     )
     return result.scalar_one_or_none()
@@ -299,7 +299,7 @@ async def flag_overdue(db: AsyncSession) -> int:
         .where(
             ComplianceDeadline.due_date < today,
             ComplianceDeadline.status.in_(["upcoming", "in_progress"]),
-            ComplianceDeadline.is_deleted is False,
+            ComplianceDeadline.is_deleted.is_(False),
         )
         .values(status="overdue")
         .returning(ComplianceDeadline.id)
@@ -326,7 +326,7 @@ async def get_reminder_candidates(db: AsyncSession, days: int) -> list[Complianc
             ComplianceDeadline.due_date == target,
             ComplianceDeadline.status.in_(["upcoming", "in_progress"]),
             flag_col is False,
-            ComplianceDeadline.is_deleted is False,
+            ComplianceDeadline.is_deleted.is_(False),
         )
     )
     return list(result.scalars().all())

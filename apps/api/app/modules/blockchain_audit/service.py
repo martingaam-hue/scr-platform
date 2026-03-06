@@ -71,7 +71,7 @@ async def get_pending_anchors(db: AsyncSession) -> list[BlockchainAnchor]:
         select(BlockchainAnchor)
         .where(
             BlockchainAnchor.status == "pending",
-            BlockchainAnchor.is_deleted is False,
+            BlockchainAnchor.is_deleted.is_(False),
         )
         .limit(100)
     )
@@ -153,7 +153,7 @@ async def verify_anchor(db: AsyncSession, entity_type: str, entity_id: uuid.UUID
         .where(
             BlockchainAnchor.entity_type == entity_type,
             BlockchainAnchor.entity_id == entity_id,
-            BlockchainAnchor.is_deleted is False,
+            BlockchainAnchor.is_deleted.is_(False),
         )
         .order_by(BlockchainAnchor.created_at.desc())
         .limit(1)
@@ -187,7 +187,7 @@ async def list_entity_anchors(
         .where(
             BlockchainAnchor.entity_type == entity_type,
             BlockchainAnchor.entity_id == entity_id,
-            BlockchainAnchor.is_deleted is False,
+            BlockchainAnchor.is_deleted.is_(False),
         )
         .order_by(BlockchainAnchor.created_at.desc())
     )
