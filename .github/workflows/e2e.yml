@@ -59,6 +59,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install system dependencies for API
+        run: sudo apt-get install -y libcairo2-dev pkg-config
+
       - name: Install API dependencies
         working-directory: apps/api
         run: pip install poetry && poetry install
@@ -80,17 +83,26 @@ jobs:
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY_TEST }}
         run: poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 &
 
-      - name: Start frontend
+      - name: Build internal packages
+        run: |
+          pnpm --filter @scr/types build
+          pnpm --filter @scr/ui build
+
+      - name: Build frontend
         working-directory: apps/web
         env:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_TEST }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_TEST }}
           NEXT_PUBLIC_API_URL: http://localhost:8000
-        run: pnpm build && pnpm start &
+        run: pnpm build
+
+      - name: Start frontend
+        working-directory: apps/web
+        run: pnpm start &
 
       - name: Wait for services
         run: |
-          npx wait-on http://localhost:3000 http://localhost:8000/health --timeout 60000
+          npx wait-on http://localhost:3000 http://localhost:8000/health --timeout 120000
 
       - name: Run Playwright tests
         working-directory: apps/web

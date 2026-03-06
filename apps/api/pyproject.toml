@@ -7,7 +7,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-fastapi = "^0.115.6"
+fastapi = ">=0.116.0"
 uvicorn = {extras = ["standard"], version = "^0.34.0"}
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.36"}
 asyncpg = "^0.30.0"
@@ -21,7 +21,7 @@ redis = "^5.2.1"
 httpx = "^0.28.1"
 boto3 = "^1.35.86"
 structlog = "^24.4.0"
-python-multipart = "^0.0.19"
+python-multipart = ">=0.0.22"
 elasticsearch = {extras = ["async"], version = "^8.17.0"}
 tenacity = "^9.0.0"
 orjson = "^3.10.12"
