@@ -95,6 +95,7 @@ export interface ProjectScoreDetailResponse {
   score: number;                  // 0–100
   score_label: string;
   score_label_color: string;
+  calculated_at?: string;
   dimensions: DimensionDetail[];
   readiness_indicators: ReadinessIndicator[];
   criteria_breakdown: DimensionBreakdown[];
