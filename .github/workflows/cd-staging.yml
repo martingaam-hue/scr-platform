@@ -296,6 +296,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Deploy to Vercel (staging)
+        working-directory: apps/web
         run: npx vercel deploy --prod --token=$VERCEL_TOKEN --yes
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
