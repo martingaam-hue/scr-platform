@@ -76,24 +76,24 @@ function InfoBanner() {
 
 function PortfolioHero({ avg, total, ready }: { avg: number; total: number; ready: number }) {
   return (
-    <div className="rounded-2xl bg-[#1B2A4A] px-8 py-10 text-white">
+    <div className="rounded-2xl bg-[#1a2332] px-8 py-10 text-white">
       <p className="mb-8 text-xs font-semibold uppercase tracking-widest text-white/40">
         Portfolio Signal Score Overview
       </p>
       <div className="grid grid-cols-3 divide-x divide-white/10">
         <div className="pr-8">
-          <p className="text-7xl font-black tabular-nums leading-none">{Math.round(avg)}</p>
-          <p className="mt-3 text-sm font-medium text-white/50">Average Score</p>
-          <p className="mt-0.5 text-xs text-white/30">out of 100</p>
+          <p className="text-[80px] font-bold tabular-nums leading-none">{Math.round(avg)}</p>
+          <p className="mt-3 text-sm font-medium text-gray-300">Average Score</p>
+          <p className="mt-0.5 text-xs text-gray-400">out of 100</p>
         </div>
         <div className="px-8">
-          <p className="text-7xl font-black tabular-nums leading-none">{total}</p>
-          <p className="mt-3 text-sm font-medium text-white/50">Total Projects</p>
+          <p className="text-[80px] font-bold tabular-nums leading-none">{total}</p>
+          <p className="mt-3 text-sm font-medium text-gray-300">Total Projects</p>
         </div>
         <div className="pl-8">
-          <p className="text-7xl font-black tabular-nums leading-none text-green-400">{ready}</p>
-          <p className="mt-3 text-sm font-medium text-white/50">Investment Ready</p>
-          <p className="mt-0.5 text-xs text-white/30">score ≥ 80</p>
+          <p className="text-[80px] font-bold tabular-nums leading-none text-green-400">{ready}</p>
+          <p className="mt-3 text-sm font-medium text-gray-300">Investment Ready</p>
+          <p className="mt-0.5 text-xs text-gray-400">score ≥ 80</p>
         </div>
       </div>
     </div>

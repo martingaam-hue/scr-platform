@@ -40,9 +40,7 @@ import {
 } from "@scr/ui";
 import {
   useProjectScoreDetail,
-  scoreLabelColor,
   scoreLabel,
-  dimensionBarColor,
   effortColor,
 } from "@/lib/alley-score";
 import {
@@ -75,32 +73,26 @@ function getDimIcon(id: string): React.ComponentType<{ className?: string }> {
 
 // ── Circular Score Ring ───────────────────────────────────────────────────────
 
-function ScoreRing({ score, size = 160 }: { score: number; size?: number }) {
-  const r = (size - 16) / 2;
+function ScoreRing({ score, size = 200 }: { score: number; size?: number }) {
+  const strokeWidth = 14;
+  const r = (size - strokeWidth) / 2;
   const circ = 2 * Math.PI * r;
   const pct = Math.min(Math.max(score, 0), 100) / 100;
   const offset = circ * (1 - pct);
   const cx = size / 2;
 
-  const ringColor =
-    score >= 90 ? "#15803d"
-    : score >= 80 ? "#16a34a"
-    : score >= 70 ? "#0f766e"
-    : score >= 60 ? "#ea580c"
-    : "#dc2626";
-
   return (
     <svg width={size} height={size} className="rotate-[-90deg]">
-      {/* Background track */}
-      <circle cx={cx} cy={cx} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={10} />
-      {/* Progress arc */}
+      {/* Light gray track */}
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e5e7eb" strokeWidth={strokeWidth} />
+      {/* Dark navy arc */}
       <circle
         cx={cx}
         cy={cx}
         r={r}
         fill="none"
-        stroke={ringColor}
-        strokeWidth={10}
+        stroke="#1a2332"
+        strokeWidth={strokeWidth}
         strokeDasharray={circ}
         strokeDashoffset={offset}
         strokeLinecap="round"
@@ -128,38 +120,37 @@ function HeroScoreCard({
   const displayScore = Math.round(score);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-[#1B2A4A] px-8 py-10 text-white">
-      {/* Subtle glow */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-20"
-        style={{ background: "radial-gradient(ellipse at 50% 80%, rgba(99,179,237,0.6) 0%, transparent 65%)" }}
-      />
-
-      <div className="relative flex flex-col items-center text-center">
-        {/* Project name + sector */}
-        <p className="text-sm font-medium text-white/60">
+    <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-lg font-bold text-neutral-900">Last Generated Score</h2>
+        <p className="mt-1 text-sm font-medium text-neutral-700">
           {projectName}
-          {sector && <span className="text-white/40"> · {sector}</span>}
+          {sector && <span className="text-neutral-400"> · {sector}</span>}
         </p>
-
-        {/* Ring + score */}
-        <div className="relative mt-5">
-          <ScoreRing score={displayScore} size={168} />
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn("text-5xl font-bold tabular-nums leading-none", scoreLabelColor(score))}>
-              {displayScore}
-            </span>
-            <span className="mt-1 text-xs font-medium text-white/50">out of 100</span>
-          </div>
-        </div>
-
-        {/* Labels */}
-        <p className="mt-4 text-lg font-semibold text-white">Project Readiness Score</p>
-        <p className="mt-1 text-xs text-white/40">
-          {label} · Latest generated:{" "}
+        <p className="mt-0.5 text-xs text-neutral-400">
+          Latest generated score:{" "}
           {new Date(calculatedAt).toLocaleDateString("en-GB", {
             day: "numeric", month: "short", year: "numeric",
           })}
+        </p>
+      </div>
+
+      {/* Ring + score — centred */}
+      <div className="flex flex-col items-center">
+        <div className="relative">
+          <ScoreRing score={displayScore} size={200} />
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span
+              className="font-bold tabular-nums leading-none text-[#1a2332]"
+              style={{ fontSize: "88px" }}
+            >
+              {displayScore}
+            </span>
+          </div>
+        </div>
+        <p className="mt-3 text-sm text-gray-500">
+          Project Readiness Score · <span className="font-medium text-neutral-700">{label}</span>
         </p>
       </div>
     </div>
@@ -200,8 +191,8 @@ function DimensionBar({ dim }: { dim: { id: string; label: string; score: number
               style={{ width: `${score}%` }}
             />
           </div>
-          <span className={cn("w-8 shrink-0 text-right text-sm font-bold tabular-nums", dimensionBarColor(score).replace("bg-", "text-"))}>
-            {score}
+          <span className="w-12 shrink-0 text-right text-sm font-bold tabular-nums text-neutral-700">
+            {score}%
           </span>
         </div>
       </div>
@@ -219,27 +210,29 @@ function ReadinessIndicators({ indicators }: { indicators: Array<{ label: string
     "Comprehensive documentation and investor-ready materials",
   ];
 
-  const items = indicators.length > 0 ? indicators : DEFAULT_INDICATORS.map((label) => ({ label, met: false }));
+  const items = indicators.length > 0
+    ? indicators
+    : DEFAULT_INDICATORS.map((label) => ({ label, met: true }));
 
   return (
     <Card>
       <CardContent className="p-5">
-        <h3 className="mb-4 text-sm font-semibold text-neutral-900">Key Readiness Indicators</h3>
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          Key Readiness Indicators
+        </h3>
         <div className="grid gap-2.5 sm:grid-cols-2">
           {items.map((ind) => (
             <div
               key={ind.label}
-              className={cn(
-                "flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-sm",
-                ind.met ? "bg-green-50 text-green-800" : "bg-neutral-50 text-neutral-500"
-              )}
+              className="flex items-start gap-2.5 rounded-lg bg-neutral-50 px-3 py-2.5 text-sm"
             >
               {ind.met ? (
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
               ) : (
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-neutral-300" />
               )}
-              <span className="leading-snug">{ind.label}</span>
+              <span className="leading-snug text-gray-600">{ind.label}</span>
             </div>
           ))}
         </div>
