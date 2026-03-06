@@ -181,6 +181,7 @@ const allyNav: NavSection[] = [
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Projects", href: "/projects", icon: FolderKanban, tourId: "nav-projects" },
+      { label: "Signal Score", href: "/alley-score", icon: Sparkles },
     ],
   },
   {
@@ -223,7 +224,6 @@ const allyNav: NavSection[] = [
     title: "Project Intelligence",
     collapsible: true,
     items: [
-      { label: "My Score", href: "/alley-score", icon: Sparkles },
       { label: "My Risk Profile", href: "/alley-risk", icon: ShieldAlert },
       { label: "Development Advisor", href: "/alley-advisor", icon: Lightbulb },
       { label: "Pipeline Analytics", href: "/pipeline", icon: Route },
