@@ -103,7 +103,8 @@ function PortfolioHero({ avg, total, ready }: { avg: number; total: number; read
 // ── Score Table ────────────────────────────────────────────────────────────────
 
 function ScoreTableRow({ project }: { project: ProjectScoreListItem }) {
-  const score = Math.round(project.score);
+  // API returns 0–10; multiply by 10 to display 0–100
+  const score = Math.round(project.score * 10);
   const label = project.score_label || scoreLabel(score);
   const status = project.status || readinessStatus(score);
 
@@ -135,13 +136,13 @@ function ScoreTableRow({ project }: { project: ProjectScoreListItem }) {
           className={cn(
             "inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold",
             score >= 80
-              ? "border-green-700 bg-green-700 text-white"
+              ? "border-[#1a2332] bg-[#1a2332] text-white"
               : score >= 60
                 ? "border-orange-400 text-orange-600"
                 : "border-neutral-300 text-neutral-500"
           )}
         >
-          {status}
+          {score >= 80 ? "Ready" : status}
         </span>
       </td>
       <td className="hidden px-3 py-3.5 text-xs text-neutral-400 sm:table-cell">
@@ -162,7 +163,7 @@ function ScoreTableRow({ project }: { project: ProjectScoreListItem }) {
 }
 
 function ScoreMobileCard({ project }: { project: ProjectScoreListItem }) {
-  const score = Math.round(project.score);
+  const score = Math.round(project.score * 10);
   const label = project.score_label || scoreLabel(score);
   const status = project.status || readinessStatus(score);
 
@@ -175,7 +176,7 @@ function ScoreMobileCard({ project }: { project: ProjectScoreListItem }) {
         </div>
         <div className="text-right">
           <p className={cn("text-2xl font-bold tabular-nums", scoreLabelColor(score))}>{score}</p>
-          <p className="text-xs text-neutral-400">{label}</p>
+          <p className={cn("text-xs font-medium", scoreLabelColor(score))}>{label}</p>
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between">
@@ -183,13 +184,13 @@ function ScoreMobileCard({ project }: { project: ProjectScoreListItem }) {
           className={cn(
             "inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold",
             score >= 80
-              ? "border-green-700 bg-green-700 text-white"
+              ? "border-[#1a2332] bg-[#1a2332] text-white"
               : score >= 60
                 ? "border-orange-400 text-orange-600"
                 : "border-neutral-300 text-neutral-500"
           )}
         >
-          {status}
+          {score >= 80 ? "Ready" : status}
         </span>
         <Link
           href={`/alley-score/${project.project_id}`}
@@ -236,7 +237,7 @@ function GenerateNewScore() {
       <div className="flex flex-col items-center gap-3 rounded-xl border border-green-200 bg-green-50 py-10 text-center">
         <CheckCircle2 className="h-10 w-10 text-green-500" />
         <p className="font-semibold text-neutral-800">Score generated successfully!</p>
-        <p className="text-sm text-neutral-500">Your updated score will appear in the table above.</p>
+        <p className="text-sm text-neutral-500">Your updated score will appear in the table below.</p>
         <Button
           variant="outline"
           size="sm"
@@ -448,14 +449,31 @@ export default function AlleyScorePage() {
   const router = useRouter();
 
   return (
-    <div className="mx-auto max-w-5xl space-y-7 px-4 py-8">
+    <div className="space-y-6 p-6">
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Project Signal Score</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          AI-powered project readiness and investor matching profile scoring
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">Project Signal Score</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            AI-powered project readiness and investor matching profile scoring
+          </p>
+        </div>
+        {/* Project quick-select */}
+        {data && data.projects.length > 0 && (
+          <div className="shrink-0">
+            <select
+              defaultValue=""
+              onChange={(e) => e.target.value && router.push(`/alley-score/${e.target.value}`)}
+              className="cursor-pointer rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/30"
+            >
+              <option value="">Jump to project…</option>
+              {data.projects.map((p) => (
+                <option key={p.project_id} value={p.project_id}>{p.project_name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <InfoBanner />

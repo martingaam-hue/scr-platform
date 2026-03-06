@@ -4,13 +4,18 @@ import { useState, useRef, useEffect } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  ClipboardList,
   Download,
+  FileCheck,
   FileText,
   Info,
+  Lock,
   RefreshCw,
   Search,
+  Send,
   Shield,
   Sparkles,
+  UserCheck,
   X,
 } from "lucide-react";
 import {
@@ -55,14 +60,34 @@ import { usePermission } from "@/lib/auth";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-const DOC_TYPE_ICONS: Record<string, string> = {
-  nda: "🔒",
-  term_sheet: "📄",
-  subscription_agreement: "📑",
-  side_letter: "✉️",
-  spv_incorporation: "🏢",
-  amendment: "📝",
+const DOC_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  nda: Lock,
+  loi: Send,
+  kyc_aml: UserCheck,
+  term_sheet: ClipboardList,
+  investment_agreement: FileCheck,
+  // legacy types
+  subscription_agreement: FileCheck,
+  side_letter: Send,
+  spv_incorporation: Shield,
+  amendment: FileText,
 };
+
+function DocTypeIcon({ docType, size = "md" }: { docType: string; size?: "sm" | "md" }) {
+  const Icon = DOC_TYPE_ICONS[docType] ?? FileText;
+  if (size === "sm") {
+    return (
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1B2A4A]/8">
+        <Icon className="h-4 w-4 text-[#1B2A4A]" />
+      </div>
+    );
+  }
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1B2A4A]/8">
+      <Icon className="h-5 w-5 text-[#1B2A4A]" />
+    </div>
+  );
+}
 
 function GenerationStatusBadge({ status }: { status: string | null }) {
   if (!status || status === "not_started") return null;
@@ -306,6 +331,8 @@ function AnalysisSection({ onViewDocuments }: { onViewDocuments: () => void }) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [fileItems, setFileItems] = useState<FileItem[]>([]);
   const [analysisPrompt, setAnalysisPrompt] = useState("");
+  const [mode, setMode] = useState("risk_focused");
+  const [jurisdiction, setJurisdiction] = useState("England & Wales");
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [savedDocId, setSavedDocId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -377,7 +404,8 @@ function AnalysisSection({ onViewDocuments }: { onViewDocuments: () => void }) {
 
     const res = await reviewDoc.mutateAsync({
       document_text: documentText,
-      mode: "comprehensive",
+      mode,
+      jurisdiction,
     });
     setReviewId(res.review_id);
   };
@@ -392,7 +420,7 @@ function AnalysisSection({ onViewDocuments }: { onViewDocuments: () => void }) {
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary-600" />
           <h2 className="text-base font-semibold text-neutral-900">
-            AI Document Review & Analysis
+            AI Document Review &amp; Analysis
           </h2>
         </div>
 
@@ -426,18 +454,47 @@ function AnalysisSection({ onViewDocuments }: { onViewDocuments: () => void }) {
           </div>
         </div>
 
-        <Button
-          className="w-full"
-          onClick={handleAnalyze}
-          disabled={!uploadedFile || isAnalyzing}
-        >
-          {isAnalyzing ? (
-            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Search className="mr-2 h-4 w-4" />
-          )}
-          {isAnalyzing ? "Analysing document…" : "Analyze Document"}
-        </Button>
+        {/* Review Mode + Jurisdiction + Analyze button on same row */}
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-neutral-700">Review Mode</label>
+            <select
+              className="text-sm border border-neutral-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-300"
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+              disabled={isAnalyzing}
+            >
+              {Object.entries(REVIEW_MODE_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-neutral-700">Jurisdiction</label>
+            <select
+              className="text-sm border border-neutral-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-300"
+              value={jurisdiction}
+              onChange={(e) => setJurisdiction(e.target.value)}
+              disabled={isAnalyzing}
+            >
+              {SUPPORTED_JURISDICTIONS.map((j) => (
+                <option key={j} value={j}>{j}</option>
+              ))}
+            </select>
+          </div>
+          <Button
+            className="flex-1"
+            onClick={handleAnalyze}
+            disabled={!uploadedFile || isAnalyzing}
+          >
+            {isAnalyzing ? (
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="mr-2 h-4 w-4" />
+            )}
+            {isAnalyzing ? "Analysing document…" : "Analyze Document"}
+          </Button>
+        </div>
 
         {savedDocId && (
           <div className="flex items-center gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3">
@@ -495,38 +552,34 @@ function TemplatesTab() {
   }
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       {templates?.map((tmpl: TemplateListItem) => (
-        <div key={tmpl.id} className="min-w-[200px] flex-1">
-          <Card className="h-full hover:shadow-md transition-shadow">
-            <CardContent className="p-5 flex flex-col h-full">
-              <div className="flex items-start gap-3 mb-3">
-                <span className="text-3xl">
-                  {DOC_TYPE_ICONS[tmpl.doc_type] ?? "📄"}
-                </span>
-                <div>
-                  <h3 className="font-semibold text-neutral-900 text-sm">
-                    {tmpl.name}
-                  </h3>
-                  <p className="text-xs text-neutral-500">
-                    ~{tmpl.estimated_pages} pages
-                  </p>
-                </div>
+        <Card key={tmpl.id} className="h-full hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex flex-col h-full">
+            <div className="flex items-start gap-3 mb-3">
+              <DocTypeIcon docType={tmpl.doc_type} size="md" />
+              <div>
+                <h3 className="font-semibold text-neutral-900 text-sm">
+                  {tmpl.name}
+                </h3>
+                <p className="text-xs text-neutral-500">
+                  ~{tmpl.estimated_pages} pages
+                </p>
               </div>
-              <p className="text-xs text-neutral-600 mb-4 flex-1">
-                {tmpl.description}
-              </p>
-              <Button
-                size="sm"
-                onClick={() => setActiveTemplate(tmpl.id)}
-                className="w-full"
-              >
-                <FileText className="mr-1.5 h-3.5 w-3.5" />
-                Start
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <p className="text-xs text-neutral-600 mb-4 flex-1">
+              {tmpl.description}
+            </p>
+            <Button
+              size="sm"
+              onClick={() => setActiveTemplate(tmpl.id)}
+              className="w-full"
+            >
+              <FileText className="mr-1.5 h-3.5 w-3.5" />
+              Start
+            </Button>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );
@@ -561,9 +614,7 @@ function MyDocumentsTab() {
         <Card key={doc.id}>
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3 min-w-0">
-              <span className="text-2xl flex-shrink-0">
-                {DOC_TYPE_ICONS[doc.doc_type] ?? "📄"}
-              </span>
+              <DocTypeIcon docType={doc.doc_type} size="sm" />
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-medium text-neutral-900 truncate">
@@ -600,109 +651,6 @@ function MyDocumentsTab() {
           </CardContent>
         </Card>
       ))}
-    </div>
-  );
-}
-
-// ── Review Tab ────────────────────────────────────────────────────────────────
-
-function ReviewTab() {
-  const [mode, setMode] = useState("risk_focused");
-  const [jurisdiction, setJurisdiction] = useState("England & Wales");
-  const [documentText, setDocumentText] = useState("");
-  const [reviewId, setReviewId] = useState<string | null>(null);
-
-  const reviewDoc = useReviewDocument();
-  const { data: result } = useReviewResult(reviewId);
-
-  const handleReview = async () => {
-    const res = await reviewDoc.mutateAsync({
-      document_text: documentText,
-      mode,
-      jurisdiction,
-    });
-    setReviewId(res.review_id);
-  };
-
-  const isPending =
-    result?.status === "pending" || result?.status === "processing";
-
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardContent className="p-5 space-y-4">
-          <h3 className="font-semibold text-neutral-900">
-            AI Document Review
-          </h3>
-          <p className="text-sm text-neutral-500">
-            Paste a legal document for AI-powered analysis, risk identification,
-            and recommendations.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-neutral-700 mb-1">
-                Review Mode
-              </label>
-              <select
-                className="text-sm border border-neutral-200 rounded px-3 py-2 w-full"
-                value={mode}
-                onChange={(e) => setMode(e.target.value)}
-              >
-                {Object.entries(REVIEW_MODE_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-neutral-700 mb-1">
-                Jurisdiction
-              </label>
-              <select
-                className="text-sm border border-neutral-200 rounded px-3 py-2 w-full"
-                value={jurisdiction}
-                onChange={(e) => setJurisdiction(e.target.value)}
-              >
-                {SUPPORTED_JURISDICTIONS.map((j) => (
-                  <option key={j} value={j}>
-                    {j}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-neutral-700 mb-1">
-              Document Text
-            </label>
-            <textarea
-              className="text-sm border border-neutral-200 rounded px-3 py-2 w-full h-40 resize-none font-mono"
-              placeholder="Paste your legal document text here…"
-              value={documentText}
-              onChange={(e) => setDocumentText(e.target.value)}
-            />
-          </div>
-
-          <Button
-            onClick={handleReview}
-            disabled={!documentText.trim() || reviewDoc.isPending || isPending}
-          >
-            {isPending || reviewDoc.isPending ? (
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="mr-2 h-4 w-4" />
-            )}
-            {isPending || reviewDoc.isPending ? "Reviewing…" : "Review Document"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {result && result.status === "completed" && (
-        <ReviewResultDisplay result={result} />
-      )}
     </div>
   );
 }
@@ -765,11 +713,15 @@ function ReviewResultDisplay({ result }: { result: ReviewResultResponse }) {
                     &quot;{c.text_excerpt}&quot;
                   </p>
                   {c.issue && (
-                    <p className="text-xs text-red-600">⚠ {c.issue}</p>
+                    <p className="text-xs text-red-600">
+                      <AlertTriangle className="inline h-3 w-3 mr-1" />
+                      {c.issue}
+                    </p>
                   )}
                   {c.recommendation && (
                     <p className="text-xs text-green-700 mt-1">
-                      ✓ {c.recommendation}
+                      <CheckCircle2 className="inline h-3 w-3 mr-1" />
+                      {c.recommendation}
                     </p>
                   )}
                 </div>
@@ -826,7 +778,8 @@ function ReviewResultDisplay({ result }: { result: ReviewResultResponse }) {
             <ul className="space-y-1">
               {result.jurisdiction_issues.map((issue, i) => (
                 <li key={i} className="text-xs text-amber-700">
-                  ⚠ {issue}
+                  <AlertTriangle className="inline h-3 w-3 mr-1" />
+                  {issue}
                 </li>
               ))}
             </ul>
@@ -854,7 +807,7 @@ export default function LegalPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">
-          Legal Automation & Compliance
+          Legal Automation &amp; Compliance
         </h1>
         <p className="text-neutral-500 mt-1">
           AI-powered document generation and compliance management
@@ -874,12 +827,11 @@ export default function LegalPage() {
       {/* AI Analysis — above templates */}
       <AnalysisSection onViewDocuments={() => setActiveTab("documents")} />
 
-      {/* Tabs */}
+      {/* Tabs — Templates and My Documents only */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="documents">My Documents</TabsTrigger>
-          <TabsTrigger value="review">AI Review</TabsTrigger>
         </TabsList>
 
         <TabsContent value="templates" className="mt-6">
@@ -896,10 +848,6 @@ export default function LegalPage() {
 
         <TabsContent value="documents" className="mt-6">
           <MyDocumentsTab />
-        </TabsContent>
-
-        <TabsContent value="review" className="mt-6">
-          <ReviewTab />
         </TabsContent>
       </Tabs>
     </div>
