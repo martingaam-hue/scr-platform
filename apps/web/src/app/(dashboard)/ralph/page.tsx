@@ -5,7 +5,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   Activity,
-  AlertTriangle,
   BarChart3,
   Bot,
   CheckCircle2,
@@ -27,7 +26,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { Button, Card, CardContent, FileUploader, type FileItem } from "@scr/ui";
+import { Button, Card, CardContent } from "@scr/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { AIFeedback } from "@/components/ai-feedback";
 import { api } from "@/lib/api";
@@ -383,7 +382,6 @@ export default function RalphPage() {
   // Prompt & file state
   const [prompt, setPrompt] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
-  const [fileItems, setFileItems] = useState<FileItem[]>([]);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
 
   // Conversation state
@@ -466,15 +464,10 @@ export default function RalphPage() {
 
   const handleFilesSelected = (files: File[]) => {
     setAttachedFiles((prev) => [...prev, ...files]);
-    setFileItems((prev) => [
-      ...prev,
-      ...files.map((f) => ({ file: f, progress: 100, status: "done" as const })),
-    ]);
   };
 
   const handleRemoveFile = (index: number) => {
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
-    setFileItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleQuickAction = (actionPrompt: string) => {
