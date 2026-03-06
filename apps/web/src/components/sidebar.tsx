@@ -158,7 +158,7 @@ const investorNav: NavSection[] = [
   },
   {
     title: "AI",
-    items: [{ label: "Ralph AI", href: "/dashboard", icon: Bot, tourId: "nav-ralph" }],
+    items: [{ label: "Ralph AI", href: "/ralph", icon: Bot, tourId: "nav-ralph" }],
   },
   {
     title: "Settings",
@@ -247,7 +247,7 @@ const allyNav: NavSection[] = [
   },
   {
     title: "AI",
-    items: [{ label: "Ralph AI", href: "/dashboard", icon: Bot, tourId: "nav-ralph" }],
+    items: [{ label: "Ralph AI", href: "/ralph", icon: Bot, tourId: "nav-ralph" }],
   },
   {
     title: "Settings",
@@ -336,7 +336,7 @@ const adminNav: NavSection[] = [
   },
   {
     title: "AI",
-    items: [{ label: "Ralph AI", href: "/dashboard", icon: Bot }],
+    items: [{ label: "Ralph AI", href: "/ralph", icon: Bot }],
   },
   {
     title: "Admin",
