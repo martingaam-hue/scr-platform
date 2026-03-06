@@ -306,7 +306,7 @@ function QuickActionCard({
 }) {
   const Icon = action.icon;
   return (
-    <div className="min-w-[160px] flex-1 rounded-xl border border-neutral-200 bg-white p-4 flex flex-col gap-3 hover:border-neutral-300 hover:shadow-sm transition-all">
+    <div className="rounded-xl border border-neutral-200 bg-white p-4 flex flex-col gap-3 hover:border-neutral-300 hover:shadow-sm transition-all">
       <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${action.bg}`}>
         <Icon className={`h-4 w-4 ${action.color}`} />
       </div>
@@ -559,11 +559,11 @@ export default function RalphPage() {
       <div className="flex items-start gap-3 rounded-lg bg-primary-50 border border-primary-200 px-4 py-3">
         <Info className="h-4 w-4 text-primary-500 flex-shrink-0 mt-0.5" />
         <p className="text-sm text-primary-800">
-          Ralph is your conversational AI analyst with access to{" "}
-          <strong>19 specialised tools</strong> across 5 AI providers. Every answer is
-          grounded in your uploaded documents and platform data — with source citations.
-          Ralph can generate reports, analyze documents, score projects, review legal terms,
-          model financials, and more. Just ask.
+          Ralph is your conversational AI partner with access to{" "}
+          <strong>19 specialised tools</strong> across the whole platform. Every answer is
+          grounded in your uploaded documents and platform data — with source citations. Ralph
+          can for example generate reports, analyze documents, score projects, review legal
+          terms, model financials, and more. Just ask.
         </p>
       </div>
 
@@ -679,7 +679,7 @@ export default function RalphPage() {
         <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-3">
           Quick Actions
         </p>
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
           {QUICK_ACTIONS.map((action) => (
             <QuickActionCard
               key={action.label}
