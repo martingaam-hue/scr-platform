@@ -436,6 +436,7 @@ function ModeSwitcher({
 
 const PROJECT_SUB_ITEMS = [
   { label: "Signal Score", segment: "signal-score", icon: Sparkles },
+  { label: "Risk Dashboard", segment: "risk", icon: ShieldAlert },
   { label: "Due Diligence", segment: "due-diligence", icon: ScanSearch },
   { label: "Expert Insights", segment: "expert-insights", icon: Lightbulb },
   { label: "Matching", segment: "matching", icon: Zap },

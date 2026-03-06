@@ -4,37 +4,38 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   ArrowLeft,
+  BarChart3,
   Calendar,
   CheckCircle2,
   Copy,
   DollarSign,
   FileText,
   Globe,
+  Leaf,
   Lightbulb,
+  Loader2,
   MapPin,
-  RefreshCw,
+  Settings,
+  Shield,
   ShieldAlert,
-  ShieldCheck,
   Sparkles,
   Target,
   TrendingUp,
   Zap,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import {
   Badge,
   Button,
   Card,
   CardContent,
   EmptyState,
-  ScoreGauge,
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
 } from "@scr/ui";
-import {
-  useCalculateScore,
-} from "@/lib/signal-score";
+import { useCalculateScore } from "@/lib/signal-score";
 import {
   useGenerateBusinessPlan,
   useBusinessPlanResult,
@@ -56,7 +57,22 @@ import {
   type BudgetItemResponse,
 } from "@/lib/projects";
 
-// ── Project Tools config ──────────────────────────────────────────────────────
+// ── AI Tool icon config ────────────────────────────────────────────────────
+
+const AI_TOOL_ICONS: Record<
+  BusinessPlanActionKey,
+  { Icon: LucideIcon; color: string; bg: string }
+> = {
+  executive_summary: { Icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
+  financial_overview: { Icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
+  market_analysis: { Icon: BarChart3, color: "text-purple-600", bg: "bg-purple-50" },
+  risk_narrative: { Icon: Shield, color: "text-amber-600", bg: "bg-amber-50" },
+  esg_statement: { Icon: Leaf, color: "text-emerald-600", bg: "bg-emerald-50" },
+  technical_summary: { Icon: Settings, color: "text-slate-600", bg: "bg-slate-50" },
+  investor_pitch: { Icon: Target, color: "text-rose-600", bg: "bg-rose-50" },
+};
+
+// ── Project Tools config ───────────────────────────────────────────────────
 
 const PROJECT_TOOLS = [
   {
@@ -86,22 +102,14 @@ const PROJECT_TOOLS = [
   {
     key: "risk",
     label: "Risk Dashboard",
-    description: "Project risk profile with severity tracking and mitigation.",
+    description: "Unified risk profile with severity tracking, alerts, and mitigation.",
     icon: ShieldAlert,
     href: (id: string) => `/projects/${id}/risk`,
     color: "bg-red-50 text-red-600",
   },
-  {
-    key: "risk-analysis",
-    label: "Risk Analysis & Compliance",
-    description: "Domain-level risk breakdown and regulatory compliance view.",
-    icon: ShieldCheck,
-    href: (id: string) => `/projects/${id}/risk-analysis`,
-    color: "bg-orange-50 text-orange-600",
-  },
 ] as const;
 
-// ── AI Tools ─────────────────────────────────────────────────────────────────
+// ── AI Tool Result Card ────────────────────────────────────────────────────
 
 function AIToolResultCard({
   projectId,
@@ -111,10 +119,14 @@ function AIToolResultCard({
   actionKey: BusinessPlanActionKey;
 }) {
   const action = BUSINESS_PLAN_ACTIONS[actionKey];
+  const { Icon, color, bg } = AI_TOOL_ICONS[actionKey];
   const [taskLogId, setTaskLogId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const generate = useGenerateBusinessPlan(projectId);
-  const { data: result } = useBusinessPlanResult(projectId, taskLogId ?? undefined);
+  const { data: result } = useBusinessPlanResult(
+    projectId,
+    taskLogId ?? undefined
+  );
 
   const handleGenerate = async () => {
     const res = await generate.mutateAsync(actionKey);
@@ -129,22 +141,32 @@ function AIToolResultCard({
     }
   };
 
-  const isPending = result?.status === "pending" || result?.status === "processing";
+  const isPending =
+    result?.status === "pending" || result?.status === "processing";
   const isComplete = result?.status === "completed";
   const isFailed = result?.status === "failed";
 
   return (
     <Card>
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xl">{action.icon}</span>
-            <div>
-              <h4 className="font-semibold text-neutral-900 text-sm">{action.label}</h4>
-              <p className="text-xs text-neutral-500">{action.description}</p>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between gap-3">
+          {/* Icon + title + description */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`p-2 rounded-lg shrink-0 ${bg}`}>
+              <Icon className={`h-4 w-4 ${color}`} />
+            </div>
+            <div className="min-w-0">
+              <h4 className="font-semibold text-neutral-900 text-sm leading-snug">
+                {action.label}
+              </h4>
+              <p className="text-xs text-neutral-500 truncate">
+                {action.description}
+              </p>
             </div>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
+
+          {/* Actions */}
+          <div className="flex gap-2 shrink-0">
             {isComplete && result.content && (
               <Button size="sm" variant="outline" onClick={handleCopy}>
                 <Copy className="h-3.5 w-3.5 mr-1" />
@@ -157,7 +179,7 @@ function AIToolResultCard({
               disabled={generate.isPending || isPending}
             >
               {isPending ? (
-                <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
               ) : (
                 <Sparkles className="h-3.5 w-3.5 mr-1" />
               )}
@@ -173,7 +195,7 @@ function AIToolResultCard({
         )}
 
         {isComplete && result.content && (
-          <div className="mt-4 border-t pt-4">
+          <div className="mt-3 border-t pt-3">
             <p className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed">
               {result.content}
             </p>
@@ -196,9 +218,10 @@ function AIToolsSection({ projectId }: { projectId: string }) {
         <h3 className="font-semibold text-neutral-900">AI Tools</h3>
       </div>
       <p className="text-sm text-neutral-500">
-        Generate AI-powered content for your project. Each action uses your project data to produce relevant, investment-ready text.
+        Generate AI-powered content for your project. Each action uses your
+        project data to produce relevant, investment-ready text.
       </p>
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {actionKeys.map((key) => (
           <AIToolResultCard key={key} projectId={projectId} actionKey={key} />
         ))}
@@ -207,7 +230,84 @@ function AIToolsSection({ projectId }: { projectId: string }) {
   );
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// ── Signal Score — bild18 style ────────────────────────────────────────────
+
+const DIMENSION_ICONS: Record<string, LucideIcon> = {
+  project_viability: Target,
+  financial_planning: TrendingUp,
+  team_strength: CheckCircle2,
+  risk_assessment: Shield,
+  market_opportunity: Globe,
+  esg: Leaf,
+};
+
+function DimensionProgressBar({
+  label,
+  score,
+  iconKey,
+}: {
+  label: string;
+  score: number;
+  iconKey: string;
+}) {
+  const Icon = DIMENSION_ICONS[iconKey] ?? Target;
+  const pct = Math.round(score);
+  const barColor =
+    pct >= 85
+      ? "bg-indigo-900"
+      : pct >= 65
+        ? "bg-indigo-700"
+        : pct >= 40
+          ? "bg-amber-500"
+          : "bg-red-500";
+
+  return (
+    <div className="flex items-center gap-3">
+      <Icon className="h-4 w-4 text-neutral-400 shrink-0" />
+      <span className="text-sm text-neutral-700 w-36 shrink-0">{label}</span>
+      <div className="flex-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${barColor}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-sm font-semibold text-neutral-900 w-10 text-right shrink-0">
+        {pct}%
+      </span>
+    </div>
+  );
+}
+
+function deriveReadinessIndicators(signal: {
+  project_viability_score: number;
+  financial_planning_score: number;
+  team_strength_score: number;
+  risk_assessment_score: number;
+  market_opportunity_score: number;
+  esg_score: number;
+}): string[] {
+  const indicators: string[] = [];
+  if (signal.project_viability_score >= 80)
+    indicators.push("Solid business model with a clear path to profitability");
+  if (signal.team_strength_score >= 80)
+    indicators.push("Experienced management team with a proven track record");
+  if (signal.market_opportunity_score >= 80)
+    indicators.push("Strong market positioning with measurable competitive advantages");
+  if (signal.esg_score >= 80)
+    indicators.push("Robust ESG framework with measurable environmental and social impact");
+  if (signal.financial_planning_score >= 80)
+    indicators.push("Comprehensive financial model with credible investor-ready projections");
+  if (signal.risk_assessment_score >= 80)
+    indicators.push("Well-structured risk mitigation and compliance documentation");
+  // Always include at least 2
+  if (indicators.length < 2) {
+    indicators.push("Project data documented and structured for investor review");
+    indicators.push("AI-powered analysis completed across all 6 readiness dimensions");
+  }
+  return indicators.slice(0, 4);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 function MilestoneStatusBadge({ status }: { status: string }) {
   const color =
@@ -221,7 +321,7 @@ function MilestoneStatusBadge({ status }: { status: string }) {
   return <Badge variant={color}>{status.replace("_", " ")}</Badge>;
 }
 
-// ── Page ────────────────────────────────────────────────────────────────────
+// ── Page ───────────────────────────────────────────────────────────────────
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -272,14 +372,19 @@ export default function ProjectDetailPage() {
     }
   };
 
-  const totalBudgetEstimated = budgetItems?.reduce(
-    (sum, b) => sum + parseFloat(b.estimated_amount),
-    0
-  ) ?? 0;
-  const totalBudgetActual = budgetItems?.reduce(
-    (sum, b) => sum + (b.actual_amount ? parseFloat(b.actual_amount) : 0),
-    0
-  ) ?? 0;
+  const totalBudgetEstimated =
+    budgetItems?.reduce((sum, b) => sum + parseFloat(b.estimated_amount), 0) ??
+    0;
+  const totalBudgetActual =
+    budgetItems?.reduce(
+      (sum, b) => sum + (b.actual_amount ? parseFloat(b.actual_amount) : 0),
+      0
+    ) ?? 0;
+
+  const signal = project.latest_signal;
+  const readinessIndicators = signal
+    ? deriveReadinessIndicators(signal)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -368,17 +473,17 @@ export default function ProjectDetailPage() {
         <TabsContent value="overview" className="mt-6 space-y-6">
           {/* Description + Details */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {/* Description */}
             <Card className="lg:col-span-2">
               <CardContent className="p-6">
-                <h3 className="mb-3 font-semibold text-neutral-900">Description</h3>
+                <h3 className="mb-3 font-semibold text-neutral-900">
+                  Description
+                </h3>
                 <p className="text-sm text-neutral-600 whitespace-pre-wrap">
                   {project.description || "No description provided."}
                 </p>
               </CardContent>
             </Card>
 
-            {/* Details — includes funding required (bold) */}
             <Card>
               <CardContent className="space-y-4 p-6">
                 <h3 className="font-semibold text-neutral-900">Details</h3>
@@ -396,12 +501,9 @@ export default function ProjectDetailPage() {
                   <div className="flex justify-between">
                     <span className="text-neutral-500">Capacity</span>
                     <span className="font-medium">
-                      {project.capacity_mw
-                        ? `${project.capacity_mw} MW`
-                        : "—"}
+                      {project.capacity_mw ? `${project.capacity_mw} MW` : "—"}
                     </span>
                   </div>
-                  {/* Funding Required — bold, replaces Currency line */}
                   <div className="flex justify-between items-baseline pt-1 border-t border-neutral-100">
                     <span className="text-neutral-500">Funding Required</span>
                     <span className="font-bold text-neutral-900 text-base">
@@ -421,7 +523,9 @@ export default function ProjectDetailPage() {
                     <div className="flex justify-between">
                       <span className="text-neutral-500">Target Close</span>
                       <span className="font-medium">
-                        {new Date(project.target_close_date).toLocaleDateString()}
+                        {new Date(
+                          project.target_close_date
+                        ).toLocaleDateString()}
                       </span>
                     </div>
                   )}
@@ -430,10 +534,10 @@ export default function ProjectDetailPage() {
             </Card>
           </div>
 
-          {/* AI Tools — directly below description and details */}
+          {/* AI Tools */}
           {canAnalyze && <AIToolsSection projectId={id} />}
 
-          {/* Project Tools navigation */}
+          {/* Project Tools */}
           <div className="space-y-3">
             <h3 className="font-semibold text-neutral-900">Project Tools</h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -480,9 +584,7 @@ export default function ProjectDetailPage() {
                   <CardContent className="flex items-center justify-between p-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-3">
-                        <p className="font-medium text-neutral-900">
-                          {m.name}
-                        </p>
+                        <p className="font-medium text-neutral-900">{m.name}</p>
                         <MilestoneStatusBadge status={m.status} />
                       </div>
                       {m.description && (
@@ -517,7 +619,6 @@ export default function ProjectDetailPage() {
 
         {/* Financials Tab */}
         <TabsContent value="financials" className="mt-6 space-y-6">
-          {/* Budget summary */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Card>
               <CardContent className="p-5">
@@ -547,7 +648,6 @@ export default function ProjectDetailPage() {
             </Card>
           </div>
 
-          {/* Budget items table */}
           {!budgetItems?.length ? (
             <EmptyState
               icon={<DollarSign className="h-12 w-12 text-neutral-400" />}
@@ -625,9 +725,9 @@ export default function ProjectDetailPage() {
           </div>
         </TabsContent>
 
-        {/* Signal Score Tab */}
+        {/* Signal Score Tab — bild18 style */}
         <TabsContent value="signal" className="mt-6">
-          {!project.latest_signal ? (
+          {!signal ? (
             <EmptyState
               icon={<Target className="h-12 w-12 text-neutral-400" />}
               title="No Signal Score"
@@ -644,81 +744,96 @@ export default function ProjectDetailPage() {
               }
             />
           ) : (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {/* Overall score gauge */}
-                <Card className="lg:col-span-1">
-                  <CardContent className="flex flex-col items-center p-6">
-                    <ScoreGauge
-                      score={project.latest_signal.overall_score}
-                      size={120}
-                      strokeWidth={10}
-                    />
-                    <p className="mt-2 text-xs text-neutral-400">
-                      v{project.latest_signal.version} &middot;{" "}
-                      {project.latest_signal.model_used}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Dimension gauges */}
-                <Card className="lg:col-span-2">
-                  <CardContent className="p-6">
-                    <h3 className="mb-4 font-semibold text-neutral-900">
-                      Breakdown
-                    </h3>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
-                      <ScoreGauge
-                        score={project.latest_signal.project_viability_score}
-                        size={72}
-                        strokeWidth={7}
-                        label="Viability"
-                      />
-                      <ScoreGauge
-                        score={project.latest_signal.financial_planning_score}
-                        size={72}
-                        strokeWidth={7}
-                        label="Financial"
-                      />
-                      <ScoreGauge
-                        score={project.latest_signal.esg_score}
-                        size={72}
-                        strokeWidth={7}
-                        label="ESG"
-                      />
-                      <ScoreGauge
-                        score={project.latest_signal.risk_assessment_score}
-                        size={72}
-                        strokeWidth={7}
-                        label="Risk"
-                      />
-                      <ScoreGauge
-                        score={project.latest_signal.team_strength_score}
-                        size={72}
-                        strokeWidth={7}
-                        label="Team"
-                      />
-                      <ScoreGauge
-                        score={project.latest_signal.market_opportunity_score}
-                        size={72}
-                        strokeWidth={7}
-                        label="Market"
-                      />
+            <Card>
+              <CardContent className="p-8">
+                {/* Hero — centered score */}
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-indigo-50 mb-4">
+                    <div>
+                      <p className="text-5xl font-extrabold text-indigo-900 leading-none tabular-nums">
+                        {signal.overall_score}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                  <p className="text-sm font-medium text-neutral-500">
+                    Project Readiness Score
+                  </p>
+                  <p className="text-xs text-neutral-400 mt-1">
+                    v{signal.version} · {signal.model_used}
+                  </p>
+                </div>
 
-              <div className="flex justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(`/projects/${id}/signal-score`)}
-                >
-                  View Full Analysis
-                  <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
-                </Button>
-              </div>
-            </div>
+                {/* Dimension progress bars — 2-col */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 mb-8">
+                  <DimensionProgressBar
+                    label="Project Viability"
+                    score={signal.project_viability_score}
+                    iconKey="project_viability"
+                  />
+                  <DimensionProgressBar
+                    label="Financial Planning"
+                    score={signal.financial_planning_score}
+                    iconKey="financial_planning"
+                  />
+                  <DimensionProgressBar
+                    label="Team Strength"
+                    score={signal.team_strength_score}
+                    iconKey="team_strength"
+                  />
+                  <DimensionProgressBar
+                    label="Risk Assessment"
+                    score={signal.risk_assessment_score}
+                    iconKey="risk_assessment"
+                  />
+                  <DimensionProgressBar
+                    label="Market Opportunity"
+                    score={signal.market_opportunity_score}
+                    iconKey="market_opportunity"
+                  />
+                  <DimensionProgressBar
+                    label="ESG Impact"
+                    score={signal.esg_score}
+                    iconKey="esg"
+                  />
+                </div>
+
+                {/* Key Readiness Indicators */}
+                {readinessIndicators.length > 0 && (
+                  <div className="border-t pt-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Target className="h-4 w-4 text-neutral-500" />
+                      <h4 className="text-sm font-semibold text-neutral-900">
+                        Key Readiness Indicators
+                      </h4>
+                    </div>
+                    <ul className="space-y-2">
+                      {readinessIndicators.map((indicator, i) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 text-sm text-neutral-700"
+                        >
+                          <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                          {indicator}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* View Full Analysis link */}
+                <div className="mt-6 pt-4 border-t text-center">
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      router.push(`/projects/${id}/signal-score`)
+                    }
+                  >
+                    View Full Analysis
+                    <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
       </Tabs>
