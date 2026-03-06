@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ChevronUp,
   FileCheck,
+  FileText,
   RefreshCw,
   Upload,
 } from "lucide-react";
@@ -579,25 +580,36 @@ export default function SignalScorePage() {
           <ArrowLeft className="h-4 w-4" />
           Back to {project?.name ?? "Project"}
         </button>
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-3">
           <h1 className="text-2xl font-bold text-neutral-900">
             Signal Score Analysis
           </h1>
-          {canAnalyze && details && (
-            <Button
-              variant="outline"
-              onClick={handleRecalculate}
-              disabled={recalculate.isPending}
-            >
-              <RefreshCw
-                className={cn(
-                  "mr-2 h-4 w-4",
-                  recalculate.isPending && "animate-spin"
-                )}
-              />
-              Recalculate
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {details && (
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/projects/${id}?tab=business-plan&action=investor_pitch`)}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Generate Memorandum
+              </Button>
+            )}
+            {canAnalyze && details && (
+              <Button
+                variant="outline"
+                onClick={handleRecalculate}
+                disabled={recalculate.isPending}
+              >
+                <RefreshCw
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    recalculate.isPending && "animate-spin"
+                  )}
+                />
+                Recalculate
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -828,6 +840,46 @@ export default function SignalScorePage() {
 
           {/* D: What Changed? */}
           <WhatChangedCard projectId={id} />
+
+          {/* E: Understanding & Improving */}
+          {gaps && gaps.items.length > 0 && (
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="mb-1 text-sm font-semibold text-neutral-900">
+                  Understanding &amp; Improving Your Score
+                </h3>
+                <p className="mb-4 text-sm text-neutral-500">
+                  Top recommended actions to raise your Signal Score:
+                </p>
+                <ul className="space-y-2">
+                  {gaps.items.slice(0, 5).map((gap, i) => (
+                    <li
+                      key={gap.criterion_id}
+                      className="flex items-start gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3"
+                    >
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#1B2A4A] text-xs font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-neutral-800">{gap.recommendation}</p>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">
+                            {gap.dimension_name}
+                          </span>
+                          <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs text-neutral-600 capitalize">
+                            {gap.priority} priority
+                          </span>
+                          <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">
+                            +{gap.max_points - gap.current_score} pts potential
+                          </span>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>

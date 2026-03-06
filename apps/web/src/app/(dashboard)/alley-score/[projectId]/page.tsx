@@ -35,12 +35,10 @@ import {
 function HeroScore({
   score,
   label,
-  color,
   projectName,
 }: {
   score: number;
   label: string;
-  color: string;
   projectName: string;
 }) {
   return (
@@ -59,10 +57,10 @@ function HeroScore({
         className={cn(
           "relative z-10 mt-2 font-bold leading-none tabular-nums",
           "text-[80px] sm:text-[100px]",
-          scoreLabelColor(color)
+          scoreLabelColor(score)
         )}
       >
-        {score.toFixed(1)}
+        {Math.round(score)}
       </p>
       <p className="relative z-10 mt-1 text-lg font-semibold text-white/80">{label}</p>
       <p className="relative z-10 mt-3 text-sm text-blue-200/70">{projectName}</p>
@@ -324,7 +322,6 @@ export default function ProjectScoreDetailPage() {
       <HeroScore
         score={data.score}
         label={data.score_label}
-        color={data.score_label_color}
         projectName={data.project_name}
       />
 
