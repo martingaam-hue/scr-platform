@@ -35,6 +35,11 @@ jobs:
         image: redis:7
         ports:
           - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -76,12 +81,19 @@ jobs:
         working-directory: apps/api
         env:
           DATABASE_URL: postgresql+asyncpg://scr:scr_password@localhost:5432/scr_test
-          REDIS_URL: redis://localhost:6379
+          REDIS_URL: redis://localhost:6379/0
           APP_ENV: test
+          APP_DEBUG: "false"
+          SECRET_KEY: ci-e2e-secret-key-not-for-production
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_TEST }}
+          CLERK_WEBHOOK_SECRET: test_webhook_secret
           AI_GATEWAY_URL: ${{ secrets.AI_GATEWAY_URL_TEST }}
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY_TEST }}
-        run: poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_S3_BUCKET: test-bucket
+          AWS_S3_ENDPOINT_URL: http://localhost:9000
+        run: poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/api.log 2>&1 &
 
       - name: Build internal packages
         run: |
@@ -98,11 +110,21 @@ jobs:
 
       - name: Start frontend
         working-directory: apps/web
-        run: pnpm start &
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_TEST }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_TEST }}
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+        run: pnpm start > /tmp/web.log 2>&1 &
 
       - name: Wait for services
         run: |
-          npx wait-on http://localhost:3000 http://localhost:8000/health --timeout 120000
+          npx wait-on tcp:localhost:3000 http://localhost:8000/health --timeout 180000
+
+      - name: Show server logs on failure
+        if: failure()
+        run: |
+          echo "=== API log ===" && cat /tmp/api.log || true
+          echo "=== Web log ===" && cat /tmp/web.log || true
 
       - name: Run Playwright tests
         working-directory: apps/web
@@ -122,3 +144,13 @@ jobs:
           name: playwright-report
           path: apps/web/playwright-report/
           retention-days: 30
+
+      - name: Upload server logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: server-logs
+          path: |
+            /tmp/api.log
+            /tmp/web.log
+          retention-days: 7

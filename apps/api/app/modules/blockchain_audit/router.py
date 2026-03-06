@@ -77,7 +77,9 @@ async def audit_report(
 
     result = await db.execute(
         select(BlockchainAnchor)
-        .where(BlockchainAnchor.org_id == current_user.org_id, BlockchainAnchor.is_deleted.is_(False))
+        .where(
+            BlockchainAnchor.org_id == current_user.org_id, BlockchainAnchor.is_deleted.is_(False)
+        )
         .order_by(BlockchainAnchor.created_at.desc())
         .limit(200)
     )
