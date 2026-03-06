@@ -192,7 +192,7 @@ function DimensionBar({ dim }: { dim: { id: string; label: string; score: number
             />
           </div>
           <span className="w-12 shrink-0 text-right text-sm font-bold tabular-nums text-neutral-700">
-            {score}%
+            {score}
           </span>
         </div>
       </div>
@@ -445,7 +445,7 @@ export default function ProjectScoreDetailPage() {
   const sector = project?.project_type?.replace(/_/g, " ") ?? null;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
+    <div className="space-y-6 p-6">
 
       {/* Back + Recalculate */}
       <div className="flex items-center justify-between">
@@ -515,7 +515,7 @@ export default function ProjectScoreDetailPage() {
           </TabsList>
 
           {/* Details tab — expandable dimension cards */}
-          <TabsContent value="details" className="mt-5 space-y-4">
+          <TabsContent value="details" className="mt-5 grid grid-cols-2 gap-4">
             {details.dimensions.map((dim) => (
               <DimensionSection key={dim.id} dimension={dim} />
             ))}

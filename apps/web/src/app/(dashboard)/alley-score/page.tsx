@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -16,7 +16,6 @@ import {
   TrendingDown,
   TrendingUp,
   Users,
-  X,
 } from "lucide-react";
 import {
   Button,
@@ -37,37 +36,19 @@ import {
 } from "@/lib/alley-score";
 import { useProjects } from "@/lib/projects";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const BANNER_KEY = "signal_score_banner_dismissed";
-
 // ── Info Banner ───────────────────────────────────────────────────────────────
 
 function InfoBanner() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setVisible(localStorage.getItem(BANNER_KEY) !== "1");
-    }
-  }, []);
-
-  if (!visible) return null;
-
   return (
     <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
       <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
-      <span className="flex-1">
-        <strong>Signal Score</strong> measures your project&apos;s investment readiness based on
-        documentation quality, team credentials, business fundamentals, financial projections,
-        and overall presentation. Scores range from 0–100.
+      <span>
+        Your Signal Score measures your project&apos;s{" "}
+        <strong>investment readiness</strong> based on the quality and completeness of your
+        uploaded documentation, team credentials, business fundamentals, and overall
+        presentation. This comprehensive analysis helps you understand how prepared your
+        project is to attract investment and identifies areas for improvement.
       </span>
-      <button
-        onClick={() => { localStorage.setItem(BANNER_KEY, "1"); setVisible(false); }}
-        className="shrink-0 text-blue-400 hover:text-blue-600"
-      >
-        <X className="h-4 w-4" />
-      </button>
     </div>
   );
 }
@@ -103,8 +84,7 @@ function PortfolioHero({ avg, total, ready }: { avg: number; total: number; read
 // ── Score Table ────────────────────────────────────────────────────────────────
 
 function ScoreTableRow({ project }: { project: ProjectScoreListItem }) {
-  // API returns 0–10; multiply by 10 to display 0–100
-  const score = Math.round(project.score * 10);
+  const score = Math.round(project.score);
   const label = project.score_label || scoreLabel(score);
   const status = project.status || readinessStatus(score);
 
@@ -163,7 +143,7 @@ function ScoreTableRow({ project }: { project: ProjectScoreListItem }) {
 }
 
 function ScoreMobileCard({ project }: { project: ProjectScoreListItem }) {
-  const score = Math.round(project.score * 10);
+  const score = Math.round(project.score);
   const label = project.score_label || scoreLabel(score);
   const status = project.status || readinessStatus(score);
 

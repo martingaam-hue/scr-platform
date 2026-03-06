@@ -476,6 +476,28 @@ export default function BusinessPlanPage() {
             </span>
           </div>
 
+          {/* Upload Project Documents */}
+          <div>
+            <h2 className="text-sm font-semibold text-neutral-900 mb-0.5">
+              Upload Project Documents
+            </h2>
+            <p className="text-xs text-neutral-500 mb-3">
+              Add supporting documents to provide additional context for AI
+              generation
+            </p>
+            <DropZone />
+          </div>
+
+          {/* Generate All */}
+          <Button
+            variant="default"
+            className="w-full h-12 text-base font-semibold"
+            onClick={() => setGenerateAllTrigger((n) => n + 1)}
+          >
+            <Sparkles className="h-5 w-5 mr-2" />
+            Generate Professional Business Plan
+          </Button>
+
           {/* Quick Generate Reports */}
           <div>
             <div className="mb-4">
@@ -510,28 +532,6 @@ export default function BusinessPlanPage() {
               onClose={() => setActiveResult(null)}
             />
           )}
-
-          {/* Upload Project Documents */}
-          <div>
-            <h2 className="text-sm font-semibold text-neutral-900 mb-0.5">
-              Upload Project Documents
-            </h2>
-            <p className="text-xs text-neutral-500 mb-3">
-              Add supporting documents to provide additional context for AI
-              generation
-            </p>
-            <DropZone />
-          </div>
-
-          {/* Generate All */}
-          <Button
-            variant="default"
-            className="w-full h-12 text-base font-semibold"
-            onClick={() => setGenerateAllTrigger((n) => n + 1)}
-          >
-            <Sparkles className="h-5 w-5 mr-2" />
-            Generate Professional Business Plan
-          </Button>
 
           {/* Recent Business Plans */}
           {plans && plans.length > 0 && (

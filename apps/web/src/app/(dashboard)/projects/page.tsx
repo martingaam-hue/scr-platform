@@ -171,15 +171,27 @@ const columns: ColumnDef<ProjectResponse>[] = [
     accessorKey: "latest_signal_score",
     header: "Signal Score",
     cell: ({ row }) => {
-      const score = row.original.latest_signal_score;
-      if (score === null) return <span className="text-neutral-400">—</span>;
+      const rawScore = row.original.latest_signal_score;
+      if (rawScore === null) return <span className="text-neutral-400">—</span>;
+      const score = Math.round(rawScore * 10);
       const color =
-        score >= 80
-          ? "text-green-600"
-          : score >= 60
-            ? "text-amber-600"
-            : "text-red-600";
-      return <span className={cn("font-semibold", color)}>{score}</span>;
+        score >= 90 ? "text-green-700" :
+        score >= 80 ? "text-green-600" :
+        score >= 70 ? "text-teal-600" :
+        score >= 60 ? "text-orange-500" :
+        "text-red-500";
+      const label =
+        score >= 90 ? "Excellent" :
+        score >= 80 ? "Strong" :
+        score >= 70 ? "Good" :
+        score >= 60 ? "Fair" :
+        "Needs Review";
+      return (
+        <div className="flex items-center gap-1.5">
+          <span className={cn("font-bold tabular-nums", color)}>{score}</span>
+          <span className={cn("text-xs font-medium", color)}>{label}</span>
+        </div>
+      );
     },
   },
   {

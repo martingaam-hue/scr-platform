@@ -531,7 +531,7 @@ export default function RalphPage() {
   const hasMessages = displayMessages.length > 0;
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

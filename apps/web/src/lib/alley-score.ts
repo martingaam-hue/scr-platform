@@ -138,7 +138,14 @@ export function usePortfolioOverview() {
     queryFn: () =>
       api
         .get<PortfolioScoreResponse>("/alley/signal-score")
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          return {
+            ...d,
+            stats: { ...d.stats, avg_score: d.stats.avg_score * 10 },
+            projects: d.projects.map((p) => ({ ...p, score: p.score * 10 })),
+          };
+        }),
   });
 }
 
@@ -151,7 +158,14 @@ export function useProjectScoreDetail(projectId: string | undefined) {
     queryFn: () =>
       api
         .get<ProjectScoreDetailResponse>(`/alley/signal-score/${projectId}`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          return {
+            ...d,
+            score: d.score * 10,
+            dimensions: d.dimensions.map((dim) => ({ ...dim, score: dim.score * 10 })),
+          };
+        }),
     enabled: !!projectId,
   });
 }
