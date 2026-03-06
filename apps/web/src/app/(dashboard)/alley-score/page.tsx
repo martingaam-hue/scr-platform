@@ -8,7 +8,6 @@ import {
   BookOpen,
   Briefcase,
   CheckCircle2,
-  ChevronRight,
   FileUp,
   Info,
   Loader2,
@@ -28,7 +27,6 @@ import {
   cn,
 } from "@scr/ui";
 import {
-  scoreBadgeClass,
   scoreLabelColor,
   scoreLabel,
   readinessStatus,
@@ -78,24 +76,24 @@ function InfoBanner() {
 
 function PortfolioHero({ avg, total, ready }: { avg: number; total: number; ready: number }) {
   return (
-    <div className="rounded-2xl bg-[#1B2A4A] px-8 py-8 text-white">
-      <p className="mb-6 text-xs font-semibold uppercase tracking-widest text-white/50">
+    <div className="rounded-2xl bg-[#1B2A4A] px-8 py-10 text-white">
+      <p className="mb-8 text-xs font-semibold uppercase tracking-widest text-white/40">
         Portfolio Signal Score Overview
       </p>
-      <div className="grid grid-cols-3 gap-8">
-        <div>
-          <p className="text-5xl font-bold tabular-nums">{Math.round(avg)}</p>
-          <p className="mt-2 text-sm text-white/60">Average Score</p>
-          <p className="text-xs text-white/35">out of 100</p>
+      <div className="grid grid-cols-3 divide-x divide-white/10">
+        <div className="pr-8">
+          <p className="text-7xl font-black tabular-nums leading-none">{Math.round(avg)}</p>
+          <p className="mt-3 text-sm font-medium text-white/50">Average Score</p>
+          <p className="mt-0.5 text-xs text-white/30">out of 100</p>
         </div>
-        <div>
-          <p className="text-5xl font-bold tabular-nums">{total}</p>
-          <p className="mt-2 text-sm text-white/60">Total Projects</p>
+        <div className="px-8">
+          <p className="text-7xl font-black tabular-nums leading-none">{total}</p>
+          <p className="mt-3 text-sm font-medium text-white/50">Total Projects</p>
         </div>
-        <div>
-          <p className="text-5xl font-bold tabular-nums text-green-400">{ready}</p>
-          <p className="mt-2 text-sm text-white/60">Investment Ready</p>
-          <p className="text-xs text-white/35">score ≥ 80</p>
+        <div className="pl-8">
+          <p className="text-7xl font-black tabular-nums leading-none text-green-400">{ready}</p>
+          <p className="mt-3 text-sm font-medium text-white/50">Investment Ready</p>
+          <p className="mt-0.5 text-xs text-white/30">score ≥ 80</p>
         </div>
       </div>
     </div>
@@ -121,21 +119,16 @@ function ScoreTableRow({ project }: { project: ProjectScoreListItem }) {
         {project.stage ?? "—"}
       </td>
       <td className="px-3 py-3.5">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <span className={cn("text-xl font-bold tabular-nums", scoreLabelColor(score))}>
             {score}
+          </span>
+          <span className={cn("text-sm font-medium", scoreLabelColor(score))}>
+            {label}
           </span>
           {project.trend === "up" && <TrendingUp className="h-3 w-3 text-green-500" />}
           {project.trend === "down" && <TrendingDown className="h-3 w-3 text-red-500" />}
         </div>
-        <span
-          className={cn(
-            "mt-0.5 inline-flex rounded-full border px-2 py-px text-[10px] font-semibold",
-            scoreBadgeClass(score)
-          )}
-        >
-          {label}
-        </span>
       </td>
       <td className="hidden px-3 py-3.5 sm:table-cell">
         <span
@@ -159,9 +152,9 @@ function ScoreTableRow({ project }: { project: ProjectScoreListItem }) {
       <td className="py-3.5 pl-3 pr-6 text-right">
         <Link
           href={`/alley-score/${project.project_id}`}
-          className="inline-flex items-center gap-1 rounded-md border border-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-700 hover:border-[#1B2A4A] hover:text-[#1B2A4A] transition-colors"
+          className="text-sm font-medium text-[#1B2A4A] hover:underline"
         >
-          View <ChevronRight className="h-3 w-3" />
+          View Details
         </Link>
       </td>
     </tr>
@@ -480,6 +473,9 @@ export default function AlleyScorePage() {
         />
       ) : null}
 
+      {/* Generate New Score */}
+      <GenerateNewScore />
+
       {/* Project Scores Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -530,7 +526,8 @@ export default function AlleyScorePage() {
               {/* Footer */}
               <p className="border-t border-neutral-100 px-6 py-3 text-xs text-neutral-400">
                 Each project is evaluated individually based on its unique metrics, documentation quality,
-                team credentials, and alignment with investor preferences.
+                team credentials, and alignment with investor preferences. Upload comprehensive project
+                documentation to improve individual scores.
               </p>
             </>
           ) : (
@@ -538,15 +535,12 @@ export default function AlleyScorePage() {
               <BarChart3 className="mb-3 h-10 w-10 text-neutral-200" />
               <p className="text-sm font-semibold text-neutral-600">No scores yet</p>
               <p className="mt-1 max-w-xs text-xs text-neutral-400">
-                Generate your first signal score below by selecting a project and uploading documents.
+                Generate your first signal score by selecting a project and uploading documents above.
               </p>
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Generate New Score */}
-      <GenerateNewScore />
 
       {/* Understanding & Improving */}
       <UnderstandingSection />
