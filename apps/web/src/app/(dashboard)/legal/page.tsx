@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
   Download,
   FileText,
+  Info,
   RefreshCw,
   Search,
   Shield,
@@ -18,12 +19,16 @@ import {
   Card,
   CardContent,
   EmptyState,
+  FileUploader,
+  type FileItem,
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
 } from "@scr/ui";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AIFeedback } from "@/components/ai-feedback";
+import { api } from "@/lib/api";
 import {
   useTemplates,
   useTemplate,
@@ -34,6 +39,7 @@ import {
   useGenerateDocument,
   useReviewDocument,
   useReviewResult,
+  legalKeys,
   docStatusBadge,
   clauseRiskBadge,
   DOC_TYPE_LABELS,
@@ -70,6 +76,15 @@ function GenerationStatusBadge({ status }: { status: string | null }) {
   return (
     <span className={`text-xs font-medium ${c.class}`}>{c.label}</span>
   );
+}
+
+function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve((e.target?.result as string) ?? "");
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
 }
 
 // ── Questionnaire Wizard ─────────────────────────────────────────────────────
@@ -284,6 +299,176 @@ function DocumentWizard({
   );
 }
 
+// ── AI Analysis Section ───────────────────────────────────────────────────────
+
+function AnalysisSection({ onViewDocuments }: { onViewDocuments: () => void }) {
+  const qc = useQueryClient();
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [fileItems, setFileItems] = useState<FileItem[]>([]);
+  const [analysisPrompt, setAnalysisPrompt] = useState("");
+  const [reviewId, setReviewId] = useState<string | null>(null);
+  const [savedDocId, setSavedDocId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const hasSaved = useRef(false);
+
+  const reviewDoc = useReviewDocument();
+  const { data: result } = useReviewResult(reviewId);
+
+  const saveAnalysis = useMutation({
+    mutationFn: (title: string) =>
+      api
+        .post<LegalDocumentResponse>("/legal/documents", {
+          template_id: null,
+          title,
+        })
+        .then((r) => r.data),
+    onSuccess: (data) => {
+      setSavedDocId(data.id);
+      qc.invalidateQueries({ queryKey: legalKeys.documents() });
+    },
+    onError: () => {
+      setSaveError("Could not save analysis to My Documents.");
+    },
+  });
+
+  useEffect(() => {
+    if (
+      result?.status === "completed" &&
+      !hasSaved.current &&
+      uploadedFile
+    ) {
+      hasSaved.current = true;
+      const title = `Legal Analysis — ${uploadedFile.name} — ${new Date().toLocaleDateString()}`;
+      saveAnalysis.mutate(title);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.status]);
+
+  const handleFilesSelected = (files: File[]) => {
+    const file = files[0];
+    setUploadedFile(file);
+    setFileItems([{ file, progress: 100, status: "done" }]);
+    setReviewId(null);
+    setSavedDocId(null);
+    setSaveError(null);
+    hasSaved.current = false;
+  };
+
+  const handleRemoveFile = () => {
+    setUploadedFile(null);
+    setFileItems([]);
+    setReviewId(null);
+    setSavedDocId(null);
+    setSaveError(null);
+    hasSaved.current = false;
+  };
+
+  const handleAnalyze = async () => {
+    if (!uploadedFile) return;
+    hasSaved.current = false;
+    setSavedDocId(null);
+    setSaveError(null);
+
+    const fileText = await readFileAsText(uploadedFile);
+
+    const documentText = analysisPrompt.trim()
+      ? `Analysis Request: ${analysisPrompt}\n\n---\n\nDocument Content:\n${fileText}`
+      : fileText;
+
+    const res = await reviewDoc.mutateAsync({
+      document_text: documentText,
+      mode: "comprehensive",
+    });
+    setReviewId(res.review_id);
+  };
+
+  const isPending =
+    result?.status === "pending" || result?.status === "processing";
+  const isAnalyzing = reviewDoc.isPending || isPending;
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-5">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-primary-600" />
+          <h2 className="text-base font-semibold text-neutral-900">
+            AI Document Review & Analysis
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-xs font-medium text-neutral-700 mb-2">
+              Upload Document
+            </label>
+            <FileUploader
+              accept=".pdf,.doc,.docx,.txt"
+              multiple={false}
+              maxSizeMB={20}
+              onFilesSelected={handleFilesSelected}
+              files={fileItems}
+              onRemove={handleRemoveFile}
+              disabled={isAnalyzing}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="block text-xs font-medium text-neutral-700">
+              Analysis Request
+            </label>
+            <textarea
+              className="text-sm border border-neutral-200 rounded px-3 py-2 flex-1 resize-none min-h-[120px] focus:outline-none focus:ring-2 focus:ring-primary-300"
+              placeholder={`Describe what you want the AI to focus on.\n\nE.g. "Identify unfavourable clauses for the investor", "Check for missing indemnity provisions", "Summarise key payment terms"…`}
+              value={analysisPrompt}
+              onChange={(e) => setAnalysisPrompt(e.target.value)}
+              disabled={isAnalyzing}
+            />
+          </div>
+        </div>
+
+        <Button
+          className="w-full"
+          onClick={handleAnalyze}
+          disabled={!uploadedFile || isAnalyzing}
+        >
+          {isAnalyzing ? (
+            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="mr-2 h-4 w-4" />
+          )}
+          {isAnalyzing ? "Analysing document…" : "Analyze Document"}
+        </Button>
+
+        {savedDocId && (
+          <div className="flex items-center gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3">
+            <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+            <p className="text-sm text-green-800">
+              Analysis saved to{" "}
+              <button
+                className="font-semibold underline"
+                onClick={onViewDocuments}
+              >
+                My Documents
+              </button>
+            </p>
+          </div>
+        )}
+
+        {saveError && (
+          <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+            <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+            <p className="text-sm text-red-700">{saveError}</p>
+          </div>
+        )}
+
+        {result && result.status === "completed" && (
+          <ReviewResultDisplay result={result} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Templates Tab ─────────────────────────────────────────────────────────────
 
 function TemplatesTab() {
@@ -310,34 +495,38 @@ function TemplatesTab() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="flex gap-4 overflow-x-auto pb-2">
       {templates?.map((tmpl: TemplateListItem) => (
-        <Card key={tmpl.id} className="hover:shadow-md transition-shadow">
-          <CardContent className="p-5">
-            <div className="flex items-start gap-3 mb-3">
-              <span className="text-3xl">
-                {DOC_TYPE_ICONS[tmpl.doc_type] ?? "📄"}
-              </span>
-              <div>
-                <h3 className="font-semibold text-neutral-900 text-sm">
-                  {tmpl.name}
-                </h3>
-                <p className="text-xs text-neutral-500">
-                  ~{tmpl.estimated_pages} pages
-                </p>
+        <div key={tmpl.id} className="min-w-[200px] flex-1">
+          <Card className="h-full hover:shadow-md transition-shadow">
+            <CardContent className="p-5 flex flex-col h-full">
+              <div className="flex items-start gap-3 mb-3">
+                <span className="text-3xl">
+                  {DOC_TYPE_ICONS[tmpl.doc_type] ?? "📄"}
+                </span>
+                <div>
+                  <h3 className="font-semibold text-neutral-900 text-sm">
+                    {tmpl.name}
+                  </h3>
+                  <p className="text-xs text-neutral-500">
+                    ~{tmpl.estimated_pages} pages
+                  </p>
+                </div>
               </div>
-            </div>
-            <p className="text-xs text-neutral-600 mb-4">{tmpl.description}</p>
-            <Button
-              size="sm"
-              onClick={() => setActiveTemplate(tmpl.id)}
-              className="w-full"
-            >
-              <FileText className="mr-1.5 h-3.5 w-3.5" />
-              Start
-            </Button>
-          </CardContent>
-        </Card>
+              <p className="text-xs text-neutral-600 mb-4 flex-1">
+                {tmpl.description}
+              </p>
+              <Button
+                size="sm"
+                onClick={() => setActiveTemplate(tmpl.id)}
+                className="w-full"
+              >
+                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                Start
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       ))}
     </div>
   );
@@ -361,7 +550,7 @@ function MyDocumentsTab() {
       <EmptyState
         icon={<FileText className="h-12 w-12 text-neutral-400" />}
         title="No documents yet"
-        description="Generate your first legal document from the Templates tab."
+        description="Generate your first legal document from the Templates tab, or analyse an uploaded document above."
       />
     );
   }
@@ -440,7 +629,6 @@ function ReviewTab() {
 
   return (
     <div className="space-y-6">
-      {/* Input panel */}
       <Card>
         <CardContent className="p-5 space-y-4">
           <h3 className="font-semibold text-neutral-900">
@@ -512,13 +700,14 @@ function ReviewTab() {
         </CardContent>
       </Card>
 
-      {/* Results */}
       {result && result.status === "completed" && (
         <ReviewResultDisplay result={result} />
       )}
     </div>
   );
 }
+
+// ── Review Result Display ─────────────────────────────────────────────────────
 
 function ReviewResultDisplay({ result }: { result: ReviewResultResponse }) {
   const riskColor =
@@ -530,7 +719,6 @@ function ReviewResultDisplay({ result }: { result: ReviewResultResponse }) {
 
   return (
     <div className="space-y-4">
-      {/* Summary */}
       <Card>
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-4">
@@ -553,7 +741,6 @@ function ReviewResultDisplay({ result }: { result: ReviewResultResponse }) {
         </CardContent>
       </Card>
 
-      {/* Clause analyses */}
       {result.clause_analyses.length > 0 && (
         <Card>
           <CardContent className="p-4">
@@ -592,7 +779,6 @@ function ReviewResultDisplay({ result }: { result: ReviewResultResponse }) {
         </Card>
       )}
 
-      {/* Missing clauses + recommendations */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {result.missing_clauses.length > 0 && (
           <Card>
@@ -661,19 +847,35 @@ function ReviewResultDisplay({ result }: { result: ReviewResultResponse }) {
 
 export default function LegalPage() {
   const canCreate = usePermission("create", "report");
+  const [activeTab, setActiveTab] = useState("templates");
 
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">
-          Legal Document Manager
+          Legal Automation & Compliance
         </h1>
         <p className="text-neutral-500 mt-1">
-          Generate, manage, and AI-review legal documents for your deals
+          AI-powered document generation and compliance management
         </p>
       </div>
 
-      <Tabs defaultValue="templates">
+      {/* Info banner */}
+      <div className="flex items-start gap-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+        <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-blue-800">
+          Upload contracts, term sheets, NDAs, or any legal document for instant AI-powered analysis.
+          You can also generate new documents from our template library. All results are saved to
+          your document library for future reference.
+        </p>
+      </div>
+
+      {/* AI Analysis — above templates */}
+      <AnalysisSection onViewDocuments={() => setActiveTab("documents")} />
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="documents">My Documents</TabsTrigger>
