@@ -7,6 +7,13 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import {
+  MOCK_PORTFOLIO,
+  MOCK_PORTFOLIO_METRICS,
+  MOCK_HOLDINGS,
+  MOCK_CASH_FLOWS,
+  MOCK_ALLOCATION,
+} from "@/lib/mock-data";
 
 // ── Enums ──────────────────────────────────────────────────────────────────
 
@@ -177,7 +184,11 @@ export function usePortfolios() {
     queryFn: () =>
       api
         .get<PortfolioListResponse>("/portfolio")
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.items?.length) return { ...d, items: [MOCK_PORTFOLIO], total: 1 };
+          return d;
+        }),
   });
 }
 
@@ -254,7 +265,8 @@ export function usePortfolioMetrics(id: string | undefined) {
     queryFn: () =>
       api
         .get<PortfolioMetricsResponse>(`/portfolio/${id}/metrics`)
-        .then((r) => r.data),
+        .then((r) => r.data)
+        .catch(() => MOCK_PORTFOLIO_METRICS),
     enabled: !!id,
   });
 }
@@ -272,7 +284,11 @@ export function useHoldings(
         .get<HoldingListResponse>(`/portfolio/${portfolioId}/holdings`, {
           params,
         })
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.items?.length) return MOCK_HOLDINGS;
+          return d;
+        }),
     enabled: !!portfolioId,
   });
 }
@@ -362,7 +378,11 @@ export function useCashFlows(portfolioId: string | undefined) {
     queryFn: () =>
       api
         .get<CashFlowResponse>(`/portfolio/${portfolioId}/cash-flows`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.items?.length) return MOCK_CASH_FLOWS;
+          return d;
+        }),
     enabled: !!portfolioId,
   });
 }
@@ -375,7 +395,11 @@ export function useAllocation(portfolioId: string | undefined) {
     queryFn: () =>
       api
         .get<AllocationResponse>(`/portfolio/${portfolioId}/allocation`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.by_sector?.length && !d.by_geography?.length) return MOCK_ALLOCATION;
+          return d;
+        }),
     enabled: !!portfolioId,
   });
 }

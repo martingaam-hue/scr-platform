@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_COMPLIANCE_DEADLINES } from "@/lib/mock-data";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -46,7 +47,11 @@ export function useComplianceDeadlines(statusFilter?: string | null) {
     queryFn: () =>
       api
         .get(`/compliance/deadlines${statusFilter ? `?status=${statusFilter}` : ""}`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data as ComplianceResponse;
+          if (!d.items?.length) return MOCK_COMPLIANCE_DEADLINES;
+          return d;
+        }),
   });
 }
 

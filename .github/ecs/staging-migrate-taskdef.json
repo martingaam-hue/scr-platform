@@ -1,0 +1,61 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "migrate",
+      "image": "547279162499.dkr.ecr.eu-north-1.amazonaws.com/scr-api:latest",
+      "cpu": 0,
+      "essential": true,
+      "command": ["poetry", "run", "alembic", "upgrade", "head"],
+      "environment": [
+        {
+          "name": "APP_ENV",
+          "value": "staging"
+        },
+        {
+          "name": "APP_DEBUG",
+          "value": "false"
+        }
+      ],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/DATABASE_URL"
+        },
+        {
+          "name": "SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/SECRET_KEY"
+        },
+        {
+          "name": "CLERK_SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/CLERK_SECRET_KEY"
+        },
+        {
+          "name": "CLERK_ISSUER_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/CLERK_ISSUER_URL"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/scr-staging/migrate",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "migrate"
+        }
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "scr-migrate-staging",
+  "taskRoleArn": "arn:aws:iam::547279162499:role/scr-staging-ecs-task",
+  "executionRoleArn": "arn:aws:iam::547279162499:role/scr-staging-ecs-exec",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024"
+}

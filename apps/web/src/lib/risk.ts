@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_DOMAIN_RISK, MOCK_RISK_DASHBOARD, MOCK_MONITORING_ALERTS } from "@/lib/mock-data";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -250,7 +251,8 @@ export function useRiskDashboard(portfolioId: string | undefined) {
     queryFn: () =>
       api
         .get<RiskDashboard>(`/risk/dashboard/${portfolioId}`)
-        .then((r) => r.data),
+        .then((r) => r.data)
+        .catch(() => MOCK_RISK_DASHBOARD),
     enabled: !!portfolioId,
   });
 }
@@ -465,7 +467,12 @@ export function useDomainScores(portfolioId: string | undefined) {
     queryFn: () =>
       api
         .get<FiveDomainRisk>(`/risk/domains/${portfolioId}`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.domains?.length) return MOCK_DOMAIN_RISK;
+          return d;
+        })
+        .catch(() => MOCK_DOMAIN_RISK),
     enabled: !!portfolioId,
   });
 }
@@ -481,7 +488,11 @@ export function useMonitoringAlerts(portfolioId?: string, unreadOnly = false) {
     queryFn: () =>
       api
         .get<MonitoringAlertList>(`/risk/alerts${qs ? `?${qs}` : ""}`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.items?.length) return MOCK_MONITORING_ALERTS;
+          return d;
+        }),
     refetchInterval: 30_000,
   });
 }

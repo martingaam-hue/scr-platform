@@ -110,28 +110,46 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Update migrate task definition
+        id: migrate-taskdef
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .github/ecs/staging-migrate-taskdef.json
+          container-name: migrate
+          image: ${{ env.ECR_REGISTRY }}/scr-api:${{ env.IMAGE_TAG }}
+
       - name: Run Alembic migrations via ECS task
         run: |
-          TASK_DEF_ARN=$(aws ecs describe-task-definition \
-            --task-definition scr-migrate-staging \
+          # Register a new task definition revision with the freshly built image
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json "file://${{ steps.migrate-taskdef.outputs.task-definition }}" \
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
 
           TASK_ARN=$(aws ecs run-task \
             --cluster ${{ env.ECS_CLUSTER }} \
-            --task-definition $TASK_DEF_ARN \
+            --task-definition "$TASK_DEF_ARN" \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[${{ secrets.STAGING_PRIVATE_SUBNET_IDS }}],securityGroups=[${{ secrets.STAGING_ECS_SG_ID }}]}" \
-            --overrides '{"containerOverrides":[{"name":"migrate","command":["poetry","run","alembic","upgrade","head"]}]}' \
             --query 'tasks[0].taskArn' \
             --output text)
 
           echo "Migration task: $TASK_ARN"
+          TASK_ID="${TASK_ARN##*/}"
 
           # Wait for migration to complete (max 5 min)
           aws ecs wait tasks-stopped \
             --cluster ${{ env.ECS_CLUSTER }} \
             --tasks "$TASK_ARN"
+
+          # Always fetch container logs so failures are visible
+          echo "=== Migration container logs ==="
+          aws logs get-log-events \
+            --log-group-name /ecs/scr-staging/migrate \
+            --log-stream-name "migrate/migrate/${TASK_ID}" \
+            --start-from-head \
+            --query 'events[*].message' \
+            --output text 2>/dev/null || echo "(no logs found — log group may not exist yet)"
 
           EXIT_CODE=$(aws ecs describe-tasks \
             --cluster ${{ env.ECS_CLUSTER }} \

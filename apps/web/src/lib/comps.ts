@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_COMPS } from "@/lib/mock-data";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -74,7 +75,12 @@ export function useComps(filters: CompsFilters = {}) {
 
   return useQuery<CompsListResponse>({
     queryKey: ["comps", filters],
-    queryFn: () => api.get(`/comps?${params}`).then((r) => r.data),
+    queryFn: () =>
+      api.get(`/comps?${params}`).then((r) => {
+        const d = r.data as CompsListResponse;
+        if (!d.items?.length) return MOCK_COMPS;
+        return d;
+      }),
   });
 }
 

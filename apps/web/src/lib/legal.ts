@@ -8,6 +8,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_LEGAL_DOCUMENTS } from "@/lib/mock-data";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -140,7 +141,11 @@ export function useLegalDocuments(page = 1) {
     queryFn: () =>
       api
         .get<LegalDocumentListResponse>(`/legal/documents?page=${page}`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.items?.length) return MOCK_LEGAL_DOCUMENTS;
+          return d;
+        }),
   });
 }
 

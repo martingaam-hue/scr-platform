@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_NOTIFICATIONS } from "@/lib/mock-data";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -60,6 +61,7 @@ export function useNotifications(params?: {
         "/notifications",
         { params }
       );
+      if (!data.items?.length) return MOCK_NOTIFICATIONS;
       return data;
     },
   });

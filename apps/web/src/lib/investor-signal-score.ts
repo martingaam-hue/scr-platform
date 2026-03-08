@@ -4,6 +4,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import {
+  MOCK_INVESTOR_SCORE,
+  MOCK_INVESTOR_BENCHMARK,
+  MOCK_INVESTOR_TOP_MATCHES,
+  MOCK_INVESTOR_IMPROVEMENT,
+  MOCK_INVESTOR_FACTORS,
+} from "@/lib/mock-data";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -130,7 +137,8 @@ export function useInvestorSignalScore() {
     queryFn: () =>
       api
         .get<InvestorSignalScore>("/investor-signal-score")
-        .then((r) => r.data),
+        .then((r) => r.data)
+        .catch(() => MOCK_INVESTOR_SCORE),
     retry: false,
   });
 }
@@ -165,7 +173,8 @@ export function useImprovementPlan() {
     queryFn: () =>
       api
         .get<ImprovementAction[]>("/investor-signal-score/improvement-plan")
-        .then((r) => r.data),
+        .then((r) => (r.data?.length ? r.data : MOCK_INVESTOR_IMPROVEMENT))
+        .catch(() => MOCK_INVESTOR_IMPROVEMENT),
     retry: false,
   });
 }
@@ -176,7 +185,8 @@ export function useScoreFactors() {
     queryFn: () =>
       api
         .get<ScoreFactorItem[]>("/investor-signal-score/factors")
-        .then((r) => r.data),
+        .then((r) => (r.data?.length ? r.data : MOCK_INVESTOR_FACTORS))
+        .catch(() => MOCK_INVESTOR_FACTORS),
     retry: false,
   });
 }
@@ -187,7 +197,8 @@ export function useBenchmark() {
     queryFn: () =>
       api
         .get<BenchmarkData>("/investor-signal-score/benchmark")
-        .then((r) => r.data),
+        .then((r) => r.data)
+        .catch(() => MOCK_INVESTOR_BENCHMARK),
     retry: false,
   });
 }
@@ -198,7 +209,8 @@ export function useTopMatches(limit = 5) {
     queryFn: () =>
       api
         .get<TopMatchItem[]>(`/investor-signal-score/top-matches?limit=${limit}`)
-        .then((r) => r.data),
+        .then((r) => (r.data?.length ? r.data : MOCK_INVESTOR_TOP_MATCHES))
+        .catch(() => MOCK_INVESTOR_TOP_MATCHES),
     retry: false,
   });
 }

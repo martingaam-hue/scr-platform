@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_LP_REPORTS } from "@/lib/mock-data";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -101,6 +102,9 @@ export function useLPReports(params?: { portfolio_id?: string; status?: string }
     queryKey: lpReportKeys.list(params),
     queryFn: async () => {
       const { data } = await api.get<LPReportListResponse>("/lp-reports", { params });
+      if (!data.items?.length) {
+        return { ...data, items: MOCK_LP_REPORTS, total: MOCK_LP_REPORTS.length };
+      }
       return data;
     },
   });

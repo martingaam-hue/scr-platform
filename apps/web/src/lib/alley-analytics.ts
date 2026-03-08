@@ -5,6 +5,12 @@
 
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import {
+  MOCK_ALLEY_OVERVIEW,
+  MOCK_STAGE_DISTRIBUTION,
+  MOCK_SCORE_DISTRIBUTION,
+  MOCK_DOC_COMPLETENESS,
+} from "@/lib/mock-data";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -85,7 +91,8 @@ export function useAlleyOverview() {
     queryFn: () =>
       api
         .get<PipelineOverview>("/alley/analytics")
-        .then((r) => r.data),
+        .then((r) => r.data)
+        .catch(() => MOCK_ALLEY_OVERVIEW),
   });
 }
 
@@ -95,7 +102,8 @@ export function useStageDistribution() {
     queryFn: () =>
       api
         .get<StageDistributionItem[]>("/alley/analytics/stage-distribution")
-        .then((r) => r.data),
+        .then((r) => (r.data?.length ? r.data : MOCK_STAGE_DISTRIBUTION))
+        .catch(() => MOCK_STAGE_DISTRIBUTION),
   });
 }
 
@@ -105,7 +113,8 @@ export function useScoreDistribution() {
     queryFn: () =>
       api
         .get<ScoreDistributionItem[]>("/alley/analytics/score-distribution")
-        .then((r) => r.data),
+        .then((r) => (r.data?.length ? r.data : MOCK_SCORE_DISTRIBUTION))
+        .catch(() => MOCK_SCORE_DISTRIBUTION),
   });
 }
 
@@ -127,7 +136,8 @@ export function useDocumentCompleteness() {
         .get<DocumentCompletenessItem[]>(
           "/alley/analytics/document-completeness"
         )
-        .then((r) => r.data),
+        .then((r) => (r.data?.length ? r.data : MOCK_DOC_COMPLETENESS))
+        .catch(() => MOCK_DOC_COMPLETENESS),
   });
 }
 

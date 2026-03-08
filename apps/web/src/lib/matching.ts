@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_INVESTOR_RECOMMENDATIONS } from "@/lib/mock-data";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -168,7 +169,11 @@ export function useInvestorRecommendations(params?: RecommendParams) {
         .get<InvestorRecommendations>(
           `/matching/investor/recommendations${qs.toString() ? `?${qs}` : ""}`
         )
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.items?.length) return MOCK_INVESTOR_RECOMMENDATIONS;
+          return d;
+        }),
   });
 }
 

@@ -7,6 +7,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_PROJECTS } from "@/lib/mock-data";
 
 // ── Enums ──────────────────────────────────────────────────────────────────
 
@@ -216,7 +217,13 @@ export function useProjects(params: ProjectListParams = {}) {
     queryFn: () =>
       api
         .get<ProjectListResponse>("/projects", { params })
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.items?.length) {
+            return { ...d, items: MOCK_PROJECTS, total: MOCK_PROJECTS.length };
+          }
+          return d;
+        }),
   });
 }
 

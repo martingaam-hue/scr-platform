@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_DEAL_PIPELINE, MOCK_DISCOVERY_DEALS } from "@/lib/mock-data";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -135,7 +136,11 @@ export function useDealPipeline() {
   return useQuery({
     queryKey: dealKeys.pipeline(),
     queryFn: () =>
-      api.get<DealPipeline>("/deals/pipeline").then((r) => r.data),
+      api.get<DealPipeline>("/deals/pipeline").then((r) => {
+        const d = r.data;
+        const isEmpty = !d.discovered?.length && !d.screening?.length && !d.due_diligence?.length && !d.negotiation?.length;
+        return isEmpty ? MOCK_DEAL_PIPELINE : d;
+      }),
   });
 }
 
@@ -154,7 +159,11 @@ export function useDiscoverDeals(params?: DiscoverParams) {
     queryFn: () =>
       api
         .get<DiscoveryResponse>(`/deals/discover${qs ? `?${qs}` : ""}`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.items?.length) return MOCK_DISCOVERY_DEALS;
+          return d;
+        }),
   });
 }
 

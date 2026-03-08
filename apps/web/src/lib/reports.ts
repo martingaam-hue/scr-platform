@@ -7,6 +7,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_REPORTS } from "@/lib/mock-data";
 
 // ── Enums ──────────────────────────────────────────────────────────────────
 
@@ -173,7 +174,11 @@ export function useReports(params?: {
     queryFn: () =>
       api
         .get<GeneratedReportListResponse>("/reports", { params })
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.items?.length) return MOCK_REPORTS;
+          return d;
+        }),
   });
 }
 

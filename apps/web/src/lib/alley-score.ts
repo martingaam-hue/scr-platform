@@ -5,6 +5,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_PORTFOLIO_OVERVIEW, MOCK_PROJECT_SCORES } from "@/lib/mock-data";
 
 // ── Portfolio Overview Types ───────────────────────────────────────────────────
 
@@ -139,11 +140,11 @@ export function usePortfolioOverview() {
       api
         .get<PortfolioScoreResponse>("/alley/signal-score")
         .then((r) => {
-          const d = r.data;
+          const raw = r.data.projects.length ? r.data : MOCK_PORTFOLIO_OVERVIEW;
           return {
-            ...d,
-            stats: { ...d.stats, avg_score: d.stats.avg_score * 10 },
-            projects: d.projects.map((p) => ({ ...p, score: p.score * 10 })),
+            ...raw,
+            stats: { ...raw.stats, avg_score: raw.stats.avg_score * 10 },
+            projects: raw.projects.map((p) => ({ ...p, score: p.score * 10 })),
           };
         }),
   });
@@ -159,12 +160,18 @@ export function useProjectScoreDetail(projectId: string | undefined) {
       api
         .get<ProjectScoreDetailResponse>(`/alley/signal-score/${projectId}`)
         .then((r) => {
-          const d = r.data;
+          const raw = (r.data.dimensions?.length)
+            ? r.data
+            : (MOCK_PROJECT_SCORES[projectId ?? ""] ?? MOCK_PROJECT_SCORES[Object.keys(MOCK_PROJECT_SCORES)[0]]);
           return {
-            ...d,
-            score: d.score * 10,
-            dimensions: d.dimensions.map((dim) => ({ ...dim, score: dim.score * 10 })),
+            ...raw,
+            score: raw.score * 10,
+            dimensions: raw.dimensions.map((dim) => ({ ...dim, score: dim.score * 10 })),
           };
+        })
+        .catch(() => {
+          const raw = MOCK_PROJECT_SCORES[projectId ?? ""] ?? MOCK_PROJECT_SCORES[Object.keys(MOCK_PROJECT_SCORES)[0]];
+          return { ...raw, score: raw.score * 10, dimensions: raw.dimensions.map((dim) => ({ ...dim, score: dim.score * 10 })) };
         }),
     enabled: !!projectId,
   });

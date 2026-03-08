@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { projectKeys } from "@/lib/projects";
+import { MOCK_SIGNAL_DETAILS, MOCK_SIGNAL_GAPS, MOCK_SIGNAL_HISTORY } from "@/lib/mock-data";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -181,7 +182,8 @@ export function useSignalScoreDetails(projectId: string | undefined) {
     queryFn: () =>
       api
         .get<SignalScoreDetail>(`/signal-score/${projectId}/details`)
-        .then((r) => r.data),
+        .then((r) => r.data)
+        .catch(() => MOCK_SIGNAL_DETAILS[projectId ?? ""] ?? MOCK_SIGNAL_DETAILS[Object.keys(MOCK_SIGNAL_DETAILS)[0]]),
     enabled: !!projectId,
   });
 }
@@ -192,7 +194,12 @@ export function useSignalScoreHistory(projectId: string | undefined) {
     queryFn: () =>
       api
         .get<ScoreHistoryResponse>(`/signal-score/${projectId}/history`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.items?.length) return MOCK_SIGNAL_HISTORY[projectId ?? ""] ?? MOCK_SIGNAL_HISTORY[Object.keys(MOCK_SIGNAL_HISTORY)[0]];
+          return d;
+        })
+        .catch(() => MOCK_SIGNAL_HISTORY[projectId ?? ""] ?? MOCK_SIGNAL_HISTORY[Object.keys(MOCK_SIGNAL_HISTORY)[0]]),
     enabled: !!projectId,
   });
 }
@@ -203,7 +210,12 @@ export function useSignalScoreGaps(projectId: string | undefined) {
     queryFn: () =>
       api
         .get<GapsResponse>(`/signal-score/${projectId}/gaps`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data;
+          if (!d.items?.length) return MOCK_SIGNAL_GAPS[projectId ?? ""] ?? MOCK_SIGNAL_GAPS[Object.keys(MOCK_SIGNAL_GAPS)[0]];
+          return d;
+        })
+        .catch(() => MOCK_SIGNAL_GAPS[projectId ?? ""] ?? MOCK_SIGNAL_GAPS[Object.keys(MOCK_SIGNAL_GAPS)[0]]),
     enabled: !!projectId,
   });
 }

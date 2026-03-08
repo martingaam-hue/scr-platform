@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_WATCHLISTS, MOCK_WATCHLIST_ALERTS } from "@/lib/mock-data";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -39,14 +40,22 @@ export interface ParsedCriteria {
 export function useWatchlists() {
   return useQuery<Watchlist[]>({
     queryKey: ["watchlists"],
-    queryFn: () => api.get("/watchlists/").then((r) => r.data),
+    queryFn: () =>
+      api.get("/watchlists/").then((r) => {
+        const d = r.data as Watchlist[];
+        return d?.length ? d : MOCK_WATCHLISTS;
+      }),
   });
 }
 
 export function useWatchlistAlerts() {
   return useQuery<WatchlistAlert[]>({
     queryKey: ["watchlist-alerts"],
-    queryFn: () => api.get("/watchlists/alerts").then((r) => r.data),
+    queryFn: () =>
+      api.get("/watchlists/alerts").then((r) => {
+        const d = r.data as WatchlistAlert[];
+        return d?.length ? d : MOCK_WATCHLIST_ALERTS;
+      }),
   });
 }
 

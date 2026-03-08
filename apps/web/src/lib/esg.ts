@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_ESG_SUMMARY } from "@/lib/mock-data";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -149,7 +150,8 @@ export function useESGPortfolioSummary(
     queryFn: () =>
       api
         .get<ESGPortfolioSummaryResponse>(`/esg/portfolio-summary${qs}`)
-        .then((r) => r.data),
+        .then((r) => r.data)
+        .catch(() => MOCK_ESG_SUMMARY),
     staleTime: 5 * 60 * 1000,
   });
 }

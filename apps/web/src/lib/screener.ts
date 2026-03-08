@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_SCREENER_SEARCHES } from "@/lib/mock-data";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,8 @@ export function useSavedSearches() {
     queryFn: () =>
       api.get("/screener/saved").then((r) => {
         const data = r.data;
-        return Array.isArray(data) ? data : (data.searches ?? []);
+        const items: SavedSearch[] = Array.isArray(data) ? data : (data.searches ?? []);
+        return items.length ? items : MOCK_SCREENER_SEARCHES;
       }),
   });
 }
