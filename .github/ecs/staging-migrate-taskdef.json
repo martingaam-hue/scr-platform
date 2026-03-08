@@ -24,6 +24,10 @@
           "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/DATABASE_URL"
         },
         {
+          "name": "DATABASE_URL_SYNC",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/DATABASE_URL_SYNC"
+        },
+        {
           "name": "SECRET_KEY",
           "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/SECRET_KEY"
         },
