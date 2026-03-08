@@ -62,6 +62,7 @@ import {
   sfdrLabel,
   type AssetType,
 } from "@/lib/portfolio";
+import { useDomainScores } from "@/lib/risk";
 
 // ── Ally Dashboard ───────────────────────────────────────────────────────────
 
@@ -454,6 +455,7 @@ function InvestorDashboard() {
   const { data: metrics } = usePortfolioMetrics(firstPortfolio?.id);
   const { data: allocation } = useAllocation(firstPortfolio?.id);
   const { data: holdings } = useHoldings(firstPortfolio?.id);
+  const { data: domainRisk } = useDomainScores(firstPortfolio?.id);
 
   // Chart data from allocation
   const assetTypeData = (allocation?.by_asset_type ?? []).map((a) => ({
@@ -469,14 +471,9 @@ function InvestorDashboard() {
     pct: parseFloat(a.percentage),
   }));
 
-  // Risk radar — placeholder data (linked to /risk for full detail)
-  const riskDomains = [
-    { dimension: "Market", value: 65 },
-    { dimension: "Climate", value: 45 },
-    { dimension: "Regulatory", value: 72 },
-    { dimension: "Technology", value: 58 },
-    { dimension: "Liquidity", value: 80 },
-  ];
+  const riskDomains = (domainRisk?.domains ?? [])
+    .filter((d) => d.score !== null)
+    .map((d) => ({ dimension: d.domain, value: d.score as number }));
 
   // Recent holdings sorted by updated_at
   const recentHoldings = [...(holdings?.items ?? [])]
@@ -660,6 +657,14 @@ function InvestorDashboard() {
             <CardTitle>Risk Overview</CardTitle>
           </CardHeader>
           <CardContent>
+            {riskDomains.length === 0 ? (
+              <p className="py-8 text-center text-xs text-neutral-400">
+                No risk assessment data yet.{" "}
+                <button onClick={() => router.push("/risk")} className="underline hover:text-neutral-600">
+                  Run an assessment
+                </button>
+              </p>
+            ) : (
             <ResponsiveContainer width="100%" height={200}>
               <RadarChart data={riskDomains}>
                 <PolarGrid stroke="#E0E0E0" />
@@ -677,6 +682,7 @@ function InvestorDashboard() {
                 <RadarTooltip />
               </RadarChart>
             </ResponsiveContainer>
+            )}
             <div className="mt-3 space-y-1">
               {riskDomains.map((d) => (
                 <div
