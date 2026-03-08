@@ -227,6 +227,10 @@ resource "aws_ecs_service" "api" {
   task_definition = aws_ecs_task_definition.api.arn
   desired_count   = var.environment == "production" ? 2 : 1
 
+  # Grace period must exceed container startup time.
+  # The API app has ~80 module imports; 2 uvicorn workers need ~90s to stabilise.
+  health_check_grace_period_seconds = 180
+
   network_configuration {
     subnets          = module.vpc.private_subnets
     security_groups  = [aws_security_group.ecs.id]
