@@ -66,7 +66,12 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _compute_sync_url(self) -> "Settings":
         if not self.DATABASE_URL_SYNC:
-            self.DATABASE_URL_SYNC = self.DATABASE_URL.replace("+asyncpg", "")
+            # Strip the asyncpg driver specifier
+            sync = self.DATABASE_URL.replace("+asyncpg", "")
+            # asyncpg uses ?ssl=<value>; psycopg2 uses ?sslmode=<value>.
+            # Translate so alembic / Celery workers connect with SSL on RDS.
+            sync = sync.replace("?ssl=", "?sslmode=").replace("&ssl=", "&sslmode=")
+            self.DATABASE_URL_SYNC = sync
         return self
 
     # Redis
