@@ -69,8 +69,13 @@ class Settings(BaseSettings):
             # Strip the asyncpg driver specifier
             sync = self.DATABASE_URL.replace("+asyncpg", "")
             # asyncpg uses ?ssl=<value>; psycopg2 uses ?sslmode=<value>.
-            # Translate so alembic / Celery workers connect with SSL on RDS.
+            # Translate any explicit ssl= param first.
             sync = sync.replace("?ssl=", "?sslmode=").replace("&ssl=", "&sslmode=")
+            # Ensure sslmode=require is present for non-local environments.
+            # RDS requires TLS; psycopg2 defaults to sslmode=prefer which can
+            # fall back to plaintext and get rejected with "no pg_hba.conf entry".
+            if self.APP_ENV != "development" and "sslmode=" not in sync:
+                sync += ("&" if "?" in sync else "?") + "sslmode=require"
             self.DATABASE_URL_SYNC = sync
         return self
 
