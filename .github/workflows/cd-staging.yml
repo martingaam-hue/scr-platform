@@ -118,6 +118,13 @@ jobs:
           container-name: migrate
           image: ${{ env.ECR_REGISTRY }}/scr-api:${{ env.IMAGE_TAG }}
 
+      - name: Ensure migration log group exists
+        run: |
+          aws logs create-log-group \
+            --log-group-name /ecs/scr-staging/migrate \
+            --region ${{ env.AWS_REGION }} 2>/dev/null || true
+          echo "Log group /ecs/scr-staging/migrate is ready."
+
       - name: Run Alembic migrations via ECS task
         run: |
           # Register a new task definition revision with the freshly built image
@@ -142,14 +149,23 @@ jobs:
             --cluster ${{ env.ECS_CLUSTER }} \
             --tasks "$TASK_ARN"
 
-          # Always fetch container logs so failures are visible
+          # Print task stopped reason — catches pre-launch failures
+          # (e.g. ResourceInitializationError, CannotPullContainerError)
+          echo "=== ECS task stopped reason ==="
+          aws ecs describe-tasks \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --tasks "$TASK_ARN" \
+            --query '{stoppedReason:tasks[0].stoppedReason,containerReason:tasks[0].containers[0].reason}' \
+            --output json || true
+
+          # Fetch container logs (populated when the container actually ran)
           echo "=== Migration container logs ==="
           aws logs get-log-events \
             --log-group-name /ecs/scr-staging/migrate \
             --log-stream-name "migrate/migrate/${TASK_ID}" \
             --start-from-head \
             --query 'events[*].message' \
-            --output text 2>/dev/null || echo "(no logs found — log group may not exist yet)"
+            --output text 2>/dev/null || echo "(no container logs — container did not start)"
 
           EXIT_CODE=$(aws ecs describe-tasks \
             --cluster ${{ env.ECS_CLUSTER }} \

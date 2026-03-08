@@ -41,7 +41,8 @@
         "options": {
           "awslogs-group": "/ecs/scr-staging/migrate",
           "awslogs-region": "eu-north-1",
-          "awslogs-stream-prefix": "migrate"
+          "awslogs-stream-prefix": "migrate",
+          "awslogs-create-group": "true"
         }
       },
       "systemControls": []
