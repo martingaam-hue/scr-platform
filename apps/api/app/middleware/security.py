@@ -210,10 +210,7 @@ class RateLimitMiddleware:
         # the rightmost value prevents spoofing via a crafted X-Forwarded-For
         # header sent by the client.
         xff = raw_headers.get(b"x-forwarded-for", b"").decode()
-        if xff:
-            ip = xff.split(",")[-1].strip()
-        else:
-            ip = (scope.get("client") or ["unknown"])[0]
+        ip = xff.split(",")[-1].strip() if xff else (scope.get("client") or ["unknown"])[0]
 
         # Strip /v1 prefix for consistent rule matching
         effective_path = path[3:] if path.startswith("/v1") else path
