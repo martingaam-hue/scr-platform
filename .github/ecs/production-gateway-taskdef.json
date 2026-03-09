@@ -1,0 +1,105 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "ai-gateway",
+      "image": "547279162499.dkr.ecr.eu-north-1.amazonaws.com/scr-ai-gateway:latest",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "containerPort": 8001,
+          "hostPort": 8001,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "APP_ENV",
+          "value": "production"
+        }
+      ],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "secrets": [
+        {
+          "name": "AI_GATEWAY_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/AI_GATEWAY_API_KEY"
+        },
+        {
+          "name": "AI_GATEWAY_API_KEY_PREVIOUS",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/AI_GATEWAY_API_KEY_PREVIOUS"
+        },
+        {
+          "name": "REDIS_URL",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/REDIS_URL"
+        },
+        {
+          "name": "SENTRY_DSN",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/SENTRY_DSN"
+        },
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/ANTHROPIC_API_KEY"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/OPENAI_API_KEY"
+        },
+        {
+          "name": "GOOGLE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/GOOGLE_API_KEY"
+        },
+        {
+          "name": "XAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/XAI_API_KEY"
+        },
+        {
+          "name": "DEEPSEEK_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/DEEPSEEK_API_KEY"
+        },
+        {
+          "name": "PINECONE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/PINECONE_API_KEY"
+        },
+        {
+          "name": "FRED_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/FRED_API_KEY"
+        },
+        {
+          "name": "ALPHA_VANTAGE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/ALPHA_VANTAGE_API_KEY"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/scr-production/ai-gateway",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "gateway"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:8001/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3,
+        "startPeriod": 10
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "scr-ai-gateway-production",
+  "taskRoleArn": "arn:aws:iam::547279162499:role/scr-production-ecs-task",
+  "executionRoleArn": "arn:aws:iam::547279162499:role/scr-production-ecs-exec",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024"
+}

@@ -474,6 +474,23 @@ resource "aws_lb_listener" "https" {
   }
 }
 
+# Route /v1/* (primary API surface) to the FastAPI backend
+resource "aws_lb_listener_rule" "api_v1" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 5
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/v1/*"]
+    }
+  }
+}
+
 # Route /api/* and /auth/* to the FastAPI backend
 resource "aws_lb_listener_rule" "api" {
   listener_arn = aws_lb_listener.https.arn

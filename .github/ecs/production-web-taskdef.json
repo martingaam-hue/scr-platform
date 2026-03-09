@@ -1,0 +1,63 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "web",
+      "image": "547279162499.dkr.ecr.eu-north-1.amazonaws.com/scr-web:latest",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "NEXT_PUBLIC_APP_ENV",
+          "value": "production"
+        }
+      ],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "secrets": [
+        {
+          "name": "CLERK_SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/CLERK_SECRET_KEY"
+        },
+        {
+          "name": "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
+        },
+        {
+          "name": "NEXT_PUBLIC_SENTRY_DSN",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/production/SENTRY_DSN"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/scr-production/web",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "web"
+        }
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "scr-web-production",
+  "taskRoleArn": "arn:aws:iam::547279162499:role/scr-production-ecs-task",
+  "executionRoleArn": "arn:aws:iam::547279162499:role/scr-production-ecs-exec",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024"
+}
