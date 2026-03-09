@@ -250,7 +250,10 @@ resource "aws_ecs_service" "api" {
 
   lifecycle {
     # Prevent Terraform from overriding image tags set by CI/CD
-    ignore_changes = [task_definition]
+    # task_definition: CI/CD sets the image tag; don't let Terraform reset it.
+    # capacity_provider_strategy: set by cluster defaults at service creation;
+    # Terraform doesn't need to manage this — changes force replacement.
+    ignore_changes = [task_definition, capacity_provider_strategy]
   }
 }
 
@@ -318,7 +321,10 @@ resource "aws_ecs_service" "gateway" {
   deployment_maximum_percent         = 200
 
   lifecycle {
-    ignore_changes = [task_definition]
+    # task_definition: CI/CD sets the image tag; don't let Terraform reset it.
+    # capacity_provider_strategy: set by cluster defaults at service creation;
+    # Terraform doesn't need to manage this — changes force replacement.
+    ignore_changes = [task_definition, capacity_provider_strategy]
   }
 }
 
@@ -391,7 +397,10 @@ resource "aws_ecs_service" "web" {
   depends_on = [aws_lb_listener.https]
 
   lifecycle {
-    ignore_changes = [task_definition]
+    # task_definition: CI/CD sets the image tag; don't let Terraform reset it.
+    # capacity_provider_strategy: set by cluster defaults at service creation;
+    # Terraform doesn't need to manage this — changes force replacement.
+    ignore_changes = [task_definition, capacity_provider_strategy]
   }
 }
 
@@ -696,7 +705,10 @@ resource "aws_ecs_service" "celery_beat" {
   deployment_maximum_percent         = 200
 
   lifecycle {
-    ignore_changes = [task_definition]
+    # task_definition: CI/CD sets the image tag; don't let Terraform reset it.
+    # capacity_provider_strategy: set by cluster defaults at service creation;
+    # Terraform doesn't need to manage this — changes force replacement.
+    ignore_changes = [task_definition, capacity_provider_strategy]
   }
 }
 
@@ -752,7 +764,10 @@ resource "aws_ecs_service" "worker_critical" {
   deployment_maximum_percent         = 200
 
   lifecycle {
-    ignore_changes = [task_definition]
+    # task_definition: CI/CD sets the image tag; don't let Terraform reset it.
+    # capacity_provider_strategy: set by cluster defaults at service creation;
+    # Terraform doesn't need to manage this — changes force replacement.
+    ignore_changes = [task_definition, capacity_provider_strategy]
   }
 }
 
@@ -808,7 +823,10 @@ resource "aws_ecs_service" "worker_default" {
   deployment_maximum_percent         = 200
 
   lifecycle {
-    ignore_changes = [task_definition]
+    # task_definition: CI/CD sets the image tag; don't let Terraform reset it.
+    # capacity_provider_strategy: set by cluster defaults at service creation;
+    # Terraform doesn't need to manage this — changes force replacement.
+    ignore_changes = [task_definition, capacity_provider_strategy]
   }
 }
 
@@ -864,7 +882,10 @@ resource "aws_ecs_service" "worker_bulk" {
   deployment_maximum_percent         = 200
 
   lifecycle {
-    ignore_changes = [task_definition]
+    # task_definition: CI/CD sets the image tag; don't let Terraform reset it.
+    # capacity_provider_strategy: set by cluster defaults at service creation;
+    # Terraform doesn't need to manage this — changes force replacement.
+    ignore_changes = [task_definition, capacity_provider_strategy]
   }
 }
 
@@ -920,7 +941,10 @@ resource "aws_ecs_service" "worker_webhooks" {
   deployment_maximum_percent         = 200
 
   lifecycle {
-    ignore_changes = [task_definition]
+    # task_definition: CI/CD sets the image tag; don't let Terraform reset it.
+    # capacity_provider_strategy: set by cluster defaults at service creation;
+    # Terraform doesn't need to manage this — changes force replacement.
+    ignore_changes = [task_definition, capacity_provider_strategy]
   }
 }
 
