@@ -81,17 +81,14 @@ resource "aws_acm_certificate_validation" "alb" {
 }
 
 # app.pampgroup.com → CloudFront
-resource "aws_route53_record" "app" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "app.pampgroup.com"
-  type    = "A"
-
-  alias {
-    name                   = aws_cloudfront_distribution.web.domain_name
-    zone_id                = aws_cloudfront_distribution.web.hosted_zone_id
-    evaluate_target_health = false
-  }
-}
+# IMPORTANT: app.pampgroup.com is served by Vercel, NOT CloudFront.
+# The CNAME record pointing to cname.vercel-dns.com is managed outside
+# Terraform (manually in Route 53) and must NOT be overwritten here.
+# Do not re-add an A/CNAME record for app.pampgroup.com to this file.
+#
+# resource "aws_route53_record" "app" {  <-- intentionally removed
+#   name    = "app.pampgroup.com"        <-- Vercel owns this record
+# }
 
 # api.pampgroup.com → ALB
 resource "aws_route53_record" "api" {
