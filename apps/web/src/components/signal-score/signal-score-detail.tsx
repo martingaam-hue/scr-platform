@@ -8,22 +8,21 @@ import {
   BarChart3,
   BookOpen,
   Briefcase,
-  Calculator,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   ChevronUp,
   FileCheck,
   FileText,
-  Leaf,
   Loader2,
+  Minus,
   RefreshCw,
-  Shield,
   Sparkles,
-  Target,
+  TrendingDown,
   TrendingUp,
   Upload,
   Users,
+  Zap,
 } from "lucide-react";
 import {
   Badge,
@@ -57,11 +56,16 @@ import {
   useSignalScoreDetails,
   useSignalScoreGaps,
   useSignalScoreHistory,
+  useSignalScoreStrengths,
+  useImprovementGuidance,
   useRecalculateScore,
   useCalculateScore,
   priorityColor,
   type DimensionScore,
   type CriterionScore,
+  type GapItem,
+  type StrengthItem,
+  type ImprovementAction,
 } from "@/lib/signal-score";
 import { useProject } from "@/lib/projects";
 import { usePermission } from "@/lib/auth";
@@ -78,31 +82,62 @@ import {
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 export interface SignalScoreDetailProps {
-  /** The project whose score to display */
   projectId: string;
-  /** Where the back button navigates */
   backHref: string;
-  /**
-   * Label for the back button.
-   * If omitted, falls back to "Back to {project.name}" or "Back to Project".
-   */
   backLabel?: string;
 }
 
-// ── Dimension icon map ────────────────────────────────────────────────────────
+// ── Score color helpers (0–100 scale) ─────────────────────────────────────────
 
-const DIM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  project_viability: Target,
-  financial_planning: Calculator,
-  team_strength: Users,
-  risk_assessment: Shield,
-  market_opportunity: BarChart3,
-  esg: Leaf,
-  esg_impact: Leaf,
-};
+function ratingColor(score: number) {
+  if (score >= 80) return "bg-green-100 text-green-700";
+  if (score >= 60) return "bg-amber-100 text-amber-700";
+  return "bg-red-100 text-red-700";
+}
 
-function getDimIcon(id: string): React.ComponentType<{ className?: string }> {
-  return DIM_ICONS[id] ?? Sparkles;
+function ratingBorder(score: number) {
+  if (score >= 80) return "border-green-200 bg-green-50";
+  if (score >= 60) return "border-amber-200 bg-amber-50";
+  return "border-red-200 bg-red-50";
+}
+
+function ratingBarColor(score: number) {
+  if (score >= 80) return "bg-green-500";
+  if (score >= 60) return "bg-amber-500";
+  return "bg-red-500";
+}
+
+function ratingTextColor(score: number) {
+  if (score >= 80) return "text-green-600";
+  if (score >= 60) return "text-amber-600";
+  return "text-red-600";
+}
+
+// ── Score Change Badge (matches investor side) ────────────────────────────────
+
+function ScoreChangeBadge({ change }: { change: number | null }) {
+  if (change === null) return null;
+  if (change > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-sm font-semibold text-green-700">
+        <TrendingUp className="h-3.5 w-3.5" />+{change.toFixed(1)}
+      </span>
+    );
+  }
+  if (change < 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-sm font-semibold text-red-700">
+        <TrendingDown className="h-3.5 w-3.5" />
+        {change.toFixed(1)}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-sm font-medium text-neutral-500">
+      <Minus className="h-3.5 w-3.5" />
+      No change
+    </span>
+  );
 }
 
 // ── Circular Score Ring ───────────────────────────────────────────────────────
@@ -145,6 +180,8 @@ function HeroScoreCard({
   calculatedAt,
   version,
   modelUsed,
+  previousScore,
+  scoreDelta,
 }: {
   projectId: string;
   score: number;
@@ -154,6 +191,8 @@ function HeroScoreCard({
   calculatedAt: string;
   version?: number;
   modelUsed?: string;
+  previousScore?: number;
+  scoreDelta: number | null;
 }) {
   const displayScore = Math.round(score);
 
@@ -166,7 +205,6 @@ function HeroScoreCard({
           {sector && <span className="text-neutral-400"> · {sector}</span>}
         </p>
         <p className="mt-0.5 text-xs text-neutral-400">
-          Latest generated score:{" "}
           {new Date(calculatedAt).toLocaleDateString("en-GB", {
             day: "numeric",
             month: "short",
@@ -177,7 +215,7 @@ function HeroScoreCard({
         </p>
       </div>
 
-      {/* Ring + score — centred */}
+      {/* Ring + score */}
       <div className="flex flex-col items-center">
         <div className="relative">
           <ScoreRing score={displayScore} size={200} />
@@ -194,6 +232,16 @@ function HeroScoreCard({
           Project Readiness Score ·{" "}
           <span className="font-medium text-neutral-700">{label}</span>
         </p>
+
+        {/* Previous score + change badge — matches investor side layout */}
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <ScoreChangeBadge change={scoreDelta} />
+          {previousScore !== undefined && (
+            <span className="text-xs text-neutral-400">
+              Previous: {previousScore.toFixed(1)}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Metadata badges row */}
@@ -217,96 +265,7 @@ function HeroScoreCard({
   );
 }
 
-// ── Dimension Bars ────────────────────────────────────────────────────────────
-
-const DIMENSION_WEIGHTS: Record<string, string> = {
-  project_viability: "20%",
-  financial_planning: "20%",
-  team_strength: "15%",
-  risk_assessment: "15%",
-  market_opportunity: "15%",
-  esg: "15%",
-  esg_impact: "15%",
-};
-
-function DimensionBar({ dim }: { dim: { id: string; label: string; score: number } }) {
-  const Icon = getDimIcon(dim.id);
-  const weight = DIMENSION_WEIGHTS[dim.id] ?? "";
-  const score = Math.round(dim.score);
-
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1B2A4A]/8">
-        <Icon className="h-4 w-4 text-[#1B2A4A]" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium text-neutral-700">{dim.label}</span>
-          <span className="shrink-0 text-xs text-neutral-400">{weight}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-100">
-            <div
-              className="h-full rounded-full bg-[#1B2A4A] transition-all duration-700"
-              style={{ width: `${score}%` }}
-            />
-          </div>
-          <span className="w-12 shrink-0 text-right text-sm font-bold tabular-nums text-neutral-700">
-            {score}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Key Readiness Indicators ──────────────────────────────────────────────────
-
-const DEFAULT_INDICATORS = [
-  "Solid business model with clear path to profitability",
-  "Experienced management team with proven track record",
-  "Strong market positioning with measurable competitive advantages",
-  "Comprehensive documentation and investor-ready materials",
-];
-
-function ReadinessIndicators({
-  indicators,
-}: {
-  indicators: Array<{ label: string; met: boolean }>;
-}) {
-  const items =
-    indicators.length > 0
-      ? indicators
-      : DEFAULT_INDICATORS.map((label) => ({ label, met: true }));
-
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
-          Key Readiness Indicators
-        </h3>
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          {items.map((ind) => (
-            <div
-              key={ind.label}
-              className="flex items-start gap-2.5 rounded-lg bg-neutral-50 px-3 py-2.5 text-sm"
-            >
-              {ind.met ? (
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-              ) : (
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-neutral-300" />
-              )}
-              <span className="leading-snug text-gray-600">{ind.label}</span>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ── Deep Analysis — CriterionRow ──────────────────────────────────────────────
+// ── Dimension Section (expandable card, colored rating box) ───────────────────
 
 function CriterionRow({ criterion }: { criterion: CriterionScore }) {
   const [expanded, setExpanded] = useState(false);
@@ -366,9 +325,7 @@ function CriterionRow({ criterion }: { criterion: CriterionScore }) {
             <div>
               <p className="text-xs font-medium text-green-700">Strengths:</p>
               <ul className="ml-4 list-disc text-xs text-neutral-600">
-                {ai.strengths.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
+                {ai.strengths.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
             </div>
           )}
@@ -376,9 +333,7 @@ function CriterionRow({ criterion }: { criterion: CriterionScore }) {
             <div>
               <p className="text-xs font-medium text-red-700">Weaknesses:</p>
               <ul className="ml-4 list-disc text-xs text-neutral-600">
-                {ai.weaknesses.map((w, i) => (
-                  <li key={i}>{w}</li>
-                ))}
+                {ai.weaknesses.map((w, i) => <li key={i}>{w}</li>)}
               </ul>
             </div>
           )}
@@ -393,31 +348,45 @@ function CriterionRow({ criterion }: { criterion: CriterionScore }) {
   );
 }
 
-// ── Deep Analysis — DimensionSection ─────────────────────────────────────────
-
 function DimensionSection({ dimension }: { dimension: DimensionScore }) {
   const [open, setOpen] = useState(false);
+  const score = Math.round(dimension.score);
 
   return (
-    <Card>
+    <Card className={cn("border transition-all duration-200", ratingBorder(score))}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between p-4 text-left hover:bg-neutral-50"
+        className="flex w-full items-center justify-between p-4 text-left hover:bg-black/[0.02]"
       >
-        <div className="flex items-center gap-4">
-          <ScoreGauge score={dimension.score} size={56} strokeWidth={6} label="" />
+        <div className="flex items-center gap-3">
+          {/* Colored rating box — replaces ScoreGauge half-circle */}
+          <div
+            className={cn(
+              "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-xl font-bold tabular-nums",
+              ratingColor(score)
+            )}
+          >
+            {score}
+          </div>
           <div>
             <p className="font-semibold text-neutral-900">{dimension.name}</p>
             <p className="text-xs text-neutral-500">
               Weight: {(dimension.weight * 100).toFixed(0)}% · Completeness:{" "}
               {dimension.completeness_score}% · Quality: {dimension.quality_score}%
             </p>
+            {/* Score bar */}
+            <div className="mt-1.5 h-1.5 w-32 overflow-hidden rounded-full bg-neutral-200">
+              <div
+                className={cn("h-full rounded-full transition-all duration-500", ratingBarColor(score))}
+                style={{ width: `${score}%` }}
+              />
+            </div>
           </div>
         </div>
         {open ? (
-          <ChevronDown className="h-5 w-5 text-neutral-400" />
+          <ChevronUp className="h-5 w-5 shrink-0 text-neutral-400" />
         ) : (
-          <ChevronRight className="h-5 w-5 text-neutral-400" />
+          <ChevronDown className="h-5 w-5 shrink-0 text-neutral-400" />
         )}
       </button>
       {open && dimension.criteria.length > 0 && (
@@ -427,6 +396,124 @@ function DimensionSection({ dimension }: { dimension: DimensionScore }) {
           ))}
         </div>
       )}
+    </Card>
+  );
+}
+
+// ── Gaps to Close ─────────────────────────────────────────────────────────────
+
+function GapsToCloseSection({ gaps }: { gaps: GapItem[] }) {
+  if (!gaps.length) return null;
+
+  return (
+    <Card className="border-amber-200">
+      <CardContent className="p-5">
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+          <AlertCircle className="h-4 w-4 text-amber-500" />
+          Gaps to Close ({gaps.length})
+        </h3>
+        <ul className="space-y-2">
+          {gaps.slice(0, 8).map((gap, i) => (
+            <li
+              key={i}
+              className="flex items-start justify-between gap-2"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-neutral-700">{gap.criterion_name}</p>
+                <p className="text-xs text-neutral-400">{gap.dimension_name}</p>
+              </div>
+              <Badge variant={priorityColor(gap.priority)} className="shrink-0 text-[10px]">
+                {gap.priority}
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── What's Working ────────────────────────────────────────────────────────────
+
+function WhatsWorkingSection({ strengths }: { strengths: StrengthItem[] }) {
+  if (!strengths.length) return null;
+
+  return (
+    <Card className="border-green-200">
+      <CardContent className="p-5">
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          What&apos;s Working ({strengths.length})
+        </h3>
+        <ul className="space-y-1.5">
+          {strengths.map((s, i) => (
+            <li key={i} className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-neutral-700">{s.criterion_name}</p>
+                <p className="text-xs text-neutral-400">{s.dimension_name}</p>
+              </div>
+              <span className={cn("shrink-0 text-xs font-semibold", ratingTextColor(s.score))}>
+                {Math.round(s.score)} pts
+              </span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Improvement Plan ──────────────────────────────────────────────────────────
+
+const EFFORT_PILL: Record<string, string> = {
+  low: "bg-green-100 text-green-700",
+  medium: "bg-amber-100 text-amber-700",
+  high: "bg-red-100 text-red-700",
+};
+
+function ImprovementPlanSection({ actions }: { actions: ImprovementAction[] }) {
+  if (!actions.length) return null;
+
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+          <Zap className="h-4 w-4 text-amber-500" />
+          Improvement Plan
+          <span className="ml-auto text-xs font-normal text-neutral-400">sorted by impact</span>
+        </h3>
+        <div className="space-y-3">
+          {actions.slice(0, 8).map((action, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-3 rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2.5"
+            >
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-600">
+                {i + 1}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="text-sm font-medium text-neutral-800">{action.action}</p>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-xs font-medium",
+                        EFFORT_PILL[action.effort] ?? EFFORT_PILL.medium
+                      )}
+                    >
+                      {action.effort} effort
+                    </span>
+                    <span className="text-xs font-semibold text-green-600">
+                      +{action.expected_gain.toFixed(1)} pts
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-0.5 text-xs text-neutral-500">{action.dimension_name}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
     </Card>
   );
 }
@@ -451,7 +538,77 @@ function VolatilityBadge({ projectId }: { projectId: string }) {
   return <Badge variant={c.variant}>{c.label}</Badge>;
 }
 
-// ── Analytics: Score History Chart (time-series from metrics API) ─────────────
+// ── Analytics: Benchmark Comparison ──────────────────────────────────────────
+
+function BenchmarkCard({ projectId }: { projectId: string }) {
+  const { data, isLoading } = useBenchmarkComparison(projectId, ["signal_score"]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-5">
+          <h3 className="mb-3 text-sm font-semibold text-neutral-900">Benchmark Comparison</h3>
+          <div className="h-16 animate-pulse rounded-lg bg-neutral-100" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const comparison = data?.comparisons?.[0];
+  if (!comparison) {
+    return (
+      <Card>
+        <CardContent className="p-5">
+          <h3 className="mb-2 text-sm font-semibold text-neutral-900">Benchmark Comparison</h3>
+          <p className="text-sm text-neutral-400">No peer data available yet</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const quartileLabel = `Q${comparison.quartile}`;
+  const percentileLabel =
+    comparison.percentile_rank >= 75
+      ? `Top ${(100 - comparison.percentile_rank).toFixed(0)}%`
+      : `${comparison.percentile_rank.toFixed(0)}th percentile`;
+  const vsDelta = comparison.vs_median;
+
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+          Benchmark Comparison
+          <span className="ml-auto inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+            {percentileLabel}
+          </span>
+        </h3>
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-neutral-900">{quartileLabel}</p>
+            <p className="text-xs text-neutral-500">Quartile</p>
+          </div>
+          <div className="text-center">
+            <p
+              className={cn(
+                "text-2xl font-bold",
+                vsDelta >= 0 ? "text-green-600" : "text-red-600"
+              )}
+            >
+              {vsDelta >= 0 ? "+" : ""}{vsDelta.toFixed(1)} pts
+            </p>
+            <p className="text-xs text-neutral-500">vs Median</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-semibold text-neutral-600">{comparison.sample_count}</p>
+            <p className="text-xs text-neutral-500">Peers</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Analytics: Score History Chart (time-series) ──────────────────────────────
 
 const DIMENSION_COLORS: Record<string, string> = {
   overall: "#6366f1",
@@ -475,7 +632,6 @@ function ScoreHistoryChart({ projectId }: { projectId: string }) {
       </Card>
     );
   }
-
   if (!data?.items.length) return null;
 
   const chartData = data.items.map((pt) => ({
@@ -508,17 +664,10 @@ function ScoreHistoryChart({ projectId }: { projectId: string }) {
           <RechartsLineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} />
-            <YAxis
-              domain={[0, 100]}
-              tick={{ fontSize: 11 }}
-              tickLine={false}
-              axisLine={false}
-            />
+            <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
             <Tooltip
               contentStyle={{ fontSize: 12 }}
-              formatter={(value: number | undefined) =>
-                value != null ? value.toFixed(1) : "—"
-              }
+              formatter={(value: number | undefined) => (value != null ? value.toFixed(1) : "—")}
             />
             {lines.map(({ key, color }) => (
               <Line
@@ -536,84 +685,10 @@ function ScoreHistoryChart({ projectId }: { projectId: string }) {
         <div className="mt-3 flex flex-wrap gap-3">
           {lines.map(({ key, color }) => (
             <div key={key} className="flex items-center gap-1.5">
-              <span
-                className="inline-block h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: color }}
-              />
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
               <span className="text-xs text-neutral-500">{key}</span>
             </div>
           ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ── Analytics: Peer Benchmark Card ───────────────────────────────────────────
-
-function BenchmarkCard({ projectId }: { projectId: string }) {
-  const { data, isLoading } = useBenchmarkComparison(projectId, ["signal_score"]);
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-5">
-          <h3 className="mb-3 text-sm font-semibold text-neutral-900">Peer Benchmark</h3>
-          <div className="h-16 animate-pulse rounded-lg bg-neutral-100" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const comparison = data?.comparisons?.[0];
-  if (!comparison) {
-    return (
-      <Card>
-        <CardContent className="p-5">
-          <h3 className="mb-2 text-sm font-semibold text-neutral-900">Peer Benchmark</h3>
-          <p className="text-sm text-neutral-400">No peer data available yet</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const quartileLabel = `Q${comparison.quartile}`;
-  const percentileLabel =
-    comparison.percentile_rank >= 75
-      ? `Top ${(100 - comparison.percentile_rank).toFixed(0)}%`
-      : `${comparison.percentile_rank.toFixed(0)}th percentile`;
-  const vsDelta = comparison.vs_median;
-  const deltaPositive = vsDelta >= 0;
-
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <h3 className="mb-4 text-sm font-semibold text-neutral-900">Peer Benchmark</h3>
-        <div className="flex items-center gap-6">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-neutral-900">{quartileLabel}</p>
-            <p className="text-xs text-neutral-500">Quartile</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-neutral-900">{percentileLabel}</p>
-            <p className="text-xs text-neutral-500">Rank</p>
-          </div>
-          <div className="text-center">
-            <p
-              className={cn(
-                "text-2xl font-bold",
-                deltaPositive ? "text-green-600" : "text-red-600"
-              )}
-            >
-              {deltaPositive ? "+" : ""}
-              {vsDelta.toFixed(1)} pts
-            </p>
-            <p className="text-xs text-neutral-500">vs Median</p>
-          </div>
-          <div className="text-center">
-            <p className="text-lg font-semibold text-neutral-600">{comparison.sample_count}</p>
-            <p className="text-xs text-neutral-500">Peers</p>
-          </div>
         </div>
       </CardContent>
     </Card>
@@ -640,7 +715,6 @@ function WhatChangedCard({ projectId }: { projectId: string }) {
           <ChevronDown className="h-4 w-4 text-neutral-400" />
         )}
       </button>
-
       {open && (
         <div className="border-t">
           {isLoading ? (
@@ -799,24 +873,34 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
   const router = useRouter();
   const canAnalyze = usePermission("run_analysis", "analysis");
 
-  // Primary data source: alley API (hero, dimension bars, readiness indicators)
+  // Alley API — project metadata + improvement roadmap fallback
   const { data, isLoading, error } = useProjectScoreDetail(projectId);
 
-  // Deep analysis tabs
+  // Signal-score API — deep analysis (primary score source for 0-100 accuracy)
   const { data: details } = useSignalScoreDetails(projectId);
   const { data: gaps } = useSignalScoreGaps(projectId);
   const { data: history } = useSignalScoreHistory(projectId);
+  const { data: strengths } = useSignalScoreStrengths(projectId);
+  const { data: guidance } = useImprovementGuidance(projectId);
 
   const recalculate = useRecalculateScore();
   const calculate = useCalculateScore();
 
-  // Project metadata for sector + dynamic back label
+  // Project metadata for sector + default back label
   const { data: project } = useProject(projectId);
-
   const resolvedBackLabel =
     backLabel ?? (project?.name ? `Back to ${project.name}` : "Back to Project");
-
   const sector = project?.project_type?.replace(/_/g, " ") ?? null;
+
+  // Use signal-score API score (accurate 0-100) when available; cap alley score as fallback
+  const heroScore = details?.overall_score ?? Math.min(Math.round(data?.score ?? 0), 100);
+
+  // Previous score and delta from version history (items[0] = latest, items[1] = previous)
+  const previousScore = history?.items[1]?.overall_score;
+  const scoreDelta =
+    history?.items[0] !== undefined && previousScore !== undefined
+      ? history.items[0].overall_score - previousScore
+      : null;
 
   if (isLoading) {
     return (
@@ -826,7 +910,6 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
     );
   }
 
-  // No score at all — show empty state with calculate option
   if (error || !data) {
     return (
       <div className="space-y-6 p-6">
@@ -843,10 +926,7 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
           description="No Signal Score has been generated for this project yet."
           action={
             canAnalyze ? (
-              <Button
-                onClick={() => calculate.mutate(projectId)}
-                disabled={calculate.isPending}
-              >
+              <Button onClick={() => calculate.mutate(projectId)} disabled={calculate.isPending}>
                 Calculate Signal Score
               </Button>
             ) : undefined
@@ -857,15 +937,15 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
   }
 
   const calculatedAt =
-    data.calculated_at ??
     details?.calculated_at ??
+    data.calculated_at ??
     data.score_history?.[0]?.date ??
     new Date().toISOString();
 
   return (
     <div className="space-y-6 p-6">
 
-      {/* Back + Recalculate */}
+      {/* Back + action buttons */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => router.push(backHref)}
@@ -903,34 +983,31 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
         </div>
       </div>
 
-      {/* Hero score card with ring + analytics badges */}
+      {/* Hero — score ring + previous score + change badge + metadata */}
       <HeroScoreCard
         projectId={projectId}
-        score={data.score}
-        label={data.score_label || scoreLabel(data.score)}
+        score={heroScore}
+        label={scoreLabel(heroScore)}
         projectName={data.project_name}
         sector={sector}
         calculatedAt={calculatedAt}
         version={details?.version}
         modelUsed={details?.model_used}
+        previousScore={previousScore}
+        scoreDelta={scoreDelta}
       />
 
-      {/* 6 Dimension bars — 2-col */}
-      {data.dimensions.length > 0 && (
-        <Card>
-          <CardContent className="p-5">
-            <h3 className="mb-5 text-sm font-semibold text-neutral-900">Dimension Breakdown</h3>
-            <div className="grid gap-5 sm:grid-cols-2">
-              {data.dimensions.map((dim) => (
-                <DimensionBar key={dim.id} dim={dim} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Dimension Breakdown — 2×3 grid of expandable, colored-border cards */}
+      {details && details.dimensions.length > 0 && (
+        <div>
+          <h2 className="mb-4 text-base font-semibold text-neutral-900">Dimension Breakdown</h2>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {details.dimensions.map((dim) => (
+              <DimensionSection key={dim.id} dimension={dim} />
+            ))}
+          </div>
+        </div>
       )}
-
-      {/* Key Readiness Indicators */}
-      <ReadinessIndicators indicators={data.readiness_indicators} />
 
       {/* Generate Project Memorandum — full-width */}
       <Button
@@ -943,112 +1020,25 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
         Generate Project Memorandum
       </Button>
 
-      {/* ── Deep Analysis Tabs ── */}
-      {details && (
-        <Tabs defaultValue="details">
-          <TabsList>
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="gaps">
-              Gaps &amp; Recommendations
-              {gaps && gaps.total > 0 ? ` (${gaps.total})` : ""}
-            </TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-          </TabsList>
+      {/* Gaps to Close + What's Working — side by side */}
+      {(gaps?.items.length || strengths?.items.length) ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {gaps?.items.length ? <GapsToCloseSection gaps={gaps.items} /> : null}
+          {strengths?.items.length ? <WhatsWorkingSection strengths={strengths.items} /> : null}
+        </div>
+      ) : null}
 
-          {/* Details tab — 2×3 grid of expandable dimension cards */}
-          <TabsContent value="details" className="mt-5 grid grid-cols-2 gap-4">
-            {details.dimensions.map((dim) => (
-              <DimensionSection key={dim.id} dimension={dim} />
-            ))}
-          </TabsContent>
-
-          {/* Gaps & Recommendations tab */}
-          <TabsContent value="gaps" className="mt-5 space-y-3">
-            {!gaps?.items.length ? (
-              <EmptyState
-                icon={<FileCheck className="h-12 w-12 text-neutral-400" />}
-                title="No gaps identified"
-                description="All criteria are scoring above the threshold."
-              />
-            ) : (
-              gaps.items.map((gap) => (
-                <Card key={gap.criterion_id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={priorityColor(gap.priority)}>{gap.priority}</Badge>
-                          <p className="font-medium text-neutral-900">{gap.criterion_name}</p>
-                        </div>
-                        <p className="mt-1 text-xs text-neutral-500">
-                          {gap.dimension_name} · {gap.current_score}/{gap.max_points} pts
-                        </p>
-                        <p className="mt-2 text-sm text-neutral-600">{gap.recommendation}</p>
-                        {gap.relevant_doc_types.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {gap.relevant_doc_types.map((dt) => (
-                              <Badge key={dt} variant="neutral">
-                                {dt.replace("_", " ")}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/projects/${projectId}?tab=dataroom`)}
-                      >
-                        <Upload className="mr-1 h-3.5 w-3.5" /> Upload
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </TabsContent>
-
-          {/* History tab */}
-          <TabsContent value="history" className="mt-5">
-            {!history?.items.length ? (
-              <EmptyState
-                icon={<RefreshCw className="h-12 w-12 text-neutral-400" />}
-                title="No history yet"
-                description="Score history will appear after multiple calculations."
-              />
-            ) : (
-              <Card>
-                <CardContent className="p-6">
-                  <LineChart
-                    data={history.items
-                      .slice()
-                      .reverse()
-                      .map((h) => ({
-                        version: `v${h.version}`,
-                        Overall: h.overall_score,
-                        Viability: h.project_viability_score,
-                        Financial: h.financial_planning_score,
-                        ESG: h.esg_score,
-                        Risk: h.risk_assessment_score,
-                        Team: h.team_strength_score,
-                        Market: h.market_opportunity_score,
-                      }))}
-                    xKey="version"
-                    yKeys={["Overall", "Viability", "Financial", "ESG", "Risk", "Team", "Market"]}
-                    height={320}
-                  />
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
-      )}
-
-      {/* Improvement roadmap — shown when deep tabs not yet available */}
-      {!details && data.gap_analysis.length > 0 && (
+      {/* Improvement Plan */}
+      {guidance?.top_actions.length ? (
+        <ImprovementPlanSection actions={guidance.top_actions} />
+      ) : !details && data.gap_analysis.length > 0 ? (
+        /* Fallback roadmap when deep analysis not yet run */
         <Card>
           <CardContent className="p-5">
-            <h3 className="mb-4 text-sm font-semibold text-neutral-900">Improvement Roadmap</h3>
+            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+              <Zap className="h-4 w-4 text-amber-500" />
+              Improvement Roadmap
+            </h3>
             <ul className="space-y-3">
               {data.gap_analysis.map((gap, i) => (
                 <li
@@ -1064,12 +1054,7 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
                       <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">
                         {gap.dimension.replace(/_/g, " ")}
                       </span>
-                      <span
-                        className={cn(
-                          "rounded px-1.5 py-0.5 text-xs capitalize",
-                          effortColor(gap.effort)
-                        )}
-                      >
+                      <span className={cn("rounded px-1.5 py-0.5 text-xs capitalize", effortColor(gap.effort))}>
                         {gap.effort} effort
                       </span>
                       <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">
@@ -1082,16 +1067,92 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
             </ul>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
-      {/* Score History Chart (time-series from metrics API) */}
-      <ScoreHistoryChart projectId={projectId} />
+      {/* Version history */}
+      {history?.items.length ? (
+        <Tabs defaultValue="history">
+          <TabsList>
+            {gaps?.items.length ? (
+              <TabsTrigger value="gaps">
+                Gaps &amp; Recommendations ({gaps.total})
+              </TabsTrigger>
+            ) : null}
+            <TabsTrigger value="history">Version History</TabsTrigger>
+          </TabsList>
 
-      {/* Peer Benchmark */}
+          {gaps?.items.length ? (
+            <TabsContent value="gaps" className="mt-5 space-y-3">
+              {gaps.items.map((gap) => (
+                <Card key={gap.criterion_id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={priorityColor(gap.priority)}>{gap.priority}</Badge>
+                          <p className="font-medium text-neutral-900">{gap.criterion_name}</p>
+                        </div>
+                        <p className="mt-1 text-xs text-neutral-500">
+                          {gap.dimension_name} · {gap.current_score}/{gap.max_points} pts
+                        </p>
+                        <p className="mt-2 text-sm text-neutral-600">{gap.recommendation}</p>
+                        {gap.relevant_doc_types.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {gap.relevant_doc_types.map((dt) => (
+                              <Badge key={dt} variant="neutral">{dt.replace("_", " ")}</Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/projects/${projectId}?tab=dataroom`)}
+                      >
+                        <Upload className="mr-1 h-3.5 w-3.5" /> Upload
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </TabsContent>
+          ) : null}
+
+          <TabsContent value="history" className="mt-5">
+            <Card>
+              <CardContent className="p-6">
+                <LineChart
+                  data={history.items
+                    .slice()
+                    .reverse()
+                    .map((h) => ({
+                      version: `v${h.version}`,
+                      Overall: h.overall_score,
+                      Viability: h.project_viability_score,
+                      Financial: h.financial_planning_score,
+                      ESG: h.esg_score,
+                      Risk: h.risk_assessment_score,
+                      Team: h.team_strength_score,
+                      Market: h.market_opportunity_score,
+                    }))}
+                  xKey="version"
+                  yKeys={["Overall", "Viability", "Financial", "ESG", "Risk", "Team", "Market"]}
+                  height={320}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      ) : null}
+
+      {/* Benchmark Comparison */}
       <BenchmarkCard projectId={projectId} />
 
       {/* What Changed? */}
       <WhatChangedCard projectId={projectId} />
+
+      {/* Score History Chart (time-series from metrics API) */}
+      <ScoreHistoryChart projectId={projectId} />
 
       {/* Understanding & Improving Your Score */}
       <UnderstandingSection />
