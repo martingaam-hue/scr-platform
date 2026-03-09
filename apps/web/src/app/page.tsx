@@ -237,7 +237,7 @@ export default function HomePage() {
 
           <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-[3.5rem]">
             The AI-Native Operating System{" "}
-            <span className="text-white/65">for Sustainable Infrastructure Investment</span>
+            <span className="text-white/65">for Smarter Investment Decisions</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/50 sm:text-lg">
@@ -258,6 +258,19 @@ export default function HomePage() {
               Book a Demo <ChevronRight className="h-4 w-4" />
             </a>
           </div>
+
+          {/* ── Metrics strip inside hero ── */}
+          <div className="mt-14 w-full max-w-3xl mx-auto">
+            <div className="h-px w-full mb-8" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }} />
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+              {TRUST_STATS.map(({ value, label }) => (
+                <div key={label} className="flex flex-col items-center text-center">
+                  <span className="text-4xl font-bold tabular-nums" style={{ color: GOLD }}>{value}</span>
+                  <span className="mt-1 text-xs font-medium tracking-wide text-white/45 uppercase">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <style>{`
@@ -266,23 +279,6 @@ export default function HomePage() {
             to   { opacity:1; transform:translateY(0); }
           }
         `}</style>
-      </section>
-
-      {/* ── Trust Bar ── */}
-      <section className="bg-[#1a2332]">
-        {/* Gold top line */}
-        <div className="h-px w-full" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }} />
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            {TRUST_STATS.map(({ value, label }) => (
-              <div key={label} className="flex flex-col items-center text-center">
-                <span className="text-4xl font-bold tabular-nums" style={{ color: GOLD }}>{value}</span>
-                <span className="mt-1 text-xs font-medium tracking-wide text-white/45 uppercase">{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="h-px w-full" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }} />
       </section>
 
       {/* ── Value Proposition ── */}
@@ -299,9 +295,9 @@ export default function HomePage() {
           </FadeIn>
 
           <FadeIn delay={100} className="mt-10">
-            <div className="grid gap-0 overflow-hidden rounded-2xl border border-neutral-100 shadow-sm sm:grid-cols-2">
-              {/* Left — Project Holders */}
-              <div className="border-b border-neutral-100 bg-neutral-50 p-8 sm:border-b-0 sm:border-r-0">
+            <div className="overflow-hidden rounded-2xl border border-neutral-100 shadow-sm sm:flex">
+              {/* Left — Project Holders (50%) */}
+              <div className="bg-neutral-50 p-8 sm:w-1/2" style={{ borderRight: `1px solid rgba(201,168,76,0.35)` }}>
                 <div className="mb-1 text-[10px] font-semibold tracking-widest uppercase" style={{ color: GOLD }}>
                   For Project Holders &amp; Developers
                 </div>
@@ -315,14 +311,8 @@ export default function HomePage() {
                 </ul>
               </div>
 
-              {/* Gold divider (desktop: vertical) */}
-              <div className="hidden sm:block" style={{
-                borderLeft: `1px solid ${GOLD}`,
-                opacity: 0.35,
-              }} />
-
-              {/* Right — Investors */}
-              <div className="bg-[#1a2332] p-8">
+              {/* Right — Investors (50%) */}
+              <div className="bg-[#1a2332] p-8 sm:w-1/2">
                 <div className="mb-1 text-[10px] font-semibold tracking-widest uppercase" style={{ color: GOLD }}>
                   For Investors &amp; Fund Managers
                 </div>
