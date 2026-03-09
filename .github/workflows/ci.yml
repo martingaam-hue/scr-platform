@@ -182,6 +182,24 @@ jobs:
 
       - name: Run pip-audit
         run: |
+          # Suppression justifications (review at each dependency audit):
+          #
+          # PYSEC-2022-42969: legacy PYSEC advisory with no actionable fix.
+          #
+          # CVE-2024-23342: python-jose ECDSA key confusion / malleability.
+          #   NOT exploitable here: the platform uses RS256 exclusively for all
+          #   JWTs (Clerk tokens). ECDSA is never configured. Remove this
+          #   suppression once python-jose ships a patched release or is replaced.
+          #
+          # CVE-2026-24486: unverified CVE ID — may be a false positive or
+          #   not yet publicly disclosed. Verify before the next audit cycle
+          #   and remove suppression if confirmed applicable.
+          #
+          # CVE-2025-54121: unverified CVE ID — verify before the next audit
+          #   cycle and remove suppression if confirmed applicable.
+          #
+          # CVE-2025-62727: unverified CVE ID — verify before the next audit
+          #   cycle and remove suppression if confirmed applicable.
           poetry run pip-audit \
             --ignore-vuln PYSEC-2022-42969 \
             --ignore-vuln CVE-2024-23342 \

@@ -9,10 +9,11 @@ terraform {
   }
 
   backend "s3" {
-    bucket  = "scr-platform-terraform-state"
-    key     = "infrastructure/terraform.tfstate"
-    region  = "eu-north-1"
-    encrypt = true
+    bucket         = "scr-platform-terraform-state"
+    key            = "infrastructure/terraform.tfstate"
+    region         = "eu-north-1"
+    encrypt        = true
+    dynamodb_table = "scr-terraform-locks"
   }
 }
 
@@ -46,6 +47,60 @@ module "vpc" {
   single_nat_gateway = var.environment != "production"
 }
 
+# --- Dedicated Security Groups for datastores ---
+
+# RDS: only ECS tasks may connect on port 5432
+resource "aws_security_group" "rds" {
+  name        = "scr-${var.environment}-rds"
+  description = "RDS PostgreSQL - allow inbound 5432 from ECS tasks only"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description     = "PostgreSQL from ECS tasks"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "scr-${var.environment}-rds"
+  }
+}
+
+# Redis: only ECS tasks may connect on port 6379
+resource "aws_security_group" "redis" {
+  name        = "scr-${var.environment}-redis"
+  description = "ElastiCache Redis - allow inbound 6379 from ECS tasks only"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description     = "Redis from ECS tasks"
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "scr-${var.environment}-redis"
+  }
+}
+
 # --- RDS (PostgreSQL 16) ---
 module "rds" {
   source  = "terraform-aws-modules/rds/aws"
@@ -66,7 +121,7 @@ module "rds" {
   username = "scr_admin"
   port     = 5432
 
-  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  vpc_security_group_ids = [aws_security_group.rds.id]
   subnet_ids             = module.vpc.private_subnets
 
   backup_retention_period = var.environment == "production" ? 14 : 7
@@ -93,7 +148,7 @@ resource "aws_elasticache_replication_group" "redis" {
   parameter_group_name = "default.redis7"
   port                 = 6379
   subnet_group_name    = aws_elasticache_subnet_group.redis.name
-  security_group_ids   = [module.vpc.default_security_group_id]
+  security_group_ids   = [aws_security_group.redis.id]
 
   automatic_failover_enabled = var.environment == "production"
   multi_az_enabled           = var.environment == "production"
@@ -194,7 +249,7 @@ resource "aws_db_instance" "read_replica" {
   skip_final_snapshot = true
   deletion_protection = true
 
-  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  vpc_security_group_ids = [aws_security_group.rds.id]
   parameter_group_name   = aws_db_parameter_group.postgres16.name
 
   performance_insights_enabled = true

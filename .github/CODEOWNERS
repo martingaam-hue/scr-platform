@@ -1,0 +1,23 @@
+# CODEOWNERS — requires review from @martingaam-hue for all changes.
+#
+# Branch protection must also be enabled in GitHub repository settings:
+#   Settings → Branches → Branch protection rules for "main":
+#     ✓ Require a pull request before merging
+#     ✓ Require approvals (1 minimum)
+#     ✓ Require review from Code Owners
+#     ✓ Require status checks to pass before merging (select CI workflow)
+#     ✓ Require branches to be up to date before merging
+#     ✓ Do not allow bypassing the above settings
+#
+# Infrastructure and secrets directories get an extra explicit rule to
+# make it obvious they are protected.
+
+# Default: every file requires review
+*                                   @martingaam-hue
+
+# Terraform — changes to infra require explicit owner approval
+infrastructure/terraform/**         @martingaam-hue
+
+# CI/CD workflows — changes to pipelines require owner approval
+.github/workflows/**                @martingaam-hue
+.github/ecs/**                      @martingaam-hue

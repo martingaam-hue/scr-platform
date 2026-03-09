@@ -24,10 +24,6 @@
         {
           "name": "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
           "value": "pk_test_bmF0aW9uYWwtcGFuZ29saW4tMi5jbGVyay5hY2NvdW50cy5kZXYk"
-        },
-        {
-          "name": "NEXT_PUBLIC_SENTRY_DSN",
-          "value": "https://ac964ac1b2ab7a0fe043315464ed4eb8@o4510976260767744.ingest.de.sentry.io/4510976299827280"
         }
       ],
       "mountPoints": [],
@@ -36,6 +32,10 @@
         {
           "name": "CLERK_SECRET_KEY",
           "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/CLERK_SECRET_KEY"
+        },
+        {
+          "name": "NEXT_PUBLIC_SENTRY_DSN",
+          "valueFrom": "arn:aws:secretsmanager:eu-north-1:547279162499:secret:scr/staging/SENTRY_DSN"
         }
       ],
       "logConfiguration": {

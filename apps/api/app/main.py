@@ -262,7 +262,8 @@ async def health_check() -> dict:
             await db.execute(text("SELECT 1"))
         checks["postgresql"] = {"status": "healthy"}
     except Exception as exc:
-        checks["postgresql"] = {"status": "unhealthy", "error": str(exc)}
+        logger.error(f"Health check failed for postgresql: {exc}")
+        checks["postgresql"] = {"status": "unhealthy", "error": "connection_failed"}
 
     # ── Redis ─────────────────────────────────────────────────────────────────
     try:
@@ -273,7 +274,8 @@ async def health_check() -> dict:
         await r.aclose()
         checks["redis"] = {"status": "healthy"}
     except Exception as exc:
-        checks["redis"] = {"status": "unhealthy", "error": str(exc)}
+        logger.error(f"Health check failed for redis: {exc}")
+        checks["redis"] = {"status": "unhealthy", "error": "connection_failed"}
 
     # ── Elasticsearch ─────────────────────────────────────────────────────────
     try:
@@ -289,7 +291,8 @@ async def health_check() -> dict:
                 "version": info.get("version", {}).get("number", "unknown"),
             }
     except Exception as exc:
-        checks["elasticsearch"] = {"status": "unhealthy", "error": str(exc)}
+        logger.error(f"Health check failed for elasticsearch: {exc}")
+        checks["elasticsearch"] = {"status": "unhealthy", "error": "connection_failed"}
 
     # ── S3 / MinIO ────────────────────────────────────────────────────────────
     try:
@@ -307,7 +310,8 @@ async def health_check() -> dict:
         s3.head_bucket(Bucket=settings.AWS_S3_BUCKET)
         checks["s3"] = {"status": "healthy"}
     except Exception as exc:
-        checks["s3"] = {"status": "unhealthy", "error": str(exc)}
+        logger.error(f"Health check failed for s3: {exc}")
+        checks["s3"] = {"status": "unhealthy", "error": "connection_failed"}
 
     overall = "healthy" if all(c["status"] == "healthy" for c in checks.values()) else "degraded"
     return {"status": overall, "service": "scr-api", "checks": checks}

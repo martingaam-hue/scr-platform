@@ -205,9 +205,15 @@ class RateLimitMiddleware:
 
         raw_headers: dict[bytes, bytes] = {k: v for k, v in scope.get("headers", [])}
 
-        # Resolve client IP (respect X-Forwarded-For from a trusted proxy)
+        # Resolve client IP from the rightmost entry in X-Forwarded-For.
+        # The ALB appends the true client IP as the rightmost entry, so using
+        # the rightmost value prevents spoofing via a crafted X-Forwarded-For
+        # header sent by the client.
         xff = raw_headers.get(b"x-forwarded-for", b"").decode()
-        ip = xff.split(",")[0].strip() if xff else (scope.get("client") or ["unknown"])[0]
+        if xff:
+            ip = xff.split(",")[-1].strip()
+        else:
+            ip = (scope.get("client") or ["unknown"])[0]
 
         # Strip /v1 prefix for consistent rule matching
         effective_path = path[3:] if path.startswith("/v1") else path
