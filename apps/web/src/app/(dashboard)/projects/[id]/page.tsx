@@ -35,7 +35,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@scr/ui";
-import { useCalculateScore } from "@/lib/signal-score";
+import { SignalScoreDetail } from "@/components/signal-score/signal-score-detail";
 import {
   useGenerateBusinessPlan,
   useBusinessPlanResult,
@@ -230,83 +230,6 @@ function AIToolsSection({ projectId }: { projectId: string }) {
   );
 }
 
-// ── Signal Score — bild18 style ────────────────────────────────────────────
-
-const DIMENSION_ICONS: Record<string, LucideIcon> = {
-  project_viability: Target,
-  financial_planning: TrendingUp,
-  team_strength: CheckCircle2,
-  risk_assessment: Shield,
-  market_opportunity: Globe,
-  esg: Leaf,
-};
-
-function DimensionProgressBar({
-  label,
-  score,
-  iconKey,
-}: {
-  label: string;
-  score: number;
-  iconKey: string;
-}) {
-  const Icon = DIMENSION_ICONS[iconKey] ?? Target;
-  const pct = Math.round(score);
-  const barColor =
-    pct >= 85
-      ? "bg-indigo-900"
-      : pct >= 65
-        ? "bg-indigo-700"
-        : pct >= 40
-          ? "bg-amber-500"
-          : "bg-red-500";
-
-  return (
-    <div className="flex items-center gap-3">
-      <Icon className="h-4 w-4 text-neutral-400 shrink-0" />
-      <span className="text-sm text-neutral-700 w-36 shrink-0">{label}</span>
-      <div className="flex-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all ${barColor}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-sm font-semibold text-neutral-900 w-10 text-right shrink-0">
-        {pct}%
-      </span>
-    </div>
-  );
-}
-
-function deriveReadinessIndicators(signal: {
-  project_viability_score: number;
-  financial_planning_score: number;
-  team_strength_score: number;
-  risk_assessment_score: number;
-  market_opportunity_score: number;
-  esg_score: number;
-}): string[] {
-  const indicators: string[] = [];
-  if (signal.project_viability_score >= 80)
-    indicators.push("Solid business model with a clear path to profitability");
-  if (signal.team_strength_score >= 80)
-    indicators.push("Experienced management team with a proven track record");
-  if (signal.market_opportunity_score >= 80)
-    indicators.push("Strong market positioning with measurable competitive advantages");
-  if (signal.esg_score >= 80)
-    indicators.push("Robust ESG framework with measurable environmental and social impact");
-  if (signal.financial_planning_score >= 80)
-    indicators.push("Comprehensive financial model with credible investor-ready projections");
-  if (signal.risk_assessment_score >= 80)
-    indicators.push("Well-structured risk mitigation and compliance documentation");
-  // Always include at least 2
-  if (indicators.length < 2) {
-    indicators.push("Project data documented and structured for investor review");
-    indicators.push("AI-powered analysis completed across all 6 readiness dimensions");
-  }
-  return indicators.slice(0, 4);
-}
-
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function MilestoneStatusBadge({ status }: { status: string }) {
@@ -335,7 +258,6 @@ export default function ProjectDetailPage() {
   const { data: budgetItems } = useBudgetItems(id);
   const publishMutation = usePublishProject();
   const deleteMutation = useDeleteProject();
-  const calculateScore = useCalculateScore();
 
   if (isLoading) {
     return (
@@ -381,10 +303,6 @@ export default function ProjectDetailPage() {
       0
     ) ?? 0;
 
-  const signal = project.latest_signal;
-  const readinessIndicators = signal
-    ? deriveReadinessIndicators(signal)
-    : [];
 
   return (
     <div className="space-y-6">
@@ -725,116 +643,13 @@ export default function ProjectDetailPage() {
           </div>
         </TabsContent>
 
-        {/* Signal Score Tab — bild18 style */}
+        {/* Signal Score Tab — shared SignalScoreDetail component */}
         <TabsContent value="signal" className="mt-6">
-          {!signal ? (
-            <EmptyState
-              icon={<Target className="h-12 w-12 text-neutral-400" />}
-              title="No Signal Score"
-              description="Signal Score analysis hasn't been run for this project yet."
-              action={
-                canAnalyze ? (
-                  <Button
-                    onClick={() => calculateScore.mutate(id)}
-                    disabled={calculateScore.isPending}
-                  >
-                    Calculate Signal Score
-                  </Button>
-                ) : undefined
-              }
-            />
-          ) : (
-            <Card>
-              <CardContent className="p-8">
-                {/* Hero — centered score */}
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-indigo-50 mb-4">
-                    <div>
-                      <p className="text-5xl font-extrabold text-indigo-900 leading-none tabular-nums">
-                        {signal.overall_score}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-sm font-medium text-neutral-500">
-                    Project Readiness Score
-                  </p>
-                  <p className="text-xs text-neutral-400 mt-1">
-                    v{signal.version} · {signal.model_used}
-                  </p>
-                </div>
-
-                {/* Dimension progress bars — 2-col */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 mb-8">
-                  <DimensionProgressBar
-                    label="Project Viability"
-                    score={signal.project_viability_score}
-                    iconKey="project_viability"
-                  />
-                  <DimensionProgressBar
-                    label="Financial Planning"
-                    score={signal.financial_planning_score}
-                    iconKey="financial_planning"
-                  />
-                  <DimensionProgressBar
-                    label="Team Strength"
-                    score={signal.team_strength_score}
-                    iconKey="team_strength"
-                  />
-                  <DimensionProgressBar
-                    label="Risk Assessment"
-                    score={signal.risk_assessment_score}
-                    iconKey="risk_assessment"
-                  />
-                  <DimensionProgressBar
-                    label="Market Opportunity"
-                    score={signal.market_opportunity_score}
-                    iconKey="market_opportunity"
-                  />
-                  <DimensionProgressBar
-                    label="ESG Impact"
-                    score={signal.esg_score}
-                    iconKey="esg"
-                  />
-                </div>
-
-                {/* Key Readiness Indicators */}
-                {readinessIndicators.length > 0 && (
-                  <div className="border-t pt-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Target className="h-4 w-4 text-neutral-500" />
-                      <h4 className="text-sm font-semibold text-neutral-900">
-                        Key Readiness Indicators
-                      </h4>
-                    </div>
-                    <ul className="space-y-2">
-                      {readinessIndicators.map((indicator, i) => (
-                        <li
-                          key={i}
-                          className="flex items-start gap-2 text-sm text-neutral-700"
-                        >
-                          <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                          {indicator}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* View Full Analysis link */}
-                <div className="mt-6 pt-4 border-t text-center">
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      router.push(`/projects/${id}/signal-score`)
-                    }
-                  >
-                    View Full Analysis
-                    <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <SignalScoreDetail
+            projectId={id}
+            backHref={`/projects/${id}/signal-score`}
+            embedded
+          />
         </TabsContent>
       </Tabs>
     </div>

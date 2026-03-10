@@ -78,6 +78,8 @@ export interface SignalScoreDetailProps {
   projectId: string;
   backHref: string;
   backLabel?: string;
+  /** When true: hides the back button and top action bar (for embedding inside a tab) */
+  embedded?: boolean;
 }
 
 // ── Score color helpers (0–100 scale) ─────────────────────────────────────────
@@ -990,7 +992,7 @@ function ReadinessActionPlan({
 
 // ── Main shared component ─────────────────────────────────────────────────────
 
-export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScoreDetailProps) {
+export function SignalScoreDetail({ projectId, backHref, backLabel, embedded = false }: SignalScoreDetailProps) {
   const router = useRouter();
   const canAnalyze = usePermission("run_analysis", "analysis");
 
@@ -1028,13 +1030,15 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
   if (error || !data) {
     return (
       <div className="space-y-6 p-6">
-        <button
-          onClick={() => router.push(backHref)}
-          className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-[#1B2A4A]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {resolvedBackLabel}
-        </button>
+        {!embedded && (
+          <button
+            onClick={() => router.push(backHref)}
+            className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-[#1B2A4A]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {resolvedBackLabel}
+          </button>
+        )}
         <EmptyState
           icon={<ScoreGauge score={0} size={80} strokeWidth={8} label="" />}
           title="No Signal Score"
@@ -1058,45 +1062,47 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
     new Date().toISOString();
 
   return (
-    <div className="space-y-6 p-6">
+    <div className={cn("space-y-6", !embedded && "p-6")}>
 
-      {/* Back + action buttons */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => router.push(backHref)}
-          className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-[#1B2A4A]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {resolvedBackLabel}
-        </button>
-        <div className="flex items-center gap-2">
-          {details && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                router.push(`/projects/${projectId}?tab=business-plan&action=investor_pitch`)
-              }
-            >
-              <FileText className="mr-1.5 h-3.5 w-3.5" />
-              Generate Memorandum
-            </Button>
-          )}
-          {canAnalyze && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => recalculate.mutate(projectId)}
-              disabled={recalculate.isPending}
-            >
-              <RefreshCw
-                className={cn("mr-1.5 h-3.5 w-3.5", recalculate.isPending && "animate-spin")}
-              />
-              Recalculate
-            </Button>
-          )}
+      {/* Back + action buttons — hidden when embedded in a tab */}
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => router.push(backHref)}
+            className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-[#1B2A4A]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {resolvedBackLabel}
+          </button>
+          <div className="flex items-center gap-2">
+            {details && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  router.push(`/projects/${projectId}?tab=business-plan&action=investor_pitch`)
+                }
+              >
+                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                Generate Memorandum
+              </Button>
+            )}
+            {canAnalyze && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => recalculate.mutate(projectId)}
+                disabled={recalculate.isPending}
+              >
+                <RefreshCw
+                  className={cn("mr-1.5 h-3.5 w-3.5", recalculate.isPending && "animate-spin")}
+                />
+                Recalculate
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Hero */}
       <HeroScoreCard
@@ -1124,16 +1130,18 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
         </div>
       )}
 
-      {/* Generate Memorandum CTA */}
-      <Button
-        className="w-full bg-[#1B2A4A] py-3.5 text-white hover:bg-[#243660]"
-        onClick={() =>
-          router.push(`/projects/${projectId}?tab=business-plan&action=investor_pitch`)
-        }
-      >
-        <FileText className="mr-2 h-4 w-4" />
-        Generate Project Memorandum
-      </Button>
+      {/* Generate Memorandum CTA — hidden when embedded */}
+      {!embedded && (
+        <Button
+          className="w-full bg-[#1B2A4A] py-3.5 text-white hover:bg-[#243660]"
+          onClick={() =>
+            router.push(`/projects/${projectId}?tab=business-plan&action=investor_pitch`)
+          }
+        >
+          <FileText className="mr-2 h-4 w-4" />
+          Generate Project Memorandum
+        </Button>
+      )}
 
       {/* Analytics row: Benchmark Comparison + What Changed? */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1155,6 +1163,19 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
 
       {/* Score History Chart (time-series) */}
       <ScoreHistoryChart projectId={projectId} />
+
+      {/* View Full Analysis — only shown when embedded in a tab */}
+      {embedded && (
+        <div className="border-t pt-4 text-center">
+          <Button
+            variant="outline"
+            onClick={() => router.push(backHref)}
+          >
+            View Full Analysis
+            <ArrowLeft className="ml-2 h-4 w-4 rotate-180" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
