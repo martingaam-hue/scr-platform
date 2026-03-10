@@ -209,7 +209,7 @@ function AllyDashboard() {
     (a, b) => (a.latest_signal_score ?? 0) - (b.latest_signal_score ?? 0)
   )[0];
 
-  const firstName = user?.name?.split(" ")[0] ?? "there";
+  const firstName = user?.full_name?.split(" ")[0] ?? "there";
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
