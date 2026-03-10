@@ -175,16 +175,16 @@ const columns: ColumnDef<ProjectResponse>[] = [
       if (rawScore === null) return <span className="text-neutral-400">—</span>;
       const score = rawScore;
       const color =
-        score >= 90 ? "text-green-700" :
         score >= 80 ? "text-green-600" :
-        score >= 70 ? "text-teal-600" :
-        score >= 60 ? "text-orange-500" :
+        score >= 70 ? "text-blue-600" :
+        score >= 60 ? "text-amber-600" :
+        score >= 50 ? "text-yellow-600" :
         "text-red-500";
       const label =
-        score >= 90 ? "Excellent" :
         score >= 80 ? "Strong" :
         score >= 70 ? "Good" :
         score >= 60 ? "Fair" :
+        score >= 50 ? "Moderate" :
         "Needs Review";
       return (
         <div className="flex items-center gap-1.5">

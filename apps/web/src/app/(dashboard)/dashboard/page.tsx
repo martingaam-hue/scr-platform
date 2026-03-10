@@ -301,7 +301,10 @@ function AllyDashboard() {
               {readinessSorted.map((project) => {
                 const score = project.latest_signal_score ?? 0;
                 const barColor =
-                  score >= 70 ? "bg-green-500" : score >= 50 ? "bg-amber-400" : "bg-red-400";
+                  score >= 80 ? "bg-green-500" :
+                  score >= 70 ? "bg-blue-500" :
+                  score >= 60 ? "bg-amber-500" :
+                  score >= 50 ? "bg-yellow-400" : "bg-red-400";
                 return (
                   <div
                     key={project.id}
@@ -322,11 +325,11 @@ function AllyDashboard() {
                     <span
                       className={cn(
                         "shrink-0 text-sm font-semibold tabular-nums",
-                        score >= 70
-                          ? "text-green-700"
-                          : score >= 50
-                            ? "text-amber-700"
-                            : "text-red-600"
+                        score >= 80 ? "text-green-700" :
+                        score >= 70 ? "text-blue-700" :
+                        score >= 60 ? "text-amber-700" :
+                        score >= 50 ? "text-yellow-700" :
+                        "text-red-600"
                       )}
                     >
                       {score.toFixed(0)}
