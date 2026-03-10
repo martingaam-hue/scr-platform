@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Moon, Sun, PanelRightOpen } from "lucide-react";
+import { Moon, Sun, Sparkles } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@scr/ui";
 import { SearchInput } from "@scr/ui";
@@ -64,12 +64,12 @@ export function Topbar() {
         <button
           onClick={toggleRalph}
           className={cn(
-            "rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200",
-            ralphOpen && "bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400",
+            "ml-1 inline-flex items-center gap-1.5 rounded-lg bg-[#1B2A4A] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#243660]",
+            ralphOpen && "bg-[#243660]",
           )}
-          title="Toggle Ralph AI"
         >
-          <PanelRightOpen className="h-5 w-5" />
+          <Sparkles className="h-4 w-4" />
+          Ask Ralph
         </button>
       </div>
     </header>

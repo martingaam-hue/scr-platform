@@ -1,14 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AlertCircle,
   ArrowLeft,
-  BarChart3,
-  BookOpen,
-  Briefcase,
-  CheckCircle2,
   ChevronDown,
   ChevronRight,
   ChevronUp,
@@ -17,11 +12,9 @@ import {
   Loader2,
   Minus,
   RefreshCw,
-  Sparkles,
   TrendingDown,
   TrendingUp,
   Upload,
-  Users,
   Zap,
 } from "lucide-react";
 import {
@@ -104,7 +97,7 @@ function ratingBorder(score: number) {
 function ratingBarColor(score: number) {
   if (score >= 80) return "bg-green-500";
   if (score >= 60) return "bg-amber-500";
-  return "bg-red-500";
+  return "bg-red-400";
 }
 
 function ratingTextColor(score: number) {
@@ -113,25 +106,23 @@ function ratingTextColor(score: number) {
   return "text-red-600";
 }
 
-// ── Score Change Badge (matches investor side) ────────────────────────────────
+// ── Score Change Badge ────────────────────────────────────────────────────────
 
 function ScoreChangeBadge({ change }: { change: number | null }) {
   if (change === null) return null;
-  if (change > 0) {
+  if (change > 0)
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-sm font-semibold text-green-700">
         <TrendingUp className="h-3.5 w-3.5" />+{change.toFixed(1)}
       </span>
     );
-  }
-  if (change < 0) {
+  if (change < 0)
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-sm font-semibold text-red-700">
         <TrendingDown className="h-3.5 w-3.5" />
         {change.toFixed(1)}
       </span>
     );
-  }
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-sm font-medium text-neutral-500">
       <Minus className="h-3.5 w-3.5" />
@@ -215,7 +206,6 @@ function HeroScoreCard({
         </p>
       </div>
 
-      {/* Ring + score */}
       <div className="flex flex-col items-center">
         <div className="relative">
           <ScoreRing score={displayScore} size={200} />
@@ -232,19 +222,14 @@ function HeroScoreCard({
           Project Readiness Score ·{" "}
           <span className="font-medium text-neutral-700">{label}</span>
         </p>
-
-        {/* Previous score + change badge — matches investor side layout */}
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
           <ScoreChangeBadge change={scoreDelta} />
           {previousScore !== undefined && (
-            <span className="text-xs text-neutral-400">
-              Previous: {previousScore.toFixed(1)}
-            </span>
+            <span className="text-xs text-neutral-400">Previous: {previousScore.toFixed(1)}</span>
           )}
         </div>
       </div>
 
-      {/* Metadata badges row */}
       <div className="mt-5 flex flex-wrap items-center justify-center gap-2 border-t border-neutral-100 pt-4">
         <VolatilityBadge projectId={projectId} />
         <LineagePanel
@@ -265,7 +250,7 @@ function HeroScoreCard({
   );
 }
 
-// ── Dimension Section (expandable card, colored rating box) ───────────────────
+// ── Dimension Section ─────────────────────────────────────────────────────────
 
 function CriterionRow({ criterion }: { criterion: CriterionScore }) {
   const [expanded, setExpanded] = useState(false);
@@ -359,7 +344,6 @@ function DimensionSection({ dimension }: { dimension: DimensionScore }) {
         className="flex w-full items-center justify-between p-4 text-left hover:bg-black/[0.02]"
       >
         <div className="flex items-center gap-3">
-          {/* Colored rating box — replaces ScoreGauge half-circle */}
           <div
             className={cn(
               "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-xl font-bold tabular-nums",
@@ -374,7 +358,6 @@ function DimensionSection({ dimension }: { dimension: DimensionScore }) {
               Weight: {(dimension.weight * 100).toFixed(0)}% · Completeness:{" "}
               {dimension.completeness_score}% · Quality: {dimension.quality_score}%
             </p>
-            {/* Score bar */}
             <div className="mt-1.5 h-1.5 w-32 overflow-hidden rounded-full bg-neutral-200">
               <div
                 className={cn("h-full rounded-full transition-all duration-500", ratingBarColor(score))}
@@ -396,124 +379,6 @@ function DimensionSection({ dimension }: { dimension: DimensionScore }) {
           ))}
         </div>
       )}
-    </Card>
-  );
-}
-
-// ── Gaps to Close ─────────────────────────────────────────────────────────────
-
-function GapsToCloseSection({ gaps }: { gaps: GapItem[] }) {
-  if (!gaps.length) return null;
-
-  return (
-    <Card className="border-amber-200">
-      <CardContent className="p-5">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
-          <AlertCircle className="h-4 w-4 text-amber-500" />
-          Gaps to Close ({gaps.length})
-        </h3>
-        <ul className="space-y-2">
-          {gaps.slice(0, 8).map((gap, i) => (
-            <li
-              key={i}
-              className="flex items-start justify-between gap-2"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-neutral-700">{gap.criterion_name}</p>
-                <p className="text-xs text-neutral-400">{gap.dimension_name}</p>
-              </div>
-              <Badge variant={priorityColor(gap.priority)} className="shrink-0 text-[10px]">
-                {gap.priority}
-              </Badge>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ── What's Working ────────────────────────────────────────────────────────────
-
-function WhatsWorkingSection({ strengths }: { strengths: StrengthItem[] }) {
-  if (!strengths.length) return null;
-
-  return (
-    <Card className="border-green-200">
-      <CardContent className="p-5">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
-          What&apos;s Working ({strengths.length})
-        </h3>
-        <ul className="space-y-1.5">
-          {strengths.map((s, i) => (
-            <li key={i} className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-neutral-700">{s.criterion_name}</p>
-                <p className="text-xs text-neutral-400">{s.dimension_name}</p>
-              </div>
-              <span className={cn("shrink-0 text-xs font-semibold", ratingTextColor(s.score))}>
-                {Math.round(s.score)} pts
-              </span>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ── Improvement Plan ──────────────────────────────────────────────────────────
-
-const EFFORT_PILL: Record<string, string> = {
-  low: "bg-green-100 text-green-700",
-  medium: "bg-amber-100 text-amber-700",
-  high: "bg-red-100 text-red-700",
-};
-
-function ImprovementPlanSection({ actions }: { actions: ImprovementAction[] }) {
-  if (!actions.length) return null;
-
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
-          <Zap className="h-4 w-4 text-amber-500" />
-          Improvement Plan
-          <span className="ml-auto text-xs font-normal text-neutral-400">sorted by impact</span>
-        </h3>
-        <div className="space-y-3">
-          {actions.slice(0, 8).map((action, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2.5"
-            >
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-600">
-                {i + 1}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-neutral-800">{action.action}</p>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <span
-                      className={cn(
-                        "rounded-full px-2 py-0.5 text-xs font-medium",
-                        EFFORT_PILL[action.effort] ?? EFFORT_PILL.medium
-                      )}
-                    >
-                      {action.effort} effort
-                    </span>
-                    <span className="text-xs font-semibold text-green-600">
-                      +{action.expected_gain.toFixed(1)} pts
-                    </span>
-                  </div>
-                </div>
-                <p className="mt-0.5 text-xs text-neutral-500">{action.dimension_name}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
     </Card>
   );
 }
@@ -588,12 +453,7 @@ function BenchmarkCard({ projectId }: { projectId: string }) {
             <p className="text-xs text-neutral-500">Quartile</p>
           </div>
           <div className="text-center">
-            <p
-              className={cn(
-                "text-2xl font-bold",
-                vsDelta >= 0 ? "text-green-600" : "text-red-600"
-              )}
-            >
+            <p className={cn("text-2xl font-bold", vsDelta >= 0 ? "text-green-600" : "text-red-600")}>
               {vsDelta >= 0 ? "+" : ""}{vsDelta.toFixed(1)} pts
             </p>
             <p className="text-xs text-neutral-500">vs Median</p>
@@ -685,7 +545,10 @@ function ScoreHistoryChart({ projectId }: { projectId: string }) {
         <div className="mt-3 flex flex-wrap gap-3">
           {lines.map(({ key, color }) => (
             <div key={key} className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: color }}
+              />
               <span className="text-xs text-neutral-500">{key}</span>
             </div>
           ))}
@@ -695,10 +558,16 @@ function ScoreHistoryChart({ projectId }: { projectId: string }) {
   );
 }
 
-// ── Analytics: "What Changed?" Timeline ──────────────────────────────────────
+// ── Analytics: "What Changed?" ────────────────────────────────────────────────
 
-function WhatChangedCard({ projectId }: { projectId: string }) {
-  const [open, setOpen] = useState(false);
+function WhatChangedCard({
+  projectId,
+  initialOpen = false,
+}: {
+  projectId: string;
+  initialOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(initialOpen);
   const { data, isLoading } = useScoreChanges(projectId);
   const events = data?.items ?? [];
 
@@ -789,80 +658,314 @@ function WhatChangedCard({ projectId }: { projectId: string }) {
   );
 }
 
-// ── Understanding & Improving ─────────────────────────────────────────────────
+// ── Readiness Action Plan ─────────────────────────────────────────────────────
 
-function UnderstandingSection() {
-  const affects = [
-    { Icon: Briefcase, label: "Business Model Strength" },
-    { Icon: BarChart3, label: "Financial Projections" },
-    { Icon: TrendingUp, label: "Market Opportunity" },
-    { Icon: Users, label: "Team Capabilities" },
-    { Icon: Sparkles, label: "Competitive Positioning" },
-    { Icon: BookOpen, label: "Documentation Quality" },
-  ];
-  const improve = [
-    {
-      label: "Strengthen Documentation",
-      desc: "Upload your pitch deck, business plan, and financial models.",
-    },
-    {
-      label: "Refine Financials",
-      desc: "Provide 3–5 year projections with clear assumptions and sensitivity analysis.",
-    },
-    {
-      label: "Build Your Team",
-      desc: "Upload CVs and credentials highlighting sector experience and track record.",
-    },
-    {
-      label: "Validate Market Fit",
-      desc: "Include LOIs, MoUs, pilot results, or third-party market reports.",
-    },
-    {
-      label: "Clarify Competitive Advantage",
-      desc: "Document IP, partnerships, location advantages, or regulatory approvals.",
-    },
-  ];
+const EFFORT_PILL: Record<string, string> = {
+  low: "bg-green-100 text-green-700",
+  medium: "bg-amber-100 text-amber-700",
+  high: "bg-red-100 text-red-700",
+};
+
+const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
+function ActionItemCard({
+  gap,
+  index,
+  guidance,
+  projectId,
+}: {
+  gap: GapItem;
+  index: number;
+  guidance: ImprovementAction | undefined;
+  projectId: string;
+}) {
+  const router = useRouter();
+  const [expanded, setExpanded] = useState(false);
+  const scorePct = gap.max_points > 0 ? gap.current_score / gap.max_points : 0;
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-6">
-      <h3 className="text-sm font-semibold text-neutral-900">
-        Understanding &amp; Improving Your Score
-      </h3>
-      <div className="mt-5 grid gap-6 lg:grid-cols-2">
-        <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
-            What Affects Your Score
-          </p>
-          <ul className="space-y-2.5">
-            {affects.map(({ Icon, label }) => (
-              <li key={label} className="flex items-center gap-2.5">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[#1B2A4A]/8">
-                  <Icon className="h-3.5 w-3.5 text-[#1B2A4A]" />
-                </div>
-                <span className="text-sm text-neutral-700">{label}</span>
-              </li>
-            ))}
-          </ul>
+    <div
+      className={cn(
+        "rounded-xl border transition-all duration-150",
+        gap.priority === "high"
+          ? "border-red-200 bg-red-50/30"
+          : gap.priority === "medium"
+            ? "border-amber-200 bg-amber-50/30"
+            : "border-neutral-200 bg-neutral-50/50"
+      )}
+    >
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-start gap-3 p-4 text-left hover:bg-black/[0.02]"
+      >
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1B2A4A] text-xs font-bold text-white">
+          {index + 1}
         </div>
-        <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
-            How to Improve Your Project Score
-          </p>
-          <ol className="space-y-2.5">
-            {improve.map(({ label, desc }, i) => (
-              <li key={label} className="flex items-start gap-2.5">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#1B2A4A] text-[10px] font-bold text-white">
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="text-sm font-medium text-neutral-800">{label}</p>
-                  <p className="text-xs text-neutral-500">{desc}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={priorityColor(gap.priority)} className="text-[10px]">
+              {gap.priority}
+            </Badge>
+            <span className="text-sm font-medium text-neutral-900">{gap.criterion_name}</span>
+          </div>
+          <div className="mt-1.5 flex items-center gap-2">
+            <div className="h-1.5 w-20 overflow-hidden rounded-full bg-neutral-200">
+              <div
+                className={cn("h-full rounded-full", ratingBarColor(scorePct * 100))}
+                style={{ width: `${scorePct * 100}%` }}
+              />
+            </div>
+            <span className="text-xs text-neutral-400">
+              {gap.current_score}/{gap.max_points} pts · {gap.dimension_name}
+            </span>
+          </div>
         </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {guidance && (
+            <>
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-xs font-medium",
+                  EFFORT_PILL[guidance.effort] ?? EFFORT_PILL.medium
+                )}
+              >
+                {guidance.effort} effort
+              </span>
+              <span className="text-xs font-semibold text-green-600">
+                +{guidance.expected_gain.toFixed(1)} pts
+              </span>
+            </>
+          )}
+          {expanded ? (
+            <ChevronUp className="h-4 w-4 text-neutral-400" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-neutral-400" />
+          )}
+        </div>
+      </button>
+      {expanded && (
+        <div className="border-t px-4 pb-4 pt-3">
+          {gap.recommendation && (
+            <p className="text-sm text-neutral-700">{gap.recommendation}</p>
+          )}
+          {gap.relevant_doc_types.length > 0 && (
+            <div className="mt-3">
+              <p className="mb-1.5 text-xs font-medium text-neutral-500">Documents needed:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {gap.relevant_doc_types.map((dt) => (
+                  <Badge key={dt} variant="neutral" className="text-[10px]">
+                    {dt.replace("_", " ")}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/projects/${projectId}?tab=dataroom`);
+            }}
+          >
+            <Upload className="mr-1.5 h-3.5 w-3.5" />
+            Upload Documents
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type HistoryItem = {
+  version: number;
+  overall_score: number;
+  project_viability_score: number;
+  financial_planning_score: number;
+  esg_score: number;
+  risk_assessment_score: number;
+  team_strength_score: number;
+  market_opportunity_score: number;
+};
+
+type FallbackItem = {
+  action: string;
+  dimension: string;
+  effort: string;
+  estimated_impact: number;
+};
+
+function ReadinessActionPlan({
+  projectId,
+  gaps,
+  strengths,
+  guidance,
+  history,
+  fallbackRoadmap,
+}: {
+  projectId: string;
+  gaps: GapItem[];
+  strengths: StrengthItem[];
+  guidance: { top_actions: ImprovementAction[] } | undefined;
+  history: { items: HistoryItem[] } | undefined;
+  fallbackRoadmap?: FallbackItem[];
+}) {
+  const guidanceByDimension = useMemo(() => {
+    const map = new Map<string, ImprovementAction>();
+    guidance?.top_actions.forEach((a) => map.set(a.dimension_name, a));
+    return map;
+  }, [guidance]);
+
+  const sortedGaps = useMemo(
+    () =>
+      [...gaps].sort(
+        (a, b) => (PRIORITY_ORDER[a.priority] ?? 3) - (PRIORITY_ORDER[b.priority] ?? 3)
+      ),
+    [gaps]
+  );
+
+  const totalPotential = guidance?.top_actions.reduce((s, a) => s + a.expected_gain, 0) ?? 0;
+
+  const hasActions = gaps.length > 0 || (fallbackRoadmap?.length ?? 0) > 0;
+  const hasContent = hasActions || strengths.length > 0 || (history?.items.length ?? 0) > 0;
+  if (!hasContent) return null;
+
+  const defaultTab = hasActions ? "actions" : strengths.length > 0 ? "strengths" : "history";
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b px-5 py-4">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-neutral-900">
+          <Zap className="h-4 w-4 text-amber-500" />
+          Readiness Action Plan
+          {gaps.length > 0 && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+              {gaps.length} gaps
+            </span>
+          )}
+        </h2>
+        {totalPotential > 0 && (
+          <span className="text-xs text-neutral-400">
+            Potential:{" "}
+            <span className="font-semibold text-green-600">+{totalPotential.toFixed(1)} pts</span>
+          </span>
+        )}
       </div>
+
+      <Tabs defaultValue={defaultTab}>
+        <TabsList className="w-full justify-start rounded-none border-b px-5">
+          {hasActions && (
+            <TabsTrigger value="actions">
+              Action Items{gaps.length > 0 ? ` (${gaps.length})` : ""}
+            </TabsTrigger>
+          )}
+          {strengths.length > 0 && (
+            <TabsTrigger value="strengths">
+              What&apos;s Working ({strengths.length})
+            </TabsTrigger>
+          )}
+          {history?.items.length ? (
+            <TabsTrigger value="history">Version History</TabsTrigger>
+          ) : null}
+        </TabsList>
+
+        {/* Action Items */}
+        {hasActions && (
+          <TabsContent value="actions" className="space-y-3 p-5">
+            {gaps.length > 0
+              ? sortedGaps.map((gap, i) => (
+                  <ActionItemCard
+                    key={gap.criterion_id}
+                    gap={gap}
+                    index={i}
+                    guidance={guidanceByDimension.get(gap.dimension_name)}
+                    projectId={projectId}
+                  />
+                ))
+              : fallbackRoadmap?.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-3"
+                  >
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#1B2A4A] text-xs font-bold text-white">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-neutral-800">{item.action}</p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">
+                          {item.dimension.replace(/_/g, " ")}
+                        </span>
+                        <span
+                          className={cn(
+                            "rounded px-1.5 py-0.5 text-xs capitalize",
+                            effortColor(item.effort)
+                          )}
+                        >
+                          {item.effort} effort
+                        </span>
+                        <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">
+                          +{Math.round(item.estimated_impact)} pts
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+          </TabsContent>
+        )}
+
+        {/* What's Working */}
+        {strengths.length > 0 && (
+          <TabsContent value="strengths" className="p-5">
+            <div className="space-y-2">
+              {strengths.map((s, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-lg border border-green-100 bg-green-50 px-4 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-neutral-800">{s.criterion_name}</p>
+                    <p className="text-xs text-neutral-500">{s.dimension_name}</p>
+                  </div>
+                  <span className={cn("text-sm font-bold", ratingTextColor(s.score))}>
+                    {Math.round(s.score)} pts
+                  </span>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+        )}
+
+        {/* Version History */}
+        {history?.items.length ? (
+          <TabsContent value="history" className="p-5">
+            <Card>
+              <CardContent className="p-4">
+                <LineChart
+                  data={history.items
+                    .slice()
+                    .reverse()
+                    .map((h) => ({
+                      version: `v${h.version}`,
+                      Overall: h.overall_score,
+                      Viability: h.project_viability_score,
+                      Financial: h.financial_planning_score,
+                      ESG: h.esg_score,
+                      Risk: h.risk_assessment_score,
+                      Team: h.team_strength_score,
+                      Market: h.market_opportunity_score,
+                    }))}
+                  xKey="version"
+                  yKeys={["Overall", "Viability", "Financial", "ESG", "Risk", "Team", "Market"]}
+                  height={320}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ) : null}
+      </Tabs>
     </div>
   );
 }
@@ -873,10 +976,7 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
   const router = useRouter();
   const canAnalyze = usePermission("run_analysis", "analysis");
 
-  // Alley API — project metadata + improvement roadmap fallback
   const { data, isLoading, error } = useProjectScoreDetail(projectId);
-
-  // Signal-score API — deep analysis (primary score source for 0-100 accuracy)
   const { data: details } = useSignalScoreDetails(projectId);
   const { data: gaps } = useSignalScoreGaps(projectId);
   const { data: history } = useSignalScoreHistory(projectId);
@@ -886,16 +986,13 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
   const recalculate = useRecalculateScore();
   const calculate = useCalculateScore();
 
-  // Project metadata for sector + default back label
   const { data: project } = useProject(projectId);
   const resolvedBackLabel =
     backLabel ?? (project?.name ? `Back to ${project.name}` : "Back to Project");
   const sector = project?.project_type?.replace(/_/g, " ") ?? null;
 
-  // Use signal-score API score (accurate 0-100) when available; cap alley score as fallback
   const heroScore = details?.overall_score ?? Math.min(Math.round(data?.score ?? 0), 100);
 
-  // Previous score and delta from version history (items[0] = latest, items[1] = previous)
   const previousScore = history?.items[1]?.overall_score;
   const scoreDelta =
     history?.items[0] !== undefined && previousScore !== undefined
@@ -983,7 +1080,7 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
         </div>
       </div>
 
-      {/* Hero — score ring + previous score + change badge + metadata */}
+      {/* Hero */}
       <HeroScoreCard
         projectId={projectId}
         score={heroScore}
@@ -997,7 +1094,7 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
         scoreDelta={scoreDelta}
       />
 
-      {/* Dimension Breakdown — 2×3 grid of expandable, colored-border cards */}
+      {/* Dimension Breakdown — 2×3 grid */}
       {details && details.dimensions.length > 0 && (
         <div>
           <h2 className="mb-4 text-base font-semibold text-neutral-900">Dimension Breakdown</h2>
@@ -1009,7 +1106,7 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
         </div>
       )}
 
-      {/* Generate Project Memorandum — full-width */}
+      {/* Generate Memorandum CTA */}
       <Button
         className="w-full bg-[#1B2A4A] py-3.5 text-white hover:bg-[#243660]"
         onClick={() =>
@@ -1020,142 +1117,26 @@ export function SignalScoreDetail({ projectId, backHref, backLabel }: SignalScor
         Generate Project Memorandum
       </Button>
 
-      {/* Gaps to Close + What's Working — side by side */}
-      {(gaps?.items.length || strengths?.items.length) ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {gaps?.items.length ? <GapsToCloseSection gaps={gaps.items} /> : null}
-          {strengths?.items.length ? <WhatsWorkingSection strengths={strengths.items} /> : null}
-        </div>
-      ) : null}
+      {/* Readiness Action Plan — consolidated gap/improvement/strengths/history */}
+      <ReadinessActionPlan
+        projectId={projectId}
+        gaps={gaps?.items ?? []}
+        strengths={strengths?.items ?? []}
+        guidance={guidance}
+        history={history}
+        fallbackRoadmap={
+          !details && data.gap_analysis.length > 0 ? data.gap_analysis : undefined
+        }
+      />
 
-      {/* Improvement Plan */}
-      {guidance?.top_actions.length ? (
-        <ImprovementPlanSection actions={guidance.top_actions} />
-      ) : !details && data.gap_analysis.length > 0 ? (
-        /* Fallback roadmap when deep analysis not yet run */
-        <Card>
-          <CardContent className="p-5">
-            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-neutral-900">
-              <Zap className="h-4 w-4 text-amber-500" />
-              Improvement Roadmap
-            </h3>
-            <ul className="space-y-3">
-              {data.gap_analysis.map((gap, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-3"
-                >
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#1B2A4A] text-xs font-bold text-white">
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-neutral-800">{gap.action}</p>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">
-                        {gap.dimension.replace(/_/g, " ")}
-                      </span>
-                      <span className={cn("rounded px-1.5 py-0.5 text-xs capitalize", effortColor(gap.effort))}>
-                        {gap.effort} effort
-                      </span>
-                      <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">
-                        +{Math.round(gap.estimated_impact)} pts
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      ) : null}
+      {/* Analytics row: Benchmark Comparison + What Changed? */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <BenchmarkCard projectId={projectId} />
+        <WhatChangedCard projectId={projectId} initialOpen />
+      </div>
 
-      {/* Version history */}
-      {history?.items.length ? (
-        <Tabs defaultValue="history">
-          <TabsList>
-            {gaps?.items.length ? (
-              <TabsTrigger value="gaps">
-                Gaps &amp; Recommendations ({gaps.total})
-              </TabsTrigger>
-            ) : null}
-            <TabsTrigger value="history">Version History</TabsTrigger>
-          </TabsList>
-
-          {gaps?.items.length ? (
-            <TabsContent value="gaps" className="mt-5 space-y-3">
-              {gaps.items.map((gap) => (
-                <Card key={gap.criterion_id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={priorityColor(gap.priority)}>{gap.priority}</Badge>
-                          <p className="font-medium text-neutral-900">{gap.criterion_name}</p>
-                        </div>
-                        <p className="mt-1 text-xs text-neutral-500">
-                          {gap.dimension_name} · {gap.current_score}/{gap.max_points} pts
-                        </p>
-                        <p className="mt-2 text-sm text-neutral-600">{gap.recommendation}</p>
-                        {gap.relevant_doc_types.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {gap.relevant_doc_types.map((dt) => (
-                              <Badge key={dt} variant="neutral">{dt.replace("_", " ")}</Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/projects/${projectId}?tab=dataroom`)}
-                      >
-                        <Upload className="mr-1 h-3.5 w-3.5" /> Upload
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-          ) : null}
-
-          <TabsContent value="history" className="mt-5">
-            <Card>
-              <CardContent className="p-6">
-                <LineChart
-                  data={history.items
-                    .slice()
-                    .reverse()
-                    .map((h) => ({
-                      version: `v${h.version}`,
-                      Overall: h.overall_score,
-                      Viability: h.project_viability_score,
-                      Financial: h.financial_planning_score,
-                      ESG: h.esg_score,
-                      Risk: h.risk_assessment_score,
-                      Team: h.team_strength_score,
-                      Market: h.market_opportunity_score,
-                    }))}
-                  xKey="version"
-                  yKeys={["Overall", "Viability", "Financial", "ESG", "Risk", "Team", "Market"]}
-                  height={320}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      ) : null}
-
-      {/* Benchmark Comparison */}
-      <BenchmarkCard projectId={projectId} />
-
-      {/* What Changed? */}
-      <WhatChangedCard projectId={projectId} />
-
-      {/* Score History Chart (time-series from metrics API) */}
+      {/* Score History Chart (time-series) */}
       <ScoreHistoryChart projectId={projectId} />
-
-      {/* Understanding & Improving Your Score */}
-      <UnderstandingSection />
     </div>
   );
 }
