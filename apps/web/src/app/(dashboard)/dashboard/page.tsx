@@ -264,7 +264,7 @@ function AllyDashboard() {
             icon: Zap,
             label: "Avg Signal Score",
             value: stats?.avg_signal_score != null
-              ? `${(stats.avg_signal_score * 10).toFixed(0)}/100`
+              ? `${stats.avg_signal_score.toFixed(0)}/100`
               : "—",
             color: "text-amber-600",
           },
@@ -299,7 +299,7 @@ function AllyDashboard() {
                 />
               )}
               {readinessSorted.map((project) => {
-                const score = (project.latest_signal_score ?? 0) * 10;
+                const score = project.latest_signal_score ?? 0;
                 const barColor =
                   score >= 70 ? "bg-green-500" : score >= 50 ? "bg-amber-400" : "bg-red-400";
                 return (
@@ -578,7 +578,7 @@ function AllyDashboard() {
             </p>
             <div className="mt-3 flex items-baseline gap-1">
               <span className="text-2xl font-bold text-green-700">
-                {((topProject.latest_signal_score ?? 0) * 10).toFixed(0)}
+                {topProject.latest_signal_score ?? 0}
               </span>
               <span className="text-sm text-green-600">/100</span>
             </div>
@@ -603,7 +603,7 @@ function AllyDashboard() {
             </p>
             <div className="mt-3 flex items-baseline gap-1">
               <span className="text-2xl font-bold text-amber-700">
-                {((lowProject.latest_signal_score ?? 0) * 10).toFixed(0)}
+                {lowProject.latest_signal_score ?? 0}
               </span>
               <span className="text-sm text-amber-600">/100</span>
             </div>

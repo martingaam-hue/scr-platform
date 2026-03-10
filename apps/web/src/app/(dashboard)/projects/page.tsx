@@ -173,7 +173,7 @@ const columns: ColumnDef<ProjectResponse>[] = [
     cell: ({ row }) => {
       const rawScore = row.original.latest_signal_score;
       if (rawScore === null) return <span className="text-neutral-400">—</span>;
-      const score = Math.round(rawScore * 10);
+      const score = rawScore;
       const color =
         score >= 90 ? "text-green-700" :
         score >= 80 ? "text-green-600" :
