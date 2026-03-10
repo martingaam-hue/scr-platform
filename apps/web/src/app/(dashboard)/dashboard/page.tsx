@@ -48,7 +48,7 @@ import {
   cn,
 } from "@scr/ui";
 import { useSCRUser } from "@/lib/auth";
-import { useRalphStore } from "@/lib/store";
+import { useRalphStore, usePlatformModeStore } from "@/lib/store";
 import {
   useProjects,
   useProjectStats,
@@ -1055,18 +1055,9 @@ function ChartPlaceholder() {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-const DEV_STORAGE_KEY = "scr_dev_dashboard_view";
-
 export default function DashboardPage() {
   const { user, isLoaded, isLoading } = useSCRUser();
-  const isDev = process.env.NODE_ENV === "development";
-  const [devOverride, setDevOverride] = React.useState<"investor" | "ally" | null>(null);
-
-  // Read localStorage after mount to avoid SSR mismatch
-  React.useEffect(() => {
-    const stored = localStorage.getItem(DEV_STORAGE_KEY);
-    if (stored === "investor" || stored === "ally") setDevOverride(stored);
-  }, []);
+  const { mode: storedMode } = usePlatformModeStore();
 
   if (!isLoaded || isLoading) {
     return (
@@ -1076,49 +1067,8 @@ export default function DashboardPage() {
     );
   }
 
-  const effectiveType = devOverride ?? user?.org_type ?? "ally";
-  const isInvestor = effectiveType === "investor";
+  const effectiveMode = storedMode ?? (user?.org_type === "investor" ? "investor" : "ally");
 
-  function setView(view: "ally" | "investor") {
-    localStorage.setItem(DEV_STORAGE_KEY, view);
-    setDevOverride(view);
-  }
-
-  return (
-    <>
-      {isDev && (
-        <div className="mb-4 flex items-center gap-3 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-4 py-2 text-xs text-neutral-500">
-          <span className="font-medium text-neutral-600">Dev view:</span>
-          <button
-            onClick={() => setView("ally")}
-            className={cn(
-              "rounded px-2 py-0.5 font-medium transition-colors",
-              !isInvestor
-                ? "bg-[#1B2A4A] text-white"
-                : "bg-neutral-200 text-neutral-600 hover:bg-neutral-300"
-            )}
-          >
-            Ally
-          </button>
-          <button
-            onClick={() => setView("investor")}
-            className={cn(
-              "rounded px-2 py-0.5 font-medium transition-colors",
-              isInvestor
-                ? "bg-[#1B2A4A] text-white"
-                : "bg-neutral-200 text-neutral-600 hover:bg-neutral-300"
-            )}
-          >
-            Investor
-          </button>
-          {devOverride && (
-            <span className="ml-1 text-amber-600">
-              (overriding DB: {user?.org_type})
-            </span>
-          )}
-        </div>
-      )}
-      {isInvestor ? <InvestorDashboard /> : <AllyDashboard />}
-    </>
-  );
+  if (effectiveMode === "investor") return <InvestorDashboard />;
+  return <AllyDashboard />;
 }
