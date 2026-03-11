@@ -45,7 +45,6 @@ import {
   UserCheck,
   Sparkles,
   Zap,
-  Network,
   Umbrella,
   Layers,
   Lightbulb,
@@ -167,7 +166,8 @@ const investorNav: NavSection[] = [
       { label: "Connectors", href: "/connectors", icon: Plug },
       { label: "Sync History", href: "/connectors/sync-history", icon: Plug },
       { label: "Investor Personas", href: "/investor-personas", icon: Users },
-      { label: "Ecosystem", href: "/ecosystem", icon: Network },
+      // Temporarily hidden — Ecosystem feature inactive
+      // { label: "Ecosystem", href: "/ecosystem", icon: Network },
       { label: "Activity Digest", href: "/digest", icon: Rss },
     ],
   },
@@ -207,16 +207,12 @@ const allyNav: NavSection[] = [
       { label: "Legal", href: "/legal", icon: Scale },
       { label: "Valuation", href: "/valuations", icon: PieChart },
       { label: "Tax Credits", href: "/tax-credits", icon: CreditCard },
-      { label: "Insurance", href: "/insurance", icon: Umbrella },
       { label: "Board Advisor", href: "/board-advisor", icon: UserCheck },
-      { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
-      { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },
       { label: "Tokenization", href: "/tokenization", icon: Layers },
       { label: "Dev OS", href: "/development-os", icon: Monitor },
       { label: "Activity Feed", href: "/collaboration", icon: Activity },
       { label: "Q&A Workflow", href: "/qa", icon: MessageSquare },
       { label: "Engagement Analytics", href: "/engagement", icon: Activity },
-      { label: "AI Citations", href: "/citations", icon: FileText },
     ],
   },
   {
@@ -224,20 +220,19 @@ const allyNav: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Risk Dashboard", href: "/risk-dashboard", icon: ShieldAlert },
-    ],
-  },
-  {
-    title: "Impact & Compliance",
-    collapsible: true,
-    items: [
       { label: "ESG Dashboard", href: "/esg", icon: Leaf },
-      { label: "Impact", href: "/impact", icon: Target },
       { label: "Compliance", href: "/compliance", icon: Shield },
-      { label: "Ecosystem", href: "/ecosystem", icon: Network },
+      { label: "Insurance", href: "/insurance", icon: Umbrella },
+      { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
+      { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },
+      { label: "AI Citations", href: "/citations", icon: FileText },
+      // Temporarily hidden — Ecosystem feature inactive
+      // { label: "Ecosystem", href: "/ecosystem", icon: Network },
     ],
   },
   {
     items: [
+      { label: "Impact", href: "/impact", icon: Target },
       { label: "Notifications", href: "/notifications", icon: Bell },
     ],
   },
@@ -355,7 +350,8 @@ const adminNav: NavSection[] = [
       { label: "Connectors", href: "/connectors", icon: Plug },
       { label: "Sync History", href: "/connectors/sync-history", icon: Plug },
       { label: "Investor Personas", href: "/investor-personas", icon: Users },
-      { label: "Ecosystem", href: "/ecosystem", icon: Network },
+      // Temporarily hidden — Ecosystem feature inactive
+      // { label: "Ecosystem", href: "/ecosystem", icon: Network },
       { label: "Activity Digest", href: "/digest", icon: Rss },
     ],
   },
