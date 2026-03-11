@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import {
   AlertTriangle,
+  ArrowLeft,
   CheckCircle,
   Clock,
   Search,
@@ -97,7 +98,7 @@ function SelectProjectPrompt() {
   );
 }
 
-// ── Hero Score Card ────────────────────────────────────────────────────────
+// ── Hero Score Card — matches Signal Score design language ─────────────────
 
 function HeroScoreCard({
   score,
@@ -106,71 +107,56 @@ function HeroScoreCard({
   score: number;
   label?: string;
 }) {
-  const color = riskScoreColor(score);
-  const radius = 52;
-  const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference - (score / 100) * circumference;
+  const color = healthColor(score);
+  const size = 200;
+  const strokeWidth = 14;
+  const r = (size - strokeWidth) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.min(Math.max(score, 0), 100) / 100;
+  const offset = circ * (1 - pct);
+  const cx = size / 2;
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="relative flex items-center">
-        <svg width="136" height="136" viewBox="0 0 136 136">
+    <div className="rounded-xl border border-neutral-200 bg-white p-8 shadow-sm flex flex-col items-center h-full justify-center">
+      <div className="relative">
+        <svg
+          width={size}
+          height={size}
+          className="rotate-[-90deg]"
+        >
           <circle
-            cx="68"
-            cy="68"
-            r={radius}
+            cx={cx}
+            cy={cx}
+            r={r}
             fill="none"
             stroke="#e5e7eb"
-            strokeWidth="10"
+            strokeWidth={strokeWidth}
           />
           <circle
-            cx="68"
-            cy="68"
-            r={radius}
+            cx={cx}
+            cy={cx}
+            r={r}
             fill="none"
             stroke={color}
-            strokeWidth="10"
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circ}
+            strokeDashoffset={offset}
             strokeLinecap="round"
-            transform="rotate(-90 68 68)"
+            style={{ transition: "stroke-dashoffset 800ms ease-out" }}
           />
-          <text
-            x="68"
-            y="62"
-            textAnchor="middle"
-            fontSize="30"
-            fontWeight="700"
-            fill={color}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span
+            className="font-bold tabular-nums leading-none"
+            style={{ fontSize: "72px", color }}
           >
             {score}
-          </text>
-          <text
-            x="68"
-            y="80"
-            textAnchor="middle"
-            fontSize="10"
-            fill="#9ca3af"
-          >
-            {label ?? "Risk Score"}
-          </text>
-        </svg>
-        <span className="absolute -right-7 top-1/2 -translate-y-4 text-sm font-medium text-neutral-400">
-          /100
-        </span>
+          </span>
+        </div>
       </div>
-      <div
-        className="text-xs font-semibold px-2 py-0.5 rounded-full"
-        style={{ backgroundColor: color + "22", color }}
-      >
-        {score >= 75
-          ? "Critical Risk"
-          : score >= 50
-            ? "High Risk"
-            : score >= 25
-              ? "Medium Risk"
-              : "Low Risk"}
-      </div>
+      <p className="mt-3 text-sm text-gray-500">
+        {label ?? "Portfolio Risk Score"}
+      </p>
     </div>
   );
 }
@@ -387,72 +373,40 @@ function RiskItemCard({
 
 // ── Overview Tab ───────────────────────────────────────────────────────────
 
-function OverviewTab({
-  projectId,
-}: {
-  projectId: string | undefined;
-}) {
+const COMPACT_STATS_CLASSES = [
+  { label: "Total Projects", key: "total", color: "text-blue-700", border: "border-blue-100", bg: "bg-blue-50" },
+  { label: "Auto-Identified", key: "auto_identified", color: "text-amber-700", border: "border-amber-100", bg: "bg-amber-50" },
+  { label: "Logged Risks", key: "logged", color: "text-purple-700", border: "border-purple-100", bg: "bg-purple-50" },
+  { label: "Critical Projects", key: "critical_projects", color: "text-red-700", border: "border-red-100", bg: "bg-red-50" },
+] as const;
+
+function PortfolioOverviewTab() {
   const { data: risks, isLoading } = useAlleyRisks();
   const { data: domains } = useRiskDomains();
-  const runCheck = useRunRiskCheck();
-
-  const portfolioScore = risks?.portfolio_risk_score ?? 0;
 
   if (isLoading) return <SectionLoader />;
 
+  const portfolioScore = risks?.portfolio_risk_score ?? 0;
+  const stats = {
+    total: risks?.total ?? 0,
+    auto_identified: risks?.total_auto_identified ?? 0,
+    logged: risks?.total_logged ?? 0,
+    critical_projects: risks?.items.filter((p) => p.critical_count > 0).length ?? 0,
+  };
+
   return (
     <div className="space-y-6">
-      {/* Hero + Stats row */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Hero Score Card */}
-        <Card className="lg:col-span-1 flex items-center justify-center py-6">
-          <HeroScoreCard score={portfolioScore} label="Portfolio Risk" />
-        </Card>
-
-        {/* Stats */}
-        <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            {
-              label: "Total Projects",
-              value: risks?.total ?? 0,
-              icon: BarChart3,
-              color: "text-blue-600",
-              bg: "bg-blue-50",
-            },
-            {
-              label: "Auto-Identified",
-              value: risks?.total_auto_identified ?? 0,
-              icon: Zap,
-              color: "text-amber-600",
-              bg: "bg-amber-50",
-            },
-            {
-              label: "Logged Risks",
-              value: risks?.total_logged ?? 0,
-              icon: FileText,
-              color: "text-purple-600",
-              bg: "bg-purple-50",
-            },
-            {
-              label: "Critical Projects",
-              value:
-                risks?.items.filter((p) => p.critical_count > 0).length ?? 0,
-              icon: AlertTriangle,
-              color: "text-red-600",
-              bg: "bg-red-50",
-            },
-          ].map(({ label, value, icon: Icon, color, bg }) => (
-            <Card key={label}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className={cn("p-2 rounded-lg", bg)}>
-                  <Icon className={cn("h-5 w-5", color)} />
-                </div>
-                <div>
-                  <p className="text-xs text-neutral-500">{label}</p>
-                  <p className={cn("text-2xl font-bold", color)}>{value}</p>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Hero 60% + Stats 40% */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-stretch">
+        <div className="lg:col-span-3">
+          <HeroScoreCard score={portfolioScore} label="Portfolio Risk Score" />
+        </div>
+        <div className="lg:col-span-2 grid grid-cols-2 gap-3">
+          {COMPACT_STATS_CLASSES.map(({ label, key, color, border, bg }) => (
+            <div key={key} className={cn("rounded-xl border p-4 flex flex-col justify-center", bg, border)}>
+              <p className={cn("text-3xl font-bold tabular-nums", color)}>{stats[key]}</p>
+              <p className="text-xs text-neutral-500 mt-1">{label}</p>
+            </div>
           ))}
         </div>
       </div>
@@ -465,12 +419,7 @@ function OverviewTab({
           </CardHeader>
           <CardContent className="space-y-4">
             {domains.domains.map((d) => (
-              <DomainBar
-                key={d.domain}
-                domain={d.domain}
-                riskScore={d.risk_score}
-                total={d.total}
-              />
+              <DomainBar key={d.domain} domain={d.domain} riskScore={d.risk_score} total={d.total} />
             ))}
           </CardContent>
         </Card>
@@ -480,39 +429,16 @@ function OverviewTab({
       {risks && risks.items.length > 0 && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Project Risk Summary</CardTitle>
-              {projectId && (
-                <button
-                  onClick={() => runCheck.mutate(projectId)}
-                  disabled={runCheck.isPending}
-                  className="flex items-center gap-1.5 text-xs px-2 py-1 border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50"
-                >
-                  {runCheck.isPending ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3 w-3" />
-                  )}
-                  Run Risk Check
-                </button>
-              )}
-            </div>
+            <CardTitle className="text-sm">Project Risk Summary</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-neutral-50">
-                    {["Project", "Risk Score", "Critical", "High", "Medium", "Low", "Progress"].map(
-                      (h) => (
-                        <th
-                          key={h}
-                          className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide"
-                        >
-                          {h}
-                        </th>
-                      )
-                    )}
+                    {["Project", "Risk Score", "Critical", "High", "Medium", "Low", "Progress"].map((h) => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wide">{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -522,48 +448,24 @@ function OverviewTab({
                     .map((p) => (
                       <tr key={p.project_id} className="hover:bg-neutral-50">
                         <td className="px-4 py-3">
-                          <p className="font-medium text-neutral-900 text-xs">
-                            {p.project_name}
-                          </p>
-                          <p className="text-xs text-neutral-400">
-                            {p.project_id}
-                          </p>
+                          <p className="font-medium text-neutral-900 text-xs">{p.project_name}</p>
+                          <p className="text-xs text-neutral-400">{p.project_id}</p>
                         </td>
                         <td className="px-4 py-3">
-                          <span
-                            className="text-sm font-bold"
-                            style={{
-                              color: riskScoreColor(p.overall_risk_score),
-                            }}
-                          >
+                          <span className="text-sm font-bold" style={{ color: healthColor(p.overall_risk_score) }}>
                             {p.overall_risk_score}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-red-700 font-semibold">
-                          {p.critical_count}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-orange-600">
-                          {p.high_count}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-amber-600">
-                          {p.medium_count}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-green-600">
-                          {p.low_count}
-                        </td>
+                        <td className="px-4 py-3 text-xs text-red-700 font-semibold">{p.critical_count}</td>
+                        <td className="px-4 py-3 text-xs text-orange-600">{p.high_count}</td>
+                        <td className="px-4 py-3 text-xs text-amber-600">{p.medium_count}</td>
+                        <td className="px-4 py-3 text-xs text-green-600">{p.low_count}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <div className="h-1.5 w-20 rounded-full bg-neutral-100 overflow-hidden">
-                              <div
-                                className="h-1.5 rounded-full bg-green-500"
-                                style={{
-                                  width: `${p.mitigation_progress_pct}%`,
-                                }}
-                              />
+                              <div className="h-1.5 rounded-full bg-green-500" style={{ width: `${p.mitigation_progress_pct}%` }} />
                             </div>
-                            <span className="text-xs text-neutral-500">
-                              {Math.round(p.mitigation_progress_pct)}%
-                            </span>
+                            <span className="text-xs text-neutral-500">{Math.round(p.mitigation_progress_pct)}%</span>
                           </div>
                         </td>
                       </tr>
@@ -576,6 +478,126 @@ function OverviewTab({
       )}
     </div>
   );
+}
+
+function ProjectOverviewTab({ projectId }: { projectId: string }) {
+  const { data: detail, isLoading } = useAlleyRiskDetail(projectId);
+  const runCheck = useRunRiskCheck();
+
+  if (isLoading) return <SectionLoader />;
+
+  const score = detail?.overall_risk_score ?? 0;
+  const items = detail?.risk_items ?? [];
+  const critical = items.filter((r) => r.severity === "critical").length;
+  const high = items.filter((r) => r.severity === "high").length;
+  const medium = items.filter((r) => r.severity === "medium").length;
+  const low = items.filter((r) => r.severity === "low").length;
+
+  // Domain breakdown from risk items
+  const domainGroups = Object.entries(
+    items.reduce<Record<string, { count: number; critical: number; high: number }>>((acc, r) => {
+      const d = acc[r.dimension] ?? { count: 0, critical: 0, high: 0 };
+      d.count++;
+      if (r.severity === "critical") d.critical++;
+      else if (r.severity === "high") d.high++;
+      acc[r.dimension] = d;
+      return acc;
+    }, {})
+  );
+
+  const projectStats = [
+    { label: "Critical", value: critical, color: "text-red-700", border: "border-red-100", bg: "bg-red-50" },
+    { label: "High", value: high, color: "text-orange-700", border: "border-orange-100", bg: "bg-orange-50" },
+    { label: "Medium", value: medium, color: "text-amber-700", border: "border-amber-100", bg: "bg-amber-50" },
+    { label: "Low", value: low, color: "text-green-700", border: "border-green-100", bg: "bg-green-50" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Hero 60% + Severity stats 40% */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-stretch">
+        <div className="lg:col-span-3">
+          <HeroScoreCard score={score} label="Project Risk Score" />
+        </div>
+        <div className="lg:col-span-2 grid grid-cols-2 gap-3">
+          {projectStats.map(({ label, value, color, border, bg }) => (
+            <div key={label} className={cn("rounded-xl border p-4 flex flex-col justify-center", bg, border)}>
+              <p className={cn("text-3xl font-bold tabular-nums", color)}>{value}</p>
+              <p className="text-xs text-neutral-500 mt-1">{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Domain breakdown */}
+      {domainGroups.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Risk by Domain</CardTitle>
+              <button
+                onClick={() => runCheck.mutate(projectId)}
+                disabled={runCheck.isPending}
+                className="flex items-center gap-1.5 text-xs px-2 py-1 border border-neutral-200 rounded hover:bg-neutral-50 disabled:opacity-50"
+              >
+                {runCheck.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                Run Risk Check
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {domainGroups.map(([domain, { count, critical: c, high: h }]) => {
+              const Icon = DOMAIN_ICON[domain] ?? Globe;
+              return (
+                <div key={domain} className="flex items-center gap-3">
+                  <Icon className="h-4 w-4 text-neutral-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-neutral-700 w-24 flex-shrink-0">
+                    {DOMAIN_LABELS[domain] ?? domain}
+                  </span>
+                  <div className="flex-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
+                    <div
+                      className="h-2 rounded-full bg-primary-500"
+                      style={{ width: `${Math.min((count / items.length) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-neutral-500 w-16 text-right flex-shrink-0">
+                    {count} risk{count !== 1 ? "s" : ""}
+                    {c > 0 && <span className="text-red-600 font-semibold ml-1">·{c}C</span>}
+                    {h > 0 && <span className="text-orange-500 ml-1">·{h}H</span>}
+                  </span>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Mitigation progress */}
+      {detail && (
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex justify-between text-xs text-neutral-500 mb-1">
+                <span>Mitigation Progress</span>
+                <span className="font-semibold text-neutral-700">{Math.round(detail.mitigation_progress_pct)}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-neutral-100 overflow-hidden">
+                <div className="h-2 rounded-full bg-green-500 transition-all" style={{ width: `${detail.mitigation_progress_pct}%` }} />
+              </div>
+            </div>
+            <div className="text-xs text-neutral-400">{detail.addressed_risks}/{detail.total_risks} addressed</div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function OverviewTab({ projectId, isProjectView }: { projectId: string | undefined; isProjectView: boolean }) {
+  if (isProjectView && projectId) {
+    return <ProjectOverviewTab projectId={projectId} />;
+  }
+  return <PortfolioOverviewTab />;
 }
 
 // ── Alerts Tab ─────────────────────────────────────────────────────────────
@@ -1630,37 +1652,46 @@ interface RiskDashboardViewProps {
 
 export function RiskDashboardView({ projectId: fixedProjectId }: RiskDashboardViewProps) {
   const { data: risks } = useAlleyRisks();
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    fixedProjectId ?? ""
-  );
+  // selectedProjectId is only used in portfolio/main-nav mode (no fixedProjectId)
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
 
-  const activeProjectId =
-    fixedProjectId ?? (selectedProjectId || undefined);
+  // If fixedProjectId is set we're entered from project nav — always in project view
+  const isProjectNavMode = !!fixedProjectId;
+  const activeProjectId = fixedProjectId ?? (selectedProjectId || undefined);
+  // isProjectView = came from project nav OR user selected a project from the dropdown
+  const isProjectView = isProjectNavMode || !!selectedProjectId;
 
   return (
     <div className="space-y-6">
-      {/* Project selector (only in portfolio mode) */}
-      {!fixedProjectId && (
+      {/* Controls bar — only shown in main-nav (portfolio) mode */}
+      {!isProjectNavMode && (
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-neutral-600">
-            Project:
-          </label>
-          <select
-            className="text-sm border border-neutral-200 rounded-lg px-3 py-1.5 bg-white"
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-          >
-            <option value="">All projects (portfolio view)</option>
-            {risks?.items.map((p) => (
-              <option key={p.project_id} value={p.project_id}>
-                {p.project_name}
-              </option>
-            ))}
-          </select>
-          {activeProjectId && (
-            <span className="text-xs text-neutral-400">
-              Showing detail for selected project
-            </span>
+          {isProjectView ? (
+            // "Back to Portfolio" when a project was selected from the dropdown
+            <button
+              onClick={() => setSelectedProjectId("")}
+              className="flex items-center gap-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-800 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Portfolio View
+            </button>
+          ) : (
+            // Project selector shown in portfolio view
+            <>
+              <label className="text-sm font-medium text-neutral-600">Project:</label>
+              <select
+                className="text-sm border border-neutral-200 rounded-lg px-3 py-1.5 bg-white"
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+              >
+                <option value="">All projects (portfolio view)</option>
+                {risks?.items.map((p) => (
+                  <option key={p.project_id} value={p.project_id}>
+                    {p.project_name}
+                  </option>
+                ))}
+              </select>
+            </>
           )}
         </div>
       )}
@@ -1678,7 +1709,7 @@ export function RiskDashboardView({ projectId: fixedProjectId }: RiskDashboardVi
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab projectId={activeProjectId} />
+          <OverviewTab projectId={activeProjectId} isProjectView={isProjectView} />
         </TabsContent>
         <TabsContent value="alerts">
           <AlertsTab projectId={activeProjectId} />
