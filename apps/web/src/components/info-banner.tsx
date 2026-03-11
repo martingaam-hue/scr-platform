@@ -1,4 +1,4 @@
-import { CircleInfo } from "lucide-react";
+import { Info } from "lucide-react";
 import { cn } from "@scr/ui";
 
 export function InfoBanner({
@@ -15,7 +15,7 @@ export function InfoBanner({
         className
       )}
     >
-      <CircleInfo className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+      <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
       <span>{children}</span>
     </div>
   );
