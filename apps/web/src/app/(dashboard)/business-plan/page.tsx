@@ -40,6 +40,7 @@ import { useProjects } from "@/lib/projects";
 import { useBusinessPlans } from "@/lib/business-plans";
 import { api } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Icon + colour config ───────────────────────────────────────────────────
 
@@ -456,6 +457,10 @@ export default function BusinessPlanPage() {
           ))}
         </select>
       </div>
+
+      <InfoBanner>
+        <strong>Business Planning</strong> uses AI to generate professional business plans from your uploaded documents. Create executive summaries, market analyses, financial projections, and operational plans with one click. Upload your pitch deck and project documents to transform them into comprehensive, investor-ready documentation.
+      </InfoBanner>
 
       {!selectedProjectId ? (
         <EmptyState

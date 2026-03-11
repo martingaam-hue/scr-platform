@@ -26,6 +26,7 @@ import {
   statusVariant,
   type MatchingInvestor,
 } from "@/lib/matching";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -253,6 +254,10 @@ export default function FundingPage() {
           </Button>
         </Link>
       </div>
+
+      <InfoBanner>
+        <strong>Funding</strong> tracks your capital stack, funding rounds, and investor commitments across every project. Model drawdown schedules, monitor pacing against targets, and maintain a clear view of <strong>capital deployment</strong> at both project and portfolio level.
+      </InfoBanner>
 
       {/* KPIs */}
       {loadingStats ? (

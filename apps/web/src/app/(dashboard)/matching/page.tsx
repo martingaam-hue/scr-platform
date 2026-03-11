@@ -28,6 +28,7 @@ import {
   PIPELINE_STAGES,
   type MatchingInvestor,
 } from "@/lib/matching";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock investor data ────────────────────────────────────────────────────────
 
@@ -695,6 +696,10 @@ export default function MatchingPage() {
           Run Matching Engine
         </button>
       </div>
+
+      <InfoBanner className="mb-6">
+        <strong>Investor Matching</strong> pairs your projects with compatible investors based on mandate alignment, geography, asset class, ticket size, and ESG criteria. Each match includes a <strong>compatibility score</strong> with clear explanations of what&apos;s driving the recommendation.
+      </InfoBanner>
 
       {/* ── Stats strip ─────────────────────────────────────────────────── */}
       <div className="mb-6 grid grid-cols-2 divide-x divide-neutral-100 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm sm:grid-cols-4">

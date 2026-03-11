@@ -68,6 +68,7 @@ import { FolderTree } from "@/components/dataroom/folder-tree";
 import { UploadModal } from "@/components/dataroom/upload-modal";
 import { DocumentPreview } from "@/components/dataroom/document-preview";
 import { ExtractionPanel } from "@/components/dataroom/extraction-panel";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── File icon helper ───────────────────────────────────────────────────────
 
@@ -703,6 +704,10 @@ export default function DataRoomPage() {
             Manage and organize your project documents.
           </p>
         </div>
+
+        <InfoBanner>
+          The <strong>Virtual Data Room</strong> provides secure, granular document sharing with engagement analytics. Track who viewed which documents, for how long, and which pages they focused on — giving you real-time insight into investor interest and due diligence progress.
+        </InfoBanner>
 
         <EmptyState
           icon={<FileText className="h-8 w-8" />}

@@ -36,6 +36,7 @@ import {
   type DiscoverParams,
 } from "@/lib/deals";
 import { formatCurrency } from "@/lib/projects";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Project type icons ────────────────────────────────────────────────────
 
@@ -550,6 +551,10 @@ export default function DealsPage() {
           AI-powered deal sourcing, screening, and analysis
         </p>
       </div>
+
+      <InfoBanner>
+        <strong>Deal Pipeline</strong> organizes your deal flow across five stages from discovery through negotiation. Track every opportunity, compare projects side by side, and generate AI screening reports to make faster, better-informed investment decisions.
+      </InfoBanner>
 
       <Tabs defaultValue="pipeline">
         <TabsList>

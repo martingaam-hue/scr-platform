@@ -64,6 +64,7 @@ import {
   trendIcon,
   impactColor,
 } from "@/lib/score-journey";
+import { InfoBanner } from "@/components/info-banner";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared helpers
@@ -1203,6 +1204,10 @@ export default function RiskDashboardPage() {
           </p>
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Risk Dashboard</strong> provides continuous monitoring of project and portfolio risks across technical, financial, regulatory, ESG, and market dimensions. Active alerts notify you when risks change status, and AI generates <strong>structured mitigation strategies</strong> on demand.
+      </InfoBanner>
 
       <Tabs defaultValue="overview">
         <TabsList>

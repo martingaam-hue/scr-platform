@@ -52,6 +52,7 @@ import { AIFeedback } from "@/components/ai-feedback";
 import { CitationBadges } from "@/components/citations/citation-badges";
 import { LineagePanel } from "@/components/lineage/lineage-panel";
 import { useSimilarComps } from "@/lib/comps";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Wizard steps ─────────────────────────────────────────────────────────────
 
@@ -1522,6 +1523,10 @@ export default function ValuationsPage() {
           </div>
         )}
       </div>
+
+      <InfoBanner>
+        <strong>Valuations</strong> provides AI-assisted project appraisals using comparable transactions, EV-per-MW analysis, and EBITDA multiples. Each valuation includes <strong>confidence levels</strong> based on the quality and relevance of available comparable data.
+      </InfoBanner>
 
       {/* Stats bar */}
       {allValuations && allValuations.total > 0 && (

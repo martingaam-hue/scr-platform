@@ -14,6 +14,7 @@ import {
   Calendar, List, AlertTriangle, CheckCircle, Clock, Plus, Zap, X,
   Shield, FileText, Landmark, Leaf, Briefcase, RefreshCw
 } from "lucide-react"
+import { InfoBanner } from "@/components/info-banner"
 
 const CATEGORY_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   regulatory_filing: Landmark,
@@ -93,6 +94,10 @@ export default function CompliancePage() {
           </button>
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Compliance</strong> monitoring ensures your projects meet regulatory requirements with automated deadline tracking and escalation. Every action is logged in an immutable audit trail, and AI-powered document redaction protects sensitive information before third-party sharing.
+      </InfoBanner>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">

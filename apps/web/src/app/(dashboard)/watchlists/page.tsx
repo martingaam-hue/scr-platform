@@ -10,6 +10,7 @@ import {
   Bell, BellOff, Plus, X, Trash2, CheckCircle, TrendingUp,
   AlertTriangle, Activity, Zap, Circle, ToggleLeft, ToggleRight, Sparkles, Loader2,
 } from "lucide-react"
+import { InfoBanner } from "@/components/info-banner"
 
 const WATCH_TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   new_projects: Zap,
@@ -80,6 +81,10 @@ export default function WatchlistsPage() {
           New Watchlist
         </button>
       </div>
+
+      <InfoBanner>
+        <strong>Watchlists</strong> let you define monitoring criteria for specific projects or market conditions and receive automated alerts when those criteria are met. Track score thresholds, covenant changes, new documents, or market movements without manual checking.
+      </InfoBanner>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">

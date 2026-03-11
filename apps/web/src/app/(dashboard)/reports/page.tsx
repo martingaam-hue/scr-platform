@@ -42,6 +42,7 @@ import {
   type OutputFormat,
 } from "@/lib/reports";
 import { GenerateDialog } from "@/components/reports/generate-dialog";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Category filter ────────────────────────────────────────────────────────
 
@@ -286,6 +287,10 @@ export default function ReportsPage() {
           </p>
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Reports</strong> generates professional fund and project reports in PDF, Excel, and PowerPoint. Automate LP quarterly reports, portfolio performance summaries, ESG impact reports, and deal memos — all drawn from live platform data and customizable per recipient.
+      </InfoBanner>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>

@@ -44,6 +44,7 @@ import {
 } from "@/lib/tax-credits";
 import { usePortfolios } from "@/lib/portfolio";
 import { useProjects } from "@/lib/projects";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Inventory tab ─────────────────────────────────────────────────────────────
 
@@ -743,6 +744,10 @@ export default function TaxCreditsPage() {
           tax credits across your portfolio
         </p>
       </div>
+
+      <InfoBanner>
+        <strong>Tax Credits</strong> analyzes your projects for applicable investment tax incentives and credits. Quantify potential benefits, track eligibility requirements, and generate documentation to support your <strong>tax credit applications</strong>.
+      </InfoBanner>
 
       {/* Tabs */}
       <Tabs defaultValue="inventory">

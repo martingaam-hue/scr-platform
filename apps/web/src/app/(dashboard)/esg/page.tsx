@@ -21,6 +21,7 @@ import {
   SFDR_COLORS,
   type ESGMetricsResponse,
 } from "@/lib/esg";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -162,6 +163,10 @@ export default function ESGDashboardPage() {
           </a>
         </div>
       </div>
+
+      <InfoBanner>
+        The <strong>ESG Dashboard</strong> tracks your portfolio&apos;s environmental, social, and governance impact across every project. Monitor carbon reduction metrics, taxonomy alignment, SDG mapping, and generate AI-powered ESG narrative sections ready for LP reporting.
+      </InfoBanner>
 
       {isLoading ? (
         <div className="flex h-64 items-center justify-center">
