@@ -261,6 +261,60 @@ export function riskScoreColor(score: number): string {
   return "#4EB457";                    // Low
 }
 
+// ── Mitigation Strategy types ──────────────────────────────────────────────
+
+export interface MitigationAction {
+  action: string;
+  timeline: string;
+  owner: string;
+  expected_impact: string;
+}
+
+export interface MitigationStrategy {
+  risk_id: string;
+  risk_title: string;
+  recommended_actions: MitigationAction[];
+  overall_timeline: string;
+  expected_impact: string;
+  generated_at: string;
+}
+
+export interface PortfolioMitigationPlan {
+  portfolio_summary: string;
+  top_priorities: string[];
+  cross_project_recommendations: string[];
+  risk_reduction_timeline: string;
+  generated_at: string;
+}
+
+export function useGenerateMitigation() {
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      riskId,
+    }: {
+      projectId: string;
+      riskId: string;
+    }) =>
+      api
+        .post<MitigationStrategy>(
+          `/alley/risk/${projectId}/items/${riskId}/mitigation-strategy`
+        )
+        .then((r) => r.data),
+  });
+}
+
+export function useGeneratePortfolioMitigation() {
+  return useMutation({
+    mutationFn: (projectId?: string) =>
+      api
+        .post<PortfolioMitigationPlan>("/alley/risk/mitigation-strategy", {
+          project_id: projectId ?? null,
+        })
+        .then((r) => r.data),
+  });
+}
+
 export const MITIGATION_STATUS_LABELS: Record<string, string> = {
   unaddressed: "Unaddressed",
   acknowledged: "Acknowledged",
