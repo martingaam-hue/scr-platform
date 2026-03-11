@@ -55,7 +55,6 @@ import {
   TrendingDown,
   BarChart2,
   ArrowLeftRight,
-  Route,
   Database,
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
@@ -224,10 +223,7 @@ const allyNav: NavSection[] = [
     title: "Project Intelligence",
     collapsible: true,
     items: [
-      { label: "My Risk Profile", href: "/alley-risk", icon: ShieldAlert },
-      { label: "Development Advisor", href: "/alley-advisor", icon: Lightbulb },
-      { label: "Pipeline Analytics", href: "/pipeline", icon: Route },
-      { label: "Score Journey", href: "/score-journey", icon: TrendingUp },
+      { label: "Risk Dashboard", href: "/risk-dashboard", icon: ShieldAlert },
     ],
   },
   {
