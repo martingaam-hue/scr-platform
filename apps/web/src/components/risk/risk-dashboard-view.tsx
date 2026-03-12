@@ -1310,7 +1310,7 @@ function MitigationTab({ projectId }: { projectId: string | undefined }) {
       {/* Portfolio mitigation plan */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-6">
             <CardTitle className="text-sm">Portfolio Mitigation Plan</CardTitle>
             <button
               onClick={() =>
@@ -1319,7 +1319,7 @@ function MitigationTab({ projectId }: { projectId: string | undefined }) {
                 })
               }
               disabled={generatePortfolio.isPending}
-              className="flex items-center gap-1.5 text-sm px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+              className="flex-shrink-0 flex items-center gap-1.5 text-sm px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
             >
               {generatePortfolio.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
