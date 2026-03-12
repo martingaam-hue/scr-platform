@@ -17,7 +17,6 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
-  ScoreGauge,
 } from "@scr/ui";
 import { useProject } from "@/lib/projects";
 import { usePermission } from "@/lib/auth";
@@ -30,6 +29,37 @@ import {
   STATUS_LABELS,
   type CertificationGap,
 } from "@/lib/certification";
+
+// ── Score circle helpers ───────────────────────────────────────────────────────
+
+function scoreColor(score: number): string {
+  if (score >= 80) return "#22c55e";
+  if (score >= 70) return "#3b82f6";
+  if (score >= 60) return "#f59e0b";
+  if (score >= 50) return "#eab308";
+  return "#ef4444";
+}
+
+function ScoreRing({ score, size = 180 }: { score: number; size?: number }) {
+  const strokeWidth = 14;
+  const r = (size - strokeWidth) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.min(Math.max(score, 0), 100) / 100;
+  const cx = size / 2;
+  const color = scoreColor(score);
+  return (
+    <svg width={size} height={size} className="rotate-[-90deg]">
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e5e7eb" strokeWidth={strokeWidth} />
+      <circle
+        cx={cx} cy={cx} r={r} fill="none"
+        stroke={color} strokeWidth={strokeWidth}
+        strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
+        strokeLinecap="round"
+        style={{ transition: "stroke-dashoffset 800ms ease-out" }}
+      />
+    </svg>
+  );
+}
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -144,9 +174,20 @@ export default function CertificationPage() {
         <Card className="md:col-span-1">
           <CardContent className="flex flex-col items-center justify-center p-8 gap-4">
             {score !== null ? (
-              <ScoreGauge score={score} size={140} strokeWidth={12} />
+              <div className="relative">
+                <ScoreRing score={Math.round(score)} size={180} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span
+                    className="font-bold tabular-nums leading-none"
+                    style={{ fontSize: "72px", color: scoreColor(Math.round(score)) }}
+                  >
+                    {Math.round(score)}
+                  </span>
+                  <span className="text-xs text-neutral-400 mt-1">/ 100</span>
+                </div>
+              </div>
             ) : (
-              <div className="h-32 w-32 rounded-full border-4 border-neutral-200 flex items-center justify-center">
+              <div className="h-[180px] w-[180px] rounded-full border-4 border-neutral-200 flex items-center justify-center">
                 <span className="text-neutral-400 text-sm">No score</span>
               </div>
             )}
