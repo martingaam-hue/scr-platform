@@ -233,14 +233,14 @@ function OverviewTab({ onStartApplication }: { onStartApplication: () => void })
         <Card>
           <CardContent className="pt-5">
             <p className="text-xs text-neutral-500 font-medium">Certified Value</p>
-            <p className="text-2xl font-bold text-green-700 mt-1">{fmtValue(totalCertified)}</p>
+            <p className="text-2xl font-bold text-neutral-900 mt-1">{fmtValue(totalCertified)}</p>
             <p className="text-xs text-neutral-400 mt-0.5">{certified.length} credit{certified.length !== 1 ? "s" : ""} certified</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-5">
             <p className="text-xs text-neutral-500 font-medium">Pending Review</p>
-            <p className="text-2xl font-bold text-blue-700 mt-1">{fmtValue(totalPending)}</p>
+            <p className="text-2xl font-bold text-neutral-900 mt-1">{fmtValue(totalPending)}</p>
             <p className="text-xs text-neutral-400 mt-0.5">{inFlight.length} application{inFlight.length !== 1 ? "s" : ""} in progress</p>
           </CardContent>
         </Card>
@@ -254,7 +254,7 @@ function OverviewTab({ onStartApplication }: { onStartApplication: () => void })
         <Card>
           <CardContent className="pt-5">
             <p className="text-xs text-neutral-500 font-medium">Signal Score Impact</p>
-            <p className="text-2xl font-bold text-purple-700 mt-1">+13.2 pts</p>
+            <p className="text-2xl font-bold text-neutral-900 mt-1">+13.2 pts</p>
             <p className="text-xs text-neutral-400 mt-0.5">from all certified credits</p>
           </CardContent>
         </Card>
@@ -927,12 +927,17 @@ export default function TaxCreditsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Tax Credit Programs</h1>
-        <p className="text-sm text-neutral-500 mt-1">
-          Discover available incentives for your projects, get platform-certified, and strengthen
-          your investor profile
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-primary-100 rounded-lg shrink-0">
+          <Receipt className="h-6 w-6 text-primary-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">Tax Credit Programs</h1>
+          <p className="text-sm text-neutral-500 mt-1">
+            Discover available incentives for your projects, get platform-certified, and strengthen
+            your investor profile
+          </p>
+        </div>
       </div>
 
       <InfoBanner>

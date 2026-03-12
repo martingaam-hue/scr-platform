@@ -682,11 +682,16 @@ export default function MatchingPage() {
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Investor Matching</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            AI-powered smart syndication and allocation — find the best-fit investors for your projects.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg shrink-0">
+            <Zap className="h-6 w-6 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-900">Investor Matching</h1>
+            <p className="mt-1 text-sm text-neutral-500">
+              AI-powered smart syndication and allocation — find the best-fit investors for your projects.
+            </p>
+          </div>
         </div>
         <button
           onClick={() => router.push("/projects")}

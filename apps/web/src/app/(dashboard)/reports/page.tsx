@@ -280,11 +280,16 @@ export default function ReportsPage() {
     <div>
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Reports</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Generate, view, and schedule reports
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <BarChart3 className="h-6 w-6 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-900">Reports</h1>
+            <p className="mt-1 text-sm text-neutral-500">
+              Generate, view, and schedule reports
+            </p>
+          </div>
         </div>
       </div>
 

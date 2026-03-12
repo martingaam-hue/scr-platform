@@ -1983,11 +1983,16 @@ function CustomDomainTab() {
 export default function SettingsPage() {
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">Settings</h1>
-        <p className="text-sm text-neutral-500 mt-1">
-          Manage your organisation, team, API access, and notification preferences.
-        </p>
+      <div className="mb-6 flex items-center gap-3">
+        <div className="p-2 bg-primary-100 rounded-lg shrink-0">
+          <Building2 className="h-6 w-6 text-primary-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">Settings</h1>
+          <p className="text-sm text-neutral-500 mt-1">
+            Manage your organisation, team, API access, and notification preferences.
+          </p>
+        </div>
       </div>
 
       <Tabs defaultValue="org">

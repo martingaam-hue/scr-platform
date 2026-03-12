@@ -343,8 +343,8 @@ export default function TokenizationPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-indigo-100">
-            <Coins size={22} className="text-indigo-600" />
+          <div className="p-2 rounded-lg bg-primary-100">
+            <Coins size={22} className="text-primary-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-neutral-900">
@@ -371,7 +371,7 @@ export default function TokenizationPage() {
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 size={32} className="animate-spin text-indigo-600" />
+          <Loader2 size={32} className="animate-spin text-primary-600" />
         </div>
       )}
 

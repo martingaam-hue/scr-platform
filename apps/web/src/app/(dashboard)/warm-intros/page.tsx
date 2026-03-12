@@ -35,9 +35,14 @@ export default function WarmIntrosPage() {
     <div className="p-8 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Warm Introductions</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your network and find the warmest path to investors</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <Users className="h-6 w-6 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Warm Introductions</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage your network and find the warmest path to investors</p>
+          </div>
         </div>
         <button
           onClick={() => setShowAddForm(true)}

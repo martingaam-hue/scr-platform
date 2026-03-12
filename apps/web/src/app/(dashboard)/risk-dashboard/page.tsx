@@ -9,8 +9,8 @@ export default function RiskDashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-red-50 rounded-lg">
-          <ShieldAlert className="h-6 w-6 text-red-600" />
+        <div className="p-2 bg-primary-100 rounded-lg">
+          <ShieldAlert className="h-6 w-6 text-primary-600" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">

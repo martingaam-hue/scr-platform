@@ -48,7 +48,7 @@ function KpiCard({ label, value, subtext, icon, colorClass = "text-blue-600" }: 
               <p className="text-xs text-gray-400 mt-1">{subtext}</p>
             )}
           </div>
-          <div className={`p-2 rounded-lg bg-gray-50 ${colorClass}`}>{icon}</div>
+          <div className="p-2 rounded-lg bg-primary-50 text-primary-600">{icon}</div>
         </div>
       </CardContent>
     </Card>
@@ -92,7 +92,7 @@ function SavingsBreakdown() {
           </div>
           <div className="h-2.5 rounded-full bg-gray-100">
             <div
-              className="h-2.5 rounded-full bg-blue-500 transition-all duration-500"
+              className="h-2.5 rounded-full bg-primary-500 transition-all duration-500"
               style={{ width: `${(cat.value / maxValue) * 100}%` }}
             />
           </div>
@@ -246,8 +246,8 @@ export default function CapitalEfficiencyPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-green-100 rounded-lg">
-          <TrendingUp className="h-6 w-6 text-green-600" />
+        <div className="p-2 bg-primary-100 rounded-lg">
+          <TrendingUp className="h-6 w-6 text-primary-600" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
@@ -279,21 +279,21 @@ export default function CapitalEfficiencyPage() {
             value={formatSavings(metrics.total_savings)}
             subtext="vs industry average costs"
             icon={<TrendingUp className="h-5 w-5" />}
-            colorClass="text-green-600"
+            colorClass="text-neutral-900"
           />
           <KpiCard
             label="Time Saved"
             value={`${metrics.time_saved_hours.toFixed(0)} hrs`}
             subtext={`${(metrics.time_saved_hours / 40).toFixed(1)} analyst weeks`}
             icon={<Clock className="h-5 w-5" />}
-            colorClass="text-blue-600"
+            colorClass="text-neutral-900"
           />
           <KpiCard
             label="Deals Closed"
             value={String(metrics.deals_closed)}
             subtext={`${metrics.deals_screened} screened this period`}
             icon={<Briefcase className="h-5 w-5" />}
-            colorClass="text-purple-600"
+            colorClass="text-neutral-900"
           />
           <KpiCard
             label="Platform Score"

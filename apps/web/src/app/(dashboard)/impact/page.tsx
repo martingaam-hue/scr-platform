@@ -705,13 +705,18 @@ function SDGTrackerTab() {
 export default function ImpactPage() {
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">
-          Impact Measurement
-        </h1>
-        <p className="text-sm text-neutral-500 mt-1">
-          Track environmental, social, and governance impact across your project portfolio.
-        </p>
+      <div className="mb-6 flex items-center gap-3">
+        <div className="p-2 bg-primary-100 rounded-lg shrink-0">
+          <Leaf className="h-6 w-6 text-primary-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">
+            Impact Measurement
+          </h1>
+          <p className="text-sm text-neutral-500 mt-1">
+            Track environmental, social, and governance impact across your project portfolio.
+          </p>
+        </div>
       </div>
 
       <InfoBanner className="mb-6">

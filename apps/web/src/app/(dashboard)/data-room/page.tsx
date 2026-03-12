@@ -736,14 +736,19 @@ export default function DataRoomPage() {
     <div className="space-y-4">
       {/* Page header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-            Data Room
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            {totalDocs} document{totalDocs !== 1 ? "s" : ""}
-            {selectedFolderId ? " in folder" : " total"}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg shrink-0">
+            <Brain className="h-6 w-6 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+              Data Room
+            </h1>
+            <p className="mt-1 text-sm text-neutral-500">
+              {totalDocs} document{totalDocs !== 1 ? "s" : ""}
+              {selectedFolderId ? " in folder" : " total"}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <select

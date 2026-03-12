@@ -56,16 +56,21 @@ export default function CompliancePage() {
     <div className="p-8 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            Regulatory Calendar
-            {overdueCount > 0 && (
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
-                {overdueCount} overdue
-              </span>
-            )}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Compliance deadlines with auto-reminders</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <Shield className="h-6 w-6 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              Regulatory Calendar
+              {overdueCount > 0 && (
+                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                  {overdueCount} overdue
+                </span>
+              )}
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">Compliance deadlines with auto-reminders</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {/* View toggle */}

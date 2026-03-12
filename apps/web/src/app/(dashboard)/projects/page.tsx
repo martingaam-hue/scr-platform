@@ -270,11 +270,16 @@ export default function ProjectsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Projects</h1>
-          <p className="text-sm text-neutral-500 mt-1">
-            Manage your alternative investment asset pipeline
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <FolderKanban className="h-6 w-6 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-900">Projects</h1>
+            <p className="text-sm text-neutral-500 mt-1">
+              Manage your alternative investment asset pipeline
+            </p>
+          </div>
         </div>
         {canCreate && (
           <Button onClick={() => router.push("/projects/new")}>

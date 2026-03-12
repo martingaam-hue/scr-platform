@@ -1496,13 +1496,18 @@ export default function ValuationsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">
-            Valuation Analysis
-          </h1>
-          <p className="text-sm text-neutral-500 mt-1">
-            DCF, Comparables, Replacement Cost, and Blended valuation models
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <Calculator className="h-6 w-6 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-900">
+              Valuation Analysis
+            </h1>
+            <p className="text-sm text-neutral-500 mt-1">
+              DCF, Comparables, Replacement Cost, and Blended valuation models
+            </p>
+          </div>
         </div>
 
         {knownProjectIds.length > 0 && (

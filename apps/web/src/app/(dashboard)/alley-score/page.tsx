@@ -433,11 +433,16 @@ export default function AlleyScorePage() {
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Project Signal Score</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            AI-powered project readiness and investor matching profile scoring
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <Sparkles className="h-6 w-6 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-900">Project Signal Score</h1>
+            <p className="mt-1 text-sm text-neutral-500">
+              AI-powered project readiness and investor matching profile scoring
+            </p>
+          </div>
         </div>
         {/* Project quick-select */}
         {data && data.projects.length > 0 && (

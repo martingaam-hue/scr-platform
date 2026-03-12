@@ -1083,8 +1083,8 @@ export default function DevTrackerPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-indigo-100 rounded-lg">
-          <Monitor className="h-6 w-6 text-indigo-600" />
+        <div className="p-2 bg-primary-100 rounded-lg">
+          <Monitor className="h-6 w-6 text-primary-600" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">Development Tracker</h1>

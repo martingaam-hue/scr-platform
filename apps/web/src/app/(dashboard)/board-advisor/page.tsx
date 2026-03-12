@@ -95,13 +95,18 @@ export default function BoardAdvisorPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-neutral-900">
-          Board Advisor Network
-        </h1>
-        <p className="text-sm text-neutral-500 mt-1">
-          Find and connect with experienced board advisors for your projects.
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-primary-100 rounded-lg">
+          <Briefcase className="h-6 w-6 text-primary-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">
+            Board Advisor Network
+          </h1>
+          <p className="text-sm text-neutral-500 mt-1">
+            Find and connect with experienced board advisors for your projects.
+          </p>
+        </div>
       </div>
 
       <InfoBanner>
