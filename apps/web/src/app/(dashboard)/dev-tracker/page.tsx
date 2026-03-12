@@ -274,55 +274,55 @@ function HeroCard({ projects }: { projects: MockProject[] }) {
     : 0;
 
   return (
-    <div className="rounded-2xl bg-[#1B2A4A] text-white p-6">
-      <div className="flex items-center gap-2 mb-1">
-        <Monitor className="h-5 w-5 text-indigo-300" />
-        <span className="text-xs font-medium text-indigo-300 uppercase tracking-widest">Portfolio Development Health</span>
+    <div className="rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Monitor className="h-4 w-4 text-neutral-400" />
+        <span className="text-xs font-semibold text-[#8A8F9A] uppercase tracking-widest">Portfolio Development Health</span>
       </div>
-      <div className="flex flex-col lg:flex-row lg:items-end gap-6 mt-4">
-        <div className="flex-1">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { label: "Active Projects", value: active.length, color: "text-white" },
-              { label: "Total Pipeline", value: `${totalMw} MW`, color: "text-white" },
-              { label: "Avg. Progress", value: `${avgCompletion}%`, color: "text-indigo-300" },
-              { label: "On Track", value: onTrack, color: "text-emerald-400" },
-              { label: "At Risk", value: atRisk, color: "text-amber-400" },
-              { label: "Ready to Build", value: rtb, color: "text-blue-300" },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="rounded-xl bg-white/10 p-3 text-center">
-                <p className="text-[10px] text-slate-400 mb-1">{label}</p>
-                <p className={cn("text-2xl font-bold", color)}>{value}</p>
-              </div>
-            ))}
-          </div>
 
-          {blocked > 0 && (
-            <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-900/30 border border-red-700/40 px-3 py-2 text-sm text-red-300">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span><strong>{blocked} project{blocked > 1 ? "s" : ""} blocked</strong> — active blockers requiring immediate attention.</span>
+      <div className="flex flex-col lg:flex-row gap-5">
+        {/* KPI stat boxes */}
+        <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            { label: "Active Projects", value: active.length, valueClass: "text-[#1A1D23]" },
+            { label: "Total Pipeline", value: `${totalMw} MW`, valueClass: "text-[#1A1D23]" },
+            { label: "Avg. Progress", value: `${avgCompletion}%`, valueClass: "text-[#1A1D23]" },
+            { label: "On Track", value: onTrack, valueClass: "text-[#4B9E7A]" },
+            { label: "At Risk", value: atRisk, valueClass: "text-[#D97706]" },
+            { label: "Ready to Build", value: rtb, valueClass: "text-[#1A1D23]" },
+          ].map(({ label, value, valueClass }) => (
+            <div key={label} className="rounded-lg border border-[#E2E5EA] bg-white px-3 py-3 text-center">
+              <p className="text-[10px] text-[#8A8F9A] mb-1">{label}</p>
+              <p className={cn("text-2xl font-bold", valueClass)}>{value}</p>
             </div>
-          )}
+          ))}
         </div>
 
-        {/* Stage distribution bar */}
-        <div className="lg:w-64 space-y-1.5">
-          <p className="text-xs text-slate-400 mb-2">Stage Distribution</p>
+        {/* Stage distribution */}
+        <div className="lg:w-56 space-y-2">
+          <p className="text-xs font-medium text-[#8A8F9A] mb-2">Stage Distribution</p>
           {PIPELINE_STAGES.map((stage) => {
             const count = projects.filter(p => p.stage_id === stage.id).length;
             const w = projects.length > 0 ? (count / projects.length) * 100 : 0;
             return count > 0 ? (
               <div key={stage.id} className="flex items-center gap-2">
-                <span className="text-[10px] text-slate-400 w-20 text-right shrink-0">{stage.short}</span>
-                <div className="flex-1 h-3 rounded-full bg-white/10 overflow-hidden">
-                  <div className="h-3 rounded-full bg-indigo-400 transition-all" style={{ width: `${w}%` }} />
+                <span className="text-[10px] text-[#8A8F9A] w-20 text-right shrink-0">{stage.short}</span>
+                <div className="flex-1 h-2 rounded-full bg-neutral-200 overflow-hidden">
+                  <div className="h-2 rounded-full bg-[#8BAED4] transition-all" style={{ width: `${w}%` }} />
                 </div>
-                <span className="text-xs font-semibold w-4">{count}</span>
+                <span className="text-xs font-semibold text-[#1A1D23] w-4">{count}</span>
               </div>
             ) : null;
           })}
         </div>
       </div>
+
+      {blocked > 0 && (
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+          <span><strong>{blocked} project{blocked > 1 ? "s" : ""} blocked</strong> — active blockers requiring immediate attention.</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -357,11 +357,11 @@ function OverviewTab({ projects }: { projects: MockProject[] }) {
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-neutral-500">{stage?.short ?? p.stage_id}</span>
-                    <span className="font-semibold text-indigo-600">{p.completion}%</span>
+                    <span className="font-semibold text-neutral-700">{p.completion}%</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-neutral-100 overflow-hidden">
                     <div
-                      className={cn("h-1.5 rounded-full transition-all", p.status === "blocked" ? "bg-red-500" : p.status === "at_risk" ? "bg-amber-400" : "bg-indigo-500")}
+                      className={cn("h-1.5 rounded-full transition-all", p.status === "blocked" ? "bg-red-400" : p.status === "at_risk" ? "bg-amber-400" : "bg-[#8BAED4]")}
                       style={{ width: `${p.completion}%` }}
                     />
                   </div>
@@ -372,7 +372,7 @@ function OverviewTab({ projects }: { projects: MockProject[] }) {
                   {PIPELINE_STAGES.map((s) => (
                     <div
                       key={s.id}
-                      className={cn("h-1 flex-1 rounded-full", s.num < p.stage_num ? "bg-indigo-500" : s.num === p.stage_num ? "bg-indigo-300" : "bg-neutral-100")}
+                      className={cn("h-1 flex-1 rounded-full", s.num < p.stage_num ? "bg-[#8BAED4]" : s.num === p.stage_num ? "bg-[#C3D8EC]" : "bg-neutral-100")}
                       title={s.short}
                     />
                   ))}
@@ -382,7 +382,7 @@ function OverviewTab({ projects }: { projects: MockProject[] }) {
                   <span className="text-neutral-400">RTB target: <strong className="text-neutral-700">{p.target_rtb}</strong></span>
                   <Link
                     href={`/development-os/${p.id}`}
-                    className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium"
+                    className="flex items-center gap-1 text-primary-600 hover:text-primary-800 font-medium"
                   >
                     Details <ChevronRight className="h-3 w-3" />
                   </Link>
@@ -430,17 +430,17 @@ function PipelineTab({ projects, onStageClick }: { projects: MockProject[]; onSt
                   onClick={() => handleStage(stage.id)}
                   className={cn(
                     "flex-1 min-w-[130px] rounded-xl border p-4 text-left transition-all",
-                    isSelected ? "border-indigo-400 bg-indigo-50" : "border-neutral-200 bg-white hover:border-indigo-200 hover:bg-indigo-50/30"
+                    isSelected ? "border-primary-300 bg-primary-50" : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-[#F7F8FA]"
                   )}
                 >
                   <div className="flex items-center gap-1 mb-2">
-                    <span className={cn("h-5 w-5 rounded-full text-xs font-bold flex items-center justify-center shrink-0", isSelected ? "bg-indigo-600 text-white" : "bg-neutral-100 text-neutral-600")}>
+                    <span className={cn("h-5 w-5 rounded-full text-xs font-bold flex items-center justify-center shrink-0", isSelected ? "bg-primary-600 text-white" : "bg-neutral-100 text-neutral-600")}>
                       {stage.num}
                     </span>
                     {hasBlocked && <AlertTriangle className="h-3 w-3 text-red-500 shrink-0" />}
                   </div>
                   <p className="text-xs font-semibold text-neutral-700 leading-tight mb-3">{stage.short}</p>
-                  <p className={cn("text-3xl font-bold", stageProjects.length === 0 ? "text-neutral-200" : isSelected ? "text-indigo-700" : "text-neutral-900")}>
+                  <p className={cn("text-3xl font-bold", stageProjects.length === 0 ? "text-neutral-200" : isSelected ? "text-primary-700" : "text-neutral-900")}>
                     {stageProjects.length}
                   </p>
                   <p className="text-[10px] text-neutral-400 mt-0.5">project{stageProjects.length !== 1 ? "s" : ""}</p>
@@ -522,7 +522,7 @@ function WorkstreamsTab() {
         <select
           value={selectedProject}
           onChange={(e) => setSelectedProject(e.target.value)}
-          className="text-sm border border-neutral-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="text-sm border border-neutral-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary-400"
         >
           {MOCK_PROJECTS.map(p => (
             <option key={p.id} value={p.id}>{p.flag} {p.name}</option>
@@ -562,7 +562,7 @@ function WorkstreamsTab() {
                     <span className={cn("font-semibold", cfg.text)}>{ws.progress}%</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-neutral-100 overflow-hidden">
-                    <div className={cn("h-1.5 rounded-full transition-all", ws.status === "blocked" ? "bg-red-500" : ws.status === "complete" ? "bg-green-500" : "bg-indigo-500")} style={{ width: `${ws.progress}%` }} />
+                    <div className={cn("h-1.5 rounded-full transition-all", ws.status === "blocked" ? "bg-red-400" : ws.status === "complete" ? "bg-[#4B9E7A]" : "bg-[#8BAED4]")} style={{ width: `${ws.progress}%` }} />
                   </div>
                 </div>
 
@@ -608,7 +608,7 @@ function MilestonesTab() {
             onClick={() => setFilter(f.id)}
             className={cn(
               "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-              filter === f.id ? "bg-indigo-600 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              filter === f.id ? "bg-primary-100 text-primary-700" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
             )}
           >
             {f.label}
@@ -662,7 +662,7 @@ function ChecklistTab() {
         <select
           value={selectedProject}
           onChange={(e) => setSelectedProject(e.target.value)}
-          className="text-sm border border-neutral-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="text-sm border border-neutral-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary-400"
         >
           {MOCK_PROJECTS.map(p => (
             <option key={p.id} value={p.id}>{p.flag} {p.name}</option>

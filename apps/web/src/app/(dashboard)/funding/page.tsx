@@ -159,66 +159,63 @@ function FundraisingHeroCard() {
   const discussionPct = (PORTFOLIO_SUMMARY.in_discussion / PORTFOLIO_SUMMARY.total_needed) * 100;
 
   return (
-    <div className="rounded-2xl bg-[#1B2A4A] text-white p-6">
-      <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-        {/* Summary */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Target className="h-5 w-5 text-indigo-300" />
-            <span className="text-xs font-medium text-indigo-300 uppercase tracking-widest">
-              Fundraising Overview
-            </span>
-          </div>
-          <h2 className="text-xl font-bold leading-tight mb-1">Portfolio Capital Raise — 2025</h2>
-          <p className="text-sm text-slate-300">{PORTFOLIO_SUMMARY.projects_raising} projects · Next close target: {PORTFOLIO_SUMMARY.next_close}</p>
+    <div className="rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Target className="h-4 w-4 text-neutral-400" />
+        <span className="text-xs font-semibold text-[#8A8F9A] uppercase tracking-widest">
+          Fundraising Overview
+        </span>
+        <span className="ml-auto text-xs text-neutral-500">
+          {PORTFOLIO_SUMMARY.projects_raising} projects · Next close: {PORTFOLIO_SUMMARY.next_close}
+        </span>
+      </div>
 
-          <div className="mt-4 space-y-3">
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-slate-400">Secured / closed</span>
-                <span className="font-semibold">{fmt(PORTFOLIO_SUMMARY.secured)} / {fmt(PORTFOLIO_SUMMARY.total_needed)} ({securedPct.toFixed(0)}%)</span>
-              </div>
-              <div className="h-2 rounded-full bg-white/10">
-                <div className="h-2 rounded-full bg-emerald-400 transition-all" style={{ width: `${securedPct}%` }} />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-slate-400">In active discussions</span>
-                <span className="font-semibold">{fmt(PORTFOLIO_SUMMARY.in_discussion)} ({discussionPct.toFixed(0)}%)</span>
-              </div>
-              <div className="h-2 rounded-full bg-white/10">
-                <div className="h-2 rounded-full bg-indigo-400 transition-all" style={{ width: `${discussionPct}%` }} />
-              </div>
-            </div>
+      {/* KPI stat boxes */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        {[
+          { label: "Total Needed", value: fmt(PORTFOLIO_SUMMARY.total_needed), sub: "Across portfolio" },
+          { label: "Funding Gap", value: fmt(PORTFOLIO_SUMMARY.gap), sub: "To be raised" },
+          { label: "Active Investors", value: PORTFOLIO_SUMMARY.active_investors, sub: "In conversation" },
+          { label: "Term Sheets", value: PORTFOLIO_SUMMARY.term_sheets, sub: "Live / under review" },
+        ].map(({ label, value, sub }) => (
+          <div key={label} className="rounded-lg border border-[#E2E5EA] bg-white px-4 py-3">
+            <p className="text-[11px] text-[#8A8F9A] mb-1">{label}</p>
+            <p className="text-2xl font-bold text-[#1A1D23]">{value}</p>
+            <p className="text-[10px] text-[#8A8F9A] mt-0.5">{sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Progress bars */}
+      <div className="space-y-3">
+        <div>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-[#6B7280]">Secured / closed</span>
+            <span className="font-semibold text-[#1A1D23]">{fmt(PORTFOLIO_SUMMARY.secured)} / {fmt(PORTFOLIO_SUMMARY.total_needed)} ({securedPct.toFixed(0)}%)</span>
+          </div>
+          <div className="h-2 rounded-full bg-neutral-200 overflow-hidden">
+            <div className="h-2 rounded-full bg-[#4B9E7A] transition-all" style={{ width: `${securedPct}%` }} />
           </div>
         </div>
-
-        {/* Key metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-3 lg:shrink-0">
-          {[
-            { label: "Total Needed", value: fmt(PORTFOLIO_SUMMARY.total_needed), sub: "Across portfolio" },
-            { label: "Funding Gap", value: fmt(PORTFOLIO_SUMMARY.gap), sub: "To be raised" },
-            { label: "Active Investors", value: PORTFOLIO_SUMMARY.active_investors, sub: "In conversation" },
-            { label: "Term Sheets", value: PORTFOLIO_SUMMARY.term_sheets, sub: "Live / under review" },
-          ].map(({ label, value, sub }) => (
-            <div key={label} className="rounded-xl bg-white/10 px-3 py-3 text-center">
-              <p className="text-xs text-slate-400 mb-0.5">{label}</p>
-              <p className="text-xl font-bold">{value}</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>
-            </div>
-          ))}
+        <div>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-[#6B7280]">In active discussions</span>
+            <span className="font-semibold text-[#1A1D23]">{fmt(PORTFOLIO_SUMMARY.in_discussion)} ({discussionPct.toFixed(0)}%)</span>
+          </div>
+          <div className="h-2 rounded-full bg-neutral-200 overflow-hidden">
+            <div className="h-2 rounded-full bg-[#8BAED4] transition-all" style={{ width: `${discussionPct}%` }} />
+          </div>
         </div>
       </div>
 
-      {/* Bottom stats */}
-      <div className="mt-5 grid grid-cols-2 sm:grid-cols-5 gap-3 pt-4 border-t border-white/10">
+      {/* Pipeline stage counts */}
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2 pt-4 border-t border-[#E2E5EA]">
         {PIPELINE_STAGES.map((s) => {
           const count = INVESTOR_PIPELINE.filter((i) => i.stage === s.key).length;
           return (
             <div key={s.key} className="text-center">
-              <p className="text-xs text-slate-400">{s.label}</p>
-              <p className="text-sm font-semibold mt-0.5">{count} investor{count !== 1 ? "s" : ""}</p>
+              <p className="text-[11px] text-[#8A8F9A]">{s.label}</p>
+              <p className="text-sm font-semibold text-[#1A1D23] mt-0.5">{count} investor{count !== 1 ? "s" : ""}</p>
             </div>
           );
         })}
