@@ -109,11 +109,11 @@ const ALERTS = [
 ];
 
 const PIPELINE_STAGES = [
-  { key: "screening", label: "Screening", color: "bg-neutral-400" },
-  { key: "first_meeting", label: "First Meeting", color: "bg-blue-400" },
-  { key: "due_diligence", label: "Due Diligence", color: "bg-amber-400" },
-  { key: "term_sheet", label: "Term Sheet", color: "bg-blue-500" },
-  { key: "closing", label: "Closing", color: "bg-emerald-500" },
+  { key: "screening", label: "Screening", color: "bg-neutral-300" },
+  { key: "first_meeting", label: "First Meeting", color: "bg-neutral-400" },
+  { key: "due_diligence", label: "Due Diligence", color: "bg-primary-300" },
+  { key: "term_sheet", label: "Term Sheet", color: "bg-primary-500" },
+  { key: "closing", label: "Closing", color: "bg-primary-700" },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -288,7 +288,7 @@ function OverviewTab({ projects }: { projects: ProjectResponse[] }) {
                           {formatCurrency(parseFloat(p.total_investment_required))}
                         </span>
                       </div>
-                      <ProgressBar value={stagePct} max={100} colorClass="bg-blue-500" />
+                      <ProgressBar value={stagePct} max={100} colorClass="bg-primary-500" />
                       <div className="flex justify-between text-[10px] text-neutral-400 mt-0.5">
                         <span className="capitalize">{p.stage.replace(/_/g, " ")}</span>
                         <span>{stagePct}% funding progress</span>
@@ -624,10 +624,10 @@ function DueDiligenceTab() {
       {/* Readiness summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Materials Ready", value: `${readyCount} / ${DD_MATERIALS.length}`, color: "text-emerald-600", sub: "Fully complete" },
-          { label: "Critical Gaps", value: DD_MATERIALS.filter((m) => m.critical && m.ready < m.total).length, color: "text-red-600", sub: "Blocking items" },
-          { label: "Projects Investor-Ready", value: "2 / 5", color: "text-blue-600", sub: "Full DD package" },
-          { label: "Avg. Completeness", value: `${Math.round(DD_MATERIALS.reduce((s, m) => s + (m.ready / m.total) * 100, 0) / DD_MATERIALS.length)}%`, color: "text-blue-600", sub: "Across all materials" },
+          { label: "Materials Ready", value: `${readyCount} / ${DD_MATERIALS.length}`, color: "text-neutral-900", sub: "Fully complete" },
+          { label: "Critical Gaps", value: DD_MATERIALS.filter((m) => m.critical && m.ready < m.total).length, color: "text-neutral-900", sub: "Blocking items" },
+          { label: "Projects Investor-Ready", value: "2 / 5", color: "text-neutral-900", sub: "Full DD package" },
+          { label: "Avg. Completeness", value: `${Math.round(DD_MATERIALS.reduce((s, m) => s + (m.ready / m.total) * 100, 0) / DD_MATERIALS.length)}%`, color: "text-neutral-900", sub: "Across all materials" },
         ].map(({ label, value, color, sub }) => (
           <Card key={label}>
             <CardContent className="pt-5">
@@ -795,7 +795,7 @@ export default function FundingPage() {
         <TabsContent value="overview" className="mt-6">
           {loadingProjects ? (
             <div className="flex justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+              <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary-500 border-t-transparent" />
             </div>
           ) : (
             <OverviewTab projects={projects} />
@@ -809,7 +809,7 @@ export default function FundingPage() {
         <TabsContent value="capital" className="mt-6">
           {loadingProjects ? (
             <div className="flex justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+              <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary-500 border-t-transparent" />
             </div>
           ) : (
             <CapitalStructureTab projects={projects} />

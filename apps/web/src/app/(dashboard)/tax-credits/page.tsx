@@ -220,10 +220,10 @@ function OverviewTab({ onStartApplication }: { onStartApplication: () => void })
   const totalDraft = drafts.reduce((s, a) => s + a.value, 0);
 
   const STATUS_PIPELINE = [
-    { label: "Draft", count: drafts.length, color: "bg-neutral-300", textColor: "text-neutral-600" },
-    { label: "Submitted", count: MOCK_APPLICATIONS.filter((a) => a.status === "submitted").length, color: "bg-amber-400", textColor: "text-amber-700" },
-    { label: "Under Review", count: MOCK_APPLICATIONS.filter((a) => a.status === "under_review").length, color: "bg-blue-500", textColor: "text-blue-700" },
-    { label: "Certified", count: certified.length, color: "bg-green-500", textColor: "text-green-700" },
+    { label: "Draft", count: drafts.length, color: "bg-neutral-300", textColor: "text-neutral-500" },
+    { label: "Submitted", count: MOCK_APPLICATIONS.filter((a) => a.status === "submitted").length, color: "bg-neutral-400", textColor: "text-neutral-600" },
+    { label: "Under Review", count: MOCK_APPLICATIONS.filter((a) => a.status === "under_review").length, color: "bg-primary-400", textColor: "text-primary-700" },
+    { label: "Certified", count: certified.length, color: "bg-primary-600", textColor: "text-primary-700" },
   ];
 
   return (
@@ -296,7 +296,7 @@ function OverviewTab({ onStartApplication }: { onStartApplication: () => void })
                     <p className="text-xs text-neutral-500">{app.project}</p>
                   </div>
                   <span className="text-xs font-semibold text-neutral-700 shrink-0">{fmtValue(app.value)}</span>
-                  <span className="text-xs text-purple-600 font-medium shrink-0">{app.score_impact}</span>
+                  <span className="text-xs text-neutral-500 font-medium shrink-0">{app.score_impact}</span>
                   <Badge variant={sc.variant} className="text-xs shrink-0">{sc.label}</Badge>
                 </div>
               );
@@ -306,17 +306,17 @@ function OverviewTab({ onStartApplication }: { onStartApplication: () => void })
       </Card>
 
       {/* Signal Score Impact callout */}
-      <Card className="border-purple-200 bg-purple-50">
+      <Card className="border-neutral-200 bg-neutral-50">
         <CardContent className="pt-5">
           <div className="flex items-start gap-4">
-            <div className="p-2 bg-purple-100 rounded-lg shrink-0">
-              <Sparkles className="h-5 w-5 text-purple-600" />
+            <div className="p-2 bg-primary-100 rounded-lg shrink-0">
+              <Sparkles className="h-5 w-5 text-primary-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-purple-900 mb-1">
+              <h3 className="font-semibold text-neutral-900 mb-1">
                 How tax credit certification improves your Signal Score
               </h3>
-              <p className="text-sm text-purple-800 mb-4">
+              <p className="text-sm text-neutral-600 mb-4">
                 Platform-certified credits demonstrate financial engineering capability and unlock the
                 <strong> ESG</strong> and <strong>Financial Planning</strong> dimensions of your Signal Score.
                 Investors actively filter for certified projects — certification typically increases investor
@@ -328,11 +328,11 @@ function OverviewTab({ onStartApplication }: { onStartApplication: () => void })
                   { label: "Financial Planning dimension", impact: "+2–4 pts", icon: TrendingUp },
                   { label: "Investor match rate increase", impact: "20–35%", icon: Zap },
                 ].map(({ label, impact, icon: Icon }) => (
-                  <div key={label} className="rounded-lg bg-white border border-purple-200 px-3 py-2.5 flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-purple-500 shrink-0" />
+                  <div key={label} className="rounded-lg bg-white border border-neutral-200 px-3 py-2.5 flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-primary-500 shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-xs text-purple-700 font-medium">{label}</p>
-                      <p className="text-sm font-bold text-purple-900">{impact}</p>
+                      <p className="text-xs text-neutral-600 font-medium">{label}</p>
+                      <p className="text-sm font-bold text-neutral-900">{impact}</p>
                     </div>
                   </div>
                 ))}
@@ -387,7 +387,7 @@ function DiscoverTab({ onApply }: { onApply: (programId: string) => void }) {
             <select
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
-              className="rounded-md border border-neutral-300 px-3 py-2 text-sm w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-md border border-neutral-300 px-3 py-2 text-sm w-80 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Select a project…</option>
               {(projectList?.items ?? []).map((p) => (
@@ -414,7 +414,7 @@ function DiscoverTab({ onApply }: { onApply: (programId: string) => void }) {
                   <p className="text-sm text-neutral-500">
                     {result.identified.length} eligible program
                     {result.identified.length !== 1 ? "s" : ""} found ·{" "}
-                    <span className="text-blue-700 font-medium">
+                    <span className="text-neutral-700 font-medium">
                       {formatCreditValue(result.total_estimated_value, result.currency)} potential value
                     </span>
                   </p>
@@ -485,13 +485,13 @@ function DiscoverTab({ onApply }: { onApply: (programId: string) => void }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search programs…"
-              className="pl-8 pr-3 py-1.5 rounded-md border border-neutral-200 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-8 pr-3 py-1.5 rounded-md border border-neutral-200 text-sm w-52 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filtered.map((prog) => (
-            <Card key={prog.id} className="hover:border-blue-200 transition-colors">
+            <Card key={prog.id} className="hover:border-primary-200 transition-colors">
               <CardContent className="pt-4 pb-4">
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="min-w-0">
@@ -502,8 +502,8 @@ function DiscoverTab({ onApply }: { onApply: (programId: string) => void }) {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-xs font-semibold text-blue-700">{prog.rate}</p>
-                    <p className="text-[10px] text-purple-600 mt-0.5">{prog.signal_score_boost}</p>
+                    <p className="text-xs font-semibold text-neutral-800">{prog.rate}</p>
+                    <p className="text-[10px] text-neutral-500 mt-0.5">{prog.signal_score_boost}</p>
                   </div>
                 </div>
                 <p className="text-xs text-neutral-600 mb-3 leading-relaxed">{prog.description}</p>
@@ -733,7 +733,7 @@ function CertificationTab() {
               <select
                 value={form.project}
                 onChange={(e) => setForm({ ...form, project: e.target.value })}
-                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Select a project…</option>
                 {(projectList?.items ?? []).map((p) => (
@@ -747,7 +747,7 @@ function CertificationTab() {
                 <select
                   value={form.technology_type}
                   onChange={(e) => setForm({ ...form, technology_type: e.target.value })}
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Select type…</option>
                   {["Solar PV", "Wind", "Hydro", "Biogas", "Waste-to-Energy", "Geothermal", "Battery Storage"].map((t) => (
@@ -760,7 +760,7 @@ function CertificationTab() {
                 <select
                   value={form.jurisdiction}
                   onChange={(e) => setForm({ ...form, jurisdiction: e.target.value })}
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Select jurisdiction…</option>
                   {["United States", "European Union", "United Kingdom", "Canada", "Australia"].map((j) => (
@@ -776,7 +776,7 @@ function CertificationTab() {
                   type="date"
                   value={form.placement_date}
                   onChange={(e) => setForm({ ...form, placement_date: e.target.value })}
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div>
@@ -786,7 +786,7 @@ function CertificationTab() {
                   value={form.total_investment}
                   onChange={(e) => setForm({ ...form, total_investment: e.target.value })}
                   placeholder="e.g. 45000000"
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
