@@ -70,6 +70,7 @@ import {
 import { usePortfolios } from "@/lib/portfolio";
 import { AIFeedback } from "@/components/ai-feedback";
 import { CitationBadges } from "@/components/citations/citation-badges";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -1435,18 +1436,23 @@ export default function RiskPage() {
   const [portfolioId, setPortfolioId] = useState("");
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">
-            Risk Analysis & Compliance
-          </h1>
-          <p className="text-neutral-500 mt-1">
-            Portfolio risk monitoring, stress testing, and SFDR compliance
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <ShieldCheck className="h-6 w-6 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-900">Risk Analysis & Compliance</h1>
+            <p className="text-neutral-500 mt-1">Portfolio risk monitoring, stress testing, and SFDR compliance</p>
+          </div>
         </div>
         <PortfolioSelector value={portfolioId} onChange={setPortfolioId} />
       </div>
+
+      <InfoBanner>
+        <strong>Risk & Compliance</strong> provides a 360° view of portfolio risk across five domains, scenario stress testing, SFDR classification, and a complete immutable audit trail for regulatory reporting.
+      </InfoBanner>
 
       <Tabs defaultValue="dashboard">
         <TabsList>

@@ -13,6 +13,7 @@ import {
   Settings,
 } from "lucide-react";
 import { Badge, Button, Card, CardContent, EmptyState, cn } from "@scr/ui";
+import { InfoBanner } from "@/components/info-banner";
 import {
   useNotifications,
   useMarkRead,
@@ -46,21 +47,21 @@ function NotificationRow({ notification }: { notification: NotificationResponse 
     <div
       className={cn(
         "flex items-start gap-4 p-4 border-b last:border-0 transition-colors",
-        notification.is_read ? "bg-white" : "bg-indigo-50/40"
+        notification.is_read ? "bg-white" : "bg-primary-50/40"
       )}
     >
       {/* Icon */}
       <div
         className={cn(
           "mt-0.5 p-2 rounded-full flex-shrink-0",
-          notification.is_read ? "bg-gray-100" : "bg-indigo-100"
+          notification.is_read ? "bg-neutral-100" : "bg-primary-100"
         )}
       >
         <Icon
           className={cn(
             "h-4 w-4",
             notification.is_read
-              ? "text-gray-400"
+              ? "text-neutral-400"
               : notificationTypeColor(notification.type)
           )}
         />
@@ -73,18 +74,18 @@ function NotificationRow({ notification }: { notification: NotificationResponse 
             <p
               className={cn(
                 "text-sm",
-                notification.is_read ? "text-gray-700" : "font-medium text-gray-900"
+                notification.is_read ? "text-neutral-700" : "font-medium text-neutral-900"
               )}
             >
               {notification.title}
             </p>
             {notification.message && (
-              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+              <p className="text-xs text-neutral-500 mt-0.5 line-clamp-2">
                 {notification.message}
               </p>
             )}
           </div>
-          <span className="text-xs text-gray-400 flex-shrink-0 pt-0.5">
+          <span className="text-xs text-neutral-400 flex-shrink-0 pt-0.5">
             {new Date(notification.created_at).toLocaleDateString(undefined, {
               month: "short",
               day: "numeric",
@@ -104,7 +105,7 @@ function NotificationRow({ notification }: { notification: NotificationResponse 
           {notification.link && (
             <a
               href={notification.link}
-              className="text-xs text-indigo-600 hover:underline"
+              className="text-xs text-primary-600 hover:underline"
             >
               View →
             </a>
@@ -113,7 +114,7 @@ function NotificationRow({ notification }: { notification: NotificationResponse 
             <button
               onClick={() => markRead(notification.id)}
               disabled={isPending}
-              className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 ml-auto"
+              className="text-xs text-neutral-400 hover:text-neutral-600 flex items-center gap-1 ml-auto"
             >
               {isPending ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -128,7 +129,7 @@ function NotificationRow({ notification }: { notification: NotificationResponse 
 
       {/* Unread dot */}
       {!notification.is_read && (
-        <div className="mt-2 w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />
+        <div className="mt-2 w-2 h-2 rounded-full bg-primary-500 flex-shrink-0" />
       )}
     </div>
   );
@@ -164,17 +165,19 @@ export default function NotificationsPage() {
   const totalPages = data?.total_pages ?? 1;
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
-            <Bell className="h-6 w-6 text-indigo-500" />
-            Notifications
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {total} notification{total !== 1 ? "s" : ""}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <Bell className="h-6 w-6 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold text-neutral-900">Notifications</h1>
+            <p className="text-sm text-neutral-500 mt-0.5">
+              {total} notification{total !== 1 ? "s" : ""}
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
@@ -191,6 +194,10 @@ export default function NotificationsPage() {
         </Button>
       </div>
 
+      <InfoBanner>
+        <strong>Notifications</strong> surface important events across your portfolio — risk alerts, score changes, document updates, and action items that require your attention.
+      </InfoBanner>
+
       {/* Filter bar */}
       <div className="flex gap-2 flex-wrap">
         {FILTERS.map((f, i) => (
@@ -200,8 +207,8 @@ export default function NotificationsPage() {
             className={cn(
               "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
               filterIdx === i
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-primary-600 text-white"
+                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
             )}
           >
             {f.label}
@@ -214,7 +221,7 @@ export default function NotificationsPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
             </div>
           ) : notifications.length === 0 ? (
             <EmptyState
@@ -246,7 +253,7 @@ export default function NotificationsPage() {
           >
             Previous
           </Button>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-neutral-500">
             Page {page} of {totalPages}
           </span>
           <Button

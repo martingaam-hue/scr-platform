@@ -53,7 +53,7 @@ export default function CompliancePage() {
   const dueThisMonth: number = data?.due_this_month ?? 0
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -61,7 +61,7 @@ export default function CompliancePage() {
             <Shield className="h-6 w-6 text-primary-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-neutral-900 flex items-center gap-2">
               Regulatory Calendar
               {overdueCount > 0 && (
                 <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
@@ -69,23 +69,23 @@ export default function CompliancePage() {
                 </span>
               )}
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Compliance deadlines with auto-reminders</p>
+            <p className="text-sm text-neutral-500 mt-1">Compliance deadlines with auto-reminders</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {/* View toggle */}
-          <div className="flex rounded-lg border border-gray-300 overflow-hidden">
-            <button onClick={() => setView("list")} className={`px-3 py-1.5 text-sm ${view === "list" ? "bg-primary-600 text-white" : "bg-white text-gray-700"}`}>
+          <div className="flex rounded-lg border border-neutral-300 overflow-hidden">
+            <button onClick={() => setView("list")} className={`px-3 py-1.5 text-sm ${view === "list" ? "bg-primary-600 text-white" : "bg-white text-neutral-700"}`}>
               <List className="h-4 w-4" />
             </button>
-            <button onClick={() => setView("calendar")} className={`px-3 py-1.5 text-sm ${view === "calendar" ? "bg-primary-600 text-white" : "bg-white text-gray-700"}`}>
+            <button onClick={() => setView("calendar")} className={`px-3 py-1.5 text-sm ${view === "calendar" ? "bg-primary-600 text-white" : "bg-white text-neutral-700"}`}>
               <Calendar className="h-4 w-4" />
             </button>
           </div>
           <button
             onClick={() => autoGenerateMutation.mutate({ jurisdiction: "EU", project_type: "solar" })}
             disabled={autoGenerateMutation.isPending}
-            className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-1.5 border border-neutral-300 rounded-lg text-sm hover:bg-neutral-50 disabled:opacity-50"
           >
             <Zap className="h-4 w-4 text-yellow-500" />
             Auto-Generate
@@ -114,7 +114,7 @@ export default function CompliancePage() {
           <div key={label} className={`rounded-xl border p-4 ${bg}`}>
             <div className="flex items-center gap-2">
               <Icon className={`h-5 w-5 ${color}`} />
-              <span className="text-sm font-medium text-gray-700">{label}</span>
+              <span className="text-sm font-medium text-neutral-700">{label}</span>
             </div>
             <p className={`text-3xl font-bold mt-1 ${color}`}>{count}</p>
           </div>
@@ -127,7 +127,7 @@ export default function CompliancePage() {
           <button
             key={s ?? "all"}
             onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${statusFilter === s ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${statusFilter === s ? "bg-primary-600 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"}`}
           >
             {s ? s.replace("_", " ") : "All"}
           </button>
@@ -135,7 +135,7 @@ export default function CompliancePage() {
       </div>
 
       {/* Deadline list */}
-      {isLoading && <div className="text-center py-8 text-gray-400">Loading…</div>}
+      {isLoading && <div className="text-center py-8 text-neutral-400">Loading…</div>}
 
       <div className="space-y-3">
         {deadlines.map((d) => {
@@ -143,26 +143,26 @@ export default function CompliancePage() {
           return (
             <div
               key={d.id}
-              className={`rounded-xl border bg-white p-4 ${d.is_overdue ? "border-red-200 bg-red-50/30" : "border-gray-200"}`}
+              className={`rounded-xl border bg-white p-4 ${d.is_overdue ? "border-red-200 bg-red-50/30" : "border-neutral-200"}`}
             >
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 mt-0.5">
-                  <Icon className={`h-5 w-5 ${d.is_overdue ? "text-red-500" : "text-gray-400"}`} />
+                  <Icon className={`h-5 w-5 ${d.is_overdue ? "text-red-500" : "text-neutral-400"}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-gray-900">{d.title}</span>
+                    <span className="font-semibold text-neutral-900">{d.title}</span>
                     <div className={`h-2 w-2 rounded-full flex-shrink-0 ${PRIORITY_DOT[d.priority] ?? "bg-gray-400"}`} />
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_BADGE[d.status] ?? "bg-gray-100 text-gray-600"}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_BADGE[d.status] ?? "bg-neutral-100 text-neutral-600"}`}>
                       {d.status.replace("_", " ")}
                     </span>
                     {d.recurrence && (
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500 capitalize">
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-neutral-100 text-neutral-500 capitalize">
                         <RefreshCw className="h-3 w-3 inline mr-0.5" />{d.recurrence}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                  <div className="flex items-center gap-4 mt-1 text-xs text-neutral-500">
                     <span className={d.is_overdue ? "text-red-600 font-medium" : ""}>
                       Due {formatDate(d.due_date)}
                       {!d.is_overdue && d.days_until_due <= 30 && ` (${d.days_until_due}d)`}
@@ -170,7 +170,7 @@ export default function CompliancePage() {
                     {d.jurisdiction && <span>{d.jurisdiction}</span>}
                     {d.regulatory_body && <span>· {d.regulatory_body}</span>}
                   </div>
-                  {d.description && <p className="text-xs text-gray-500 mt-1">{d.description}</p>}
+                  {d.description && <p className="text-xs text-neutral-500 mt-1">{d.description}</p>}
                 </div>
                 {d.status !== "completed" && d.status !== "waived" && (
                   <button
@@ -186,8 +186,8 @@ export default function CompliancePage() {
           )
         })}
         {!isLoading && deadlines.length === 0 && (
-          <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl text-gray-500">
-            <Shield className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+          <div className="text-center py-12 border border-dashed border-neutral-300 rounded-xl text-neutral-500">
+            <Shield className="h-10 w-10 text-neutral-300 mx-auto mb-3" />
             <p className="font-medium">No compliance deadlines</p>
             <p className="text-sm mt-1">Click &quot;Auto-Generate&quot; to create jurisdiction-appropriate deadlines</p>
           </div>
@@ -199,13 +199,13 @@ export default function CompliancePage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Add Compliance Deadline</h2>
-              <button onClick={() => setShowAddForm(false)}><X className="h-5 w-5 text-gray-400" /></button>
+              <h2 className="text-lg font-bold text-neutral-900">Add Compliance Deadline</h2>
+              <button onClick={() => setShowAddForm(false)}><X className="h-5 w-5 text-neutral-400" /></button>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Category</label>
+                <select className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm"
                   value={newDeadline.category} onChange={e => setNewDeadline(d => ({ ...d, category: e.target.value }))}>
                   {["regulatory_filing", "tax", "environmental", "permit", "license", "insurance", "reporting", "sfdr"].map(c =>
                     <option key={c} value={c}>{c.replace("_", " ")}</option>
@@ -213,28 +213,28 @@ export default function CompliancePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Priority</label>
+                <select className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm"
                   value={newDeadline.priority} onChange={e => setNewDeadline(d => ({ ...d, priority: e.target.value }))}>
                   {["critical", "high", "medium", "low"].map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-              <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Title *</label>
+              <input className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm"
                 value={newDeadline.title} onChange={e => setNewDeadline(d => ({ ...d, title: e.target.value }))}
                 placeholder="e.g. Annual EIA Renewal" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
-                <input type="date" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Due Date *</label>
+                <input type="date" className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm"
                   value={newDeadline.due_date} onChange={e => setNewDeadline(d => ({ ...d, due_date: e.target.value }))} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Recurrence</label>
-                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Recurrence</label>
+                <select className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm"
                   value={newDeadline.recurrence} onChange={e => setNewDeadline(d => ({ ...d, recurrence: e.target.value }))}>
                   {["one_time", "monthly", "quarterly", "annually"].map(r => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
                 </select>
@@ -242,19 +242,19 @@ export default function CompliancePage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Jurisdiction</label>
-                <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Jurisdiction</label>
+                <input className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm"
                   value={newDeadline.jurisdiction} onChange={e => setNewDeadline(d => ({ ...d, jurisdiction: e.target.value }))}
                   placeholder="EU, UK, US..." />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Regulatory Body</label>
-                <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Regulatory Body</label>
+                <input className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm"
                   value={newDeadline.regulatory_body} onChange={e => setNewDeadline(d => ({ ...d, regulatory_body: e.target.value }))} />
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <button onClick={() => setShowAddForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm">Cancel</button>
+              <button onClick={() => setShowAddForm(false)} className="px-4 py-2 border border-neutral-300 rounded-lg text-sm">Cancel</button>
               <button
                 onClick={() => createMutation.mutate({ ...newDeadline, due_date: newDeadline.due_date || null }, { onSuccess: () => setShowAddForm(false) })}
                 disabled={!newDeadline.title || !newDeadline.due_date || createMutation.isPending}

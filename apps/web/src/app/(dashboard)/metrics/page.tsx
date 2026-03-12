@@ -8,6 +8,7 @@ import {
   type BenchmarkEntry,
   type BenchmarkMetricComparison,
 } from "@/lib/metrics";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -127,12 +128,12 @@ export default function MetricsPage() {
   const belowMedian = comparisons.filter((c) => c.quartile >= 3).length;
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-100">
-            <TrendingUp className="h-5 w-5 text-teal-600" />
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <TrendingUp className="h-6 w-6 text-primary-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-neutral-900">Benchmarks & Metrics</h1>
@@ -166,6 +167,10 @@ export default function MetricsPage() {
           </button>
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Benchmarks & Metrics</strong> lets you compare project performance against industry peer groups by asset class, geography, and stage. Import your own benchmark data or use our curated dataset to contextualise every signal score dimension.
+      </InfoBanner>
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">

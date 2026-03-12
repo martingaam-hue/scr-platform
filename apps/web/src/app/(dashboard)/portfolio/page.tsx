@@ -34,6 +34,7 @@ import {
   Tooltip,
 } from "recharts";
 import { useCashflowPacing } from "@/lib/metrics";
+import { InfoBanner } from "@/components/info-banner";
 import { usePermission } from "@/lib/auth";
 import {
   usePortfolios,
@@ -402,7 +403,10 @@ export default function PortfolioPage() {
   if (!portfolioList?.items.length) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <Wallet className="h-6 w-6 text-primary-600" />
+          </div>
           <h1 className="text-2xl font-bold text-neutral-900">Portfolio</h1>
         </div>
         <EmptyState
@@ -427,6 +431,9 @@ export default function PortfolioPage() {
       {/* Header + portfolio selector */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <Wallet className="h-6 w-6 text-primary-600" />
+          </div>
           <h1 className="text-2xl font-bold text-neutral-900">Portfolio</h1>
           {portfolioList && portfolioList.items.length > 1 && (
             <select
@@ -449,6 +456,10 @@ export default function PortfolioPage() {
           </div>
         )}
       </div>
+
+      <InfoBanner>
+        <strong>Portfolio</strong> provides a consolidated view of all your fund holdings, performance metrics, allocation breakdown, and cash flow pacing. Use the tabs below to drill into specific dimensions.
+      </InfoBanner>
 
       {/* Metrics cards */}
       {metrics && (

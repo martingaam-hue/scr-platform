@@ -3,6 +3,7 @@
 import { Badge, Card, CardContent, DataTable, EmptyState, type ColumnDef } from "@scr/ui";
 import { Activity } from "lucide-react";
 import { usePortfolioDashboard } from "@/lib/monitoring";
+import { InfoBanner } from "@/components/info-banner";
 
 interface ProjectSummaryRow {
   project_id: string;
@@ -86,15 +87,20 @@ export default function MonitoringPage() {
   ];
 
   return (
-    <div className="p-6 max-w-screen-xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-neutral-900">
-          Portfolio Monitoring
-        </h1>
-        <p className="text-sm text-neutral-500 mt-1">
-          Covenant compliance and KPI tracking across all portfolio projects.
-        </p>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-primary-100 rounded-lg">
+          <Activity className="h-6 w-6 text-primary-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">Portfolio Monitoring</h1>
+          <p className="text-sm text-neutral-500 mt-1">Covenant compliance and KPI tracking across all portfolio projects.</p>
+        </div>
       </div>
+
+      <InfoBanner>
+        <strong>Portfolio Monitoring</strong> tracks covenant compliance and KPI targets across all your investments in real time. Breaches are flagged immediately so you can take corrective action before they escalate.
+      </InfoBanner>
 
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

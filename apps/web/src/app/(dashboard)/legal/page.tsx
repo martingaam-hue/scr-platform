@@ -8,7 +8,6 @@ import {
   Download,
   FileCheck,
   FileText,
-  Info,
   Lock,
   RefreshCw,
   Search,
@@ -33,6 +32,7 @@ import {
 } from "@scr/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AIFeedback } from "@/components/ai-feedback";
+import { InfoBanner } from "@/components/info-banner";
 import { api } from "@/lib/api";
 import {
   useTemplates,
@@ -805,24 +805,19 @@ export default function LegalPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-neutral-900">
-          Legal Automation &amp; Compliance
-        </h1>
-        <p className="text-neutral-500 mt-1">
-          AI-powered document generation and compliance management
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-primary-100 rounded-lg">
+          <Shield className="h-6 w-6 text-primary-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">Legal Automation &amp; Compliance</h1>
+          <p className="text-neutral-500 mt-1">AI-powered document generation and compliance management</p>
+        </div>
       </div>
 
-      {/* Info banner */}
-      <div className="flex items-start gap-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
-        <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-blue-800">
-          Upload contracts, term sheets, NDAs, or any legal document for instant AI-powered analysis.
-          You can also generate new documents from our template library. All results are saved to
-          your document library for future reference.
-        </p>
-      </div>
+      <InfoBanner>
+        Upload contracts, term sheets, NDAs, or any legal document for instant AI-powered analysis. You can also generate new documents from our template library. All results are saved to your document library for future reference.
+      </InfoBanner>
 
       {/* AI Analysis — above templates */}
       <AnalysisSection onViewDocuments={() => setActiveTab("documents")} />
