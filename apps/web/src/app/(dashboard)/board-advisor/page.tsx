@@ -13,6 +13,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@scr/ui";
+import { InfoBanner } from "@/components/info-banner";
 import {
   APPLICATION_STATUS_LABELS,
   AVAILABILITY_LABELS,
@@ -102,6 +103,13 @@ export default function BoardAdvisorPage() {
           Find and connect with experienced board advisors for your projects.
         </p>
       </div>
+
+      <InfoBanner>
+        The <strong>Board Advisor Program</strong> connects you with experienced professionals who can
+        serve on your project boards. Use the <strong>Find Advisors</strong> tab to search by
+        expertise area, and the <strong>Applications</strong> tab to review and respond to incoming
+        advisor applications.
+      </InfoBanner>
 
       <Tabs defaultValue="find">
         <TabsList>

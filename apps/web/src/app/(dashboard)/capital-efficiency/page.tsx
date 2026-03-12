@@ -16,6 +16,7 @@ import {
   CardTitle,
   EmptyState,
 } from "@scr/ui";
+import { InfoBanner } from "@/components/info-banner";
 import {
   useCapitalEfficiency,
   useEfficiencyBreakdown,
@@ -257,6 +258,12 @@ export default function CapitalEfficiencyPage() {
           </p>
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Capital Efficiency</strong> tracks how effectively your portfolio converts invested
+        capital into deal outcomes. Compare your platform&apos;s due diligence costs, time-to-close,
+        and risk assessment spend against industry benchmarks to quantify the ROI of using SCR.
+      </InfoBanner>
 
       {/* KPI Row */}
       {kpiLoading ? (

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { HelpCircle, Plus, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { InfoBanner } from "@/components/info-banner";
 import {
   useProjectQuestions,
   useQAStats,
@@ -149,6 +150,12 @@ export default function QAPage() {
           New Question
         </button>
       </div>
+
+      <InfoBanner>
+        The <strong>Q&A Workflow</strong> manages structured question-and-answer exchanges between
+        your team and investors. Track open questions, SLA deadlines, and official answers in one
+        place — select a project above to load its Q&A queue.
+      </InfoBanner>
 
       {/* Project selector */}
       <div className="flex items-center gap-3">

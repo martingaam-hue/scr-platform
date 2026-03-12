@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge, Button, Card, CardContent, EmptyState } from "@scr/ui";
 
+import { InfoBanner } from "@/components/info-banner";
 import {
   formatCurrency,
   kpiQualityBg,
@@ -125,6 +126,12 @@ export default function ValueQuantifierPage() {
           </p>
         </div>
       </div>
+
+      <InfoBanner>
+        The <strong>Value Quantifier</strong> models the financial and impact value of your projects
+        using deterministic calculations — IRR, NPV, DSCR, LCOE, and more. Enter a project ID to
+        run the model with default assumptions, or override key parameters to run scenario analysis.
+      </InfoBanner>
 
       {/* Input card */}
       <Card>

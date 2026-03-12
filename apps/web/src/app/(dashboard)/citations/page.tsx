@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BookOpen, Search, CheckCircle, XCircle, HelpCircle } from "lucide-react";
+import { InfoBanner } from "@/components/info-banner";
 import {
   useCitationStats,
   useCitations,
@@ -190,6 +191,12 @@ export default function CitationsPage() {
           </div>
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>AI Citations</strong> tracks every data source referenced in AI-generated analysis
+        across the platform. Review confidence scores, verify or flag individual claims, and filter
+        by analysis type or source document to ensure the accuracy of AI outputs.
+      </InfoBanner>
 
       {/* Stats */}
       {statsLoading ? (

@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { Badge, Card, CardContent, EmptyState, cn } from "@scr/ui";
+import { InfoBanner } from "@/components/info-banner";
 import {
   useActivityFeed,
   timeAgo,
@@ -121,6 +122,12 @@ export default function CollaborationPage() {
           </span>
         )}
       </div>
+
+      <InfoBanner>
+        The <strong>Activity Feed</strong> gives you a real-time view of every action taken across
+        your organisation — project updates, document uploads, deal changes, risk flags, and team
+        activity. Use this feed to stay informed and maintain a full audit trail.
+      </InfoBanner>
 
       {/* Feed */}
       <Card>

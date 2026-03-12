@@ -19,6 +19,7 @@ import {
   CardTitle,
   EmptyState,
 } from "@scr/ui";
+import { InfoBanner } from "@/components/info-banner";
 import {
   useInsuranceImpact,
   type CoverageRecommendation,
@@ -119,6 +120,12 @@ export default function InsurancePage() {
           ))}
         </select>
       </div>
+
+      <InfoBanner>
+        <strong>Insurance analysis</strong> evaluates your project&apos;s coverage needs and models
+        the financial impact of premiums on investor returns. Select a project to see AI-generated
+        coverage recommendations, identify gaps, and review the estimated IRR dilution.
+      </InfoBanner>
 
       {!selectedProjectId ? (
         <EmptyState
