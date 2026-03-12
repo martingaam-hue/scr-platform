@@ -394,7 +394,7 @@ function FundraisingTab({ projects }: { projects: ProjectResponse[] }) {
                       </span>
                     </div>
                     <ProgressBar
-                      value={p.stage === "operational" ? 100 : p.stage === "construction" ? 75 : p.stage === "ready_to_build" ? 50 : p.stage === "development" ? 25 : 10}
+                      value={p.stage === "operational" ? 100 : p.stage === "construction" ? 75 : p.stage === "commissioning" ? 50 : p.stage === "development" ? 25 : 10}
                       max={100}
                       colorClass="bg-emerald-500"
                     />
@@ -603,7 +603,7 @@ function ProjectionsTab() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="quarter" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `€${v}M`} />
-              <Tooltip formatter={(v: number) => [`€${v}M`]} />
+              <Tooltip formatter={(value) => [`€${value}M`]} />
               <Area
                 type="monotone"
                 dataKey="cumulative"

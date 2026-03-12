@@ -968,7 +968,7 @@ function BudgetTab() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `€${v}K`} />
-                <Tooltip formatter={(v: number) => [`€${v}K`]} />
+                <Tooltip formatter={(value) => [`€${value}K`]} />
                 <Area type="monotone" dataKey="budgeted" name="Budget" stroke="#818CF8" strokeDasharray="4 2" strokeWidth={1.5} fill="url(#budgetGrad)" dot={false} />
                 <Area type="monotone" dataKey="actual" name="Actual" stroke="#4F46E5" strokeWidth={2} fill="url(#actualGrad)" dot={false} />
               </AreaChart>
@@ -1018,7 +1018,7 @@ function KPIsTab() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis dataKey="stage" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}w`} />
-                <Tooltip formatter={(v: number) => [`${v} weeks`]} />
+                <Tooltip formatter={(value) => [`${value} weeks`]} />
                 <Bar dataKey="benchmark" name="Industry Benchmark" fill="#E0E7FF" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="yours" name="Your Portfolio" radius={[4, 4, 0, 0]}>
                   {STAGE_WEEKS_DATA.map((entry, i) => (
