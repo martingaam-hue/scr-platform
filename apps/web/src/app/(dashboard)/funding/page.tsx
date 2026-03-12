@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -377,36 +378,71 @@ function PipelineTab() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500">Investor</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500">Type</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-500">Target Ticket</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500">Project</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500">Stage</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500">Last Contact</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-500">Next Action</th>
                 </tr>
               </thead>
               <tbody>
-                {INVESTOR_PIPELINE.map((inv) => (
-                  <tr key={`${inv.investor}-${inv.project}`} className="border-b border-neutral-50 hover:bg-neutral-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-neutral-900">{inv.investor}</td>
-                    <td className="px-4 py-3 text-xs text-neutral-500">{inv.type}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-neutral-800">{fmt(inv.ticket)}</td>
-                    <td className="px-4 py-3 text-xs text-neutral-600">{inv.project}</td>
-                    <td className="px-4 py-3"><StageBadge stage={inv.stage} /></td>
-                    <td className="px-4 py-3 text-xs text-neutral-400">{inv.last_contact}</td>
-                    <td className="px-4 py-3">
-                      <span className="flex items-center gap-1 text-xs text-blue-600 font-medium">
-                        <ChevronRight className="h-3 w-3" />{inv.next_action}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {(() => {
+                  // Group investors by project, preserving insertion order
+                  const projectOrder: string[] = [];
+                  const grouped: Record<string, typeof INVESTOR_PIPELINE> = {};
+                  for (const inv of INVESTOR_PIPELINE) {
+                    if (!grouped[inv.project]) {
+                      projectOrder.push(inv.project);
+                      grouped[inv.project] = [];
+                    }
+                    grouped[inv.project].push(inv);
+                  }
+                  return projectOrder.map((project, pi) => {
+                    const investors = grouped[project];
+                    const projectTotal = investors.reduce((s, i) => s + i.ticket, 0);
+                    return (
+                      <React.Fragment key={project}>
+                        {/* Project divider row */}
+                        <tr className={cn(pi > 0 && "border-t-2 border-neutral-200")}>
+                          <td
+                            colSpan={6}
+                            className="px-4 py-2 bg-neutral-50"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+                                {project}
+                              </span>
+                              <span className="text-xs text-neutral-400">
+                                {investors.length} investor{investors.length !== 1 ? "s" : ""} · {fmt(projectTotal)}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                        {/* Investor rows for this project */}
+                        {investors.map((inv) => (
+                          <tr key={`${inv.investor}-${inv.project}`} className="border-b border-neutral-50 hover:bg-neutral-50 transition-colors">
+                            <td className="px-4 py-3 font-medium text-neutral-900">{inv.investor}</td>
+                            <td className="px-4 py-3 text-xs text-neutral-500">{inv.type}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-neutral-800">{fmt(inv.ticket)}</td>
+                            <td className="px-4 py-3"><StageBadge stage={inv.stage} /></td>
+                            <td className="px-4 py-3 text-xs text-neutral-400">{inv.last_contact}</td>
+                            <td className="px-4 py-3">
+                              <span className="flex items-center gap-1 text-xs text-blue-600 font-medium">
+                                <ChevronRight className="h-3 w-3" />{inv.next_action}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    );
+                  });
+                })()}
               </tbody>
-              <tfoot className="bg-neutral-50 border-t border-neutral-200">
+              <tfoot className="bg-neutral-50 border-t-2 border-neutral-200">
                 <tr>
                   <td className="px-4 py-3 font-semibold text-neutral-900" colSpan={2}>Total pipeline</td>
                   <td className="px-4 py-3 text-right font-semibold text-neutral-900">
                     {fmt(INVESTOR_PIPELINE.reduce((s, i) => s + i.ticket, 0))}
                   </td>
-                  <td colSpan={4} />
+                  <td colSpan={3} />
                 </tr>
               </tfoot>
             </table>
