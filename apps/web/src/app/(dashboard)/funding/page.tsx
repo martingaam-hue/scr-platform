@@ -159,8 +159,8 @@ function FundraisingHeroCard() {
   const discussionPct = (PORTFOLIO_SUMMARY.in_discussion / PORTFOLIO_SUMMARY.total_needed) * 100;
 
   return (
-    <div className="rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] p-5">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="rounded-xl border border-[#E2E5EA] bg-white p-4">
+      <div className="flex items-center gap-2 mb-3">
         <Target className="h-4 w-4 text-neutral-400" />
         <span className="text-xs font-semibold text-[#8A8F9A] uppercase tracking-widest">
           Fundraising Overview
@@ -171,14 +171,14 @@ function FundraisingHeroCard() {
       </div>
 
       {/* KPI stat boxes */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         {[
           { label: "Total Needed", value: fmt(PORTFOLIO_SUMMARY.total_needed), sub: "Across portfolio" },
           { label: "Funding Gap", value: fmt(PORTFOLIO_SUMMARY.gap), sub: "To be raised" },
           { label: "Active Investors", value: PORTFOLIO_SUMMARY.active_investors, sub: "In conversation" },
           { label: "Term Sheets", value: PORTFOLIO_SUMMARY.term_sheets, sub: "Live / under review" },
         ].map(({ label, value, sub }) => (
-          <div key={label} className="rounded-lg border border-[#E2E5EA] bg-white px-4 py-3">
+          <div key={label} className="rounded-lg border border-[#E2E5EA] bg-neutral-50 px-3 py-2.5">
             <p className="text-[11px] text-[#8A8F9A] mb-1">{label}</p>
             <p className="text-2xl font-bold text-[#1A1D23]">{value}</p>
             <p className="text-[10px] text-[#8A8F9A] mt-0.5">{sub}</p>

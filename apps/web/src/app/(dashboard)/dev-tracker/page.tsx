@@ -274,15 +274,15 @@ function HeroCard({ projects }: { projects: MockProject[] }) {
     : 0;
 
   return (
-    <div className="rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] p-5">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="rounded-xl border border-[#E2E5EA] bg-white p-4">
+      <div className="flex items-center gap-2 mb-3">
         <Monitor className="h-4 w-4 text-neutral-400" />
         <span className="text-xs font-semibold text-[#8A8F9A] uppercase tracking-widest">Portfolio Development Health</span>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-5">
+      <div className="flex flex-col lg:flex-row gap-4">
         {/* KPI stat boxes */}
-        <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {[
             { label: "Active Projects", value: active.length, valueClass: "text-[#1A1D23]" },
             { label: "Total Pipeline", value: `${totalMw} MW`, valueClass: "text-[#1A1D23]" },
@@ -291,9 +291,9 @@ function HeroCard({ projects }: { projects: MockProject[] }) {
             { label: "At Risk", value: atRisk, valueClass: "text-[#D97706]" },
             { label: "Ready to Build", value: rtb, valueClass: "text-[#1A1D23]" },
           ].map(({ label, value, valueClass }) => (
-            <div key={label} className="rounded-lg border border-[#E2E5EA] bg-white px-3 py-3 text-center">
-              <p className="text-[10px] text-[#8A8F9A] mb-1">{label}</p>
-              <p className={cn("text-2xl font-bold", valueClass)}>{value}</p>
+            <div key={label} className="rounded-lg border border-[#E2E5EA] bg-neutral-50 px-3 py-2 text-center">
+              <p className="text-[10px] text-[#8A8F9A] mb-1 text-center">{label}</p>
+              <p className={cn("text-2xl font-bold text-center", valueClass)}>{value}</p>
             </div>
           ))}
         </div>

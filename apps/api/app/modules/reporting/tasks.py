@@ -229,38 +229,37 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
         ]
 
     # ── Pacing / J-Curve sections ─────────────────────────────────────────────
-    if section_names & {"pacing_summary", "pacing_analysis"}:
-        if portfolio:
-            projections = (
-                session.execute(
-                    select(CashflowProjection)
-                    .where(
-                        CashflowProjection.portfolio_id == portfolio.id,
-                        CashflowProjection.is_deleted.is_(False),
-                    )
-                    .order_by(CashflowProjection.period_start)
-                    .limit(40)
+    if section_names & {"pacing_summary", "pacing_analysis"} and portfolio:
+        projections = (
+            session.execute(
+                select(CashflowProjection)
+                .where(
+                    CashflowProjection.portfolio_id == portfolio.id,
+                    CashflowProjection.is_deleted.is_(False),
                 )
-                .scalars()
-                .all()
+                .order_by(CashflowProjection.period_start)
+                .limit(40)
             )
-            if projections:
-                data["pacing_summary"] = {
-                    "Portfolio": portfolio.name,
-                    "Target AUM": str(portfolio.target_aum),
-                    "Current AUM": str(portfolio.current_aum),
-                    "Deployment Rate": f"{float(portfolio.current_aum) / float(portfolio.target_aum):.1%}" if float(portfolio.target_aum) else "—",
-                    "Projection Periods": str(len(projections)),
-                }
-                data["pacing_analysis"] = [p.to_dict() for p in projections]
-            else:
-                data["pacing_summary"] = {
-                    "Portfolio": portfolio.name,
-                    "Target AUM": str(portfolio.target_aum),
-                    "Current AUM": str(portfolio.current_aum),
-                    "Note": "No cashflow projections recorded yet.",
-                }
-                data["pacing_analysis"] = []
+            .scalars()
+            .all()
+        )
+        if projections:
+            data["pacing_summary"] = {
+                "Portfolio": portfolio.name,
+                "Target AUM": str(portfolio.target_aum),
+                "Current AUM": str(portfolio.current_aum),
+                "Deployment Rate": f"{float(portfolio.current_aum) / float(portfolio.target_aum):.1%}" if float(portfolio.target_aum) else "—",
+                "Projection Periods": str(len(projections)),
+            }
+            data["pacing_analysis"] = [p.to_dict() for p in projections]
+        else:
+            data["pacing_summary"] = {
+                "Portfolio": portfolio.name,
+                "Target AUM": str(portfolio.target_aum),
+                "Current AUM": str(portfolio.current_aum),
+                "Note": "No cashflow projections recorded yet.",
+            }
+            data["pacing_analysis"] = []
 
     # ── ESG sections ──────────────────────────────────────────────────────────
     esg_sections = {
@@ -533,32 +532,31 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
         data["financial_analysis"] = data["valuation_summary"]
 
     # ── Signal score sections ─────────────────────────────────────────────────
-    if section_names & {"signal_score_detail", "signal_score"}:
-        if project:
-            ss = session.execute(
-                select(SignalScore)
-                .where(
-                    SignalScore.project_id == project.id,
-                    SignalScore.is_deleted.is_(False),
-                )
-                .order_by(SignalScore.version.desc())
-                .limit(1)
-            ).scalar_one_or_none()
-            if ss:
-                data["signal_score_detail"] = {
-                    "Overall Score": f"{ss.overall_score}/100",
-                    "Project Viability": f"{ss.project_viability_score}/100",
-                    "Financial Planning": f"{ss.financial_planning_score}/100",
-                    "Risk Assessment": f"{ss.risk_assessment_score}/100",
-                    "Team Strength": f"{ss.team_strength_score}/100",
-                    "ESG Score": f"{ss.esg_score}/100",
-                    "Version": str(ss.version),
-                    "Calculated At": str(ss.created_at)[:10],
-                }
-                data["signal_score"] = data["signal_score_detail"]
-            else:
-                data["signal_score_detail"] = {"Note": "Signal score not yet calculated."}
-                data["signal_score"] = data["signal_score_detail"]
+    if section_names & {"signal_score_detail", "signal_score"} and project:
+        ss = session.execute(
+            select(SignalScore)
+            .where(
+                SignalScore.project_id == project.id,
+                SignalScore.is_deleted.is_(False),
+            )
+            .order_by(SignalScore.version.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        if ss:
+            data["signal_score_detail"] = {
+                "Overall Score": f"{ss.overall_score}/100",
+                "Project Viability": f"{ss.project_viability_score}/100",
+                "Financial Planning": f"{ss.financial_planning_score}/100",
+                "Risk Assessment": f"{ss.risk_assessment_score}/100",
+                "Team Strength": f"{ss.team_strength_score}/100",
+                "ESG Score": f"{ss.esg_score}/100",
+                "Version": str(ss.version),
+                "Calculated At": str(ss.created_at)[:10],
+            }
+            data["signal_score"] = data["signal_score_detail"]
+        else:
+            data["signal_score_detail"] = {"Note": "Signal score not yet calculated."}
+            data["signal_score"] = data["signal_score_detail"]
 
     # ── Risk register ─────────────────────────────────────────────────────────
     if section_names & {"risk_register", "risk_assessment"}:

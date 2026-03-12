@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Activity,
   ArrowLeft,
   ChevronDown,
   ChevronRight,
@@ -63,6 +64,7 @@ import {
 import { useProject } from "@/lib/projects";
 import { usePermission } from "@/lib/auth";
 import { AIFeedback } from "@/components/ai-feedback";
+import { InfoBanner } from "@/components/info-banner";
 import { CitationBadges } from "@/components/citations/citation-badges";
 import { LineagePanel } from "@/components/lineage/lineage-panel";
 import {
@@ -208,14 +210,14 @@ function HeroScoreCard({
   const displayScore = Math.round(score);
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] p-6">
       <div className="mb-6">
         <h2 className="text-lg font-bold text-neutral-900">Last Generated Score</h2>
         <p className="mt-1 text-sm font-medium text-neutral-700">
           {projectName}
-          {sector && <span className="text-neutral-400"> · {sector}</span>}
+          {sector && <span className="text-[#8A8F9A]"> · {sector}</span>}
         </p>
-        <p className="mt-0.5 text-xs text-neutral-400">
+        <p className="mt-0.5 text-xs text-[#8A8F9A]">
           {new Date(calculatedAt).toLocaleDateString("en-GB", {
             day: "numeric",
             month: "short",
@@ -238,7 +240,7 @@ function HeroScoreCard({
             </span>
           </div>
         </div>
-        <p className="mt-3 text-sm text-gray-500">
+        <p className="mt-3 text-sm text-[#8A8F9A]">
           Project Readiness Score ·{" "}
           <span className="font-medium text-neutral-700">{label}</span>
         </p>
@@ -358,7 +360,7 @@ function DimensionSection({ dimension }: { dimension: DimensionScore }) {
   const score = Math.round(dimension.score);
 
   return (
-    <Card className={cn("border transition-all duration-200", ratingBorder(score))}>
+    <Card className="border border-[#E2E5EA] bg-white transition-all duration-200">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between p-4 text-left hover:bg-black/[0.02]"
@@ -704,16 +706,7 @@ function ActionItemCard({
   const scorePct = gap.max_points > 0 ? gap.current_score / gap.max_points : 0;
 
   return (
-    <div
-      className={cn(
-        "rounded-xl border transition-all duration-150",
-        gap.priority === "high"
-          ? "border-red-200 bg-red-50/30"
-          : gap.priority === "medium"
-            ? "border-amber-200 bg-amber-50/30"
-            : "border-neutral-200 bg-neutral-50/50"
-      )}
-    >
+    <div className="rounded-xl border border-[#E2E5EA] bg-[#F7F8FA] transition-all duration-150">
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-start gap-3 p-4 text-left hover:bg-black/[0.02]"
@@ -854,7 +847,7 @@ function ReadinessActionPlan({
   const defaultTab = hasActions ? "actions" : strengths.length > 0 ? "strengths" : "history";
 
   return (
-    <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-[#E2E5EA] bg-white">
       {/* Header */}
       <div className="flex items-center justify-between border-b px-5 py-4">
         <h2 className="flex items-center gap-2 text-base font-semibold text-neutral-900">
@@ -943,7 +936,7 @@ function ReadinessActionPlan({
               {strengths.map((s, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between rounded-lg border border-green-100 bg-green-50 px-4 py-3"
+                  className="flex items-center justify-between rounded-lg border border-[#E2E5EA] bg-white px-4 py-3"
                 >
                   <div>
                     <p className="text-sm font-medium text-neutral-800">{s.criterion_name}</p>
@@ -1064,44 +1057,72 @@ export function SignalScoreDetail({ projectId, backHref, backLabel, embedded = f
   return (
     <div className={cn("space-y-6", !embedded && "p-6")}>
 
-      {/* Back + action buttons — hidden when embedded in a tab */}
+      {/* Page header — hidden when embedded in a tab */}
       {!embedded && (
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => router.push(backHref)}
-            className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-[#1B2A4A]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {resolvedBackLabel}
-          </button>
-          <div className="flex items-center gap-2">
-            {details && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  router.push(`/projects/${projectId}?tab=business-plan&action=investor_pitch`)
-                }
+        <>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push(backHref)}
+                className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-[#1B2A4A]"
               >
-                <FileText className="mr-1.5 h-3.5 w-3.5" />
-                Generate Memorandum
-              </Button>
-            )}
-            {canAnalyze && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => recalculate.mutate(projectId)}
-                disabled={recalculate.isPending}
-              >
-                <RefreshCw
-                  className={cn("mr-1.5 h-3.5 w-3.5", recalculate.isPending && "animate-spin")}
-                />
-                Recalculate
-              </Button>
-            )}
+                <ArrowLeft className="h-4 w-4" />
+                {resolvedBackLabel}
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary-100 rounded-lg">
+                <Activity className="h-6 w-6 text-primary-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-neutral-900">Signal Score</h1>
+                <p className="text-sm text-neutral-500 mt-0.5">
+                  AI-powered multi-dimensional assessment of project investment readiness
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {details && (
+                <span className="text-xs text-neutral-400 border border-neutral-200 rounded-full px-3 py-1">
+                  v{details.version}{details.model_used ? ` · ${details.model_used}` : ""}
+                </span>
+              )}
+              {details && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    router.push(`/projects/${projectId}?tab=business-plan&action=investor_pitch`)
+                  }
+                >
+                  <FileText className="mr-1.5 h-3.5 w-3.5" />
+                  Generate Memorandum
+                </Button>
+              )}
+              {canAnalyze && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => recalculate.mutate(projectId)}
+                  disabled={recalculate.isPending}
+                >
+                  <RefreshCw
+                    className={cn("mr-1.5 h-3.5 w-3.5", recalculate.isPending && "animate-spin")}
+                  />
+                  Recalculate
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+
+          <InfoBanner>
+            <strong>Signal Score</strong> provides an AI-powered breakdown of your project&apos;s
+            investment readiness across five dimensions — Viability, Financial Planning, Team
+            Strength, Risk Assessment, and ESG. Use the{" "}
+            <strong>Readiness Action Plan</strong> to identify gaps and prioritise improvements
+            that will raise your score.
+          </InfoBanner>
+        </>
       )}
 
       {/* Hero */}
@@ -1128,19 +1149,6 @@ export function SignalScoreDetail({ projectId, backHref, backLabel, embedded = f
             ))}
           </div>
         </div>
-      )}
-
-      {/* Generate Memorandum CTA — hidden when embedded */}
-      {!embedded && (
-        <Button
-          className="w-full bg-[#1B2A4A] py-3.5 text-white hover:bg-[#243660]"
-          onClick={() =>
-            router.push(`/projects/${projectId}?tab=business-plan&action=investor_pitch`)
-          }
-        >
-          <FileText className="mr-2 h-4 w-4" />
-          Generate Project Memorandum
-        </Button>
       )}
 
       {/* Analytics row: Benchmark Comparison + What Changed? */}

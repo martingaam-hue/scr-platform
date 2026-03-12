@@ -61,3 +61,8 @@ poetry run alembic revision --autogenerate -m "description"  # New migration
 - Audit: all write operations logged immutably
 - AI Gateway: central service routes to correct LLM per task type
 - Caching: Redis for API responses, AI results cached by input hash
+
+## Code Style Rules
+- Never use nested `if` statements when they can be combined with `and` (Ruff SIM102).
+- Always run `ruff check .` before committing Python code.
+- All pre-commit hooks must pass before pushing.

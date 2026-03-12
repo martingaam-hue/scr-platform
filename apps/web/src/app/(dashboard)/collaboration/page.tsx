@@ -104,20 +104,22 @@ export default function CollaborationPage() {
   const totalPages = data?.total_pages ?? 1;
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
-            <Activity className="h-6 w-6 text-indigo-500" />
-            Activity Feed
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            All actions across your organisation — projects, documents, and people
-          </p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <Activity className="h-6 w-6 text-primary-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-900">Activity Feed</h1>
+            <p className="text-sm text-neutral-500 mt-0.5">
+              All actions across your organisation — projects, documents, and people
+            </p>
+          </div>
         </div>
         {data && (
-          <span className="text-sm text-gray-400">
+          <span className="text-xs text-neutral-400 border border-neutral-200 rounded-full px-3 py-1">
             {data.total} event{data.total !== 1 ? "s" : ""}
           </span>
         )}

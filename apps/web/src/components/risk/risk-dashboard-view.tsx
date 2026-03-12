@@ -375,10 +375,10 @@ function RiskItemCard({
 // ── Overview Tab ───────────────────────────────────────────────────────────
 
 const COMPACT_STATS_CLASSES = [
-  { label: "Total Projects", key: "total", color: "text-blue-700", border: "border-blue-100", bg: "bg-blue-50" },
-  { label: "Auto-Identified", key: "auto_identified", color: "text-amber-700", border: "border-amber-100", bg: "bg-amber-50" },
-  { label: "Logged Risks", key: "logged", color: "text-purple-700", border: "border-purple-100", bg: "bg-purple-50" },
-  { label: "Critical Projects", key: "critical_projects", color: "text-red-700", border: "border-red-100", bg: "bg-red-50" },
+  { label: "Total Projects", key: "total", color: "text-blue-700", border: "border-[#E2E5EA]", bg: "bg-neutral-50" },
+  { label: "Auto-Identified", key: "auto_identified", color: "text-amber-700", border: "border-[#E2E5EA]", bg: "bg-neutral-50" },
+  { label: "Logged Risks", key: "logged", color: "text-purple-700", border: "border-[#E2E5EA]", bg: "bg-neutral-50" },
+  { label: "Critical Projects", key: "critical_projects", color: "text-red-700", border: "border-[#E2E5EA]", bg: "bg-neutral-50" },
 ] as const;
 
 function PortfolioOverviewTab() {

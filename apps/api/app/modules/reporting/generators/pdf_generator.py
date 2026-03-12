@@ -308,14 +308,15 @@ class PDFGenerator(BaseReportGenerator):
         """Convert raw section data into a typed render dict."""
 
         # ── Explicit metrics_grid ──────────────────────────────────────────────
-        if type_hint == "metrics_grid" or (
-            isinstance(section_data, dict)
-            and type_hint in ("metrics_grid", "")
-            and not isinstance(section_data, list)
-            and all(not isinstance(v, (dict, list)) for v in section_data.values())
-            and len(section_data) <= 10
-        ):
-            if isinstance(section_data, dict) and section_data:
+        if (
+            type_hint == "metrics_grid" or (
+                isinstance(section_data, dict)
+                and type_hint in ("metrics_grid", "")
+                and not isinstance(section_data, list)
+                and all(not isinstance(v, (dict, list)) for v in section_data.values())
+                and len(section_data) <= 10
+            )
+        ) and isinstance(section_data, dict) and section_data:
                 return {
                     "display_name": label,
                     "type": "metrics_grid",
