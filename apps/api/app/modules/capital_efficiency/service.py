@@ -76,9 +76,9 @@ def _synthetic_metrics(org_id: uuid.UUID) -> EfficiencyMetricsResponse:
     seed = int(hashlib.md5(str(org_id).encode()).hexdigest()[:8], 16) % 100
 
     # Target ~70% savings vs industry benchmarks
-    dd_savings = 59_500.0 + seed * 100.0   # ~70% of $85k industry avg
+    dd_savings = 59_500.0 + seed * 100.0  # ~70% of $85k industry avg
     legal_savings = 31_500.0 + seed * 50.0  # ~70% of $45k industry avg
-    risk_savings = 17_500.0 + seed * 30.0   # ~70% of $25k industry avg
+    risk_savings = 17_500.0 + seed * 30.0  # ~70% of $25k industry avg
     tax_captured = 18_000.0 + seed * 120.0
     total = dd_savings + legal_savings + risk_savings + tax_captured
 
