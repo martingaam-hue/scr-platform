@@ -254,12 +254,12 @@ export function severityClasses(severity: string): {
   }
 }
 
-/** Risk management score 0–100 → color (higher = better managed = greener) */
+/** Risk score 0–100 → color. Lower = less risk = better (green). Higher = more risk = worse (red). */
 export function riskScoreColor(score: number): string {
-  if (score >= 80) return "#22c55e";  // Excellent / Strong
-  if (score >= 70) return "#3b82f6";  // Good
-  if (score >= 60) return "#f59e0b";  // Fair — some areas need attention
-  if (score >= 50) return "#eab308";  // Concerning — multiple unaddressed risks
+  if (score <= 20) return "#22c55e";  // Low risk — well managed
+  if (score <= 40) return "#3b82f6";  // Acceptable — minor concerns
+  if (score <= 60) return "#f59e0b";  // Elevated — needs attention
+  if (score <= 80) return "#eab308";  // High risk — multiple issues
   return "#ef4444";                    // Critical — immediate action required
 }
 

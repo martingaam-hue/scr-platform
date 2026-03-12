@@ -1451,7 +1451,7 @@ export default function RiskPage() {
       </div>
 
       <InfoBanner>
-        <strong>Risk & Compliance</strong> provides a 360° view of portfolio risk across five domains, scenario stress testing, SFDR classification, and a complete immutable audit trail for regulatory reporting.
+        <strong>Risk & Compliance</strong> provides a 360° view of portfolio risk across five domains, scenario stress testing, SFDR classification, and a complete immutable audit trail for regulatory reporting. <strong>Risk scores run 0–100 where a lower score means less risk and better risk management</strong> — green indicates low risk, red indicates high risk.
       </InfoBanner>
 
       <Tabs defaultValue="dashboard">

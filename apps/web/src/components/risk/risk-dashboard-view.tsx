@@ -154,10 +154,10 @@ function HeroScoreCard({
           </span>
         </div>
       </div>
-      <p className="mt-3 text-sm text-gray-500">
+      <p className="mt-3 text-sm text-neutral-500">
         {label ?? "Portfolio Risk Score"}
       </p>
-      <p className="mt-1 text-xs text-neutral-400">Higher score = better risk management</p>
+      <p className="mt-1 text-xs text-neutral-400">Lower score = less risk = better</p>
     </div>
   );
 }

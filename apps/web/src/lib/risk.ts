@@ -551,19 +551,23 @@ export const DOMAIN_COLORS: Record<string, string> = {
   liquidity:  "#ef4444",
 };
 
+/** Lower score = less risk = better. 0 = no risk, 100 = maximum risk. */
 export function domainRiskLabel(score: number | null): string {
   if (score === null) return "Unknown";
-  if (score >= 80) return "Well Managed";
-  if (score >= 60) return "Needs Attention";
+  if (score <= 20) return "Low Risk";
+  if (score <= 40) return "Acceptable";
+  if (score <= 60) return "Needs Attention";
+  if (score <= 80) return "High Risk";
   return "Critical";
 }
 
+/** Lower score = less risk = better (green). Higher score = more risk = worse (red). */
 export function domainRiskColor(score: number | null): string {
   if (score === null) return "text-neutral-400";
-  if (score >= 80) return "text-green-600";
-  if (score >= 70) return "text-blue-600";
-  if (score >= 60) return "text-amber-500";
-  if (score >= 50) return "text-yellow-600";
+  if (score <= 20) return "text-green-600";
+  if (score <= 40) return "text-blue-600";
+  if (score <= 60) return "text-amber-500";
+  if (score <= 80) return "text-yellow-600";
   return "text-red-600";
 }
 
