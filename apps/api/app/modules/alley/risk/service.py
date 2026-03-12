@@ -175,6 +175,7 @@ async def list_risk_summaries(db: AsyncSession, org_id: uuid.UUID) -> RiskListRe
                 high_count=counts.get("high", 0),
                 medium_count=counts.get("medium", 0),
                 low_count=counts.get("low", 0),
+                mitigated_count=addressed,
                 mitigation_progress_pct=progress,
                 overall_risk_score=risk_score,
                 auto_identified_count=auto_count,

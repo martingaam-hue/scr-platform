@@ -30,7 +30,8 @@ class ProjectRiskSummary(BaseModel):
     high_count: int
     medium_count: int
     low_count: int
-    mitigation_progress_pct: int
+    mitigated_count: int = 0  # risks with status "mitigated" or "accepted"
+    mitigation_progress_pct: int  # = mitigated_count / total_risks * 100
     overall_risk_score: float = 0.0  # 0–100, severity-weighted, adjusted for mitigation
     auto_identified_count: int = 0
     logged_count: int = 0

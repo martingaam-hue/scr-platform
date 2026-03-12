@@ -462,12 +462,19 @@ function PortfolioOverviewTab() {
                         <td className="px-4 py-3 text-xs text-amber-600">{p.medium_count}</td>
                         <td className="px-4 py-3 text-xs text-green-600">{p.low_count}</td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-20 rounded-full bg-neutral-100 overflow-hidden">
-                              <div className="h-1.5 rounded-full bg-green-500" style={{ width: `${p.mitigation_progress_pct}%` }} />
-                            </div>
-                            <span className="text-xs text-neutral-500">{Math.round(p.mitigation_progress_pct)}%</span>
-                          </div>
+                          {(() => {
+                            const pct = p.total_risks > 0
+                              ? Math.round((p.mitigated_count / p.total_risks) * 100)
+                              : 0;
+                            return (
+                              <div className="flex items-center gap-2">
+                                <div className="h-1.5 w-20 rounded-full bg-neutral-100 overflow-hidden">
+                                  <div className="h-1.5 rounded-full bg-green-500" style={{ width: `${pct}%` }} />
+                                </div>
+                                <span className="text-xs text-neutral-500">{pct}%</span>
+                              </div>
+                            );
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -1159,7 +1166,7 @@ function AllRisksTab({ projectId }: { projectId: string | undefined }) {
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-xs text-neutral-500">
-                            {Math.round(p.mitigation_progress_pct)}%
+                            {p.total_risks > 0 ? Math.round((p.mitigated_count / p.total_risks) * 100) : 0}%
                           </span>
                         </td>
                       </tr>

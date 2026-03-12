@@ -29,6 +29,7 @@ export interface ProjectRiskSummary {
   high_count: number;
   medium_count: number;
   low_count: number;
+  mitigated_count: number;
   mitigation_progress_pct: number;
   overall_risk_score: number;
   auto_identified_count: number;
