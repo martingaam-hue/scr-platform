@@ -553,18 +553,18 @@ export const DOMAIN_COLORS: Record<string, string> = {
 
 export function domainRiskLabel(score: number | null): string {
   if (score === null) return "Unknown";
-  if (score >= 75) return "Critical";
-  if (score >= 50) return "High";
-  if (score >= 25) return "Medium";
-  return "Low";
+  if (score >= 80) return "Well Managed";
+  if (score >= 60) return "Needs Attention";
+  return "Critical";
 }
 
 export function domainRiskColor(score: number | null): string {
   if (score === null) return "text-neutral-400";
-  if (score >= 75) return "text-red-600";
-  if (score >= 50) return "text-orange-500";
-  if (score >= 25) return "text-amber-500";
-  return "text-green-600";
+  if (score >= 80) return "text-green-600";
+  if (score >= 70) return "text-blue-600";
+  if (score >= 60) return "text-amber-500";
+  if (score >= 50) return "text-yellow-600";
+  return "text-red-600";
 }
 
 export function alertSeverityBadge(severity: string): "error" | "warning" | "neutral" | "success" {

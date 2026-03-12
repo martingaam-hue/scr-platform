@@ -253,12 +253,13 @@ export function severityClasses(severity: string): {
   }
 }
 
-/** Risk score 0–100 → color class (inverse of signal score: high risk = red) */
+/** Risk management score 0–100 → color (higher = better managed = greener) */
 export function riskScoreColor(score: number): string {
-  if (score >= 75) return "#C62828";  // Critical
-  if (score >= 50) return "#F57C00";  // High
-  if (score >= 25) return "#F59E0B";  // Medium
-  return "#4EB457";                    // Low
+  if (score >= 80) return "#22c55e";  // Excellent / Strong
+  if (score >= 70) return "#3b82f6";  // Good
+  if (score >= 60) return "#f59e0b";  // Fair — some areas need attention
+  if (score >= 50) return "#eab308";  // Concerning — multiple unaddressed risks
+  return "#ef4444";                    // Critical — immediate action required
 }
 
 // ── Mitigation Strategy types ──────────────────────────────────────────────

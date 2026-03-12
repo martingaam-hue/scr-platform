@@ -107,7 +107,7 @@ function HeroScoreCard({
   score: number;
   label?: string;
 }) {
-  const color = healthColor(score);
+  const color = riskScoreColor(score);
   const size = 200;
   const strokeWidth = 14;
   const r = (size - strokeWidth) / 2;
@@ -150,13 +150,14 @@ function HeroScoreCard({
             className="font-bold tabular-nums leading-none"
             style={{ fontSize: "72px", color }}
           >
-            {score}
+            {Math.ceil(score)}
           </span>
         </div>
       </div>
       <p className="mt-3 text-sm text-gray-500">
         {label ?? "Portfolio Risk Score"}
       </p>
+      <p className="mt-1 text-xs text-neutral-400">Higher score = better risk management</p>
     </div>
   );
 }
@@ -182,7 +183,7 @@ function DomainBar({
           {DOMAIN_LABELS[domain] ?? domain}
         </span>
         <span className="text-xs font-semibold" style={{ color }}>
-          {riskScore}
+          {Math.ceil(riskScore)}
           <span className="text-neutral-400 font-normal"> / {total} risks</span>
         </span>
       </div>
@@ -452,8 +453,8 @@ function PortfolioOverviewTab() {
                           <p className="text-xs text-neutral-400">{p.project_id}</p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-sm font-bold" style={{ color: healthColor(p.overall_risk_score) }}>
-                            {p.overall_risk_score}
+                          <span className="text-sm font-bold" style={{ color: riskScoreColor(p.overall_risk_score) }}>
+                            {Math.ceil(p.overall_risk_score)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-xs text-red-700 font-semibold">{p.critical_count}</td>
@@ -687,7 +688,7 @@ function AlertsTab({ projectId }: { projectId: string | undefined }) {
                           color: riskScoreColor(p.overall_risk_score),
                         }}
                       >
-                        {p.overall_risk_score}
+                        {Math.ceil(p.overall_risk_score)}
                       </p>
                     </div>
                   </div>
@@ -980,7 +981,7 @@ function DomainTab({ projectId }: { projectId: string | undefined }) {
                 </span>
               </div>
               <p className="text-2xl font-bold" style={{ color }}>
-                {d.risk_score}
+                {Math.ceil(d.risk_score)}
               </p>
               <p className="text-xs text-neutral-400 mt-0.5">
                 {d.total} risks
@@ -1141,7 +1142,7 @@ function AllRisksTab({ projectId }: { projectId: string | undefined }) {
                               color: riskScoreColor(p.overall_risk_score),
                             }}
                           >
-                            {p.overall_risk_score}
+                            {Math.ceil(p.overall_risk_score)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-xs text-red-700 font-semibold">
