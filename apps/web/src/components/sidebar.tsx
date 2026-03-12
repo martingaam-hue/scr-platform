@@ -186,13 +186,8 @@ const allyNav: NavSection[] = [
     title: "Deal Pipeline",
     collapsible: true,
     items: [
-      { label: "Deals", href: "/deals", icon: FolderKanban },
       { label: "Investor Matching", href: "/matching", icon: Zap },
       { label: "Warm Introductions", href: "/warm-intros", icon: Users },
-    ],
-  },
-  {
-    items: [
       { label: "Data Room", href: "/data-room", icon: FolderLock, tourId: "nav-data-room" },
       { label: "Funding", href: "/funding", icon: Wallet, tourId: "nav-funding" },
       { label: "Reports", href: "/reports", icon: BarChart3 },
@@ -210,9 +205,7 @@ const allyNav: NavSection[] = [
       { label: "Board Advisor", href: "/board-advisor", icon: UserCheck },
       { label: "Tokenization", href: "/tokenization", icon: Layers },
       { label: "Dev Tracker", href: "/dev-tracker", icon: Monitor },
-      { label: "Activity Feed", href: "/collaboration", icon: Activity },
       { label: "Q&A Workflow", href: "/qa", icon: MessageSquare },
-      { label: "Engagement Analytics", href: "/engagement", icon: Activity },
     ],
   },
   {
@@ -226,14 +219,12 @@ const allyNav: NavSection[] = [
       { label: "Capital Efficiency", href: "/capital-efficiency", icon: Coins },
       { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },
       { label: "AI Citations", href: "/citations", icon: FileText },
+      { label: "Impact", href: "/impact", icon: Target },
+      { label: "Engagement Analytics", href: "/engagement", icon: BarChart3 },
+      { label: "Activity Feed", href: "/collaboration", icon: Activity },
+      { label: "Notifications", href: "/notifications", icon: Bell },
       // Temporarily hidden — Ecosystem feature inactive
       // { label: "Ecosystem", href: "/ecosystem", icon: Network },
-    ],
-  },
-  {
-    items: [
-      { label: "Impact", href: "/impact", icon: Target },
-      { label: "Notifications", href: "/notifications", icon: Bell },
     ],
   },
   {
@@ -245,7 +236,6 @@ const allyNav: NavSection[] = [
     collapsible: true,
     items: [
       { label: "Settings", href: "/settings", icon: Settings },
-      { label: "Gamification", href: "/gamification", icon: Trophy },
       { label: "Activity Digest", href: "/digest", icon: Rss },
     ],
   },

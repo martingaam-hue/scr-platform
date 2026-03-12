@@ -6,6 +6,7 @@ import {
   useDealRoomEngagement,
   type DealEngagementSummary,
 } from "@/lib/engagement";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -156,6 +157,13 @@ export default function EngagementPage() {
           ))}
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Engagement Analytics</strong> tracks how investors interact with your deal room
+        documents — time spent, pages viewed, downloads, and an overall engagement score. Enter a
+        Deal Room ID below to load engagement data for that room, then use the date-range filter
+        to narrow the period.
+      </InfoBanner>
 
       {/* Deal Room selector */}
       <div className="flex items-center gap-3">

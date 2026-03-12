@@ -25,6 +25,7 @@ import {
   type DigestSummary,
 } from "@/lib/digest";
 import { useSCRUser } from "@/lib/auth";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -540,6 +541,13 @@ export default function DigestPage() {
           AI-generated summaries of your organisation&apos;s platform activity
         </p>
       </div>
+
+      <InfoBanner>
+        <strong>Weekly AI Digest</strong> automatically summarises your platform activity — deal
+        pipeline changes, AI score updates, document events, and key alerts — into a concise
+        narrative delivered to your inbox. Use the Preview tab to generate an on-demand digest,
+        History to review past sends, and Preferences to set your schedule.
+      </InfoBanner>
 
       {/* Tab bar */}
       <div className="flex gap-1 border-b border-gray-200">

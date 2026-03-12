@@ -38,6 +38,7 @@ import {
   type SDGGoal,
 } from "@/lib/impact";
 import { useProjects } from "@/lib/projects";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Stat card ─────────────────────────────────────────────────────────────
 
@@ -712,6 +713,13 @@ export default function ImpactPage() {
           Track environmental, social, and governance impact across your project portfolio.
         </p>
       </div>
+
+      <InfoBanner className="mb-6">
+        <strong>Impact Measurement</strong> consolidates environmental and social outcomes across
+        your portfolio — carbon credit issuance and verification status, UN SDG goal alignment,
+        and aggregate impact KPIs. Use the Dashboard for a portfolio-wide view, Carbon Credits to
+        manage individual credit records, and SDG Tracker to map projects to global goals.
+      </InfoBanner>
 
       <Tabs defaultValue="dashboard">
         <TabsList className="mb-6">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Coins, Loader2, Plus } from "lucide-react";
 import { Badge, Button, Card, CardContent, EmptyState } from "@scr/ui";
+import { InfoBanner } from "@/components/info-banner";
 
 import {
   blockchainColor,
@@ -359,6 +360,13 @@ export default function TokenizationPage() {
           Tokenize Project
         </Button>
       </div>
+
+      <InfoBanner>
+        <strong>Token Management</strong> lets you issue on-chain tokens backed by project assets,
+        manage cap tables with vesting and lock-up periods, and maintain a full transfer registry.
+        Each tokenisation record is tied to a specific project and deployed to your chosen
+        blockchain network.
+      </InfoBanner>
 
       {/* Loading */}
       {isLoading && (

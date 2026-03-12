@@ -75,9 +75,10 @@ def _synthetic_metrics(org_id: uuid.UUID) -> EfficiencyMetricsResponse:
     # Use first 8 hex chars of org_id hash as a small integer seed for variation
     seed = int(hashlib.md5(str(org_id).encode()).hexdigest()[:8], 16) % 100
 
-    dd_savings = 65_000.0 + seed * 150.0
-    legal_savings = 38_000.0 + seed * 80.0
-    risk_savings = 22_000.0 + seed * 60.0
+    # Target ~70% savings vs industry benchmarks
+    dd_savings = 59_500.0 + seed * 100.0   # ~70% of $85k industry avg
+    legal_savings = 31_500.0 + seed * 50.0  # ~70% of $45k industry avg
+    risk_savings = 17_500.0 + seed * 30.0   # ~70% of $25k industry avg
     tax_captured = 18_000.0 + seed * 120.0
     total = dd_savings + legal_savings + risk_savings + tax_captured
 
@@ -285,11 +286,11 @@ async def get_breakdown(
     def vs_industry_label(platform_val: float, industry_val: float) -> str:
         if industry_val <= 0:
             return "N/A"
-        saved_pct = round((1.0 - platform_val / industry_val) * 100, 1)
+        saved_pct = round(platform_val / industry_val * 100, 1)
         if saved_pct > 0:
-            return f"saved {saved_pct}% vs industry"
+            return f"saved {saved_pct}% vs industry avg"
         else:
-            return f"{abs(saved_pct)}% above industry avg"
+            return "at industry avg"
 
     categories = [
         {
