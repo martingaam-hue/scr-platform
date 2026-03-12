@@ -291,9 +291,9 @@ function HeroCard({ projects }: { projects: MockProject[] }) {
             { label: "At Risk", value: atRisk, valueClass: "text-[#D97706]" },
             { label: "Ready to Build", value: rtb, valueClass: "text-[#1A1D23]" },
           ].map(({ label, value, valueClass }) => (
-            <div key={label} className="rounded-lg border border-[#E2E5EA] bg-neutral-50 px-3 py-2 text-center">
-              <p className="text-[10px] text-[#8A8F9A] mb-1 text-center">{label}</p>
-              <p className={cn("text-2xl font-bold text-center", valueClass)}>{value}</p>
+            <div key={label} className="rounded-lg border border-[#E2E5EA] bg-neutral-50 px-3 py-3 flex flex-col items-center justify-center gap-0.5 min-h-[72px]">
+              <p className={cn("text-xl font-bold", valueClass)}>{value}</p>
+              <p className="text-[10px] text-[#8A8F9A] leading-tight text-center">{label}</p>
             </div>
           ))}
         </div>

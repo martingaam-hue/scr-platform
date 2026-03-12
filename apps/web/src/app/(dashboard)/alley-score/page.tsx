@@ -57,7 +57,7 @@ function InfoBanner() {
 
 function PortfolioHero({ avg, total, ready }: { avg: number; total: number; ready: number }) {
   return (
-    <div className="rounded-2xl bg-[#1a2332] px-8 py-10 text-white">
+    <div className="rounded-2xl bg-primary-800 px-8 py-10 text-white">
       <p className="mb-8 text-xs font-semibold uppercase tracking-widest text-white/40">
         Portfolio Signal Score Overview
       </p>
