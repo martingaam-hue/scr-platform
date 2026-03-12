@@ -104,7 +104,7 @@ const DD_MATERIALS = [
 const ALERTS = [
   { type: "warning", title: "Term sheet expiry — Meridian Impact Fund", detail: "Term sheet expires in 14 days. Legal review of key terms required before countersigning.", date: "Due May 2, 2025" },
   { type: "info", title: "Site visit — EIB lender technical advisor", detail: "Lender's TA visiting Väst Wind site. Ensure O&M and grid connection docs are ready.", date: "Apr 28, 2025" },
-  { type: "success", title: "Nordic Green Capital — term sheet signed", detail: "€25M equity commitment for Solvatten Solar progressing to legal close.", date: "Apr 15, 2025" },
+  { type: "success", title: "Nordic Green Capital — term sheet signed", detail: "$25M equity commitment for Solvatten Solar progressing to legal close.", date: "Apr 15, 2025" },
   { type: "warning", title: "Financial model update needed", detail: "Coastal Biogas model needs Q1 actuals before grant application deadline.", date: "Due May 10, 2025" },
 ];
 
@@ -118,7 +118,7 @@ const PIPELINE_STAGES = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmt(n: number, currency = "€") {
+function fmt(n: number, currency = "$") {
   if (n >= 1_000_000_000) return `${currency}${(n / 1_000_000_000).toFixed(2)}B`;
   if (n >= 1_000_000) return `${currency}${(n / 1_000_000).toFixed(0)}M`;
   if (n >= 1_000) return `${currency}${(n / 1_000).toFixed(0)}K`;
@@ -425,15 +425,15 @@ function CapitalStructureTab({ projects }: { projects: ProjectResponse[] }) {
       {/* Stack bar chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Capital Stack by Tranche (€M)</CardTitle>
+          <CardTitle className="text-sm">Capital Stack by Tranche ($M)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={CAPITAL_STACK} layout="vertical" margin={{ left: 0, right: 30, top: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-              <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `€${v}M`} />
+              <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1_000_000).toFixed(0)}M`} />
               <YAxis type="category" dataKey="tranche" tick={{ fontSize: 11 }} width={120} />
-              <Tooltip formatter={(value) => [`€${value}M`]} />
+              <Tooltip formatter={(value) => [`$${(Number(value) / 1_000_000).toFixed(0)}M`]} />
               <Bar dataKey="secured" name="Secured" stackId="a" radius={[0, 0, 0, 0]}>
                 {CAPITAL_STACK.map((entry, i) => (
                   <Cell key={i} fill={entry.color} />
@@ -515,22 +515,29 @@ function CapitalStructureTab({ projects }: { projects: ProjectResponse[] }) {
           <CardHeader>
             <CardTitle className="text-sm">Funding Required by Project</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {projects.slice(0, 8).map((p) => (
-                <div key={p.id} className="flex items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-neutral-800 truncate">{p.name}</span>
-                      <span className="text-sm font-semibold text-neutral-700 ml-2 shrink-0">
-                        {formatCurrency(parseFloat(p.total_investment_required))}
-                      </span>
-                    </div>
-                  </div>
-                  <Badge variant="neutral" className="text-[10px] shrink-0 capitalize">{p.stage.replace(/_/g, " ")}</Badge>
-                </div>
-              ))}
-            </div>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead className="border-b border-neutral-100 bg-neutral-50">
+                <tr>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-neutral-500">Project</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-neutral-500">Required</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-neutral-500">Stage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.slice(0, 8).map((p) => (
+                  <tr key={p.id} className="border-b border-neutral-50 last:border-0 hover:bg-neutral-50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-neutral-800">{p.name}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-neutral-700 tabular-nums">
+                      {formatCurrency(parseFloat(p.total_investment_required))}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="neutral" className="text-[10px] capitalize">{p.stage.replace(/_/g, " ")}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       )}
@@ -586,15 +593,15 @@ function MilestonesTab() {
       {/* Funding need by quarter */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Capital Required by Quarter (€M)</CardTitle>
+          <CardTitle className="text-sm">Capital Required by Quarter ($M)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={FUNDING_BY_QUARTER} margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
               <XAxis dataKey="quarter" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `€${v}M`} />
-              <Tooltip formatter={(value) => [`€${value}M`]} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}M`} />
+              <Tooltip formatter={(value) => [`$${value}M`]} />
               <Bar dataKey="equity" name="Equity" stackId="a" fill="#4F46E5" radius={[0, 0, 0, 0]} />
               <Bar dataKey="debt" name="Debt" stackId="a" fill="#3B82F6" radius={[0, 0, 0, 0]} />
               <Bar dataKey="grant" name="Grant / Subsidy" stackId="a" fill="#10B981" radius={[4, 4, 0, 0]} />

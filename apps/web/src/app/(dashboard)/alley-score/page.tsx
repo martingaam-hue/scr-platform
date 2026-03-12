@@ -57,24 +57,24 @@ function InfoBanner() {
 
 function PortfolioHero({ avg, total, ready }: { avg: number; total: number; ready: number }) {
   return (
-    <div className="rounded-2xl bg-primary-800 px-8 py-10 text-white">
-      <p className="mb-8 text-xs font-semibold uppercase tracking-widest text-white/40">
+    <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-8 py-10">
+      <p className="mb-8 text-xs font-semibold uppercase tracking-widest text-neutral-400">
         Portfolio Signal Score Overview
       </p>
-      <div className="grid grid-cols-3 divide-x divide-white/10">
+      <div className="grid grid-cols-3 divide-x divide-neutral-200">
         <div className="pr-8">
-          <p className="text-[80px] font-bold tabular-nums leading-none">{Math.round(avg)}</p>
-          <p className="mt-3 text-sm font-medium text-gray-300">Average Score</p>
-          <p className="mt-0.5 text-xs text-gray-400">out of 100</p>
+          <p className="text-[80px] font-bold tabular-nums leading-none text-neutral-900">{Math.round(avg)}</p>
+          <p className="mt-3 text-sm font-medium text-neutral-600">Average Score</p>
+          <p className="mt-0.5 text-xs text-neutral-400">out of 100</p>
         </div>
         <div className="px-8">
-          <p className="text-[80px] font-bold tabular-nums leading-none">{total}</p>
-          <p className="mt-3 text-sm font-medium text-gray-300">Total Projects</p>
+          <p className="text-[80px] font-bold tabular-nums leading-none text-neutral-900">{total}</p>
+          <p className="mt-3 text-sm font-medium text-neutral-600">Total Projects</p>
         </div>
         <div className="pl-8">
-          <p className="text-[80px] font-bold tabular-nums leading-none text-green-400">{ready}</p>
-          <p className="mt-3 text-sm font-medium text-gray-300">Investment Ready</p>
-          <p className="mt-0.5 text-xs text-gray-400">score ≥ 80</p>
+          <p className="text-[80px] font-bold tabular-nums leading-none text-green-600">{ready}</p>
+          <p className="mt-3 text-sm font-medium text-neutral-600">Investment Ready</p>
+          <p className="mt-0.5 text-xs text-neutral-400">score ≥ 80</p>
         </div>
       </div>
     </div>

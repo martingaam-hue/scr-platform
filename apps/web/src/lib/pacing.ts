@@ -57,8 +57,8 @@ export interface UpdateActualsPayload {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-export function formatMillions(value: number, currency = "EUR"): string {
-  const symbol = currency === "USD" ? "$" : currency === "GBP" ? "£" : "€";
+export function formatMillions(value: number, currency = "USD"): string {
+  const symbol = currency === "GBP" ? "£" : currency === "EUR" ? "€" : "$";
   const millions = value / 1_000_000;
   return `${symbol}${millions.toFixed(1)}m`;
 }

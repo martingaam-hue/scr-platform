@@ -62,7 +62,7 @@ function ResultCard({
   const formatTicket = (val: number | null, currency: string | null) => {
     if (!val) return null;
     const m = val / 1_000_000;
-    return `${currency ?? "EUR"} ${m >= 1000 ? `${(m / 1000).toFixed(1)}B` : `${m.toFixed(1)}M`}`;
+    return `${currency ?? "USD"} ${m >= 1000 ? `${(m / 1000).toFixed(1)}B` : `${m.toFixed(1)}M`}`;
   };
 
   return (
@@ -230,7 +230,7 @@ export default function SmartScreenerPage() {
   }
   if (activeFilters.min_ticket_size !== undefined) {
     filterPills.push({
-      label: `>= EUR${activeFilters.min_ticket_size}M`,
+      label: `>= $${activeFilters.min_ticket_size}M`,
       onRemove: () => removeFilter("min_ticket_size"),
     });
   }

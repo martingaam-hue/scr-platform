@@ -149,7 +149,7 @@ function DCFPanel({ template }: { template: FinancialTemplate }) {
               onChange={(v) => setField("capacity_mw", v)}
             />
             <InputField
-              label="CapEx per MW (€)"
+              label="CapEx per MW ($)"
               value={inputs.capex_per_mw ?? 1_200_000}
               min={100_000}
               max={10_000_000}
@@ -187,7 +187,7 @@ function DCFPanel({ template }: { template: FinancialTemplate }) {
           <div className="grid grid-cols-3 gap-4">
             <ResultKPI
               label="NPV"
-              value={`€${(result.npv / 1_000_000).toFixed(1)}m`}
+              value={`$${(result.npv / 1_000_000).toFixed(1)}m`}
               color={result.npv >= 0 ? "text-green-700" : "text-red-700"}
               bg={result.npv >= 0 ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}
             />
@@ -208,7 +208,7 @@ function DCFPanel({ template }: { template: FinancialTemplate }) {
           {cashflowChartData.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Cashflows by Year (€m)</CardTitle>
+                <CardTitle className="text-base">Cashflows by Year ($m)</CardTitle>
               </CardHeader>
               <CardContent>
                 <BarChart

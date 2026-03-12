@@ -46,7 +46,7 @@ function ExposureBar({ item, max }: { item: CurrencyExposureItem; max: number })
         />
       </div>
       <p className="text-xs text-gray-400 text-right">
-        €{(item.value_eur / 1_000_000).toFixed(1)}M
+        ${(item.value_eur / 1_000_000).toFixed(1)}M
       </p>
     </div>
   );
@@ -131,7 +131,7 @@ function RateTable() {
   if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gray-400 m-4" />;
 
   const rates = data?.rates ?? {};
-  const displayed = MAJOR_CURRENCIES.filter((c) => c !== "EUR" && rates[c]);
+  const displayed = MAJOR_CURRENCIES.filter((c) => c !== "USD" && rates[c]);
 
   return (
     <Card>
@@ -158,7 +158,7 @@ function RateTable() {
             </div>
           ))}
         </div>
-        <p className="text-xs text-gray-400 mt-2">Base: 1 EUR = x {"{currency}"} — ECB daily fix</p>
+        <p className="text-xs text-gray-400 mt-2">Base: 1 USD = x {"{currency}"} — ECB daily fix</p>
       </CardContent>
     </Card>
   );
@@ -167,7 +167,7 @@ function RateTable() {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function FXPage() {
-  const [baseCurrency, setBaseCurrency] = useState("EUR");
+  const [baseCurrency, setBaseCurrency] = useState("USD");
   const { data: exposure, isLoading } = useFXExposure(undefined, baseCurrency);
 
   const maxExposure = Math.max(...(exposure?.exposure.map((e) => e.value_eur) ?? [1]));
@@ -204,7 +204,7 @@ export default function FXPage() {
               </p>
               {exposure && (
                 <span className="text-xs text-gray-400">
-                  Total: €{(exposure.total_value_base / 1_000_000).toFixed(1)}M
+                  Total: ${(exposure.total_value_base / 1_000_000).toFixed(1)}M
                 </span>
               )}
             </div>

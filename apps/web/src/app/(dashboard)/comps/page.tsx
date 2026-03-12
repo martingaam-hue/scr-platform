@@ -113,7 +113,7 @@ export default function CompsPage() {
             {valuationResult && (
               <div className="text-sm text-primary-900">
                 <span className="font-semibold">Implied EV/MW:</span>{" "}
-                {valuationResult.ev_per_mw != null ? `€${(valuationResult.ev_per_mw / 1000).toFixed(0)}k/MW` : "—"}
+                {valuationResult.ev_per_mw != null ? `$${(valuationResult.ev_per_mw / 1000).toFixed(0)}k/MW` : "—"}
                 {valuationResult.ev_eur != null && (
                   <span className="ml-3"><span className="font-semibold">Implied EV (50MW):</span> {formatCurrency(valuationResult.ev_eur)}</span>
                 )}
@@ -188,7 +188,7 @@ export default function CompsPage() {
                 <td className="px-4 py-3 text-center text-gray-700">{comp.close_year ?? "—"}</td>
                 <td className="px-4 py-3 text-right text-gray-700">{comp.deal_size_eur ? formatCurrency(comp.deal_size_eur) : "—"}</td>
                 <td className="px-4 py-3 text-right text-gray-700">{comp.capacity_mw ? `${comp.capacity_mw} MW` : "—"}</td>
-                <td className="px-4 py-3 text-right text-gray-700">{comp.ev_per_mw ? `€${(comp.ev_per_mw / 1000).toFixed(0)}k` : "—"}</td>
+                <td className="px-4 py-3 text-right text-gray-700">{comp.ev_per_mw ? `$${(comp.ev_per_mw / 1000).toFixed(0)}k` : "—"}</td>
                 <td className="px-4 py-3 text-right text-gray-700">{comp.equity_irr ? formatPct(comp.equity_irr) : "—"}</td>
                 <td className="px-4 py-3 text-gray-700 capitalize">{comp.stage_at_close?.replace("_", " ") ?? "—"}</td>
                 <td className="px-4 py-3 text-center">
@@ -231,7 +231,7 @@ export default function CompsPage() {
                   <input type="number" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value={newComp.capacity_mw} onChange={(e) => setNewComp((c) => ({ ...c, capacity_mw: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">EV/MW (€)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">EV/MW ($)</label>
                   <input type="number" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value={newComp.ev_per_mw} onChange={(e) => setNewComp((c) => ({ ...c, ev_per_mw: e.target.value }))} />
                 </div>
                 <div>

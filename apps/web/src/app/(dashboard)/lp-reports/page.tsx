@@ -126,10 +126,10 @@ function CreateReportModal({ open, onClose }: { open: boolean; onClose: () => vo
         {field("period_start", "Period Start", "date")}
         {field("period_end", "Period End", "date")}
         <div className="border-t pt-4 grid grid-cols-2 gap-3">
-          {field("total_committed", "Total Committed (€)", "number")}
-          {field("total_invested", "Total Invested (€)", "number")}
-          {field("total_returned", "Total Returned (€)", "number")}
-          {field("total_nav", "Total NAV (€)", "number")}
+          {field("total_committed", "Total Committed ($)", "number")}
+          {field("total_invested", "Total Invested ($)", "number")}
+          {field("total_returned", "Total Returned ($)", "number")}
+          {field("total_nav", "Total NAV ($)", "number")}
         </div>
         <div className="flex justify-end gap-3 pt-2">
           <Button variant="outline" onClick={onClose}>Cancel</Button>

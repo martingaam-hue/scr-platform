@@ -99,7 +99,7 @@ function PacingTab({ portfolioId }: { portfolioId: string }) {
     NAV: m.nav,
   }));
 
-  const fmtM = (v: number) => `€${(v / 1_000_000).toFixed(1)}M`;
+  const fmtM = (v: number) => `$${(v / 1_000_000).toFixed(1)}M`;
 
   return (
     <div className="space-y-4">

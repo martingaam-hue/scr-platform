@@ -59,7 +59,7 @@ function SummaryKpis() {
         {
           label: "Total Pipeline Value",
           value: totalPipeline != null
-            ? `€${(totalPipeline / 1_000_000).toFixed(1)}M`
+            ? `$${(totalPipeline / 1_000_000).toFixed(1)}M`
             : "—",
           icon: DollarSign,
           color: "text-indigo-600",
@@ -82,7 +82,7 @@ function SummaryKpis() {
         {
           label: "Pipeline (this month)",
           value: pipeline
-            ? `€${(pipeline.total / 1_000_000).toFixed(1)}M`
+            ? `$${(pipeline.total / 1_000_000).toFixed(1)}M`
             : "—",
           icon: BarChart3,
           color: "text-purple-600",

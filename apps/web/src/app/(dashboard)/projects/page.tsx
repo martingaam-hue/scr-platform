@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -28,6 +29,7 @@ import {
   Heart,
   Star,
   Wheat,
+  ArrowRight,
 } from "lucide-react";
 import {
   Button,
@@ -204,6 +206,20 @@ const columns: ColumnDef<ProjectResponse>[] = [
           row.original.currency
         )}
       </span>
+    ),
+  },
+  {
+    id: "actions",
+    header: "",
+    cell: ({ row }) => (
+      <Link
+        href={`/projects/${row.original.id}`}
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors"
+      >
+        Explore
+        <ArrowRight className="h-3 w-3" />
+      </Link>
     ),
   },
 ];

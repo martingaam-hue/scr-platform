@@ -125,7 +125,7 @@ function HoldingsBarChart({ holdings }: { holdings: HoldingResponse[] }) {
           <BarChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 40 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-35} textAnchor="end" />
-            <YAxis tickFormatter={(v) => `€${(v / 1_000_000).toFixed(1)}M`} tick={{ fontSize: 10 }} />
+            <YAxis tickFormatter={(v) => `$${(v / 1_000_000).toFixed(1)}M`} tick={{ fontSize: 10 }} />
             <Tooltip />
             <Legend />
             <Bar dataKey="invested" name="Invested" fill="#c7d2fe" radius={[3, 3, 0, 0]} />

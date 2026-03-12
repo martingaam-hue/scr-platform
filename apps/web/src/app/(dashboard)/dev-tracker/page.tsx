@@ -205,9 +205,9 @@ const CHECKLIST: Record<string, { item: string; status: "done" | "pending" | "no
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtM(n: number) {
-  if (n >= 1_000_000) return `€${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `€${(n / 1_000).toFixed(0)}K`;
-  return `€${n}`;
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n}`;
 }
 
 function statusBadge(status: MockProject["status"]) {
@@ -950,7 +950,7 @@ function BudgetTab() {
         {/* Cumulative spend chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Cumulative Spend vs Budget (€K)</CardTitle>
+            <CardTitle className="text-sm">Cumulative Spend vs Budget ($K)</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
@@ -967,8 +967,8 @@ function BudgetTab() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `€${v}K`} />
-                <Tooltip formatter={(value) => [`€${value}K`]} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}K`} />
+                <Tooltip formatter={(value) => [`$${value}K`]} />
                 <Area type="monotone" dataKey="budgeted" name="Budget" stroke="#818CF8" strokeDasharray="4 2" strokeWidth={1.5} fill="url(#budgetGrad)" dot={false} />
                 <Area type="monotone" dataKey="actual" name="Actual" stroke="#4F46E5" strokeWidth={2} fill="url(#actualGrad)" dot={false} />
               </AreaChart>
@@ -989,7 +989,7 @@ function KPIsTab() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: "Permit Success Rate", value: "78%", sub: "+4pp vs benchmark", color: "text-green-600", icon: Percent },
-          { label: "Avg Dev Cost / MW", value: "€18.5K", sub: "Industry avg €22K", color: "text-emerald-600", icon: TrendingUp },
+          { label: "Avg Dev Cost / MW", value: "$18.5K", sub: "Industry avg $22K", color: "text-emerald-600", icon: TrendingUp },
           { label: "Origination → RTB", value: "36 months", sub: "Industry avg 40 months", color: "text-indigo-600", icon: Clock },
           { label: "Grid Connection Rate", value: "92%", sub: "Applications to agreement", color: "text-blue-600", icon: Zap },
         ].map(({ label, value, sub, color, icon: Icon }) => (

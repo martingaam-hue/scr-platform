@@ -43,7 +43,7 @@ import { usePortfolios } from "@/lib/portfolio";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function fmt(value: number | null | undefined, currency = "EUR"): string {
+function fmt(value: number | null | undefined, currency = "USD"): string {
   if (value == null) return "—";
   return formatMillions(value, currency);
 }
@@ -68,7 +68,7 @@ function JCurveChart({
     "Pessimistic (cum.)": row.pessimistic_cumulative / 1_000_000,
   }));
 
-  const symbol = currency === "USD" ? "$" : currency === "GBP" ? "£" : "€";
+  const symbol = currency === "GBP" ? "£" : currency === "EUR" ? "€" : "$";
 
   return (
     <ResponsiveContainer width="100%" height={360}>
@@ -277,7 +277,7 @@ function AssumptionForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-      {field("Total Commitment (€)", "total_commitment", { min: 1 })}
+      {field("Total Commitment ($)", "total_commitment", { min: 1 })}
       {field("Deployment Years", "deployment_years", { min: 2, max: 7 })}
       {field("Management Fee %", "annual_management_fee_pct", {
         min: 0,
