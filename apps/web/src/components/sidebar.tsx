@@ -209,7 +209,7 @@ const allyNav: NavSection[] = [
       { label: "Tax Credits", href: "/tax-credits", icon: CreditCard },
       { label: "Board Advisor", href: "/board-advisor", icon: UserCheck },
       { label: "Tokenization", href: "/tokenization", icon: Layers },
-      { label: "Dev OS", href: "/development-os", icon: Monitor },
+      { label: "Dev Tracker", href: "/dev-tracker", icon: Monitor },
       { label: "Activity Feed", href: "/collaboration", icon: Activity },
       { label: "Q&A Workflow", href: "/qa", icon: MessageSquare },
       { label: "Engagement Analytics", href: "/engagement", icon: Activity },
