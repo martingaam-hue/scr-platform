@@ -26,7 +26,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  EmptyState,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -540,10 +539,6 @@ function DiscoverTab({ onApply }: { onApply: (programId: string) => void }) {
 
 function ApplicationsTab() {
   const certifiedTotal = MOCK_APPLICATIONS.filter((a) => a.status === "certified").reduce((s, a) => s + a.value, 0);
-  const pendingTotal = MOCK_APPLICATIONS.filter((a) => ["submitted", "under_review"].includes(a.status)).reduce(
-    (s, a) => s + a.value,
-    0
-  );
 
   return (
     <div className="space-y-4">
