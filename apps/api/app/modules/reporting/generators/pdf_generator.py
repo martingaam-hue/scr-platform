@@ -175,7 +175,7 @@ HTML_TEMPLATE = Template("""\
 
     {% if section.type == 'metrics_grid' %}
     <div class="metrics-grid">
-      {% for item in section.items %}
+      {% for item in section['items'] %}
       <div class="metric-card">
         <div class="metric-label">{{ item.label }}</div>
         <div class="metric-value">{{ item.value }}</div>
@@ -199,7 +199,7 @@ HTML_TEMPLATE = Template("""\
 
     {% elif section.type == 'kv' %}
     <table class="kv-table">
-      {% for key, val in section.items %}
+      {% for key, val in section['items'] %}
       <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
       {% endfor %}
     </table>

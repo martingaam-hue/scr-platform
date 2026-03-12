@@ -74,3 +74,10 @@ Before every push run: `./scripts/check.sh` from the repo root.
 - Never suppress errors with eslint-disable or @ts-ignore
 - Never leave unused imports or variables
 - Run `ruff format .` after editing any Python file
+
+## Testing Rules
+- Run `poetry run pytest --tb=short -q` before every push
+- Never push with failing tests — 0 failures required
+- When modifying any module in app/modules/, run its related tests
+- When changing return types or signatures, check all callers
+- Always verify mock return values match actual return types

@@ -21,3 +21,11 @@ repos:
         language: system
         files: ^apps/web/.*\.(ts|tsx)$
         pass_filenames: false
+
+      - id: api-test-smoke
+        name: API smoke tests
+        entry: bash -c 'cd apps/api && poetry run pytest --tb=line -q -x --timeout=30'
+        language: system
+        files: ^apps/api/.*\.py$
+        pass_filenames: false
+        stages: [pre-push]
