@@ -28,9 +28,9 @@ export async function createTestProject(
 }
 
 export async function getAuthToken(
-  request: APIRequestContext,
-  email: string,
-  password: string
+  _request: APIRequestContext,
+  _email: string,
+  _password: string
 ): Promise<string> {
   // In a real Clerk setup, tokens come from Clerk. For test environments,
   // use a test token endpoint or environment variable.

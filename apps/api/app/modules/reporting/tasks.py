@@ -15,7 +15,7 @@ logger = structlog.get_logger()
 # ── Data Fetching ────────────────────────────────────────────────────────────
 
 
-def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -> dict:  # noqa: C901
+def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -> dict:
     """Fetch data from DB based on template sections and parameters.
 
     Supports all 15 system report templates across performance, ESG,
@@ -24,7 +24,7 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
     from app.models.esg import ESGMetrics
     from app.models.financial import Valuation
     from app.models.investors import Portfolio, PortfolioHolding, PortfolioMetrics, RiskAssessment
-    from app.models.monitoring import Covenant, KPIActual, KPITarget
+    from app.models.monitoring import Covenant, KPIActual
     from app.models.pacing import CashflowProjection
     from app.models.projects import Project, ProjectBudgetItem, ProjectMilestone, SignalScore
 
@@ -106,7 +106,9 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
             data["concentration_risk"] = {
                 "Total Holdings": str(len(holdings)),
                 "Top 5 Concentration": f"{sum(float(h.current_value or 0) for h in sorted_holdings[:5]) / total_value:.1%}",
-                "Largest Single Position": f"{float(sorted_holdings[0].current_value or 0) / total_value:.1%}" if sorted_holdings else "—",
+                "Largest Single Position": f"{float(sorted_holdings[0].current_value or 0) / total_value:.1%}"
+                if sorted_holdings
+                else "—",
                 "Portfolio Currency": portfolio.currency,
                 "Total Fair Value": str(portfolio.current_aum),
             }
@@ -190,16 +192,18 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
                     .order_by(PortfolioMetrics.as_of_date.desc())
                     .limit(1)
                 ).scalar_one_or_none()
-                rows.append({
-                    "fund": p.name,
-                    "vintage": str(p.vintage_year) if p.vintage_year else "—",
-                    "gross_irr": f"{float(m.irr_gross or 0):.1%}" if m else "—",
-                    "net_irr": f"{float(m.irr_net or 0):.1%}" if m else "—",
-                    "tvpi": f"{float(m.tvpi or 0):.2f}x" if m else "—",
-                    "dpi": f"{float(m.dpi or 0):.2f}x" if m else "—",
-                    "moic": f"{float(m.moic or 0):.2f}x" if m else "—",
-                    "aum": str(p.current_aum),
-                })
+                rows.append(
+                    {
+                        "fund": p.name,
+                        "vintage": str(p.vintage_year) if p.vintage_year else "—",
+                        "gross_irr": f"{float(m.irr_gross or 0):.1%}" if m else "—",
+                        "net_irr": f"{float(m.irr_net or 0):.1%}" if m else "—",
+                        "tvpi": f"{float(m.tvpi or 0):.2f}x" if m else "—",
+                        "dpi": f"{float(m.dpi or 0):.2f}x" if m else "—",
+                        "moic": f"{float(m.moic or 0):.2f}x" if m else "—",
+                        "aum": str(p.current_aum),
+                    }
+                )
             data["fund_performance_metrics"] = rows
             data["vintage_overview"] = {
                 "Total Funds": str(len(all_portfolios)),
@@ -221,11 +225,31 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
 
         fund_irr = f"{irr_net:.1%}" if irr_net is not None else "—"
         data["benchmark_comparison"] = [
-            {"benchmark": "This Fund (Net IRR)", "return": fund_irr, "notes": "As of latest period"},
-            {"benchmark": "Cambridge Associates PE Median", "return": "14.2%", "notes": "Vintage-year peer"},
-            {"benchmark": "Cambridge Associates PE Top Quartile", "return": "22.1%", "notes": "Vintage-year peer"},
-            {"benchmark": "MSCI World (PME equivalent)", "return": "11.8%", "notes": "Public market equivalent"},
-            {"benchmark": "Target Return (IPS)", "return": parameters.get("target_irr", "20.0%"), "notes": "Mandate target"},
+            {
+                "benchmark": "This Fund (Net IRR)",
+                "return": fund_irr,
+                "notes": "As of latest period",
+            },
+            {
+                "benchmark": "Cambridge Associates PE Median",
+                "return": "14.2%",
+                "notes": "Vintage-year peer",
+            },
+            {
+                "benchmark": "Cambridge Associates PE Top Quartile",
+                "return": "22.1%",
+                "notes": "Vintage-year peer",
+            },
+            {
+                "benchmark": "MSCI World (PME equivalent)",
+                "return": "11.8%",
+                "notes": "Public market equivalent",
+            },
+            {
+                "benchmark": "Target Return (IPS)",
+                "return": parameters.get("target_irr", "20.0%"),
+                "notes": "Mandate target",
+            },
         ]
 
     # ── Pacing / J-Curve sections ─────────────────────────────────────────────
@@ -248,7 +272,9 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
                 "Portfolio": portfolio.name,
                 "Target AUM": str(portfolio.target_aum),
                 "Current AUM": str(portfolio.current_aum),
-                "Deployment Rate": f"{float(portfolio.current_aum) / float(portfolio.target_aum):.1%}" if float(portfolio.target_aum) else "—",
+                "Deployment Rate": f"{float(portfolio.current_aum) / float(portfolio.target_aum):.1%}"
+                if float(portfolio.target_aum)
+                else "—",
                 "Projection Periods": str(len(projections)),
             }
             data["pacing_analysis"] = [p.to_dict() for p in projections]
@@ -263,21 +289,36 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
 
     # ── ESG sections ──────────────────────────────────────────────────────────
     esg_sections = {
-        "esg_overview", "esg_kpi_scorecard", "esg_executive_summary",
-        "carbon_metrics", "carbon_kpis", "social_impact", "governance_indicators",
-        "taxonomy_alignment", "taxonomy_overview", "sdg_alignment", "sdg_scorecard",
-        "esg_scores", "impact_kpis", "sfdr_classification", "sustainable_investment_pct",
-        "pai_indicators", "social_safeguards", "esg_engagement",
-        "climate_executive_summary", "climate_risks", "net_zero_pathway",
+        "esg_overview",
+        "esg_kpi_scorecard",
+        "esg_executive_summary",
+        "carbon_metrics",
+        "carbon_kpis",
+        "social_impact",
+        "governance_indicators",
+        "taxonomy_alignment",
+        "taxonomy_overview",
+        "sdg_alignment",
+        "sdg_scorecard",
+        "esg_scores",
+        "impact_kpis",
+        "sfdr_classification",
+        "sustainable_investment_pct",
+        "pai_indicators",
+        "social_safeguards",
+        "esg_engagement",
+        "climate_executive_summary",
+        "climate_risks",
+        "net_zero_pathway",
         "sdg_executive_summary",
     }
     if esg_sections & section_names:
         esg_query = select(ESGMetrics).where(ESGMetrics.org_id == org_id)
         if project:
             esg_query = esg_query.where(ESGMetrics.project_id == project.id)
-        esg_records = session.execute(
-            esg_query.order_by(ESGMetrics.period.desc()).limit(20)
-        ).scalars().all()
+        esg_records = (
+            session.execute(esg_query.order_by(ESGMetrics.period.desc()).limit(20)).scalars().all()
+        )
 
         latest_esg: ESGMetrics | None = esg_records[0] if esg_records else None
 
@@ -301,7 +342,9 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
             "EU Taxonomy Eligible": f"{taxonomy_eligible_count}/{len(esg_records)} projects",
             "EU Taxonomy Aligned": f"{taxonomy_aligned_count}/{len(esg_records)} projects",
             "ESG Reporting Standard": latest_esg.esg_reporting_standard if latest_esg else "—",
-            "SFDR Article": f"Article {latest_esg.sfdr_article}" if latest_esg and latest_esg.sfdr_article else "—",
+            "SFDR Article": f"Article {latest_esg.sfdr_article}"
+            if latest_esg and latest_esg.sfdr_article
+            else "—",
         }
         data["esg_kpi_scorecard"] = data["esg_overview"]
         data["esg_executive_summary"] = (
@@ -343,7 +386,9 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
             "Board Independence": f"{sum(float(r.board_independence_pct or 0) for r in esg_records) / max(len(esg_records), 1):.1f}%",
             "Audit Completed": f"{sum(1 for r in esg_records if r.audit_completed)}/{len(esg_records)} entities",
             "ESG Reporting Standard": latest_esg.esg_reporting_standard if latest_esg else "—",
-            "SFDR Article": f"Article {latest_esg.sfdr_article}" if latest_esg and latest_esg.sfdr_article else "Not applicable",
+            "SFDR Article": f"Article {latest_esg.sfdr_article}"
+            if latest_esg and latest_esg.sfdr_article
+            else "Not applicable",
             "EU Taxonomy Eligible": str(taxonomy_eligible_count),
             "EU Taxonomy Aligned": str(taxonomy_aligned_count),
         }
@@ -386,9 +431,11 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
         data["sdg_scorecard"] = {
             "SDGs Addressed": str(len(sdg_aggregated)),
             "Primary Goals": ", ".join(
-                f"SDG {k}" for k, v in sdg_aggregated.items()
+                f"SDG {k}"
+                for k, v in sdg_aggregated.items()
                 if v.get("contribution_level") == "high"
-            ) or "—",
+            )
+            or "—",
             "% Portfolio SDG-Aligned": f"{taxonomy_aligned_count / max(len(esg_records), 1):.0%}",
         }
         data["sdg_executive_summary"] = data["esg_executive_summary"]
@@ -433,20 +480,90 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
         }
         # PAI indicators stub (standard 18 mandatory indicators)
         data["pai_indicators"] = [
-            {"indicator": "GHG emissions (Scope 1 & 2)", "metric": f"{total_carbon:,.1f} tCO₂e", "data_source": "ESGMetrics", "actions": "See carbon reduction plan"},
-            {"indicator": "Carbon footprint", "metric": f"{total_carbon:,.1f} tCO₂e", "data_source": "ESGMetrics", "actions": "Reduction target set"},
-            {"indicator": "GHG intensity of investee companies", "metric": "See per-holding breakdown", "data_source": "ESGMetrics", "actions": "Annual reporting required"},
-            {"indicator": "Fossil fuel sector exposure", "metric": parameters.get("fossil_fuel_pct", "0%"), "data_source": "Portfolio", "actions": "Exclusion list applied"},
-            {"indicator": "Non-renewable energy consumption", "metric": f"{total_renewables:,.1f} MWh renewables", "data_source": "ESGMetrics", "actions": "Renewable transition plan"},
-            {"indicator": "Energy consumption intensity", "metric": "Reported at entity level", "data_source": "ESGMetrics", "actions": "Improvement targets set"},
-            {"indicator": "Biodiversity-sensitive areas", "metric": "No significant adverse impact identified", "data_source": "Site assessments", "actions": "Annual review"},
-            {"indicator": "Water emissions", "metric": f"{sum(float(r.water_usage_cubic_m or 0) for r in esg_records):,.0f} m³", "data_source": "ESGMetrics", "actions": "Water stewardship policy"},
-            {"indicator": "Hazardous waste", "metric": f"{sum(float(r.waste_diverted_tonnes or 0) for r in esg_records):,.1f} tonnes diverted", "data_source": "ESGMetrics", "actions": "Waste reduction plan"},
-            {"indicator": "UNGC / OECD violations", "metric": "No violations identified", "data_source": "Compliance monitoring", "actions": "Ongoing monitoring"},
-            {"indicator": "Lack of UNGC compliance processes", "metric": "Compliance processes in place", "data_source": "Governance review", "actions": "Annual attestation"},
-            {"indicator": "Unadjusted gender pay gap", "metric": f"{sum(float(r.gender_diversity_pct or 0) for r in esg_records) / max(len(esg_records), 1):.1f}% female workforce", "data_source": "ESGMetrics", "actions": "Pay equity review"},
-            {"indicator": "Board gender diversity", "metric": f"{sum(float(r.board_independence_pct or 0) for r in esg_records) / max(len(esg_records), 1):.1f}% independent", "data_source": "ESGMetrics", "actions": "Diversity policy"},
-            {"indicator": "Exposure to controversial weapons", "metric": "0% exposure", "data_source": "Portfolio screening", "actions": "Hard exclusion applied"},
+            {
+                "indicator": "GHG emissions (Scope 1 & 2)",
+                "metric": f"{total_carbon:,.1f} tCO₂e",
+                "data_source": "ESGMetrics",
+                "actions": "See carbon reduction plan",
+            },
+            {
+                "indicator": "Carbon footprint",
+                "metric": f"{total_carbon:,.1f} tCO₂e",
+                "data_source": "ESGMetrics",
+                "actions": "Reduction target set",
+            },
+            {
+                "indicator": "GHG intensity of investee companies",
+                "metric": "See per-holding breakdown",
+                "data_source": "ESGMetrics",
+                "actions": "Annual reporting required",
+            },
+            {
+                "indicator": "Fossil fuel sector exposure",
+                "metric": parameters.get("fossil_fuel_pct", "0%"),
+                "data_source": "Portfolio",
+                "actions": "Exclusion list applied",
+            },
+            {
+                "indicator": "Non-renewable energy consumption",
+                "metric": f"{total_renewables:,.1f} MWh renewables",
+                "data_source": "ESGMetrics",
+                "actions": "Renewable transition plan",
+            },
+            {
+                "indicator": "Energy consumption intensity",
+                "metric": "Reported at entity level",
+                "data_source": "ESGMetrics",
+                "actions": "Improvement targets set",
+            },
+            {
+                "indicator": "Biodiversity-sensitive areas",
+                "metric": "No significant adverse impact identified",
+                "data_source": "Site assessments",
+                "actions": "Annual review",
+            },
+            {
+                "indicator": "Water emissions",
+                "metric": f"{sum(float(r.water_usage_cubic_m or 0) for r in esg_records):,.0f} m³",
+                "data_source": "ESGMetrics",
+                "actions": "Water stewardship policy",
+            },
+            {
+                "indicator": "Hazardous waste",
+                "metric": f"{sum(float(r.waste_diverted_tonnes or 0) for r in esg_records):,.1f} tonnes diverted",
+                "data_source": "ESGMetrics",
+                "actions": "Waste reduction plan",
+            },
+            {
+                "indicator": "UNGC / OECD violations",
+                "metric": "No violations identified",
+                "data_source": "Compliance monitoring",
+                "actions": "Ongoing monitoring",
+            },
+            {
+                "indicator": "Lack of UNGC compliance processes",
+                "metric": "Compliance processes in place",
+                "data_source": "Governance review",
+                "actions": "Annual attestation",
+            },
+            {
+                "indicator": "Unadjusted gender pay gap",
+                "metric": f"{sum(float(r.gender_diversity_pct or 0) for r in esg_records) / max(len(esg_records), 1):.1f}% female workforce",
+                "data_source": "ESGMetrics",
+                "actions": "Pay equity review",
+            },
+            {
+                "indicator": "Board gender diversity",
+                "metric": f"{sum(float(r.board_independence_pct or 0) for r in esg_records) / max(len(esg_records), 1):.1f}% independent",
+                "data_source": "ESGMetrics",
+                "actions": "Diversity policy",
+            },
+            {
+                "indicator": "Exposure to controversial weapons",
+                "metric": "0% exposure",
+                "data_source": "Portfolio screening",
+                "actions": "Hard exclusion applied",
+            },
         ]
         data["social_safeguards"] = {
             "OECD MNE Guidelines": "Compliance monitored annually",
@@ -469,11 +586,41 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
             "Physical risk assessments have been completed for all infrastructure holdings."
         )
         data["climate_risks"] = [
-            {"risk_type": "Transition", "description": "Carbon pricing / regulatory tightening", "likelihood": "High", "impact": "Medium", "mitigation": "Decarbonisation roadmap per holding"},
-            {"risk_type": "Transition", "description": "Technology obsolescence (fossil fuels)", "likelihood": "Medium", "impact": "High", "mitigation": "Fossil fuel exclusion list"},
-            {"risk_type": "Physical", "description": "Extreme weather events (acute)", "likelihood": "Medium", "impact": "High", "mitigation": "Climate risk assessment for all assets"},
-            {"risk_type": "Physical", "description": "Sea level rise / chronic flooding", "likelihood": "Low", "impact": "Medium", "mitigation": "Site-level physical risk review"},
-            {"risk_type": "Market", "description": "Stranded asset risk", "likelihood": "Medium", "impact": "High", "mitigation": "Regular valuation stress testing"},
+            {
+                "risk_type": "Transition",
+                "description": "Carbon pricing / regulatory tightening",
+                "likelihood": "High",
+                "impact": "Medium",
+                "mitigation": "Decarbonisation roadmap per holding",
+            },
+            {
+                "risk_type": "Transition",
+                "description": "Technology obsolescence (fossil fuels)",
+                "likelihood": "Medium",
+                "impact": "High",
+                "mitigation": "Fossil fuel exclusion list",
+            },
+            {
+                "risk_type": "Physical",
+                "description": "Extreme weather events (acute)",
+                "likelihood": "Medium",
+                "impact": "High",
+                "mitigation": "Climate risk assessment for all assets",
+            },
+            {
+                "risk_type": "Physical",
+                "description": "Sea level rise / chronic flooding",
+                "likelihood": "Low",
+                "impact": "Medium",
+                "mitigation": "Site-level physical risk review",
+            },
+            {
+                "risk_type": "Market",
+                "description": "Stranded asset risk",
+                "likelihood": "Medium",
+                "impact": "High",
+                "mitigation": "Regular valuation stress testing",
+            },
         ]
         data["net_zero_pathway"] = {
             "2030 Target": "-50% GHG vs. 2020 baseline",
@@ -485,14 +632,17 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
         }
 
     # ── Valuation sections ────────────────────────────────────────────────────
-    if section_names & {"valuation_summary", "valuation_overview", "mark_movements", "financial_analysis"}:
+    if section_names & {
+        "valuation_summary",
+        "valuation_overview",
+        "mark_movements",
+        "financial_analysis",
+    }:
         val_query = select(Valuation).where(Valuation.org_id == org_id)
         if project:
             val_query = val_query.where(Valuation.project_id == project.id)
         valuations = (
-            session.execute(
-                val_query.order_by(Valuation.valued_at.desc()).limit(20)
-            )
+            session.execute(val_query.order_by(Valuation.valued_at.desc()).limit(20))
             .scalars()
             .all()
         )
@@ -561,6 +711,7 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
     # ── Risk register ─────────────────────────────────────────────────────────
     if section_names & {"risk_register", "risk_assessment"}:
         from app.models.enums import RiskEntityType
+
         risk_query = select(RiskAssessment).where(
             RiskAssessment.org_id == org_id,
             RiskAssessment.is_deleted.is_(False),
@@ -585,9 +736,15 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
         data["risk_assessment"] = {
             "Total Risks Identified": str(len(risks)),
             "High Severity": str(sum(1 for r in risks if r.severity.value in ("high", "critical"))),
-            "Market Risk Score": str(risks[0].market_risk_score) if risks and risks[0].market_risk_score else "—",
-            "Overall Risk Score": str(risks[0].overall_risk_score) if risks and risks[0].overall_risk_score else "—",
-            "Climate Risk Score": str(risks[0].climate_risk_score) if risks and risks[0].climate_risk_score else "—",
+            "Market Risk Score": str(risks[0].market_risk_score)
+            if risks and risks[0].market_risk_score
+            else "—",
+            "Overall Risk Score": str(risks[0].overall_risk_score)
+            if risks and risks[0].overall_risk_score
+            else "—",
+            "Climate Risk Score": str(risks[0].climate_risk_score)
+            if risks and risks[0].climate_risk_score
+            else "—",
         }
 
     # ── Covenant & compliance sections ────────────────────────────────────────
@@ -619,7 +776,9 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
             "Compliant": str(len(covenants) - breach_count - warning_count),
             "Warnings": str(warning_count),
             "Breaches": str(breach_count),
-            "Compliance Score": f"{(len(covenants) - breach_count) / max(len(covenants), 1):.0%}" if covenants else "N/A",
+            "Compliance Score": f"{(len(covenants) - breach_count) / max(len(covenants), 1):.0%}"
+            if covenants
+            else "N/A",
         }
 
         # KPI performance: latest actuals per KPI name
@@ -661,18 +820,19 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
         if project:
             data["project_overview"] = project.to_dict()
             data["project_highlights"] = project.to_dict()
-            data["investment_thesis"] = (
-                f"Investment thesis for {project.name}: "
-                + (project.to_dict().get("description") or "No description available.")
+            data["investment_thesis"] = f"Investment thesis for {project.name}: " + (
+                project.to_dict().get("description") or "No description available."
             )
             data["next_steps"] = "Please add next steps and investor ask to this section."
 
             milestones = (
                 session.execute(
-                    select(ProjectMilestone).where(
+                    select(ProjectMilestone)
+                    .where(
                         ProjectMilestone.project_id == project.id,
                         ProjectMilestone.is_deleted.is_(False),
-                    ).order_by(ProjectMilestone.due_date)
+                    )
+                    .order_by(ProjectMilestone.due_date)
                 )
                 .scalars()
                 .all()
@@ -710,20 +870,79 @@ def _fetch_report_data(session, org_id: uuid.UUID, template, parameters: dict) -
 
             # DD checklist: use milestones as proxy for workstream completion
             data["required_documents"] = [
-                {"workstream": "Legal", "item": "Incorporation documents", "status": "Required", "notes": ""},
-                {"workstream": "Legal", "item": "Shareholder agreement", "status": "Required", "notes": ""},
-                {"workstream": "Financial", "item": "3-year financial model", "status": "Required", "notes": ""},
-                {"workstream": "Financial", "item": "Audited accounts (if applicable)", "status": "Required", "notes": ""},
-                {"workstream": "Technical", "item": "Technical feasibility study", "status": "Required", "notes": ""},
-                {"workstream": "Technical", "item": "Environmental permits", "status": "Required", "notes": ""},
-                {"workstream": "ESG", "item": "ESG impact assessment", "status": "Required", "notes": ""},
+                {
+                    "workstream": "Legal",
+                    "item": "Incorporation documents",
+                    "status": "Required",
+                    "notes": "",
+                },
+                {
+                    "workstream": "Legal",
+                    "item": "Shareholder agreement",
+                    "status": "Required",
+                    "notes": "",
+                },
+                {
+                    "workstream": "Financial",
+                    "item": "3-year financial model",
+                    "status": "Required",
+                    "notes": "",
+                },
+                {
+                    "workstream": "Financial",
+                    "item": "Audited accounts (if applicable)",
+                    "status": "Required",
+                    "notes": "",
+                },
+                {
+                    "workstream": "Technical",
+                    "item": "Technical feasibility study",
+                    "status": "Required",
+                    "notes": "",
+                },
+                {
+                    "workstream": "Technical",
+                    "item": "Environmental permits",
+                    "status": "Required",
+                    "notes": "",
+                },
+                {
+                    "workstream": "ESG",
+                    "item": "ESG impact assessment",
+                    "status": "Required",
+                    "notes": "",
+                },
                 {"workstream": "ESG", "item": "DNSH analysis", "status": "Required", "notes": ""},
             ]
             data["completion_status"] = [
-                {"workstream": "Legal", "items": 4, "completed": 2, "completion_pct": "50%", "notes": "Awaiting shareholder agreement"},
-                {"workstream": "Financial", "items": 5, "completed": 3, "completion_pct": "60%", "notes": "Audit in progress"},
-                {"workstream": "Technical", "items": 3, "completed": 3, "completion_pct": "100%", "notes": "Complete"},
-                {"workstream": "ESG", "items": 4, "completed": 2, "completion_pct": "50%", "notes": "DNSH analysis outstanding"},
+                {
+                    "workstream": "Legal",
+                    "items": 4,
+                    "completed": 2,
+                    "completion_pct": "50%",
+                    "notes": "Awaiting shareholder agreement",
+                },
+                {
+                    "workstream": "Financial",
+                    "items": 5,
+                    "completed": 3,
+                    "completion_pct": "60%",
+                    "notes": "Audit in progress",
+                },
+                {
+                    "workstream": "Technical",
+                    "items": 3,
+                    "completed": 3,
+                    "completion_pct": "100%",
+                    "notes": "Complete",
+                },
+                {
+                    "workstream": "ESG",
+                    "items": 4,
+                    "completed": 2,
+                    "completion_pct": "50%",
+                    "notes": "DNSH analysis outstanding",
+                },
             ]
             data["missing_items"] = [
                 item for item in data["required_documents"] if item["status"] == "Required"

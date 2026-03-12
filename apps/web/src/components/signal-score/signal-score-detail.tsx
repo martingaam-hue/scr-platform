@@ -103,13 +103,6 @@ function ratingColor(score: number) {
   return "bg-red-100 text-red-700";
 }
 
-function ratingBorder(score: number) {
-  if (score >= 80) return "border-green-200 bg-green-50";
-  if (score >= 70) return "border-blue-200 bg-blue-50";
-  if (score >= 60) return "border-amber-200 bg-amber-50";
-  if (score >= 50) return "border-yellow-200 bg-yellow-50";
-  return "border-red-200 bg-red-50";
-}
 
 function ratingBarColor(score: number) {
   if (score >= 80) return "bg-green-500";

@@ -66,3 +66,11 @@ poetry run alembic revision --autogenerate -m "description"  # New migration
 - Never use nested `if` statements when they can be combined with `and` (Ruff SIM102).
 - Always run `ruff check .` before committing Python code.
 - All pre-commit hooks must pass before pushing.
+
+## Mandatory Pre-Push Checks
+Before every push run: `./scripts/check.sh` from the repo root.
+- API: ruff check, ruff format --check, mypy — zero errors
+- Web: eslint, tsc --noEmit — zero errors
+- Never suppress errors with eslint-disable or @ts-ignore
+- Never leave unused imports or variables
+- Run `ruff format .` after editing any Python file

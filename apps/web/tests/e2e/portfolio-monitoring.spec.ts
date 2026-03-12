@@ -18,7 +18,7 @@ test.describe("Portfolio Monitoring", () => {
     await page.waitForLoadState("networkidle");
 
     // Look for traffic light indicators or status badges
-    const statusBadges = page.locator("[data-status], .badge, [class*='badge']");
+    const _statusBadges = page.locator("[data-status], .badge, [class*='badge']");
     // Page loads without error is sufficient
     await expect(page.locator("main")).toBeVisible();
   });

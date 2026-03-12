@@ -678,7 +678,7 @@ export default function MatchingPage() {
   }, [filter, sort, search, sectorFilter]);
 
   return (
-    <div className="mx-auto max-w-screen-xl p-6">
+    <div className="space-y-6">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="mb-6 flex items-start justify-between gap-4">

@@ -5,3 +5,19 @@ repos:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: web-eslint
+        name: Web ESLint
+        entry: bash -c 'cd apps/web && pnpm exec eslint --max-warnings 0 .'
+        language: system
+        files: ^apps/web/.*\.(ts|tsx)$
+        pass_filenames: false
+
+      - id: web-typecheck
+        name: Web TypeScript
+        entry: bash -c 'cd apps/web && pnpm exec tsc --noEmit'
+        language: system
+        files: ^apps/web/.*\.(ts|tsx)$
+        pass_filenames: false

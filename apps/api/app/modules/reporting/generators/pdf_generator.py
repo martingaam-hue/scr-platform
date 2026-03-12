@@ -253,10 +253,19 @@ HTML_TEMPLATE = Template("""\
 """)
 
 # Column names that are typically status/badge columns
-_STATUS_COLUMN_KEYWORDS = frozenset({
-    "status", "state", "compliance", "result", "outcome",
-    "completion", "complete", "received", "aligned",
-})
+_STATUS_COLUMN_KEYWORDS = frozenset(
+    {
+        "status",
+        "state",
+        "compliance",
+        "result",
+        "outcome",
+        "completion",
+        "complete",
+        "received",
+        "aligned",
+    }
+)
 
 
 def _guess_status_col(headers: list[str]) -> int:
@@ -309,22 +318,30 @@ class PDFGenerator(BaseReportGenerator):
 
         # ── Explicit metrics_grid ──────────────────────────────────────────────
         if (
-            type_hint == "metrics_grid" or (
-                isinstance(section_data, dict)
-                and type_hint in ("metrics_grid", "")
-                and not isinstance(section_data, list)
-                and all(not isinstance(v, (dict, list)) for v in section_data.values())
-                and len(section_data) <= 10
+            (
+                type_hint == "metrics_grid"
+                or (
+                    isinstance(section_data, dict)
+                    and type_hint in ("metrics_grid", "")
+                    and not isinstance(section_data, list)
+                    and all(not isinstance(v, dict | list) for v in section_data.values())
+                    and len(section_data) <= 10
+                )
             )
-        ) and isinstance(section_data, dict) and section_data:
-                return {
-                    "display_name": label,
-                    "type": "metrics_grid",
-                    "items": [
-                        {"label": k.replace("_", " ").title(), "value": str(v) if v is not None else "—"}
-                        for k, v in section_data.items()
-                    ],
-                }
+            and isinstance(section_data, dict)
+            and section_data
+        ):
+            return {
+                "display_name": label,
+                "type": "metrics_grid",
+                "items": [
+                    {
+                        "label": k.replace("_", " ").title(),
+                        "value": str(v) if v is not None else "—",
+                    }
+                    for k, v in section_data.items()
+                ],
+            }
 
         # ── List of dicts → table ──────────────────────────────────────────────
         if isinstance(section_data, list) and section_data:
@@ -332,8 +349,7 @@ class PDFGenerator(BaseReportGenerator):
                 headers = [h.replace("_", " ").title() for h in section_data[0]]
                 raw_headers_lower = [h.lower() for h in section_data[0]]
                 rows = [
-                    [str(v) if v is not None else "" for v in row.values()]
-                    for row in section_data
+                    [str(v) if v is not None else "" for v in row.values()] for row in section_data
                 ]
                 if type_hint == "checklist":
                     status_col = _guess_status_col(raw_headers_lower)

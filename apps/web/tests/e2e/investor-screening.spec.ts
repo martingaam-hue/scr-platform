@@ -19,7 +19,7 @@ test.describe("Investor Deal Screening", () => {
     await page.goto("/matching");
     await page.waitForLoadState("networkidle");
 
-    const heading = page.getByRole("heading", { name: /match|recommend/i });
+    const _heading = page.getByRole("heading", { name: /match|recommend/i });
     // Page should load without error
     await expect(page.locator("main")).toBeVisible({ timeout: 10_000 });
   });

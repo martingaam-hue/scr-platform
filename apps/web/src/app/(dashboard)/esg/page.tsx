@@ -128,8 +128,8 @@ export default function ESGDashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-green-100 rounded-lg">
-            <Leaf className="h-6 w-6 text-green-600" />
+          <div className="p-2 bg-primary-100 rounded-lg">
+            <Leaf className="h-6 w-6 text-primary-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-neutral-900">
@@ -184,8 +184,8 @@ export default function ESGDashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-5 flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
-                  <Leaf className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-primary-100 rounded-lg flex-shrink-0">
+                  <Leaf className="h-5 w-5 text-primary-600" />
                 </div>
                 <div>
                   <p className="text-xs text-neutral-500">Carbon Avoided</p>
