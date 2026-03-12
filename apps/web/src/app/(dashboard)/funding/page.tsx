@@ -112,7 +112,7 @@ const PIPELINE_STAGES = [
   { key: "screening", label: "Screening", color: "bg-neutral-400" },
   { key: "first_meeting", label: "First Meeting", color: "bg-blue-400" },
   { key: "due_diligence", label: "Due Diligence", color: "bg-amber-400" },
-  { key: "term_sheet", label: "Term Sheet", color: "bg-indigo-500" },
+  { key: "term_sheet", label: "Term Sheet", color: "bg-blue-500" },
   { key: "closing", label: "Closing", color: "bg-emerald-500" },
 ];
 
@@ -125,7 +125,7 @@ function fmt(n: number, currency = "€") {
   return `${currency}${n.toFixed(0)}`;
 }
 
-function ProgressBar({ value, max, colorClass = "bg-indigo-500" }: { value: number; max: number; colorClass?: string }) {
+function ProgressBar({ value, max, colorClass = "bg-blue-500" }: { value: number; max: number; colorClass?: string }) {
   const w = Math.min(100, max > 0 ? (value / max) * 100 : 0);
   return (
     <div className="h-2 rounded-full bg-neutral-100 overflow-hidden">
@@ -263,7 +263,7 @@ function OverviewTab({ projects }: { projects: ProjectResponse[] }) {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-indigo-500" /> Funding Status by Project
+              <BarChart3 className="h-4 w-4 text-blue-500" /> Funding Status by Project
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -288,7 +288,7 @@ function OverviewTab({ projects }: { projects: ProjectResponse[] }) {
                           {formatCurrency(parseFloat(p.total_investment_required))}
                         </span>
                       </div>
-                      <ProgressBar value={stagePct} max={100} colorClass="bg-indigo-500" />
+                      <ProgressBar value={stagePct} max={100} colorClass="bg-blue-500" />
                       <div className="flex justify-between text-[10px] text-neutral-400 mt-0.5">
                         <span className="capitalize">{p.stage.replace(/_/g, " ")}</span>
                         <span>{stagePct}% funding progress</span>
@@ -304,7 +304,7 @@ function OverviewTab({ projects }: { projects: ProjectResponse[] }) {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
-              <Landmark className="h-4 w-4 text-indigo-500" /> Capital Stack — Portfolio Total
+              <Landmark className="h-4 w-4 text-blue-500" /> Capital Stack — Portfolio Total
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -396,7 +396,7 @@ function PipelineTab() {
                     <td className="px-4 py-3"><StageBadge stage={inv.stage} /></td>
                     <td className="px-4 py-3 text-xs text-neutral-400">{inv.last_contact}</td>
                     <td className="px-4 py-3">
-                      <span className="flex items-center gap-1 text-xs text-indigo-600 font-medium">
+                      <span className="flex items-center gap-1 text-xs text-blue-600 font-medium">
                         <ChevronRight className="h-3 w-3" />{inv.next_action}
                       </span>
                     </td>
@@ -450,8 +450,8 @@ function CapitalStructureTab({ projects }: { projects: ProjectResponse[] }) {
             </BarChart>
           </ResponsiveContainer>
           <div className="flex gap-4 justify-center text-xs text-neutral-500 mt-2">
-            <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-indigo-500" />Secured</span>
-            <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-indigo-200" />In Discussion</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-blue-500" />Secured</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-blue-200" />In Discussion</span>
           </div>
         </CardContent>
       </Card>
@@ -487,7 +487,7 @@ function CapitalStructureTab({ projects }: { projects: ProjectResponse[] }) {
                     </td>
                     <td className="px-4 py-3 text-right text-neutral-700">{fmt(t.target)}</td>
                     <td className="px-4 py-3 text-right text-emerald-700 font-semibold">{fmt(t.secured)}</td>
-                    <td className="px-4 py-3 text-right text-indigo-600">{fmt(t.in_discussion)}</td>
+                    <td className="px-4 py-3 text-right text-blue-600">{fmt(t.in_discussion)}</td>
                     <td className="px-4 py-3 text-right text-neutral-400">{gap > 0 ? fmt(gap) : "—"}</td>
                     <td className="px-4 py-3 w-32">
                       <div className="h-1.5 rounded-full bg-neutral-100 overflow-hidden">
@@ -503,7 +503,7 @@ function CapitalStructureTab({ projects }: { projects: ProjectResponse[] }) {
                 <td className="px-4 py-3 font-semibold text-neutral-900">Total</td>
                 <td className="px-4 py-3 text-right font-semibold">{fmt(CAPITAL_STACK.reduce((s, t) => s + t.target, 0))}</td>
                 <td className="px-4 py-3 text-right font-semibold text-emerald-700">{fmt(CAPITAL_STACK.reduce((s, t) => s + t.secured, 0))}</td>
-                <td className="px-4 py-3 text-right font-semibold text-indigo-600">{fmt(CAPITAL_STACK.reduce((s, t) => s + t.in_discussion, 0))}</td>
+                <td className="px-4 py-3 text-right font-semibold text-blue-600">{fmt(CAPITAL_STACK.reduce((s, t) => s + t.in_discussion, 0))}</td>
                 <td className="px-4 py-3 text-right font-semibold text-neutral-400">{fmt(CAPITAL_STACK.reduce((s, t) => s + Math.max(0, t.target - t.secured - t.in_discussion), 0))}</td>
                 <td />
               </tr>
@@ -604,7 +604,7 @@ function MilestonesTab() {
             </BarChart>
           </ResponsiveContainer>
           <div className="flex gap-4 justify-center text-xs text-neutral-500 mt-2">
-            <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-indigo-600" />Equity</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-blue-600" />Equity</span>
             <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-blue-500" />Debt</span>
             <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-emerald-500" />Grant</span>
           </div>
@@ -626,7 +626,7 @@ function DueDiligenceTab() {
         {[
           { label: "Materials Ready", value: `${readyCount} / ${DD_MATERIALS.length}`, color: "text-emerald-600", sub: "Fully complete" },
           { label: "Critical Gaps", value: DD_MATERIALS.filter((m) => m.critical && m.ready < m.total).length, color: "text-red-600", sub: "Blocking items" },
-          { label: "Projects Investor-Ready", value: "2 / 5", color: "text-indigo-600", sub: "Full DD package" },
+          { label: "Projects Investor-Ready", value: "2 / 5", color: "text-blue-600", sub: "Full DD package" },
           { label: "Avg. Completeness", value: `${Math.round(DD_MATERIALS.reduce((s, m) => s + (m.ready / m.total) * 100, 0) / DD_MATERIALS.length)}%`, color: "text-blue-600", sub: "Across all materials" },
         ].map(({ label, value, color, sub }) => (
           <Card key={label}>
@@ -683,7 +683,7 @@ function DueDiligenceTab() {
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 rounded-full bg-neutral-100 overflow-hidden">
                           <div
-                            className={cn("h-1.5 rounded-full transition-all", pct === 100 ? "bg-emerald-500" : pct >= 60 ? "bg-indigo-500" : "bg-amber-500")}
+                            className={cn("h-1.5 rounded-full transition-all", pct === 100 ? "bg-emerald-500" : pct >= 60 ? "bg-blue-500" : "bg-amber-500")}
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -711,7 +711,7 @@ function DueDiligenceTab() {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-indigo-500" /> Recommended Next Steps
+            <TrendingUp className="h-4 w-4 text-blue-500" /> Recommended Next Steps
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -751,8 +751,8 @@ export default function FundingPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-100 rounded-lg">
-            <Wallet className="h-6 w-6 text-indigo-600" />
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Wallet className="h-6 w-6 text-blue-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-neutral-900">Funding &amp; Capital Raise</h1>
@@ -795,7 +795,7 @@ export default function FundingPage() {
         <TabsContent value="overview" className="mt-6">
           {loadingProjects ? (
             <div className="flex justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+              <div className="h-6 w-6 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
             </div>
           ) : (
             <OverviewTab projects={projects} />
@@ -809,7 +809,7 @@ export default function FundingPage() {
         <TabsContent value="capital" className="mt-6">
           {loadingProjects ? (
             <div className="flex justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+              <div className="h-6 w-6 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
             </div>
           ) : (
             <CapitalStructureTab projects={projects} />

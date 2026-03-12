@@ -138,14 +138,44 @@ function AllyDashboard() {
   const onHold = allProjects.filter((p) => p.status === "on_hold");
   const drafts = allProjects.filter((p) => p.status === "draft");
 
-  const actionItems: Array<{
+  type ActionItem = {
     icon: React.ElementType;
     color: string;
     bg: string;
     text: string;
     action: string | null;
     href: string | null;
-  }> = [];
+  };
+
+  // Static platform-surfaced actions always shown alongside dynamic project items
+  const staticActionItems: ActionItem[] = [
+    {
+      icon: Zap,
+      color: "text-indigo-600",
+      bg: "bg-indigo-50",
+      text: "2 new investor matches above 85% compatibility — respond to unlock warm introductions",
+      action: "View Matches",
+      href: "/matching",
+    },
+    {
+      icon: FileText,
+      color: "text-purple-600",
+      bg: "bg-purple-50",
+      text: "ITC §48 tax credit certification available for Solvatten Solar — est. $4.2M, +4.2 Signal Score pts",
+      action: "Start Application",
+      href: "/tax-credits",
+    },
+    {
+      icon: Database,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      text: "Väst Wind 120MW Data Room is missing 3 investor documents ahead of the EIB site visit (Apr 28)",
+      action: "Open Data Room",
+      href: "/data-room",
+    },
+  ];
+
+  const actionItems: ActionItem[] = [...staticActionItems];
   if (noScore.length > 0)
     actionItems.push({
       icon: AlertCircle,
@@ -172,15 +202,6 @@ function AllyDashboard() {
       text: `${onHold.length} project${onHold.length > 1 ? "s" : ""} currently on hold`,
       action: "Review",
       href: "/projects",
-    });
-  if (actionItems.length === 0)
-    actionItems.push({
-      icon: CheckCircle2,
-      color: "text-green-600",
-      bg: "bg-green-50",
-      text: "All projects are in great shape — keep up the momentum!",
-      action: null,
-      href: null,
     });
 
   // Project type distribution for DonutChart
