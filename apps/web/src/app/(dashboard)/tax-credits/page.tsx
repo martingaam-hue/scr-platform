@@ -263,9 +263,9 @@ function OverviewTab({ onStartApplication }: { onStartApplication: () => void })
       {/* Application pipeline */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-6">
             <CardTitle className="text-sm">Application Pipeline</CardTitle>
-            <Button size="sm" onClick={onStartApplication}>
+            <Button size="sm" onClick={onStartApplication} className="flex-shrink-0">
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               New Application
             </Button>

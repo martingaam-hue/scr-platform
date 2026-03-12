@@ -362,9 +362,9 @@ function PipelineTab() {
       {/* Investor pipeline table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-6">
             <CardTitle className="text-sm">Investor Tracker</CardTitle>
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" className="flex-shrink-0">
               <Download className="h-3.5 w-3.5 mr-1.5" /> Export CRM
             </Button>
           </div>
@@ -639,9 +639,9 @@ function DueDiligenceTab() {
       {/* Materials checklist */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-6">
             <CardTitle className="text-sm">Due Diligence Materials</CardTitle>
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" className="flex-shrink-0">
               <Download className="h-3.5 w-3.5 mr-1.5" /> DD Checklist
             </Button>
           </div>

@@ -728,11 +728,11 @@ function RisksTab() {
       {/* Blockers */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-6">
             <CardTitle className="text-sm flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-red-500" /> Active Blockers &amp; Risks
             </CardTitle>
-            <Button size="sm" onClick={() => setShowAdvisor(v => !v)}>
+            <Button size="sm" className="flex-shrink-0" onClick={() => setShowAdvisor(v => !v)}>
               <Zap className="h-3.5 w-3.5 mr-1.5" />
               {showAdvisor ? "Hide" : "Generate"} Risk Assessment
             </Button>
