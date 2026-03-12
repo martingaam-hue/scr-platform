@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   EmptyState,
-  ScoreGauge,
 } from "@scr/ui";
 import { useProject } from "@/lib/projects";
 import {
@@ -22,7 +21,68 @@ import {
   PRIORITY_BADGE,
   type CoverageRecommendation,
 } from "@/lib/insurance";
+import { useSignalScoreDetails } from "@/lib/signal-score";
 import { AIFeedback } from "@/components/ai-feedback";
+
+// ── Score circle helpers ───────────────────────────────────────────────────────
+
+function scoreColor(score: number): string {
+  if (score >= 80) return "#22c55e";
+  if (score >= 70) return "#3b82f6";
+  if (score >= 60) return "#f59e0b";
+  if (score >= 50) return "#eab308";
+  return "#ef4444";
+}
+
+function ScoreRing({ score, size = 140 }: { score: number; size?: number }) {
+  const strokeWidth = 12;
+  const r = (size - strokeWidth) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.min(Math.max(score, 0), 100) / 100;
+  const cx = size / 2;
+  const color = scoreColor(score);
+  return (
+    <svg width={size} height={size} className="rotate-[-90deg]">
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e5e7eb" strokeWidth={strokeWidth} />
+      <circle
+        cx={cx} cy={cx} r={r} fill="none"
+        stroke={color} strokeWidth={strokeWidth}
+        strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
+        strokeLinecap="round"
+        style={{ transition: "stroke-dashoffset 800ms ease-out" }}
+      />
+    </svg>
+  );
+}
+
+function ScoreCircleCard({ score, label }: { score: number | null; label: string }) {
+  const s = score !== null ? Math.round(score) : null;
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center gap-2 py-6">
+        {s !== null ? (
+          <div className="relative">
+            <ScoreRing score={s} size={140} />
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span
+                className="text-4xl font-bold tabular-nums leading-none"
+                style={{ color: scoreColor(s) }}
+              >
+                {s}
+              </span>
+              <span className="text-[10px] text-neutral-400 mt-0.5">/ 100</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex h-[140px] w-[140px] items-center justify-center rounded-full border-4 border-neutral-200">
+            <span className="text-sm text-neutral-400">—</span>
+          </div>
+        )}
+        <p className="text-sm font-medium text-neutral-600 text-center">{label}</p>
+      </CardContent>
+    </Card>
+  );
+}
 
 // ── Coverage adequacy badge ───────────────────────────────────────────────────
 
@@ -90,6 +150,7 @@ export default function InsurancePage() {
   } = useInsuranceImpact(projectId);
   const { data: quotes = [] } = useInsuranceQuotes(projectId);
   const { data: policies = [] } = useInsurancePolicies(projectId);
+  const { data: signalScore } = useSignalScoreDetails(projectId);
   const deleteQuote = useDeleteQuote();
   const deletePolicy = useDeletePolicy();
 
@@ -144,15 +205,15 @@ export default function InsurancePage() {
       ) : (
         <>
           {/* KPI cards */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <ScoreGauge score={impact.risk_reduction_score} />
-                <p className="mt-2 text-sm font-medium text-neutral-600">
-                  Risk Reduction Score
-                </p>
-              </CardContent>
-            </Card>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <ScoreCircleCard
+              score={signalScore?.overall_score ?? null}
+              label="Signal Score"
+            />
+            <ScoreCircleCard
+              score={impact.risk_reduction_score}
+              label="Risk Reduction Score"
+            />
             <Card>
               <CardContent className="flex flex-col items-center justify-center gap-2 pt-6">
                 <AdequacyBadge value={impact.coverage_adequacy} />
