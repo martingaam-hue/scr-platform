@@ -35,6 +35,7 @@ import {
   type ProjectScoreListItem,
 } from "@/lib/alley-score";
 import { useProjects } from "@/lib/projects";
+import { SignalScoreHero } from "@/components/signal-score-hero";
 
 // ── Info Banner ───────────────────────────────────────────────────────────────
 
@@ -49,34 +50,6 @@ function InfoBanner() {
         presentation. This comprehensive analysis helps you understand how prepared your
         project is to attract investment and identifies areas for improvement.
       </span>
-    </div>
-  );
-}
-
-// ── Portfolio Hero ─────────────────────────────────────────────────────────────
-
-function PortfolioHero({ avg, total, ready }: { avg: number; total: number; ready: number }) {
-  return (
-    <div className="rounded-2xl border border-neutral-200 bg-white px-8 py-10">
-      <p className="mb-8 text-xs font-semibold uppercase tracking-widest text-neutral-400">
-        Portfolio Signal Score Overview
-      </p>
-      <div className="grid grid-cols-3 divide-x divide-neutral-200">
-        <div className="pr-8">
-          <p className="text-[80px] font-bold tabular-nums leading-none text-neutral-900">{Math.round(avg)}</p>
-          <p className="mt-3 text-sm font-medium text-neutral-600">Average Score</p>
-          <p className="mt-0.5 text-xs text-neutral-400">out of 100</p>
-        </div>
-        <div className="px-8">
-          <p className="text-[80px] font-bold tabular-nums leading-none text-neutral-900">{total}</p>
-          <p className="mt-3 text-sm font-medium text-neutral-600">Total Projects</p>
-        </div>
-        <div className="pl-8">
-          <p className="text-[80px] font-bold tabular-nums leading-none text-green-600">{ready}</p>
-          <p className="mt-3 text-sm font-medium text-neutral-600">Investment Ready</p>
-          <p className="mt-0.5 text-xs text-neutral-400">score ≥ 80</p>
-        </div>
-      </div>
     </div>
   );
 }
@@ -469,10 +442,11 @@ export default function AlleyScorePage() {
           <Loader2 className="h-7 w-7 animate-spin text-neutral-300" />
         </div>
       ) : data && data.stats.total_projects > 0 ? (
-        <PortfolioHero
-          avg={data.stats.avg_score}
-          total={data.stats.total_projects}
-          ready={data.stats.investment_ready_count}
+        <SignalScoreHero
+          avgScore={data.stats.avg_score}
+          totalProjects={data.stats.total_projects}
+          investmentReady={data.stats.investment_ready_count}
+          needsAttention={data.projects.filter((p) => Math.round(p.score) < 60).length}
         />
       ) : null}
 
