@@ -1020,13 +1020,10 @@ function InvestorDashboard() {
                   <th className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-500">Cost</th>
                   <th className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-500">NAV</th>
                   <th className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-500">IRR</th>
+                  <th className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-500">MOIC</th>
                   <th className="px-3 py-2.5 text-center text-xs font-semibold text-neutral-500">Signal</th>
                   <th className="px-3 py-2.5 text-center text-xs font-semibold text-neutral-500">Status</th>
-                  <th className="px-3 py-2.5 text-center text-xs font-semibold text-neutral-400">
-                    <span className="flex items-center justify-center gap-1">
-                      Details <ChevronRight className="h-3 w-3" />
-                    </span>
-                  </th>
+                  <th className="px-3 py-2.5 text-center text-xs font-semibold text-neutral-400"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-50">
@@ -1047,6 +1044,7 @@ function InvestorDashboard() {
                     <td className="px-3 py-3 text-right tabular-nums text-neutral-700">{fmtM(h.amount)}</td>
                     <td className="px-3 py-3 text-right tabular-nums font-semibold text-neutral-900">{fmtM(h.valuation)}</td>
                     <td className="px-3 py-3 text-right tabular-nums text-neutral-700">{h.irr.toFixed(1)}%</td>
+                    <td className="px-3 py-3 text-right tabular-nums font-semibold text-neutral-800">{h.multiple.toFixed(2)}×</td>
                     <td className="px-3 py-3 text-center">
                       <span className={cn("font-bold text-sm", scoreColor(h.signal_score))}>
                         {h.signal_score}
@@ -1058,7 +1056,14 @@ function InvestorDashboard() {
                       </Badge>
                     </td>
                     <td className="px-3 py-3 text-center">
-                      <ChevronRight className="h-4 w-4 text-neutral-300 inline" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs"
+                        onClick={(e) => { e.stopPropagation(); router.push("/portfolio"); }}
+                      >
+                        View
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -1169,8 +1174,8 @@ function InvestorDashboard() {
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
                   <div
-                    className={cn("h-full rounded-full transition-all", scoreBarColor(d.score))}
-                    style={{ width: `${d.score}%` }}
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${d.score}%`, backgroundColor: scoreBarColor(d.score) }}
                   />
                 </div>
               </div>

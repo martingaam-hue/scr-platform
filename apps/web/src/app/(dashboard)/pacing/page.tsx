@@ -442,8 +442,10 @@ export default function PacingPage() {
     selectedPortfolioId ||
     (portfolioList.length > 0 ? portfolioList[0].id : "");
 
-  const { data: apiPacing, isLoading } = usePacingData(portfolioId);
+  const { data: apiPacing } = usePacingData(portfolioId);
+  // Always fall back to mock data — API may be unavailable in dev
   const pacing = apiPacing ?? MOCK_PACING_DATA;
+  const isLoading = false;
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">

@@ -19,6 +19,8 @@ export interface ScoreGaugeProps extends React.HTMLAttributes<HTMLDivElement> {
   inverted?: boolean;
   /** Hide the score number rendered inside the arc (useful when the number is shown externally) */
   showScore?: boolean;
+  /** Render as a full circle (360°) instead of a semicircle (180°) */
+  fullCircle?: boolean;
 }
 
 function ScoreGauge({
@@ -28,15 +30,83 @@ function ScoreGauge({
   label = "Signal Score",
   inverted = false,
   showScore = true,
+  fullCircle = false,
   className,
   ...props
 }: ScoreGaugeProps) {
   const clamped = Math.max(0, Math.min(100, Math.round(score)));
-  const radius = (size - strokeWidth) / 2;
-  // Semicircle: 180 degrees
-  const circumference = Math.PI * radius;
-  const offset = circumference - (clamped / 100) * circumference;
   const color = scoreColor(clamped);
+
+  if (fullCircle) {
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (clamped / 100) * circumference;
+    const cx = size / 2;
+    const cy = size / 2;
+
+    return (
+      <div className={cn("flex flex-col items-center", className)} {...props}>
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          className="overflow-visible"
+        >
+          {/* Background circle */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={radius}
+            fill="none"
+            stroke={inverted ? "rgba(255,255,255,0.22)" : "currentColor"}
+            strokeWidth={strokeWidth}
+            className={inverted ? undefined : "text-neutral-200 dark:text-neutral-700"}
+          />
+          {/* Score arc — starts from top (-90°) */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            transform={`rotate(-90 ${cx} ${cy})`}
+            style={{ transition: "stroke-dashoffset 0.6s ease" }}
+          />
+          {/* Center text */}
+          {showScore && (
+            <text
+              x={cx}
+              y={cy}
+              textAnchor="middle"
+              dominantBaseline="central"
+              className={cn(
+                "font-bold",
+                inverted ? "fill-white" : "fill-neutral-900 dark:fill-neutral-100"
+              )}
+              style={{ fontSize: size * 0.28 }}
+            >
+              {clamped}
+            </text>
+          )}
+        </svg>
+        {label && (
+          <p className={cn(
+            "mt-1 text-xs font-medium",
+            inverted ? "text-white/75" : "text-neutral-500 dark:text-neutral-400"
+          )}>
+            {label}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // ── Semicircle (legacy default) ─────────────────────────────────────────
+  const radius = (size - strokeWidth) / 2;
 
   return (
     <div

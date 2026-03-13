@@ -52,6 +52,7 @@ import { AIFeedback } from "@/components/ai-feedback";
 import { CitationBadges } from "@/components/citations/citation-badges";
 import { LineagePanel } from "@/components/lineage/lineage-panel";
 import { useSimilarComps } from "@/lib/comps";
+import { useProjects } from "@/lib/projects";
 import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
@@ -1494,19 +1495,29 @@ function ComparisonTab() {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
+const MOCK_PROJECTS = [
+  { id: "p1", name: "Porto Solar Park" },
+  { id: "p2", name: "Danube Hydro Expansion" },
+  { id: "p3", name: "Aegean Wind Cluster" },
+  { id: "p4", name: "Bavarian Biomass Network" },
+  { id: "p5", name: "Alpine Hydro Partners" },
+];
+
 export default function ValuationsPage() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const { data: allValuations } = useValuations();
+  const { data: projectsData } = useProjects({ page: 1, page_size: 100 });
 
-  // Collect unique project IDs from existing valuations for quick selection
-  const knownProjectIds = [
-    ...new Set(allValuations?.items.map((v) => v.project_id) ?? []),
-  ];
+  // Use real projects if available, else fall back to mock list
+  const projectOptions =
+    projectsData?.items?.length
+      ? projectsData.items.map((p) => ({ id: p.id, name: p.name }))
+      : MOCK_PROJECTS;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary-100 rounded-lg">
             <Calculator className="h-6 w-6 text-primary-600" />
@@ -1521,23 +1532,24 @@ export default function ValuationsPage() {
           </div>
         </div>
 
-        {knownProjectIds.length > 0 && (
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-neutral-600">Project:</label>
-            <select
-              value={projectId ?? ""}
-              onChange={(e) => setProjectId(e.target.value || null)}
-              className="rounded-md border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All projects</option>
-              {knownProjectIds.map((id) => (
-                <option key={id} value={id}>
-                  {id.slice(0, 8)}…
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        {/* Project selector — always visible */}
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-neutral-600 whitespace-nowrap">
+            Run valuation for:
+          </label>
+          <select
+            value={projectId ?? ""}
+            onChange={(e) => setProjectId(e.target.value || null)}
+            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 min-w-[220px]"
+          >
+            <option value="">— Select a project —</option>
+            {projectOptions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <InfoBanner>

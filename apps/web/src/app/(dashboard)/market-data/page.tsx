@@ -798,7 +798,7 @@ export default function MarketDataPage() {
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
                 <p className="text-xs font-semibold text-primary-600 uppercase tracking-wide mb-1">Today&apos;s Portfolio Intelligence Brief</p>
-                <h2 className="text-lg font-bold text-neutral-900">AI Daily Summary</h2>
+                <h2 className="text-lg font-bold text-neutral-900">Daily Summary</h2>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button
