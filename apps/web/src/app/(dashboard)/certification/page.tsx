@@ -18,7 +18,6 @@ import {
   Building2,
   Calendar,
   Clock,
-  Award,
   BarChart3,
   RefreshCw,
   Download,
@@ -732,10 +731,9 @@ export default function CertificationPage() {
         </p>
       </div>
 
-      <InfoBanner
-        icon={<Award className="h-4 w-4" />}
-        message="The Investment Readiness Certification (IRC) is the platform's highest assurance level, confirming that a project meets all criteria for institutional investment. Certification requires passing six verification pillars: Signal Score, Risk Management, Documentation, Legal & Compliance, ESG Alignment, and Financial Robustness. Certified projects carry an auditable, timestamped credential that can be independently verified by investors, auditors, and regulatory bodies."
-      />
+      <InfoBanner>
+        The Investment Readiness Certification (IRC) is the platform&apos;s highest assurance level, confirming that a project meets all criteria for institutional investment. Certification requires passing six verification pillars: Signal Score, Risk Management, Documentation, Legal &amp; Compliance, ESG Alignment, and Financial Robustness. Certified projects carry an auditable, timestamped credential that can be independently verified by investors, auditors, and regulatory bodies.
+      </InfoBanner>
 
       {/* ── Hero Section ── */}
       <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 text-white shadow-xl">
