@@ -4,6 +4,11 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import {
+  MOCK_MARKETPLACE_LISTINGS,
+  MOCK_MARKETPLACE_SENT_RFQS,
+  MOCK_MARKETPLACE_TRANSACTIONS,
+} from "@/lib/mock-data";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -184,7 +189,11 @@ export function useListings(filters?: ListingFilters) {
     queryFn: () =>
       api
         .get<ListingListResponse>(`/marketplace/listings${qs ? `?${qs}` : ""}`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data as ListingListResponse;
+          if (!d?.items?.length) return MOCK_MARKETPLACE_LISTINGS;
+          return d;
+        }),
   });
 }
 
@@ -256,7 +265,11 @@ export function useSentRFQs() {
   return useQuery({
     queryKey: marketplaceKeys.sentRfqs(),
     queryFn: () =>
-      api.get<RFQListResponse>("/marketplace/rfqs/sent").then((r) => r.data),
+      api.get<RFQListResponse>("/marketplace/rfqs/sent").then((r) => {
+        const d = r.data as RFQListResponse;
+        if (!d?.items?.length) return MOCK_MARKETPLACE_SENT_RFQS;
+        return d;
+      }),
   });
 }
 
@@ -264,7 +277,11 @@ export function useReceivedRFQs() {
   return useQuery({
     queryKey: marketplaceKeys.receivedRfqs(),
     queryFn: () =>
-      api.get<RFQListResponse>("/marketplace/rfqs/received").then((r) => r.data),
+      api.get<RFQListResponse>("/marketplace/rfqs/received").then((r) => {
+        const d = r.data as RFQListResponse;
+        if (!d?.items?.length) return { items: [], total: 0 };
+        return d;
+      }),
   });
 }
 
@@ -291,7 +308,11 @@ export function useTransactions() {
     queryFn: () =>
       api
         .get<TransactionListResponse>("/marketplace/transactions")
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data as TransactionListResponse;
+          if (!d?.items?.length) return MOCK_MARKETPLACE_TRANSACTIONS;
+          return d;
+        }),
   });
 }
 

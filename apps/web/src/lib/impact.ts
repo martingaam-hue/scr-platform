@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_PORTFOLIO_IMPACT, MOCK_CARBON_CREDITS } from "@/lib/mock-data";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -160,7 +161,11 @@ export function usePortfolioImpact() {
   return useQuery({
     queryKey: impactKeys.portfolio(),
     queryFn: () =>
-      api.get<PortfolioImpactResponse>("/impact/portfolio").then((r) => r.data),
+      api.get<PortfolioImpactResponse>("/impact/portfolio").then((r) => {
+        const d = r.data as PortfolioImpactResponse;
+        if (!d?.projects?.length) return MOCK_PORTFOLIO_IMPACT;
+        return d;
+      }),
   });
 }
 
@@ -171,7 +176,11 @@ export function useCarbonCredits(projectId?: string) {
     queryFn: () =>
       api
         .get<CarbonCreditListResponse>(`/impact/carbon-credits${params}`)
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data as CarbonCreditListResponse;
+          if (!d?.items?.length) return MOCK_CARBON_CREDITS;
+          return d;
+        }),
   });
 }
 

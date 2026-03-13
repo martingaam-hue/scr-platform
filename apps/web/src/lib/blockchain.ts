@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MOCK_AUDIT_REPORT } from "@/lib/mock-data";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -53,7 +54,11 @@ export function useAuditReport() {
   return useQuery({
     queryKey: blockchainKeys.report(),
     queryFn: () =>
-      api.get<AuditReport>("/blockchain-audit/audit-report").then((r) => r.data),
+      api.get<AuditReport>("/blockchain-audit/audit-report").then((r) => {
+        const d = r.data as AuditReport;
+        if (!d?.items?.length) return MOCK_AUDIT_REPORT;
+        return d;
+      }),
     refetchInterval: 30_000, // refresh every 30s
   });
 }

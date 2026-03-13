@@ -7,7 +7,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { MOCK_REPORTS } from "@/lib/mock-data";
+import { MOCK_REPORTS, MOCK_REPORT_TEMPLATES } from "@/lib/mock-data";
 
 // ── Enums ──────────────────────────────────────────────────────────────────
 
@@ -129,7 +129,11 @@ export function useReportTemplates(category?: ReportCategory) {
         .get<ReportTemplateListResponse>("/reports/templates", {
           params: category ? { category } : undefined,
         })
-        .then((r) => r.data),
+        .then((r) => {
+          const d = r.data as ReportTemplateListResponse;
+          if (!d?.items?.length) return MOCK_REPORT_TEMPLATES;
+          return d;
+        }),
   });
 }
 

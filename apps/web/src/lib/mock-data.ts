@@ -31,7 +31,7 @@ import type { DealPipeline, DiscoveryResponse } from "@/lib/deals";
 import type { CompsListResponse } from "@/lib/comps";
 import type { LPReport } from "@/lib/lp-reports";
 import type { LegalDocumentListResponse } from "@/lib/legal";
-import type { GeneratedReportListResponse } from "@/lib/reports";
+import type { GeneratedReportListResponse, ReportTemplateListResponse } from "@/lib/reports";
 import type { Watchlist, WatchlistAlert } from "@/lib/watchlists";
 import type {
   NotificationListResponse,
@@ -53,6 +53,17 @@ import type {
   DocumentCompletenessItem,
 } from "@/lib/alley-analytics";
 import type { SavedSearch } from "@/lib/screener";
+import type { AuditReport } from "@/lib/blockchain";
+import type {
+  ListingListResponse,
+  RFQListResponse,
+  TransactionListResponse,
+} from "@/lib/marketplace";
+import type {
+  PortfolioImpactResponse,
+  CarbonCreditListResponse,
+  SDGGoal,
+} from "@/lib/impact";
 
 // ── Project IDs ──────────────────────────────────────────────────────────────
 
@@ -866,52 +877,64 @@ export const MOCK_LP_REPORTS: LPReport[] = [
 export const MOCK_LEGAL_DOCUMENTS: LegalDocumentListResponse = {
   items: [
     {
-      id: "ld-1", title: "NDA — Nordvik Wind Farm II", doc_type: "nda", status: "signed",
-      template_id: "tpl-nda", project_id: MOCK_IDS.p2,
+      id: "ld-1",
+      title: "Alpine Hydro Partners — Investment Agreement",
+      doc_type: "investment_agreement", status: "signed",
+      template_id: "tpl-ia", project_id: MOCK_IDS.p5,
       content: "", s3_key: "legal/ld-1.pdf", version: 2,
-      signed_date: "2024-01-15", expiry_date: "2026-01-14",
-      questionnaire_answers: null, generation_status: "ready", download_url: "#",
-      created_at: "2024-01-10T09:00:00Z", updated_at: "2024-01-15T14:00:00Z",
+      signed_date: "2026-03-01", expiry_date: null,
+      questionnaire_answers: { pages: 48 }, generation_status: "completed", download_url: "#",
+      created_at: "2026-02-20T09:00:00Z", updated_at: "2026-03-01T14:00:00Z",
     },
     {
-      id: "ld-2", title: "NDA — Sahara CSP Development", doc_type: "nda", status: "draft",
-      template_id: "tpl-nda", project_id: MOCK_IDS.p6,
+      id: "ld-2",
+      title: "Bavarian Biomass — Term Sheet",
+      doc_type: "term_sheet", status: "draft",
+      template_id: "tpl-ts", project_id: null,
       content: "", s3_key: null, version: 1,
       signed_date: null, expiry_date: null,
-      questionnaire_answers: null, generation_status: null, download_url: null,
-      created_at: "2025-11-20T10:00:00Z", updated_at: "2025-11-20T10:00:00Z",
+      questionnaire_answers: { pages: 12 }, generation_status: "completed", download_url: "#",
+      created_at: "2026-03-05T10:00:00Z", updated_at: "2026-03-08T11:00:00Z",
     },
     {
-      id: "ld-3", title: "Letter of Intent — Alpine Hydro Partners", doc_type: "term_sheet", status: "review",
-      template_id: "tpl-loi", project_id: MOCK_IDS.p5,
-      content: "", s3_key: "legal/ld-3.pdf", version: 1,
-      signed_date: null, expiry_date: null,
-      questionnaire_answers: null, generation_status: "ready", download_url: "#",
-      created_at: "2025-10-01T09:00:00Z", updated_at: "2025-10-15T10:00:00Z",
-    },
-    {
-      id: "ld-4", title: "Term Sheet — Nordvik Wind Farm II", doc_type: "term_sheet", status: "signed",
-      template_id: "tpl-ts", project_id: MOCK_IDS.p2,
-      content: "", s3_key: "legal/ld-4.pdf", version: 3,
-      signed_date: "2025-08-20", expiry_date: null,
-      questionnaire_answers: null, generation_status: "ready", download_url: "#",
-      created_at: "2025-07-01T09:00:00Z", updated_at: "2025-08-20T14:00:00Z",
-    },
-    {
-      id: "ld-5", title: "KYC/AML Package — European Infrastructure Fund", doc_type: "subscription_agreement", status: "signed",
+      id: "ld-3",
+      title: "SCR Fund I — LP Side Letter (Nordic Pension)",
+      doc_type: "side_letter", status: "signed",
       template_id: null, project_id: null,
-      content: "", s3_key: "legal/ld-5.pdf", version: 1,
-      signed_date: "2022-02-15", expiry_date: null,
-      questionnaire_answers: null, generation_status: "ready", download_url: "#",
-      created_at: "2022-01-20T09:00:00Z", updated_at: "2022-02-15T10:00:00Z",
+      content: "", s3_key: "legal/ld-3.pdf", version: 1,
+      signed_date: "2026-01-15", expiry_date: null,
+      questionnaire_answers: { pages: 8 }, generation_status: "completed", download_url: "#",
+      created_at: "2026-01-10T09:00:00Z", updated_at: "2026-01-15T14:00:00Z",
     },
     {
-      id: "ld-6", title: "Investment Agreement — Adriatic Infrastructure Holdings", doc_type: "subscription_agreement", status: "draft",
-      template_id: "tpl-ia", project_id: MOCK_IDS.p3,
-      content: "", s3_key: null, version: 2,
+      id: "ld-4",
+      title: "Danube Hydro — NDA",
+      doc_type: "nda", status: "signed",
+      template_id: "tpl-nda", project_id: null,
+      content: "", s3_key: "legal/ld-4.pdf", version: 1,
+      signed_date: "2026-02-20", expiry_date: "2028-02-19",
+      questionnaire_answers: { pages: 4 }, generation_status: "completed", download_url: "#",
+      created_at: "2026-02-18T09:00:00Z", updated_at: "2026-02-20T14:00:00Z",
+    },
+    {
+      id: "ld-5",
+      title: "Aegean Wind Cluster — Due Diligence NDA",
+      doc_type: "nda", status: "signed",
+      template_id: "tpl-nda", project_id: null,
+      content: "", s3_key: "legal/ld-5.pdf", version: 1,
+      signed_date: "2026-02-15", expiry_date: "2028-02-14",
+      questionnaire_answers: { pages: 4 }, generation_status: "completed", download_url: "#",
+      created_at: "2026-02-12T09:00:00Z", updated_at: "2026-02-15T11:00:00Z",
+    },
+    {
+      id: "ld-6",
+      title: "Porto Solar Park — Initial Term Sheet",
+      doc_type: "term_sheet", status: "draft",
+      template_id: "tpl-ts", project_id: null,
+      content: "", s3_key: null, version: 1,
       signed_date: null, expiry_date: null,
-      questionnaire_answers: null, generation_status: null, download_url: null,
-      created_at: "2025-11-01T09:00:00Z", updated_at: "2025-11-28T15:00:00Z",
+      questionnaire_answers: { pages: 6 }, generation_status: "pending", download_url: null,
+      created_at: "2026-03-10T09:00:00Z", updated_at: "2026-03-10T09:00:00Z",
     },
   ],
   total: 6,
@@ -922,77 +945,150 @@ export const MOCK_LEGAL_DOCUMENTS: LegalDocumentListResponse = {
 export const MOCK_REPORTS: GeneratedReportListResponse = {
   items: [
     {
-      id: "rpt-1", org_id: "org-1", template_id: "tpl-perf", title: "Q4 2025 Performance Report",
-      status: "ready", parameters: { period: "Q4 2025" }, result_data: null,
-      s3_key: "reports/rpt-1.pdf", error_message: null, generated_by: "system",
-      completed_at: "2026-01-10T09:30:00Z", download_url: "#",
-      template_name: "Quarterly Performance", created_at: "2026-01-10T09:00:00Z", updated_at: "2026-01-10T09:30:00Z",
+      id: "rpt-1", org_id: "org-1", template_id: "tpl-perf",
+      title: "Portfolio Performance Report — Q4 2025",
+      status: "ready", parameters: { output_format: "pdf", period: "Q4 2025", pages: 24 }, result_data: null,
+      s3_key: "reports/rpt-1.pdf", error_message: null, generated_by: "Erik Lindström",
+      completed_at: "2026-01-15T09:30:00Z", download_url: "#",
+      template_name: "Quarterly Performance", created_at: "2026-01-15T09:00:00Z", updated_at: "2026-01-15T09:30:00Z",
     },
     {
-      id: "rpt-2", org_id: "org-1", template_id: "tpl-esg", title: "Annual ESG & Impact Report 2025",
-      status: "ready", parameters: { year: 2025 }, result_data: null,
-      s3_key: "reports/rpt-2.pdf", error_message: null, generated_by: "system",
-      completed_at: "2025-12-20T11:00:00Z", download_url: "#",
-      template_name: "ESG Impact Report", created_at: "2025-12-20T10:00:00Z", updated_at: "2025-12-20T11:00:00Z",
+      id: "rpt-2", org_id: "org-1", template_id: "tpl-esg",
+      title: "ESG & Impact Report — H2 2025",
+      status: "ready", parameters: { output_format: "pdf", period: "H2 2025", pages: 18 }, result_data: null,
+      s3_key: "reports/rpt-2.pdf", error_message: null, generated_by: "Lars Petersen",
+      completed_at: "2026-02-05T11:00:00Z", download_url: "#",
+      template_name: "ESG Impact Report", created_at: "2026-02-05T10:00:00Z", updated_at: "2026-02-05T11:00:00Z",
     },
     {
-      id: "rpt-3", org_id: "org-1", template_id: "tpl-comp", title: "SFDR Compliance Report Q4 2025",
-      status: "ready", parameters: { period: "Q4 2025" }, result_data: null,
-      s3_key: "reports/rpt-3.pdf", error_message: null, generated_by: "system",
-      completed_at: "2026-01-12T10:00:00Z", download_url: "#",
-      template_name: "SFDR Compliance", created_at: "2026-01-12T09:30:00Z", updated_at: "2026-01-12T10:00:00Z",
+      id: "rpt-3", org_id: "org-1", template_id: "tpl-risk",
+      title: "Risk Assessment Summary — Q4 2025",
+      status: "ready", parameters: { output_format: "pdf", period: "Q4 2025", pages: 12 }, result_data: null,
+      s3_key: "reports/rpt-3.pdf", error_message: null, generated_by: "Anna Johansson",
+      completed_at: "2026-01-20T10:00:00Z", download_url: "#",
+      template_name: "Risk Assessment", created_at: "2026-01-20T09:30:00Z", updated_at: "2026-01-20T10:00:00Z",
+    },
+    {
+      id: "rpt-4", org_id: "org-1", template_id: "tpl-lp",
+      title: "LP Quarterly Report — Q4 2025",
+      status: "ready", parameters: { output_format: "pdf", period: "Q4 2025", pages: 32 }, result_data: null,
+      s3_key: "reports/rpt-4.pdf", error_message: null, generated_by: "Sofia Bergman",
+      completed_at: "2026-01-15T14:00:00Z", download_url: "#",
+      template_name: "LP Quarterly Report", created_at: "2026-01-15T13:30:00Z", updated_at: "2026-01-15T14:00:00Z",
+    },
+    {
+      id: "rpt-5", org_id: "org-1", template_id: "tpl-deal",
+      title: "Deal Flow Summary — Jan 2026",
+      status: "ready", parameters: { output_format: "pdf", period: "Jan 2026", pages: 8 }, result_data: null,
+      s3_key: "reports/rpt-5.pdf", error_message: null, generated_by: "Marco Rossi",
+      completed_at: "2026-02-01T10:00:00Z", download_url: "#",
+      template_name: "Deal Flow Summary", created_at: "2026-02-01T09:30:00Z", updated_at: "2026-02-01T10:00:00Z",
     },
   ],
-  total: 3,
+  total: 5,
   page: 1,
   page_size: 20,
   total_pages: 1,
+};
+
+export const MOCK_REPORT_TEMPLATES: ReportTemplateListResponse = {
+  items: [
+    {
+      id: "tpl-perf", org_id: null, name: "Quarterly Performance Report",
+      category: "performance", description: "Comprehensive quarterly performance report covering NAV, IRR, MOIC and DPI across portfolio holdings.",
+      template_config: { supported_formats: ["pdf", "xlsx"], audience: "internal" },
+      sections: null, is_system: true, version: 1,
+      created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z",
+    },
+    {
+      id: "tpl-esg", org_id: null, name: "ESG & Impact Report",
+      category: "esg", description: "SFDR-aligned ESG report covering carbon avoided, SDG alignment, taxonomy classification and impact KPIs.",
+      template_config: { supported_formats: ["pdf", "pptx"], audience: "lp" },
+      sections: null, is_system: true, version: 1,
+      created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z",
+    },
+    {
+      id: "tpl-risk", org_id: null, name: "Risk Assessment Summary",
+      category: "performance", description: "Risk scorecard covering market, credit, liquidity, ESG and regulatory risk dimensions per holding.",
+      template_config: { supported_formats: ["pdf", "xlsx"], audience: "internal" },
+      sections: null, is_system: true, version: 1,
+      created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z",
+    },
+    {
+      id: "tpl-lp", org_id: null, name: "LP Quarterly Report",
+      category: "portfolio", description: "Investor-ready LP report with portfolio summary, project updates, financial highlights and ESG scorecard.",
+      template_config: { supported_formats: ["pdf", "pptx"], audience: "lp" },
+      sections: null, is_system: true, version: 1,
+      created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z",
+    },
+    {
+      id: "tpl-deal", org_id: null, name: "Deal Flow Summary",
+      category: "project", description: "Monthly summary of pipeline activity — new projects screened, stage transitions and key metrics.",
+      template_config: { supported_formats: ["pdf", "xlsx"], audience: "internal" },
+      sections: null, is_system: true, version: 1,
+      created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z",
+    },
+    {
+      id: "tpl-comp", org_id: null, name: "SFDR Compliance Report",
+      category: "compliance", description: "Annual SFDR Article 9 Principal Adverse Impact indicators and sustainable investment objective disclosure.",
+      template_config: { supported_formats: ["pdf"], audience: "regulatory" },
+      sections: null, is_system: true, version: 1,
+      created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z",
+    },
+  ],
+  total: 6,
 };
 
 // ── Watchlists ────────────────────────────────────────────────────────────────
 
 export const MOCK_WATCHLISTS: Watchlist[] = [
   {
-    id: "wl-1", name: "Nordic Renewables Tracker",
-    watch_type: "project_type",
-    criteria: { project_types: ["wind", "hydro"], geographies: ["NO", "SE", "FI", "DK"] },
-    alert_channels: ["in_app", "email"], alert_frequency: "daily",
-    is_active: true, total_alerts_sent: 12, unread_alerts: 2,
+    id: "wl-1", name: "High Priority Watch",
+    watch_type: "risk_alerts",
+    criteria: { risk_score_below: 70, covenant_breach: true, holdings: [MOCK_IDS.p4, MOCK_IDS.p2] },
+    alert_channels: ["in_app", "email"], alert_frequency: "immediate",
+    is_active: true, total_alerts_sent: 8, unread_alerts: 3,
   },
   {
-    id: "wl-2", name: "High Score Solar Pipeline",
-    watch_type: "score_threshold",
-    criteria: { project_types: ["solar"], min_signal_score: 7 },
-    alert_channels: ["in_app"], alert_frequency: "weekly",
-    is_active: true, total_alerts_sent: 5, unread_alerts: 0,
+    id: "wl-2", name: "Pipeline Opportunities",
+    watch_type: "score_changes",
+    criteria: { min_score: 65, stages: ["due_diligence", "negotiation"], projects: ["Sahara CSP", "Danube Hydro", "Aegean Wind"] },
+    alert_channels: ["in_app"], alert_frequency: "daily_digest",
+    is_active: true, total_alerts_sent: 4, unread_alerts: 1,
   },
   {
-    id: "wl-3", name: "Infrastructure Opportunities",
-    watch_type: "project_type",
-    criteria: { project_types: ["infrastructure"] },
+    id: "wl-3", name: "ESG Performance",
+    watch_type: "market_events",
+    criteria: { esg_drop_threshold: 5, period: "month_over_month", holdings: "all" },
     alert_channels: ["in_app", "email"], alert_frequency: "weekly",
-    is_active: true, total_alerts_sent: 3, unread_alerts: 1,
+    is_active: true, total_alerts_sent: 2, unread_alerts: 0,
   },
 ];
 
 export const MOCK_WATCHLIST_ALERTS: WatchlistAlert[] = [
   {
-    id: "wa-1", watchlist_id: "wl-1", watchlist_name: "Nordic Renewables Tracker",
-    alert_type: "new_project", entity_type: "project", entity_id: MOCK_IDS.p2,
-    data: { project_name: "Nordvik Wind Farm II", score: 7.8 },
-    is_read: false, created_at: "2025-12-06T10:00:00Z",
+    id: "wa-1", watchlist_id: "wl-1", watchlist_name: "High Priority Watch",
+    alert_type: "risk_flag", entity_type: "project", entity_id: MOCK_IDS.p4,
+    data: { title: "Baltic BESS risk score dropped to 54 (was 61)", project_name: "Baltic BESS Grid Storage", old_score: 61, new_score: 54, severity: "high" },
+    is_read: false, created_at: "2026-03-08T09:00:00Z",
   },
   {
-    id: "wa-2", watchlist_id: "wl-1", watchlist_name: "Nordic Renewables Tracker",
-    alert_type: "score_change", entity_type: "project", entity_id: MOCK_IDS.p7,
-    data: { project_name: "Nordic Biomass Energy", old_score: 6.8, new_score: 7.1 },
-    is_read: false, created_at: "2025-12-05T14:00:00Z",
+    id: "wa-2", watchlist_id: "wl-1", watchlist_name: "High Priority Watch",
+    alert_type: "risk_flag", entity_type: "project", entity_id: MOCK_IDS.p2,
+    data: { title: "Baltic BESS grid connection permit still pending", project_name: "Baltic BESS Grid Storage", severity: "high" },
+    is_read: false, created_at: "2026-03-01T10:00:00Z",
   },
   {
-    id: "wa-3", watchlist_id: "wl-3", watchlist_name: "Infrastructure Opportunities",
-    alert_type: "new_project", entity_type: "project", entity_id: MOCK_IDS.p3,
-    data: { project_name: "Adriatic Infrastructure Holdings", score: 8.5 },
-    is_read: false, created_at: "2025-12-04T09:00:00Z",
+    id: "wa-3", watchlist_id: "wl-1", watchlist_name: "High Priority Watch",
+    alert_type: "risk_flag", entity_type: "project", entity_id: MOCK_IDS.p2,
+    data: { title: "Nordvik Wind — P90 yield assessment overdue", project_name: "Nordvik Wind Farm II", severity: "medium" },
+    is_read: true, created_at: "2026-03-05T14:00:00Z",
+  },
+  {
+    id: "wa-4", watchlist_id: "wl-2", watchlist_name: "Pipeline Opportunities",
+    alert_type: "score_change", entity_type: "project", entity_id: "danube-hydro-1",
+    data: { title: "Danube Hydro score updated to 72 (+4)", project_name: "Danube Hydro Expansion", old_score: 68, new_score: 72, severity: "low" },
+    is_read: true, created_at: "2026-02-28T15:00:00Z",
   },
 ];
 
@@ -1000,20 +1096,31 @@ export const MOCK_WATCHLIST_ALERTS: WatchlistAlert[] = [
 
 export const MOCK_NOTIFICATIONS: NotificationListResponse = {
   items: [
-    { id: "n1",  type: "action_required", title: "Score Calculation Complete",         message: "Nordvik Wind Farm II signal score updated to 7.8. Review recommended.",             link: `/projects/${MOCK_IDS.p2}`, is_read: false, created_at: "2025-12-07T09:00:00Z" },
-    { id: "n2",  type: "action_required", title: "Document Signature Required",         message: "Investment Agreement for Adriatic Infrastructure Holdings awaits your signature.", link: "/legal",                   is_read: false, created_at: "2025-12-06T14:30:00Z" },
-    { id: "n3",  type: "warning",         title: "Compliance Deadline Approaching",     message: "SFDR Q4 PAI indicators due in 10 days. Review and submit before Jan 15.",          link: "/compliance",              is_read: false, created_at: "2025-12-06T10:00:00Z" },
-    { id: "n4",  type: "info",            title: "New Match — Thames Clean Energy Hub", message: "A new project matching your mandate criteria has been identified.",                  link: "/deals",                   is_read: false, created_at: "2025-12-05T16:00:00Z" },
-    { id: "n5",  type: "info",            title: "LP Report Available",                 message: "Q4 2025 LP Report is ready for review and distribution.",                           link: "/lp-reports",              is_read: true,  created_at: "2025-12-05T11:00:00Z" },
-    { id: "n6",  type: "warning",         title: "AML Review Required",                 message: "Annual KYC/AML review is due for 2 counterparties by end of month.",               link: "/compliance",              is_read: true,  created_at: "2025-12-04T09:00:00Z" },
-    { id: "n7",  type: "info",            title: "Score Improvement — Helios Solar",    message: "Helios Solar Portfolio Iberia maintained Excellent rating (9.2/10).",              link: `/projects/${MOCK_IDS.p1}`, is_read: true,  created_at: "2025-12-03T14:00:00Z" },
-    { id: "n8",  type: "action_required", title: "Intro Request — Alpine Hydro",        message: "Alpine Hydro Partners developer has requested an introduction call.",              link: "/deals",                   is_read: false, created_at: "2025-12-03T10:00:00Z" },
-    { id: "n9",  type: "info",            title: "Portfolio Milestone — $400M NAV",     message: "European Infrastructure Impact Fund has surpassed $400M NAV.",                     link: "/portfolio",               is_read: true,  created_at: "2025-12-02T09:00:00Z" },
-    { id: "n10", type: "warning",         title: "Climate Alert — Iberian Heat Wave",   message: "AEMET issues heat warning for Q1 2026. Monitor Helios Solar production.",          link: "/risk",                    is_read: false, created_at: "2025-12-01T08:00:00Z" },
-    { id: "n11", type: "info",            title: "Baltic BESS Score Updated",           message: "Baltic BESS Grid Storage score improved from 5.8 to 6.3 after document upload.",  link: `/projects/${MOCK_IDS.p4}`, is_read: true,  created_at: "2025-11-28T15:00:00Z" },
-    { id: "n12", type: "system",          title: "System Maintenance",                  message: "Scheduled maintenance window Jan 12, 02:00–04:00 UTC. Platform unavailable.",     link: null,                       is_read: true,  created_at: "2025-11-25T12:00:00Z" },
+    // Risk alerts (4)
+    { id: "n1",  type: "warning",         title: "Baltic BESS risk score dropped to 54",          message: "Baltic BESS Grid Storage risk score fell from 61 to 54. Grid connection permit remains outstanding.",       link: `/projects/${MOCK_IDS.p4}`, is_read: false, created_at: "2026-03-08T09:00:00Z" },
+    { id: "n2",  type: "warning",         title: "Nordvik Wind — covenant warning",               message: "Debt service coverage ratio approaching covenant threshold of 1.20x. Current DSCR: 1.24x.",                  link: `/projects/${MOCK_IDS.p2}`, is_read: false, created_at: "2026-03-07T14:30:00Z" },
+    { id: "n3",  type: "info",            title: "Stress test results ready",                     message: "Portfolio stress test (interest rate +200bps scenario) complete. 2 holdings show elevated sensitivity.",      link: "/risk",                    is_read: false, created_at: "2026-03-06T11:00:00Z" },
+    { id: "n4",  type: "warning",         title: "Market volatility alert",                       message: "European energy wholesale prices up 18% week-on-week. Review unhedged exposure across wind holdings.",        link: "/risk",                    is_read: true,  created_at: "2026-03-05T08:00:00Z" },
+    // Deal updates (5)
+    { id: "n5",  type: "action_required", title: "Bavarian Biomass term sheet ready for review",  message: "Draft term sheet for Bavarian Biomass Network (€15M) is ready. Please review and mark up by Mar 15.",        link: "/legal",                   is_read: false, created_at: "2026-03-08T10:00:00Z" },
+    { id: "n6",  type: "info",            title: "Porto Solar initial screen complete",            message: "Porto Solar Park (€35M, Portugal) scored 81 — above mandate threshold. Recommend progressing to DD.",         link: "/deals",                   is_read: false, created_at: "2026-03-07T16:00:00Z" },
+    { id: "n7",  type: "info",            title: "Danube Hydro DD 60% complete",                  message: "Due diligence for Danube Hydro Expansion is 60% complete. Technical report expected by Mar 20.",              link: "/deals",                   is_read: true,  created_at: "2026-03-05T14:00:00Z" },
+    { id: "n8",  type: "info",            title: "Aegean Wind site visit confirmed",               message: "Site visit to Aegean Wind Cluster (Greece) confirmed for Mar 18–19. Logistics shared with team.",             link: "/deals",                   is_read: true,  created_at: "2026-03-04T09:00:00Z" },
+    { id: "n9",  type: "info",            title: "New deal match: Iberian Offshore Wind",         message: "New project matching your mandate identified: Iberian Offshore Wind (€120M, Spain). Score: 74.",               link: "/deals",                   is_read: true,  created_at: "2026-03-01T11:00:00Z" },
+    // LP activity (3)
+    { id: "n10", type: "info",            title: "Nordic Pension viewed Q4 LP report",            message: "Nordic Pension Fund opened and spent 14 minutes reviewing your Q4 2025 LP Report.",                           link: "/lp-reports",              is_read: false, created_at: "2026-03-08T07:00:00Z" },
+    { id: "n11", type: "action_required", title: "EIB requested co-investment details",           message: "EIB has requested supplementary information on the Alpine Hydro co-investment opportunity. Respond by Mar 20.", link: "/deals",                  is_read: false, created_at: "2026-03-06T15:00:00Z" },
+    { id: "n12", type: "info",            title: "Dutch Infrastructure signed NDA",               message: "Dutch Infrastructure Fund has countersigned the NDA. You may now share deal room documents.",                  link: "/legal",                   is_read: true,  created_at: "2026-03-03T10:00:00Z" },
+    // ESG/Compliance (3)
+    { id: "n13", type: "action_required", title: "SFDR Annual Disclosure due in 18 days",         message: "SFDR Annual Disclosure deadline is Mar 31, 2026. Complete the PAI indicators to meet the deadline.",          link: "/compliance",              is_read: false, created_at: "2026-03-13T09:00:00Z" },
+    { id: "n14", type: "info",            title: "EU Taxonomy alignment report draft ready",      message: "The EU Taxonomy Alignment Report draft for FY2025 is ready for review before submission Apr 30.",             link: "/reports",                 is_read: true,  created_at: "2026-03-10T14:00:00Z" },
+    { id: "n15", type: "warning",         title: "ESG KPI tracking overdue",                     message: "Fund Level ESG KPI Tracking was due Mar 15. Please submit the monthly KPI data as soon as possible.",         link: "/compliance",              is_read: false, created_at: "2026-03-15T08:00:00Z" },
+    // System (3)
+    { id: "n16", type: "system",          title: "Signal scores refreshed for all holdings",      message: "Weekly signal score refresh complete. 7 holdings updated; Alpine Hydro remains highest at 91.",               link: `/projects/${MOCK_IDS.p5}`, is_read: true,  created_at: "2026-03-10T06:00:00Z" },
+    { id: "n17", type: "system",          title: "Weekly digest sent to 5 LPs",                  message: "Weekly digest email dispatched to 5 LP contacts including Nordic Pension, EIB, and Dutch Infrastructure.",     link: null,                       is_read: true,  created_at: "2026-03-07T07:30:00Z" },
+    { id: "n18", type: "system",          title: "New regulatory update available",               message: "ESMA published updated SFDR Q&A guidance (Mar 2026). Review the changes relevant to Article 9 funds.",        link: "/compliance",              is_read: true,  created_at: "2026-03-04T12:00:00Z" },
   ],
-  total: 12,
+  total: 18,
   page: 1,
   page_size: 20,
   total_pages: 1,
@@ -1024,51 +1131,79 @@ export const MOCK_NOTIFICATIONS: NotificationListResponse = {
 export const MOCK_COMPLIANCE_DEADLINES: ComplianceResponse = {
   items: [
     {
-      id: "cd-1", category: "sfdr", title: "SFDR PAI Indicators — Q4 2025",
-      description: "Submit Principal Adverse Impact indicators for Q4 reporting period.",
+      id: "cd-1", category: "sfdr", title: "SFDR Annual Disclosure",
+      description: "Annual SFDR Article 9 Principal Adverse Impact indicators disclosure. Submit to ESMA by Mar 31.",
       jurisdiction: "EU", regulatory_body: "ESMA",
-      due_date: "2026-01-15", recurrence: "quarterly", status: "upcoming", priority: "critical",
-      days_until_due: 8, is_overdue: false,
+      due_date: "2026-03-31", recurrence: "annually", status: "in_progress", priority: "high",
+      days_until_due: 18, is_overdue: false,
     },
     {
-      id: "cd-2", category: "reporting", title: "AIFMD Transparency Report 2025",
-      description: "Annual Alternative Investment Fund Managers Directive transparency report.",
-      jurisdiction: "EU", regulatory_body: "National CA",
-      due_date: "2026-02-28", recurrence: "annually", status: "in_progress", priority: "high",
-      days_until_due: 52, is_overdue: false,
-    },
-    {
-      id: "cd-3", category: "regulatory_filing", title: "AML/KYC Annual Review",
-      description: "Annual review of KYC documentation for all portfolio company counterparties.",
-      jurisdiction: "EU", regulatory_body: "Internal",
-      due_date: "2025-12-31", recurrence: "annually", status: "in_progress", priority: "high",
-      days_until_due: 24, is_overdue: false,
-    },
-    {
-      id: "cd-4", category: "sfdr", title: "SFDR Article 9 Annual Disclosure",
-      description: "Publish annual Article 9 sustainable investment objective report on website.",
-      jurisdiction: "EU", regulatory_body: "ESMA",
-      due_date: "2026-03-31", recurrence: "annually", status: "upcoming", priority: "medium",
-      days_until_due: 83, is_overdue: false,
-    },
-    {
-      id: "cd-5", category: "reporting", title: "ESG Impact Report 2025",
-      description: "Annual ESG data collection and impact report for LPs.",
+      id: "cd-2", category: "reporting", title: "Q1 2026 LP Report",
+      description: "Quarterly LP report covering portfolio performance, NAV movements and project updates for Q1 2026.",
       jurisdiction: "EU", regulatory_body: null,
-      due_date: "2026-03-15", recurrence: "annually", status: "in_progress", priority: "medium",
-      days_until_due: 67, is_overdue: false,
+      due_date: "2026-04-15", recurrence: "quarterly", status: "upcoming", priority: "high",
+      days_until_due: 33, is_overdue: false,
     },
     {
-      id: "cd-6", category: "tax", title: "FATCA/CRS Reporting — 2025",
-      description: "US FATCA and OECD CRS annual tax transparency reporting.",
-      jurisdiction: "Global", regulatory_body: "Tax Authority",
-      due_date: "2025-11-30", recurrence: "annually", status: "completed", priority: "high",
-      days_until_due: -8, is_overdue: false,
+      id: "cd-3", category: "environmental", title: "EU Taxonomy Alignment Report",
+      description: "Annual EU Taxonomy alignment assessment covering all 7 portfolio holdings against DNSH criteria.",
+      jurisdiction: "EU", regulatory_body: "ESMA",
+      due_date: "2026-04-30", recurrence: "annually", status: "upcoming", priority: "high",
+      days_until_due: 48, is_overdue: false,
+    },
+    {
+      id: "cd-4", category: "regulatory_filing", title: "AML/KYC Annual Review — Nordic Pension",
+      description: "Annual KYC/AML review for Nordic Pension Fund LP. Update beneficial ownership and sanctions screening.",
+      jurisdiction: "EU", regulatory_body: "Internal",
+      due_date: "2026-03-20", recurrence: "annually", status: "in_progress", priority: "medium",
+      days_until_due: 7, is_overdue: false,
+    },
+    {
+      id: "cd-5", category: "reporting", title: "Helios Solar — ESG Monitoring Report",
+      description: "Semi-annual ESG monitoring report for Helios Solar Portfolio Iberia per investment agreement covenants.",
+      jurisdiction: "EU", regulatory_body: null,
+      due_date: "2026-04-10", recurrence: "quarterly", status: "upcoming", priority: "medium",
+      days_until_due: 28, is_overdue: false,
+    },
+    {
+      id: "cd-6", category: "regulatory_filing", title: "AIFMD Reporting — BaFin",
+      description: "Annual AIFMD transparency report submission to BaFin for German-domiciled investors.",
+      jurisdiction: "DE", regulatory_body: "BaFin",
+      due_date: "2027-01-31", recurrence: "annually", status: "upcoming", priority: "high",
+      days_until_due: 324, is_overdue: false,
+    },
+    {
+      id: "cd-7", category: "reporting", title: "Baltic BESS — Covenant Compliance Cert.",
+      description: "Quarterly covenant compliance certificate required under senior debt facility for Baltic BESS Grid Storage.",
+      jurisdiction: "LT", regulatory_body: "Lender",
+      due_date: "2026-03-31", recurrence: "quarterly", status: "in_progress", priority: "medium",
+      days_until_due: 18, is_overdue: false,
+    },
+    {
+      id: "cd-8", category: "reporting", title: "Annual Audit Preparation",
+      description: "Preparation of fund accounts and supporting documentation for statutory annual audit by PwC.",
+      jurisdiction: "LU", regulatory_body: "PwC",
+      due_date: "2026-05-31", recurrence: "annually", status: "upcoming", priority: "high",
+      days_until_due: 79, is_overdue: false,
+    },
+    {
+      id: "cd-9", category: "permit", title: "Nordvik Wind — Grid Connection Renewal",
+      description: "Biennial grid connection agreement renewal with Statnett for Nordvik Wind Farm II 120MW capacity.",
+      jurisdiction: "NO", regulatory_body: "Statnett",
+      due_date: "2026-06-30", recurrence: "annually", status: "upcoming", priority: "medium",
+      days_until_due: 109, is_overdue: false,
+    },
+    {
+      id: "cd-10", category: "reporting", title: "Fund Level ESG KPI Tracking",
+      description: "Monthly fund-level ESG KPI data collection covering all 7 holdings — energy production, CO2, jobs.",
+      jurisdiction: "EU", regulatory_body: null,
+      due_date: "2026-03-15", recurrence: "monthly", status: "overdue", priority: "low",
+      days_until_due: -2, is_overdue: true,
     },
   ],
-  overdue_count: 0,
-  due_this_week: 1,
-  due_this_month: 2,
+  overdue_count: 1,
+  due_this_week: 2,
+  due_this_month: 5,
 };
 
 // ── ESG Portfolio Summary ─────────────────────────────────────────────────────
@@ -1250,3 +1385,370 @@ export const MOCK_SCREENER_SEARCHES: SavedSearch[] = [
     last_used: "2025-11-05T09:00:00Z",
   },
 ];
+
+// ── Blockchain Audit Trail ───────────────────────────────────────────────────
+
+export const MOCK_AUDIT_REPORT: AuditReport = {
+  total: 12,
+  anchored: 12,
+  pending: 0,
+  items: [
+    {
+      id: "ba-1", event_type: "deal_transition", entity_type: "project", entity_id: MOCK_IDS.p5,
+      data_hash: "0x8a3f2e1b9c4d7e6a5f0b3c2d1e8a9b7c4d5e6f0a1b2c3d4e5f6a7b8c9d0e1f2a",
+      merkle_root: "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
+      chain: "Polygon", tx_hash: "0x7f3a9b2c4d5e6f1a8b3c2d1e0f9a8b7c", block_number: 54321098,
+      status: "anchored", anchored_at: "2026-03-01T14:32:00Z",
+    },
+    {
+      id: "ba-2", event_type: "signal_score", entity_type: "project", entity_id: MOCK_IDS.p2,
+      data_hash: "0x2e9b4c3d5f1a7e6b0c2d4e5f8a9b1c3d4e5f7a8b9c0d1e2f4a5b6c7d8e9f0a1b",
+      merkle_root: "0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c",
+      chain: "Polygon", tx_hash: "0x2e9b5c4d6f2a8e7b1c3d5e6f9a0b2c4d", block_number: 54320987,
+      status: "anchored", anchored_at: "2026-02-28T10:15:00Z",
+    },
+    {
+      id: "ba-3", event_type: "lp_report_approval", entity_type: "report", entity_id: MOCK_IDS.p1,
+      data_hash: "0x8c4d5e6f7a9b1c2d3e4f0a5b6c7d8e9f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d",
+      merkle_root: "0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d",
+      chain: "Polygon", tx_hash: "0x8c4d6e7f8a0b2c3d4e5f6a7b9c1d2e3f", block_number: 54319876,
+      status: "anchored", anchored_at: "2026-02-15T09:00:00Z",
+    },
+    {
+      id: "ba-4", event_type: "document_upload", entity_type: "document", entity_id: "doc-lp-cc3",
+      data_hash: "0x5f1e2a3b4c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f",
+      merkle_root: "0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e",
+      chain: "Polygon", tx_hash: "0x5f1e3a4b5c7d8e9f0a1b2c3d4e5f6a7b", block_number: 54318765,
+      status: "anchored", anchored_at: "2026-01-20T14:45:00Z",
+    },
+    {
+      id: "ba-5", event_type: "signal_score", entity_type: "project", entity_id: MOCK_IDS.p4,
+      data_hash: "0x3a7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c",
+      merkle_root: "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f",
+      chain: "Polygon", tx_hash: "0x3a7c9d0e1f2a3b4c5d6e7f8a9b0c1d2e", block_number: 54317654,
+      status: "anchored", anchored_at: "2026-03-05T08:30:00Z",
+    },
+    {
+      id: "ba-6", event_type: "document_upload", entity_type: "document", entity_id: "doc-board-res",
+      data_hash: "0x9d2f3a4b5c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f",
+      merkle_root: "0x6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a",
+      chain: "Polygon", tx_hash: "0x9d2f4a5b6c8d9e0f1a2b3c4d5e6f7a8b", block_number: 54316543,
+      status: "anchored", anchored_at: "2026-02-10T11:20:00Z",
+    },
+    {
+      id: "ba-7", event_type: "document_upload", entity_type: "document", entity_id: "doc-offtake-amend",
+      data_hash: "0x1b8e2a3b4c5d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f",
+      merkle_root: "0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b",
+      chain: "Polygon", tx_hash: "0x1b8e3a4b5c6d8e9f0a1b2c3d4e5f6a7b", block_number: 54315432,
+      status: "anchored", anchored_at: "2026-01-28T16:00:00Z",
+    },
+    {
+      id: "ba-8", event_type: "document_upload", entity_type: "document", entity_id: "doc-insurance",
+      data_hash: "0x6c5a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a",
+      merkle_root: "0x8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c",
+      chain: "Polygon", tx_hash: "0x6c5a8b9c0d1e2f3a4b5c6d7e8f9a0b1c", block_number: 54314321,
+      status: "anchored", anchored_at: "2026-01-15T10:00:00Z",
+    },
+    {
+      id: "ba-9", event_type: "certification", entity_type: "report", entity_id: "doc-audited-acc",
+      data_hash: "0x4e3d5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e",
+      merkle_root: "0x9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d",
+      chain: "Polygon", tx_hash: "0x4e3d6f7a8b9c0d1e2f3a4b5c6d7e8f9a", block_number: 54313210,
+      status: "anchored", anchored_at: "2026-01-10T09:00:00Z",
+    },
+    {
+      id: "ba-10", event_type: "deal_transition", entity_type: "project", entity_id: "proj-eib",
+      data_hash: "0xa2f7b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2",
+      merkle_root: "0x0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e",
+      chain: "Polygon", tx_hash: "0xa2f7c4d5e6f7a8b9c0d1e2f3a4b5c6d7", block_number: 54301234,
+      status: "anchored", anchored_at: "2025-12-20T13:15:00Z",
+    },
+    {
+      id: "ba-11", event_type: "document_upload", entity_type: "document", entity_id: "doc-tech-report",
+      data_hash: "0x7b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c",
+      merkle_root: "0x1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f",
+      chain: "Polygon", tx_hash: "0x7b9c1d2e3f4a5b6c7d8e9f0a1b2c3d4e", block_number: 54299876,
+      status: "anchored", anchored_at: "2025-12-15T11:30:00Z",
+    },
+    {
+      id: "ba-12", event_type: "lp_report_approval", entity_type: "report", entity_id: "rpt-q3-lp",
+      data_hash: "0x3d6e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+      merkle_root: "0x2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a",
+      chain: "Polygon", tx_hash: "0x3d6e5f6a7b8c9d0e1f2a3b4c5d6e7f8a", block_number: 54256789,
+      status: "anchored", anchored_at: "2025-10-15T10:00:00Z",
+    },
+  ],
+};
+
+// ── Marketplace ───────────────────────────────────────────────────────────────
+
+export const MOCK_MARKETPLACE_LISTINGS: ListingListResponse = {
+  items: [
+    {
+      id: "lst-1", org_id: "org-ext-1", project_id: null,
+      title: "Expert Financial Modeler — Renewable Energy",
+      description: "Senior financial modeler with 15+ years in renewable energy project finance. Available for financial model builds, reviews and investor presentations.",
+      listing_type: "co_investment", status: "active", visibility: "qualified_only",
+      asking_price: "3500", minimum_investment: null, currency: "EUR",
+      details: { service_type: "financial_modeling", rate_type: "per_day", provider: "Sofia Chen", rating: 4.9 },
+      expires_at: null,
+      project_name: null, project_type: null, geography_country: null, signal_score: null, rfq_count: 3,
+      created_at: "2026-02-01T09:00:00Z", updated_at: "2026-03-01T09:00:00Z",
+    },
+    {
+      id: "lst-2", org_id: "org-ext-2", project_id: null,
+      title: "ESG Impact Assessment — Infrastructure",
+      description: "Comprehensive ESG impact assessment for infrastructure and renewables. Covers SFDR Article 9 alignment, EU Taxonomy, and UN SDG mapping.",
+      listing_type: "co_investment", status: "active", visibility: "qualified_only",
+      asking_price: "8200", minimum_investment: null, currency: "EUR",
+      details: { service_type: "esg_assessment", rate_type: "fixed", provider: "GreenMetrics Ltd", rating: 4.7 },
+      expires_at: null,
+      project_name: null, project_type: null, geography_country: null, signal_score: null, rfq_count: 5,
+      created_at: "2026-01-15T09:00:00Z", updated_at: "2026-02-28T09:00:00Z",
+    },
+    {
+      id: "lst-3", org_id: "org-ext-3", project_id: null,
+      title: "Technical Due Diligence — Solar/Wind",
+      description: "Full technical due diligence service for solar PV and onshore wind projects up to 300MW. Includes site visits, yield assessments and EPC review.",
+      listing_type: "co_investment", status: "active", visibility: "public",
+      asking_price: "12000", minimum_investment: null, currency: "EUR",
+      details: { service_type: "technical_dd", rate_type: "fixed", provider: "Arup Advisory", rating: 4.8 },
+      expires_at: null,
+      project_name: "Alpine Hydro Partners", project_type: "hydro", geography_country: "CH", signal_score: 91, rfq_count: 7,
+      created_at: "2026-01-10T09:00:00Z", updated_at: "2026-03-05T09:00:00Z",
+    },
+    {
+      id: "lst-4", org_id: "org-1", project_id: MOCK_IDS.p5,
+      title: "LP Co-Investment Opportunity — Alpine Hydro",
+      description: "Co-investment opportunity in Alpine Hydro Partners, a 240MW run-of-river hydro project in Switzerland. IRR target 9.2%, 20-year PPA with Swiss federal utility.",
+      listing_type: "co_investment", status: "active", visibility: "qualified_only",
+      asking_price: "10000000", minimum_investment: "10000000", currency: "EUR",
+      details: { irr_target: "9.2%", tenor_years: 20, ppa_counterparty: "Swiss Federal Utility" },
+      expires_at: "2026-06-30T00:00:00Z",
+      project_name: "Alpine Hydro Partners", project_type: "hydro", geography_country: "CH", signal_score: 91, rfq_count: 4,
+      created_at: "2026-02-15T09:00:00Z", updated_at: "2026-03-10T09:00:00Z",
+    },
+    {
+      id: "lst-5", org_id: "org-ext-4", project_id: null,
+      title: "Legal Review — Energy Sector M&A",
+      description: "Specialist legal review for energy sector M&A transactions, joint ventures and project finance. Partners with 20+ years experience in European energy law.",
+      listing_type: "co_investment", status: "active", visibility: "qualified_only",
+      asking_price: "450", minimum_investment: null, currency: "EUR",
+      details: { service_type: "legal_review", rate_type: "per_hour", provider: "Linklaters LLP", rating: 4.6 },
+      expires_at: null,
+      project_name: null, project_type: null, geography_country: null, signal_score: null, rfq_count: 2,
+      created_at: "2026-01-20T09:00:00Z", updated_at: "2026-02-20T09:00:00Z",
+    },
+  ],
+  total: 5,
+};
+
+export const MOCK_MARKETPLACE_SENT_RFQS: RFQListResponse = {
+  items: [
+    {
+      id: "rfq-s1", listing_id: "lst-2", buyer_org_id: "org-1",
+      proposed_price: "8200", currency: "EUR", status: "submitted",
+      message: "We would like an ESG assessment for our 7-asset portfolio covering SFDR Article 9, EU Taxonomy and SDG alignment. Timeline: 6 weeks.",
+      counter_price: null, counter_terms: null,
+      submitted_by: "Sofia Bergman",
+      listing_title: "ESG Impact Assessment — Infrastructure",
+      created_at: "2026-03-05T10:00:00Z", updated_at: "2026-03-05T10:00:00Z",
+    },
+    {
+      id: "rfq-s2", listing_id: "lst-3", buyer_org_id: "org-1",
+      proposed_price: "12000", currency: "EUR", status: "under_review",
+      message: "Requesting technical DD for Danube Hydro Expansion (28MW, Romania). Site visit week of Mar 18.",
+      counter_price: null, counter_terms: null,
+      submitted_by: "Marco Rossi",
+      listing_title: "Technical Due Diligence — Solar/Wind",
+      created_at: "2026-03-01T09:00:00Z", updated_at: "2026-03-03T11:00:00Z",
+    },
+  ],
+  total: 2,
+};
+
+export const MOCK_MARKETPLACE_TRANSACTIONS: TransactionListResponse = {
+  items: [
+    {
+      id: "tx-1", listing_id: "lst-legal-danube", buyer_org_id: "org-1", seller_org_id: "org-ext-4",
+      rfq_id: "rfq-old-1",
+      amount: "18500", currency: "EUR",
+      status: "completed",
+      terms: { scope: "Legal review for Danube Hydro Expansion — investment agreement and NDA", jurisdiction: "RO/EN" },
+      settlement_details: { invoice_ref: "LNK-2026-0214", payment_date: "2026-02-28" },
+      completed_at: "2026-02-28T16:00:00Z",
+      listing_title: "Legal Review — Energy Sector M&A",
+      created_at: "2026-02-05T10:00:00Z", updated_at: "2026-02-28T16:00:00Z",
+    },
+  ],
+  total: 1,
+};
+
+// ── Impact Measurement ────────────────────────────────────────────────────────
+
+const makeSdgGoal = (number: number, label: string, color: string, level: "primary" | "secondary" | "co-benefit"): SDGGoal => ({
+  number, label, color, contribution_level: level, description: `SDG ${number}: ${label}`,
+});
+
+export const MOCK_PORTFOLIO_IMPACT: PortfolioImpactResponse = {
+  total_projects: 7,
+  total_capacity_mw: 892,
+  total_co2_reduction_tco2e: 287000,
+  total_jobs_created: 1840,
+  total_households_served: 340000,
+  total_carbon_credit_tons: 124000,
+  sdg_coverage: [6, 7, 9, 11, 13],
+  projects: [
+    {
+      project_id: MOCK_IDS.p1, project_name: "Helios Solar Portfolio Iberia",
+      project_type: "solar", geography_country: "ES",
+      kpis: [
+        { key: "capacity_mw", label: "Capacity", value: 180, unit: "MW", category: "energy" },
+        { key: "co2_reduction_tco2e", label: "CO₂ Avoided", value: 89000, unit: "tCO₂e/yr", category: "environment" },
+        { key: "households_served", label: "Households Powered", value: 95000, unit: "", category: "social" },
+        { key: "jobs_created_direct", label: "Jobs Created", value: 320, unit: "", category: "social" },
+      ],
+      sdg_goals: [
+        makeSdgGoal(7, "Affordable Energy", "#fcc30b", "primary"),
+        makeSdgGoal(13, "Climate Action", "#3f7e44", "primary"),
+      ],
+      additionality_score: 84,
+      additionality_breakdown: {},
+    },
+    {
+      project_id: MOCK_IDS.p2, project_name: "Nordvik Wind Farm II",
+      project_type: "wind", geography_country: "NO",
+      kpis: [
+        { key: "capacity_mw", label: "Capacity", value: 120, unit: "MW", category: "energy" },
+        { key: "co2_reduction_tco2e", label: "CO₂ Avoided", value: 54000, unit: "tCO₂e/yr", category: "environment" },
+        { key: "households_served", label: "Households Powered", value: 56000, unit: "", category: "social" },
+        { key: "jobs_created_direct", label: "Jobs Created", value: 180, unit: "", category: "social" },
+      ],
+      sdg_goals: [
+        makeSdgGoal(7, "Affordable Energy", "#fcc30b", "primary"),
+        makeSdgGoal(13, "Climate Action", "#3f7e44", "primary"),
+      ],
+      additionality_score: 72,
+      additionality_breakdown: {},
+    },
+    {
+      project_id: MOCK_IDS.p3, project_name: "Adriatic Infrastructure Holdings",
+      project_type: "infrastructure", geography_country: "IT",
+      kpis: [
+        { key: "co2_reduction_tco2e", label: "CO₂ Avoided", value: 12000, unit: "tCO₂e/yr", category: "environment" },
+        { key: "jobs_created_direct", label: "Jobs Created", value: 420, unit: "", category: "social" },
+        { key: "households_served", label: "People Served", value: 28000, unit: "", category: "social" },
+      ],
+      sdg_goals: [
+        makeSdgGoal(9, "Industry & Innovation", "#fd6925", "primary"),
+        makeSdgGoal(11, "Sustainable Cities", "#fd9d24", "secondary"),
+      ],
+      additionality_score: 65,
+      additionality_breakdown: {},
+    },
+    {
+      project_id: MOCK_IDS.p4, project_name: "Baltic BESS Grid Storage",
+      project_type: "storage", geography_country: "LT",
+      kpis: [
+        { key: "capacity_mw", label: "Capacity", value: 80, unit: "MW", category: "energy" },
+        { key: "co2_reduction_tco2e", label: "CO₂ Avoided", value: 8000, unit: "tCO₂e/yr", category: "environment" },
+        { key: "jobs_created_direct", label: "Jobs Created", value: 85, unit: "", category: "social" },
+      ],
+      sdg_goals: [
+        makeSdgGoal(7, "Affordable Energy", "#fcc30b", "primary"),
+        makeSdgGoal(9, "Industry & Innovation", "#fd6925", "secondary"),
+      ],
+      additionality_score: 71,
+      additionality_breakdown: {},
+    },
+    {
+      project_id: MOCK_IDS.p5, project_name: "Alpine Hydro Partners",
+      project_type: "hydro", geography_country: "CH",
+      kpis: [
+        { key: "capacity_mw", label: "Capacity", value: 240, unit: "MW", category: "energy" },
+        { key: "co2_reduction_tco2e", label: "CO₂ Avoided", value: 98000, unit: "tCO₂e/yr", category: "environment" },
+        { key: "households_served", label: "Households Powered", value: 120000, unit: "", category: "social" },
+        { key: "jobs_created_direct", label: "Jobs Created", value: 540, unit: "", category: "social" },
+      ],
+      sdg_goals: [
+        makeSdgGoal(7, "Affordable Energy", "#fcc30b", "primary"),
+        makeSdgGoal(13, "Climate Action", "#3f7e44", "primary"),
+        makeSdgGoal(6, "Clean Water", "#26bde2", "co-benefit"),
+      ],
+      additionality_score: 91,
+      additionality_breakdown: {},
+    },
+    {
+      project_id: MOCK_IDS.p7, project_name: "Nordic Biomass Energy",
+      project_type: "biomass", geography_country: "SE",
+      kpis: [
+        { key: "capacity_mw", label: "Capacity", value: 48, unit: "MW", category: "energy" },
+        { key: "co2_reduction_tco2e", label: "CO₂ Avoided", value: 18000, unit: "tCO₂e/yr", category: "environment" },
+        { key: "households_served", label: "Households Powered", value: 22000, unit: "", category: "social" },
+        { key: "jobs_created_direct", label: "Jobs Created", value: 145, unit: "", category: "social" },
+      ],
+      sdg_goals: [
+        makeSdgGoal(7, "Affordable Energy", "#fcc30b", "primary"),
+        makeSdgGoal(13, "Climate Action", "#3f7e44", "secondary"),
+      ],
+      additionality_score: 68,
+      additionality_breakdown: {},
+    },
+    {
+      project_id: MOCK_IDS.p8, project_name: "Thames Clean Energy Hub",
+      project_type: "wind", geography_country: "GB",
+      kpis: [
+        { key: "capacity_mw", label: "Capacity", value: 224, unit: "MW", category: "energy" },
+        { key: "co2_reduction_tco2e", label: "CO₂ Avoided", value: 8000, unit: "tCO₂e/yr", category: "environment" },
+        { key: "households_served", label: "Households Powered", value: 19000, unit: "", category: "social" },
+        { key: "jobs_created_direct", label: "Jobs Created", value: 150, unit: "", category: "social" },
+      ],
+      sdg_goals: [
+        makeSdgGoal(7, "Affordable Energy", "#fcc30b", "primary"),
+        makeSdgGoal(13, "Climate Action", "#3f7e44", "primary"),
+      ],
+      additionality_score: 76,
+      additionality_breakdown: {},
+    },
+  ],
+};
+
+export const MOCK_CARBON_CREDITS: CarbonCreditListResponse = {
+  items: [
+    {
+      id: "cc-1", project_id: MOCK_IDS.p1, org_id: "org-1",
+      registry: "Gold Standard", methodology: "GS-VER Solar Power Generation",
+      vintage_year: 2024, quantity_tons: "42000",
+      price_per_ton: "18.50", currency: "EUR",
+      serial_number: "GS-2024-ES-042000-001",
+      verification_status: "verified", verification_body: "TÜV SÜD",
+      issuance_date: "2025-06-15", retirement_date: null,
+      created_at: "2025-06-10T09:00:00Z",
+    },
+    {
+      id: "cc-2", project_id: MOCK_IDS.p5, org_id: "org-1",
+      registry: "Verra VCS", methodology: "VM0038 Methodology for Renewable Energy Generation",
+      vintage_year: 2024, quantity_tons: "54000",
+      price_per_ton: "21.00", currency: "EUR",
+      serial_number: "VCS-2024-CH-054000-001",
+      verification_status: "issued", verification_body: "Bureau Veritas",
+      issuance_date: "2025-09-01", retirement_date: null,
+      created_at: "2025-09-01T09:00:00Z",
+    },
+    {
+      id: "cc-3", project_id: MOCK_IDS.p2, org_id: "org-1",
+      registry: "Gold Standard", methodology: "GS-VER Wind Power Generation",
+      vintage_year: 2023, quantity_tons: "28000",
+      price_per_ton: "16.00", currency: "EUR",
+      serial_number: "GS-2023-NO-028000-001",
+      verification_status: "retired", verification_body: "TÜV SÜD",
+      issuance_date: "2024-05-01", retirement_date: "2025-01-15",
+      created_at: "2024-05-01T09:00:00Z",
+    },
+  ],
+  total: 3,
+  total_estimated: 0,
+  total_verified: 42000,
+  total_issued: 54000,
+  total_retired: 28000,
+};
