@@ -734,11 +734,11 @@ function scoreColor(s: number) {
 }
 
 function scoreBarColor(s: number) {
-  if (s >= 80) return "bg-green-500";
-  if (s >= 70) return "bg-blue-500";
-  if (s >= 60) return "bg-amber-500";
-  if (s >= 50) return "bg-yellow-400";
-  return "bg-red-400";
+  if (s >= 80) return "#22c55e";
+  if (s >= 70) return "#3b82f6";
+  if (s >= 60) return "#f59e0b";
+  if (s >= 50) return "#facc15";
+  return "#f87171";
 }
 
 function invActivityMeta(type: string): { Icon: React.ElementType; color: string; bg: string } {
