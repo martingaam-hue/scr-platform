@@ -219,6 +219,7 @@ const allyNav: NavSection[] = [
       { label: "Value Quantifier", href: "/value-quantifier", icon: DollarSign },
       { label: "AI Citations", href: "/citations", icon: FileText },
       { label: "Impact", href: "/impact", icon: Target },
+      { label: "Certification", href: "/certification", icon: ShieldCheck },
       { label: "Engagement Analytics", href: "/engagement", icon: BarChart3 },
       { label: "Activity Feed", href: "/collaboration", icon: Activity },
       { label: "Notifications", href: "/notifications", icon: Bell },
