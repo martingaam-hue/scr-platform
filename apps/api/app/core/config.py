@@ -145,6 +145,10 @@ class Settings(BaseSettings):
     SENTRY_ENVIRONMENT: str = "development"
     APP_VERSION: str | None = None  # e.g. "1.2.3" or git SHA — used as Sentry release tag
 
+    # Object-level RBAC — when False: audit mode (logs warning, allows access)
+    # Set to True once ownership records are populated for all resources.
+    OBJECT_LEVEL_RBAC_ENABLED: bool = False
+
     # AI token budget enforcement (per org, per calendar month)
     AI_TOKEN_BUDGET_ENABLED: bool = True
     AI_TOKEN_BUDGET_FOUNDATION: int = 2_000_000

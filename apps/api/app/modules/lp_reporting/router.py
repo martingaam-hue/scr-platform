@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import require_permission
+from app.auth.dependencies import require_object_permission, require_permission
 from app.core.database import get_db
 from app.modules.lp_reporting import service
 from app.modules.lp_reporting.schemas import (
@@ -141,7 +141,9 @@ async def list_reports(
 @router.get("/{report_id}", response_model=LPReportResponse)
 async def get_report(
     report_id: uuid.UUID,
-    current_user: CurrentUser = Depends(require_permission("view", "report")),
+    current_user: CurrentUser = Depends(
+        require_object_permission("view", "lp_report", id_param="report_id", rbac_resource_type="report")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single LP report by ID."""
@@ -272,7 +274,9 @@ async def generate_pdf(
 @router.get("/{report_id}/download")
 async def download_report(
     report_id: uuid.UUID,
-    current_user: CurrentUser = Depends(require_permission("view", "report")),
+    current_user: CurrentUser = Depends(
+        require_object_permission("view", "lp_report", id_param="report_id", rbac_resource_type="report")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """Redirect to the pre-signed S3 URL for the generated report document."""

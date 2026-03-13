@@ -234,6 +234,9 @@ from app.models.qa import QAAnswer, QAQuestion
 # AI Document Redaction
 from app.models.redaction import RedactionJob
 
+# Resource Ownership (object-level RBAC)
+from app.models.resource_ownership import PermissionLevel, ResourceOwnership
+
 # Reporting
 from app.models.reporting import GeneratedReport, ReportTemplate, ScheduledReport
 
@@ -396,6 +399,9 @@ __all__ = [
     "QAQuestion",
     # AI Document Redaction
     "RedactionJob",
+    # Resource Ownership (object-level RBAC)
+    "PermissionLevel",
+    "ResourceOwnership",
     # Reporting
     "ReportTemplate",
     "RiskAssessment",

@@ -5,8 +5,15 @@ Permissions are (action, resource_type) tuples in a set for O(1) lookup.
 """
 
 import uuid
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import or_, select
 
 from app.models.enums import UserRole
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 # ── Actions ───────────────────────────────────────────────────────────────
 
@@ -131,6 +138,53 @@ def check_permission(
     if perms is None:
         return False
     return (action, resource_type) in perms
+
+
+async def check_object_permission(
+    db: "AsyncSession",
+    user_id: uuid.UUID,
+    org_id: uuid.UUID,
+    role: UserRole,
+    resource_type: str,
+    resource_id: uuid.UUID,
+    required_level: str = "viewer",
+) -> bool:
+    """Object-level permission check via ResourceOwnership table.
+
+    Fast-path: admin and manager roles always pass — no ownership record needed.
+    For viewer/analyst: requires an explicit, non-expired ownership record with
+    a permission_level >= required_level.
+    """
+    # Managers and admins bypass object-level checks entirely.
+    if ROLE_HIERARCHY.get(role, 0) >= ROLE_HIERARCHY[UserRole.MANAGER]:
+        return True
+
+    from app.models.resource_ownership import PermissionLevel, ResourceOwnership
+
+    _level_order: dict[str, int] = {
+        PermissionLevel.VIEWER.value: 0,
+        PermissionLevel.EDITOR.value: 1,
+        PermissionLevel.OWNER.value: 2,
+    }
+
+    now = datetime.utcnow()
+    stmt = select(ResourceOwnership).where(
+        ResourceOwnership.user_id == user_id,
+        ResourceOwnership.org_id == org_id,
+        ResourceOwnership.resource_type == resource_type,
+        ResourceOwnership.resource_id == resource_id,
+        ResourceOwnership.is_deleted.is_(False),
+        or_(ResourceOwnership.expires_at.is_(None), ResourceOwnership.expires_at > now),
+    )
+    result = await db.execute(stmt)
+    record = result.scalar_one_or_none()
+
+    if record is None:
+        return False
+
+    record_rank = _level_order.get(record.permission_level, -1)
+    required_rank = _level_order.get(required_level, 999)
+    return record_rank >= required_rank
 
 
 def get_permissions_for_role(role: UserRole) -> dict[str, list[str]]:

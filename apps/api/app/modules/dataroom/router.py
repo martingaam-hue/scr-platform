@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import get_current_user, require_object_permission, require_permission
 from app.core.database import get_db
 from app.models.enums import DocumentAccessAction, DocumentStatus
 from app.modules.dataroom import service
@@ -393,7 +393,9 @@ async def get_document(
     "/documents/{document_id}/download",
     summary="Get document download URL",
     response_model=PresignedDownloadResponse,
-    dependencies=[Depends(require_permission("download", "document"))],
+    dependencies=[
+        Depends(require_object_permission("download", "document", id_param="document_id"))
+    ],
 )
 async def download_document(
     document_id: uuid.UUID,

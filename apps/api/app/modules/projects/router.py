@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_permission
+from app.auth.dependencies import get_current_user, require_object_permission, require_permission
 from app.core.database import get_db
 from app.middleware.tenant import tenant_filter
 from app.models.enums import ProjectStage, ProjectStatus, ProjectType
@@ -174,7 +174,9 @@ async def create_project(
     "/{project_id}",
     summary="Get project",
     response_model=ProjectDetailResponse,
-    dependencies=[Depends(require_permission("view", "project"))],
+    dependencies=[
+        Depends(require_object_permission("view", "project", id_param="project_id"))
+    ],
 )
 async def get_project(
     project_id: uuid.UUID,

@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.clerk_jwt import verify_clerk_token
-from app.auth.rbac import check_permission
+from app.auth.rbac import check_object_permission, check_permission
 from app.core.database import get_db
 from app.models.core import User
 from app.models.enums import UserRole
@@ -123,6 +123,90 @@ def require_permission(action: str, resource_type: str):
         return current_user
 
     return _check_perm
+
+
+def require_object_permission(
+    action: str,
+    resource_type: str,
+    id_param: str = "id",
+    rbac_resource_type: str | None = None,
+):
+    """Dependency factory for object-level permission checks.
+
+    Performs a two-stage check:
+      1. Role-level: does the user's role allow `action` on `resource_type`?
+      2. Object-level: does the user have an ownership record for this specific
+         resource_id? (skipped for manager/admin — they always pass)
+
+    When OBJECT_LEVEL_RBAC_ENABLED=False (default/audit mode):
+        Logs a warning but allows access so the flag can be deployed safely.
+    When OBJECT_LEVEL_RBAC_ENABLED=True:
+        Returns 403 if no valid ownership record exists.
+
+    Usage:
+        @router.get("/{doc_id}", dependencies=[Depends(
+            require_object_permission("download", "document", id_param="doc_id")
+        )])
+    """
+
+    async def _check_object_perm(
+        request: Request,
+        current_user: CurrentUser = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ) -> CurrentUser:
+        from app.core.config import settings
+
+        # Stage 1: role-level permission (use rbac_resource_type when resource_type
+        # is a fine-grained ownership type not present in the permission matrix)
+        _rbac_type = rbac_resource_type or resource_type
+        if not check_permission(current_user.role, action, _rbac_type):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission denied: {action} on {_rbac_type}",
+            )
+
+        # Stage 2: object-level — extract resource_id from path params
+        raw_id = request.path_params.get(id_param)
+        if raw_id is None:
+            # No resource ID in path — skip object check (collection endpoints)
+            return current_user
+
+        try:
+            resource_id = uuid.UUID(str(raw_id))
+        except (ValueError, AttributeError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid resource ID",
+            ) from exc
+
+        allowed = await check_object_permission(
+            db=db,
+            user_id=current_user.user_id,
+            org_id=current_user.org_id,
+            role=current_user.role,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            required_level="viewer",
+        )
+
+        if not allowed:
+            if not settings.OBJECT_LEVEL_RBAC_ENABLED:
+                logger.warning(
+                    "object_rbac_would_deny",
+                    user_id=str(current_user.user_id),
+                    resource_type=resource_type,
+                    resource_id=str(resource_id),
+                    action=action,
+                )
+                return current_user
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(f"Access denied: no {resource_type} permission for resource {resource_id}"),
+            )
+
+        return current_user
+
+    return _check_object_perm
 
 
 async def require_org_access(
