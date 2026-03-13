@@ -2,7 +2,7 @@
 
 import contextlib
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from decimal import Decimal
 
 import structlog
@@ -303,7 +303,7 @@ async def update_application_status(
     application.status = new_status
 
     if new_status == BoardAdvisorApplicationStatus.ACCEPTED and application.started_at is None:
-        application.started_at = datetime.now(UTC)
+        application.started_at = datetime.utcnow()
 
     await db.flush()
     await db.refresh(application)
