@@ -1592,7 +1592,7 @@ export default function ValuationsPage() {
             <CardContent className="pt-4 pb-4">
               <div className="text-xs text-neutral-500 mb-1">Projects Valued</div>
               <div className="text-2xl font-bold">
-                {knownProjectIds.length}
+                {new Set(allValuations.items.map((v) => v.project_id)).size}
               </div>
             </CardContent>
           </Card>
