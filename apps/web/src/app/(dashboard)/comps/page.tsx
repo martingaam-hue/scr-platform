@@ -1,11 +1,33 @@
 "use client"
 
 import { useState } from "react"
-import { useComps, useCreateComp, useCompsValuation, QUALITY_BADGE, ASSET_TYPES, STAGES, type Comp } from "@/lib/comps"
+import { useComps, useCreateComp, useCompsValuation, QUALITY_BADGE, ASSET_TYPES, STAGES, type Comp, type ValuationResult } from "@/lib/comps"
 import { formatCurrency, formatPct } from "@/lib/format"
 import { Plus, Calculator, TrendingUp, X } from "lucide-react"
 import { AIFeedback } from "@/components/ai-feedback"
 import { InfoBanner } from "@/components/info-banner"
+
+// ── Mock comps data matching specified transactions ────────────────────────
+
+const MOCK_FEATURED_COMPS: Comp[] = [
+  { id: "fc1", deal_name: "Iberian Solar Platform",    asset_type: "solar",        geography: "Spain",   country_code: "ES", close_year: 2025, deal_size_eur: 380000000, capacity_mw: 200, ev_per_mw: 1.90, equity_irr: 9.8,  stage_at_close: "operational",   data_quality: "confirmed", org_id: null },
+  { id: "fc2", deal_name: "Nordic Offshore Wind II",   asset_type: "wind",         geography: "Denmark", country_code: "DK", close_year: 2024, deal_size_eur: 520000000, capacity_mw: 250, ev_per_mw: 2.08, equity_irr: 11.2, stage_at_close: "construction",  data_quality: "confirmed", org_id: null },
+  { id: "fc3", deal_name: "Alpine Water Holdings",     asset_type: "hydro",        geography: "Austria", country_code: "AT", close_year: 2024, deal_size_eur: 290000000, capacity_mw: 140, ev_per_mw: 2.07, equity_irr: 8.5,  stage_at_close: "operational",   data_quality: "confirmed", org_id: null },
+  { id: "fc4", deal_name: "Baltic Grid Infrastructure",asset_type: "bess",         geography: "Estonia", country_code: "EE", close_year: 2025, deal_size_eur: 140000000, capacity_mw: 60,  ev_per_mw: 2.33, equity_irr: 13.5, stage_at_close: "development",   data_quality: "confirmed", org_id: null },
+  { id: "fc5", deal_name: "Scandinavian Biomass Fund", asset_type: "biomass",      geography: "Finland", country_code: "FI", close_year: 2023, deal_size_eur: 95000000,  capacity_mw: 50,  ev_per_mw: 1.90, equity_irr: 9.2,  stage_at_close: "operational",   data_quality: "confirmed", org_id: null },
+  { id: "fc6", deal_name: "Aegean Solar Park",         asset_type: "solar",        geography: "Greece",  country_code: "GR", close_year: 2025, deal_size_eur: 210000000, capacity_mw: 120, ev_per_mw: 1.75, equity_irr: 10.1, stage_at_close: "operational",   data_quality: "confirmed", org_id: null },
+  { id: "fc7", deal_name: "Rhine Valley Hydro",        asset_type: "hydro",        geography: "Germany", country_code: "DE", close_year: 2024, deal_size_eur: 175000000, capacity_mw: 90,  ev_per_mw: 1.94, equity_irr: 8.2,  stage_at_close: "operational",   data_quality: "estimated", org_id: null },
+  { id: "fc8", deal_name: "British Offshore Wind Hub", asset_type: "wind",         geography: "UK",      country_code: "GB", close_year: 2025, deal_size_eur: 680000000, capacity_mw: 300, ev_per_mw: 2.27, equity_irr: 12.9, stage_at_close: "construction",  data_quality: "confirmed", org_id: null },
+]
+
+const MOCK_DEFAULT_VALUATION: ValuationResult = {
+  method: "median_ev_per_mw",
+  ev_eur: 190000000,
+  ev_per_mw: 1900000,
+  implied_irr: 10.2,
+  comps_used: 3,
+  confidence: "medium",
+}
 
 export default function CompsPage() {
   const [filters, setFilters] = useState({
@@ -15,16 +37,17 @@ export default function CompsPage() {
     year_to: "",
     stage: "",
   })
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(["fc1", "fc6"]))
   const [showAddForm, setShowAddForm] = useState(false)
   const [newComp, setNewComp] = useState({ deal_name: "", asset_type: "solar", close_year: "", capacity_mw: "", ev_per_mw: "", equity_irr: "", data_quality: "estimated" })
 
-  const { data, isLoading } = useComps(filters)
-  const { data: valuationResult, mutate: calcValuation, isPending: calcPending } = useCompsValuation()
+  const { data: apiData, isLoading } = useComps(filters)
+  const { data: apiValuation, mutate: calcValuation, isPending: calcPending } = useCompsValuation()
   const addMutation = useCreateComp()
 
-  const comps: Comp[] = data?.items ?? []
-  const total: number = data?.total ?? 0
+  const comps: Comp[] = (apiData?.items && apiData.items.length > 0) ? apiData.items : MOCK_FEATURED_COMPS
+  const total: number = apiData?.total ?? MOCK_FEATURED_COMPS.length
+  const valuationResult = apiValuation ?? (selectedIds.size > 0 ? MOCK_DEFAULT_VALUATION : undefined)
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {

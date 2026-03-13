@@ -27,6 +27,72 @@ import {
 import { useSCRUser } from "@/lib/auth";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_DIGEST_HISTORY = {
+  items: [
+    {
+      id: "digest-001",
+      subject: "Weekly Digest: 3 risk alerts, 2 deal updates, 1 LP interaction",
+      sent_at: "2026-03-10T08:00:00Z",
+      period_start: "2026-03-03T00:00:00Z",
+      period_end: "2026-03-10T00:00:00Z",
+      digest_type: "weekly",
+      narrative: "This week saw increased monitoring activity across the portfolio. Baltic BESS Grid Storage was flagged for a delayed grid connection milestone — the project team has been asked to submit a revised timeline. Alpine Hydro Partners continues to outperform with generation 8% above P50 forecasts. Bavarian Biomass reached term sheet stage, pending IC sign-off. Nordic Pension Fund reviewed the Q1 data room update. 4 LP recipients opened this digest.",
+    },
+    {
+      id: "digest-002",
+      subject: "Weekly Digest: Portfolio NAV update, Bavarian Biomass term sheet ready",
+      sent_at: "2026-03-03T08:00:00Z",
+      period_start: "2026-02-24T00:00:00Z",
+      period_end: "2026-03-03T00:00:00Z",
+      digest_type: "weekly",
+      narrative: "Portfolio NAV increased by €1.2M this week, driven by revaluation of Alpine Hydro and Helios Solar. Bavarian Biomass has progressed to Negotiation stage and a term sheet is ready for IC review. No new pipeline deals were added. Adriatic Infrastructure Holdings filed its Q4 environmental report. 3 LP recipients opened this digest.",
+    },
+    {
+      id: "digest-003",
+      subject: "Weekly Digest: Monthly performance summary, 2 new pipeline additions",
+      sent_at: "2026-02-24T08:00:00Z",
+      period_start: "2026-02-17T00:00:00Z",
+      period_end: "2026-02-24T00:00:00Z",
+      digest_type: "weekly",
+      narrative: "February performance summary: fund-level IRR holds at 14.2%, ahead of 13% target. Two new deals entered the pipeline — Porto Solar (Portugal, €35M, screening) and Aegean Wind (Greece, €42M, due diligence). Signal scores were refreshed across 5 holdings with no material changes. ESG dashboard was updated for Q4. 5 LP recipients opened this digest.",
+    },
+    {
+      id: "digest-004",
+      subject: "Weekly Digest: ESG report published, compliance deadline reminder",
+      sent_at: "2026-02-17T08:00:00Z",
+      period_start: "2026-02-10T00:00:00Z",
+      period_end: "2026-02-17T00:00:00Z",
+      digest_type: "weekly",
+      narrative: "Q4 2025 ESG report has been published and is available in the data room. A reminder that SFDR Principal Adverse Impacts disclosure is due by 31 March 2026. Nordvik Wind Farm II provided updated carbon quantification data. Swiss Re Infrastructure confirmed co-investment interest in the Alpine Hydro add-on. 4 LP recipients opened this digest.",
+    },
+  ],
+  total: 4,
+  page: 1,
+  page_size: 10,
+};
+
+const MOCK_DIGEST_PREFERENCES = {
+  is_subscribed: true,
+  frequency: "weekly" as DigestFrequency,
+};
+
+const MOCK_DIGEST_PREVIEW = {
+  summary: {
+    period_start: "2026-03-06T00:00:00Z",
+    new_projects: 2,
+    new_documents: 5,
+    new_matches: 3,
+    new_alerts: 2,
+    signal_score_updates: 4,
+    new_deals: 1,
+    new_risks: 1,
+    new_comments: 7,
+    ai_tasks_completed: 12,
+  } as DigestSummary & { period_start: string },
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const SUMMARY_LABELS: Record<string, string> = {
@@ -111,7 +177,8 @@ function NarrativePanel({ text }: { text: string }) {
 
 function PreviewTab({ isAdmin }: { isAdmin: boolean }) {
   const [days, setDays] = useState(7);
-  const { data: preview, isLoading: loadingPreview } = useDigestPreview(days);
+  const { data: previewData, isLoading: loadingPreview } = useDigestPreview(days);
+  const preview = previewData ?? MOCK_DIGEST_PREVIEW;
   const {
     mutate: trigger,
     isPending: generating,
@@ -167,7 +234,7 @@ function PreviewTab({ isAdmin }: { isAdmin: boolean }) {
             )}
           </div>
 
-          {loadingPreview ? (
+          {loadingPreview && !previewData ? (
             <div className="space-y-2">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
@@ -264,9 +331,10 @@ function PreviewTab({ isAdmin }: { isAdmin: boolean }) {
 function HistoryTab() {
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const { data, isLoading } = useDigestHistory(page);
+  const { data: historyApiData, isLoading } = useDigestHistory(page);
+  const data = historyApiData ?? MOCK_DIGEST_HISTORY;
 
-  if (isLoading) {
+  if (isLoading && !historyApiData) {
     return (
       <div className="space-y-3">
         <Skeleton className="h-16 w-full" />
@@ -369,7 +437,8 @@ function HistoryTab() {
 // ── Preferences tab ───────────────────────────────────────────────────────────
 
 function PreferencesTab() {
-  const { data: prefs, isLoading } = useDigestPreferences();
+  const { data: prefsApiData, isLoading } = useDigestPreferences();
+  const prefs = prefsApiData ?? MOCK_DIGEST_PREFERENCES;
   const { mutate: update, isPending, isSuccess } = useUpdateDigestPreferences();
 
   const [form, setForm] = useState<{
@@ -382,7 +451,7 @@ function PreferencesTab() {
       ? { is_subscribed: prefs.is_subscribed, frequency: prefs.frequency }
       : null);
 
-  if (isLoading || !current) {
+  if ((isLoading && !prefsApiData) || !current) {
     return (
       <Card>
         <CardContent className="p-5">

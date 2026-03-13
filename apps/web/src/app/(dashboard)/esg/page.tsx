@@ -8,7 +8,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  EmptyState,
   LineChart,
 } from "@scr/ui";
 import { usePortfolios } from "@/lib/portfolio";
@@ -19,9 +18,54 @@ import {
   SDG_COLORS,
   SDG_NAMES,
   SFDR_COLORS,
-  type ESGMetricsResponse,
 } from "@/lib/esg";
 import { InfoBanner } from "@/components/info-banner";
+
+// ── Mock Data ─────────────────────────────────────────────────────────────────
+
+const MOCK_ESG_DATA = {
+  totals: {
+    total_carbon_avoided_tco2e: 287000,
+    total_renewable_energy_mwh: 612000,
+    total_jobs_created: 1847,
+    taxonomy_aligned_count: 5,
+    taxonomy_aligned_pct: 78,
+    total_projects: 7,
+  },
+  taxonomy_alignment_pct: 78,
+  sfdr_distribution: {
+    article_6: 1,
+    article_8: 2,
+    article_9: 4,
+    unclassified: 0,
+  },
+  carbon_trend: [
+    { period: "2024-Q2", total_carbon_avoided_tco2e: 48200, total_carbon_footprint_tco2e: 4100 },
+    { period: "2024-Q3", total_carbon_avoided_tco2e: 71500, total_carbon_footprint_tco2e: 4800 },
+    { period: "2024-Q4", total_carbon_avoided_tco2e: 82300, total_carbon_footprint_tco2e: 4900 },
+    { period: "2025-Q1", total_carbon_avoided_tco2e: 89400, total_carbon_footprint_tco2e: 4600 },
+    { period: "2025-Q2", total_carbon_avoided_tco2e: 95600, total_carbon_footprint_tco2e: 4800 },
+    { period: "2025-Q3", total_carbon_avoided_tco2e: 98700, total_carbon_footprint_tco2e: 4700 },
+    { period: "2025-Q4", total_carbon_avoided_tco2e: 104200, total_carbon_footprint_tco2e: 4900 },
+    { period: "2026-Q1", total_carbon_avoided_tco2e: 112000, total_carbon_footprint_tco2e: 5100 },
+  ],
+  top_sdgs: [
+    { sdg_id: 7, name: "Affordable and Clean Energy", project_count: 7 },
+    { sdg_id: 13, name: "Climate Action", project_count: 6 },
+    { sdg_id: 11, name: "Sustainable Cities", project_count: 4 },
+    { sdg_id: 9, name: "Industry, Innovation and Infrastructure", project_count: 3 },
+    { sdg_id: 15, name: "Life on Land", project_count: 2 },
+  ],
+  project_rows: [
+    { id: "esg-h1", project_id: "Helios Solar Portfolio Iberia", org_id: "org1", period: "2025-Q4", carbon_footprint_tco2e: 2100, carbon_avoided_tco2e: 89000, renewable_energy_mwh: 187000, water_usage_cubic_m: null, waste_diverted_tonnes: null, biodiversity_score: null, jobs_created: 312, jobs_supported: 480, local_procurement_pct: null, community_investment_eur: null, gender_diversity_pct: null, health_safety_incidents: 0, board_independence_pct: null, audit_completed: true, esg_reporting_standard: "GRI", taxonomy_eligible: true, taxonomy_aligned: true, taxonomy_activity: "Solar power generation", sfdr_article: 9, sdg_contributions: { 7: { contribution_level: "high" }, 13: { contribution_level: "high" } }, esg_narrative: null, created_at: "2026-01-10T00:00:00Z", updated_at: "2026-03-01T00:00:00Z" },
+    { id: "esg-h2", project_id: "Nordvik Wind Farm II", org_id: "org1", period: "2025-Q4", carbon_footprint_tco2e: 1800, carbon_avoided_tco2e: 54000, renewable_energy_mwh: 124000, water_usage_cubic_m: null, waste_diverted_tonnes: null, biodiversity_score: null, jobs_created: 148, jobs_supported: 220, local_procurement_pct: null, community_investment_eur: null, gender_diversity_pct: null, health_safety_incidents: 0, board_independence_pct: null, audit_completed: true, esg_reporting_standard: "SFDR", taxonomy_eligible: true, taxonomy_aligned: true, taxonomy_activity: "Wind power generation", sfdr_article: 9, sdg_contributions: { 7: { contribution_level: "high" }, 13: { contribution_level: "medium" } }, esg_narrative: null, created_at: "2026-01-10T00:00:00Z", updated_at: "2026-03-01T00:00:00Z" },
+    { id: "esg-h3", project_id: "Adriatic Infrastructure Holdings", org_id: "org1", period: "2025-Q4", carbon_footprint_tco2e: 4200, carbon_avoided_tco2e: 12000, renewable_energy_mwh: 28000, water_usage_cubic_m: null, waste_diverted_tonnes: null, biodiversity_score: null, jobs_created: 421, jobs_supported: 680, local_procurement_pct: null, community_investment_eur: null, gender_diversity_pct: null, health_safety_incidents: 1, board_independence_pct: null, audit_completed: true, esg_reporting_standard: "GRI", taxonomy_eligible: true, taxonomy_aligned: false, taxonomy_activity: "Infrastructure", sfdr_article: 8, sdg_contributions: { 9: { contribution_level: "high" }, 11: { contribution_level: "medium" } }, esg_narrative: null, created_at: "2026-01-10T00:00:00Z", updated_at: "2026-03-01T00:00:00Z" },
+    { id: "esg-h4", project_id: "Baltic BESS Grid Storage", org_id: "org1", period: "2025-Q4", carbon_footprint_tco2e: 980, carbon_avoided_tco2e: 8000, renewable_energy_mwh: 18400, water_usage_cubic_m: null, waste_diverted_tonnes: null, biodiversity_score: null, jobs_created: 84, jobs_supported: 120, local_procurement_pct: null, community_investment_eur: null, gender_diversity_pct: null, health_safety_incidents: 0, board_independence_pct: null, audit_completed: false, esg_reporting_standard: null, taxonomy_eligible: true, taxonomy_aligned: true, taxonomy_activity: "Battery storage", sfdr_article: 9, sdg_contributions: { 7: { contribution_level: "medium" }, 13: { contribution_level: "medium" } }, esg_narrative: null, created_at: "2026-01-10T00:00:00Z", updated_at: "2026-03-01T00:00:00Z" },
+    { id: "esg-h5", project_id: "Alpine Hydro Partners", org_id: "org1", period: "2025-Q4", carbon_footprint_tco2e: 1400, carbon_avoided_tco2e: 98000, renewable_energy_mwh: 182000, water_usage_cubic_m: null, waste_diverted_tonnes: null, biodiversity_score: null, jobs_created: 268, jobs_supported: 410, local_procurement_pct: null, community_investment_eur: null, gender_diversity_pct: null, health_safety_incidents: 0, board_independence_pct: null, audit_completed: true, esg_reporting_standard: "GRI", taxonomy_eligible: true, taxonomy_aligned: true, taxonomy_activity: "Hydropower generation", sfdr_article: 9, sdg_contributions: { 7: { contribution_level: "high" }, 13: { contribution_level: "high" }, 15: { contribution_level: "medium" } }, esg_narrative: null, created_at: "2026-01-10T00:00:00Z", updated_at: "2026-03-01T00:00:00Z" },
+    { id: "esg-h6", project_id: "Nordic Biomass Energy", org_id: "org1", period: "2025-Q4", carbon_footprint_tco2e: 3600, carbon_avoided_tco2e: 18000, renewable_energy_mwh: 41000, water_usage_cubic_m: null, waste_diverted_tonnes: null, biodiversity_score: null, jobs_created: 312, jobs_supported: 480, local_procurement_pct: null, community_investment_eur: null, gender_diversity_pct: null, health_safety_incidents: 0, board_independence_pct: null, audit_completed: true, esg_reporting_standard: "SFDR", taxonomy_eligible: true, taxonomy_aligned: false, taxonomy_activity: "Biomass energy", sfdr_article: 8, sdg_contributions: { 7: { contribution_level: "medium" }, 15: { contribution_level: "high" } }, esg_narrative: null, created_at: "2026-01-10T00:00:00Z", updated_at: "2026-03-01T00:00:00Z" },
+    { id: "esg-h7", project_id: "Thames Clean Energy Hub", org_id: "org1", period: "2025-Q4", carbon_footprint_tco2e: 2320, carbon_avoided_tco2e: 8000, renewable_energy_mwh: 32000, water_usage_cubic_m: null, waste_diverted_tonnes: null, biodiversity_score: null, jobs_created: 302, jobs_supported: 460, local_procurement_pct: null, community_investment_eur: null, gender_diversity_pct: null, health_safety_incidents: 0, board_independence_pct: null, audit_completed: false, esg_reporting_standard: null, taxonomy_eligible: false, taxonomy_aligned: false, taxonomy_activity: null, sfdr_article: 6, sdg_contributions: { 7: { contribution_level: "medium" }, 11: { contribution_level: "high" } }, esg_narrative: null, created_at: "2026-01-10T00:00:00Z", updated_at: "2026-03-01T00:00:00Z" },
+  ],
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -100,10 +144,12 @@ export default function ESGDashboardPage() {
   const [portfolioId, setPortfolioId] = useState("");
   const [period, setPeriod] = useState("");
 
-  const { data, isLoading } = useESGPortfolioSummary(
+  const { data: apiData, isLoading } = useESGPortfolioSummary(
     portfolioId || undefined,
     period || undefined
   );
+
+  const data = apiData ?? MOCK_ESG_DATA;
 
   const sfdr = data?.sfdr_distribution;
   const totals = data?.totals;
@@ -172,12 +218,6 @@ export default function ESGDashboardPage() {
         <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
         </div>
-      ) : !data ? (
-        <EmptyState
-          icon={<Leaf className="h-12 w-12 text-neutral-400" />}
-          title="No ESG data"
-          description="Add ESG metrics to your projects to see portfolio-level impact."
-        />
       ) : (
         <>
           {/* KPI strip */}

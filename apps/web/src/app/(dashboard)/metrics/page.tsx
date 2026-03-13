@@ -10,6 +10,33 @@ import {
 } from "@/lib/metrics";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock Data ─────────────────────────────────────────────────────────────────
+
+const MOCK_BENCHMARKS: BenchmarkEntry[] = [
+  { id: "bm1", metric_name: "Gross IRR", asset_class: "Renewable Infrastructure", geography: "Europe", stage: "Investment Period", p25: 0.108, median: 0.134, p75: 0.162, sample_count: 48, computed_at: "2026-01-15T00:00:00Z" },
+  { id: "bm2", metric_name: "TVPI", asset_class: "Renewable Infrastructure", geography: "Europe", stage: "Investment Period", p25: 1.15, median: 1.28, p75: 1.48, sample_count: 48, computed_at: "2026-01-15T00:00:00Z" },
+  { id: "bm3", metric_name: "DPI", asset_class: "Renewable Infrastructure", geography: "Europe", stage: "Investment Period", p25: 0.08, median: 0.14, p75: 0.22, sample_count: 48, computed_at: "2026-01-15T00:00:00Z" },
+  { id: "bm4", metric_name: "Gross IRR", asset_class: "Nordic Clean Energy", geography: "Northern Europe", stage: "All Stages", p25: 0.102, median: 0.128, p75: 0.158, sample_count: 24, computed_at: "2025-12-31T00:00:00Z" },
+  { id: "bm5", metric_name: "TVPI", asset_class: "Nordic Clean Energy", geography: "Northern Europe", stage: "All Stages", p25: 1.12, median: 1.22, p75: 1.41, sample_count: 24, computed_at: "2025-12-31T00:00:00Z" },
+  { id: "bm6", metric_name: "Gross IRR", asset_class: "European Infrastructure Debt", geography: "Europe", stage: "All Stages", p25: 0.062, median: 0.078, p75: 0.095, sample_count: 62, computed_at: "2026-01-15T00:00:00Z" },
+  { id: "bm7", metric_name: "Gross IRR", asset_class: "Clean Energy PE Upper Quartile", geography: "Global", stage: "All Stages", p25: 0.162, median: 0.191, p75: 0.224, sample_count: 35, computed_at: "2026-01-15T00:00:00Z" },
+  { id: "bm8", metric_name: "TVPI", asset_class: "Clean Energy PE Upper Quartile", geography: "Global", stage: "All Stages", p25: 1.48, median: 1.74, p75: 2.12, sample_count: 35, computed_at: "2026-01-15T00:00:00Z" },
+  { id: "bm9", metric_name: "Gross IRR", asset_class: "Emerging Markets Renewable", geography: "EM", stage: "All Stages", p25: 0.148, median: 0.182, p75: 0.218, sample_count: 19, computed_at: "2025-12-31T00:00:00Z" },
+  { id: "bm10", metric_name: "ESG Score", asset_class: "Renewable Infrastructure", geography: "Europe", stage: "All Stages", p25: 64, median: 74, p75: 84, sample_count: 48, computed_at: "2026-01-15T00:00:00Z" },
+];
+
+const MOCK_BENCHMARK_LIST = {
+  items: MOCK_BENCHMARKS,
+  total: MOCK_BENCHMARKS.length,
+};
+
+const MOCK_COMPARISON: BenchmarkMetricComparison[] = [
+  { metric_name: "Gross IRR", project_value: 0.161, median: 0.134, p25: 0.108, p75: 0.162, quartile: 1, percentile_rank: 0.76, vs_median: 0.20, sample_count: 48 },
+  { metric_name: "TVPI", project_value: 1.31, median: 1.28, p25: 1.15, p75: 1.48, quartile: 2, percentile_rank: 0.52, vs_median: 0.023, sample_count: 48 },
+  { metric_name: "DPI", project_value: 0.18, median: 0.14, p25: 0.08, p75: 0.22, quartile: 2, percentile_rank: 0.61, vs_median: 0.286, sample_count: 48 },
+  { metric_name: "ESG Score", project_value: 79, median: 74, p25: 64, p75: 84, quartile: 2, percentile_rank: 0.64, vs_median: 0.068, sample_count: 48 },
+];
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function formatValue(v: number | null): string {
@@ -110,13 +137,14 @@ export default function MetricsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("benchmarks");
   const [projectId, setProjectId] = useState<string>("");
 
-  const { data: benchmarkList, isLoading: benchmarksLoading } = useBenchmarkList();
-  const { data: comparison, isLoading: comparisonLoading } = useBenchmarkComparison(
+  const { data: apiBenchmarkList, isLoading: benchmarksLoading } = useBenchmarkList();
+  const { data: apiComparison, isLoading: comparisonLoading } = useBenchmarkComparison(
     projectId || ""
   );
 
+  const benchmarkList = apiBenchmarkList ?? MOCK_BENCHMARK_LIST;
   const benchmarks: BenchmarkEntry[] = benchmarkList?.items ?? [];
-  const comparisons: BenchmarkMetricComparison[] = comparison?.comparisons ?? [];
+  const comparisons: BenchmarkMetricComparison[] = apiComparison?.comparisons ?? (projectId ? MOCK_COMPARISON : []);
 
   // Stats from benchmark list
   const uniqueMetrics = new Set(benchmarks.map((b) => b.metric_name)).size;

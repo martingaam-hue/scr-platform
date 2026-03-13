@@ -11,14 +11,82 @@ import {
   Activity, Clock, Eye, EyeOff, RefreshCw
 } from "lucide-react"
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_CONNECTORS = [
+  {
+    id: "bloomberg",
+    display_name: "Bloomberg Terminal",
+    category: "market_data",
+    pricing_tier: "enterprise",
+    auth_type: "api_key",
+    rate_limit_per_minute: 500,
+    description: "Real-time and historical financial market data",
+  },
+  {
+    id: "fred",
+    display_name: "FRED Economic Data",
+    category: "economic_data",
+    pricing_tier: "free",
+    auth_type: "api_key",
+    rate_limit_per_minute: 120,
+    description: "Federal Reserve Economic Data — macro indicators",
+  },
+  {
+    id: "refinitiv",
+    display_name: "Refinitiv Eikon",
+    category: "market_data",
+    pricing_tier: "enterprise",
+    auth_type: "api_key",
+    rate_limit_per_minute: 300,
+    description: "Multi-asset financial data and analytics platform",
+  },
+  {
+    id: "salesforce",
+    display_name: "Salesforce CRM",
+    category: "crm",
+    pricing_tier: "pro",
+    auth_type: "oauth2",
+    rate_limit_per_minute: 200,
+    description: "CRM contact and deal pipeline synchronisation",
+  },
+  {
+    id: "spglobal",
+    display_name: "S&P Global",
+    category: "credit_data",
+    pricing_tier: "enterprise",
+    auth_type: "api_key",
+    rate_limit_per_minute: 100,
+    description: "Credit ratings, ESG scores, and company fundamentals",
+  },
+];
+
+const MOCK_CONFIGS = [
+  { connector_id: "bloomberg", is_enabled: true, last_synced_at: "2026-03-13T09:00:00Z" },
+  { connector_id: "fred", is_enabled: true, last_synced_at: "2026-03-13T08:30:00Z" },
+  { connector_id: "refinitiv", is_enabled: false, last_synced_at: "2026-02-28T14:00:00Z" },
+  { connector_id: "salesforce", is_enabled: true, last_synced_at: "2026-03-12T18:00:00Z" },
+  { connector_id: "spglobal", is_enabled: false, last_synced_at: null },
+];
+
+const MOCK_USAGE = [
+  { connector_id: "bloomberg", total_calls: 8420, calls_today: 1247, avg_response_ms: 142, error_calls: 12 },
+  { connector_id: "fred", total_calls: 1890, calls_today: 342, avg_response_ms: 87, error_calls: 3 },
+  { connector_id: "salesforce", total_calls: 3210, calls_today: 89, avg_response_ms: 198, error_calls: 7 },
+];
+
 export default function ConnectorsPage() {
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({})
   const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message: string } | null>>({})
 
-  const { data: connectors = [] } = useConnectors()
-  const { data: configs = [] } = useConnectorConfigs()
-  const { data: usageData = [] } = useConnectorUsage()
+  const { data: connectorsData = [] } = useConnectors()
+  const { data: configsData = [] } = useConnectorConfigs()
+  const { data: usageRawData = [] } = useConnectorUsage()
+
+  const connectors = connectorsData.length > 0 ? connectorsData : MOCK_CONNECTORS
+  const configs = configsData.length > 0 ? configsData : MOCK_CONFIGS
+  const usageData = usageRawData.length > 0 ? usageRawData : MOCK_USAGE
 
   const enableMutation = useEnableConnector()
   const disableMutation = useDisableConnector()

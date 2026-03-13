@@ -10,6 +10,62 @@ import {
   type SyncLog,
 } from "@/lib/crm";
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_CONNECTIONS: CRMConnection[] = [
+  {
+    id: "conn-bloomberg",
+    connection_name: "Bloomberg Terminal",
+    provider: "bloomberg",
+    sync_direction: "inbound",
+    is_active: true,
+    last_synced_at: "2026-03-13T09:00:00Z",
+    error_count: 0,
+  },
+  {
+    id: "conn-fred",
+    connection_name: "FRED Economic Data",
+    provider: "fred",
+    sync_direction: "inbound",
+    is_active: true,
+    last_synced_at: "2026-03-13T08:30:00Z",
+    error_count: 0,
+  },
+  {
+    id: "conn-salesforce",
+    connection_name: "Salesforce CRM",
+    provider: "salesforce",
+    sync_direction: "bidirectional",
+    is_active: true,
+    last_synced_at: "2026-03-12T18:00:00Z",
+    error_count: 1,
+  },
+  {
+    id: "conn-refinitiv",
+    connection_name: "Refinitiv Eikon",
+    provider: "refinitiv",
+    sync_direction: "inbound",
+    is_active: false,
+    last_synced_at: "2026-02-28T14:00:00Z",
+    error_count: 2,
+  },
+];
+
+const MOCK_LOGS: SyncLog[] = [
+  { id: "log-001", connection_id: "conn-bloomberg", direction: "inbound", entity_type: "market_data", action: "sync", status: "success", error_message: null, created_at: "2026-03-13T09:00:00Z" },
+  { id: "log-002", connection_id: "conn-bloomberg", direction: "inbound", entity_type: "market_data", action: "sync", status: "success", error_message: null, created_at: "2026-03-12T09:00:00Z" },
+  { id: "log-003", connection_id: "conn-bloomberg", direction: "inbound", entity_type: "market_data", action: "sync", status: "success", error_message: null, created_at: "2026-03-11T09:00:00Z" },
+  { id: "log-004", connection_id: "conn-bloomberg", direction: "inbound", entity_type: "market_data", action: "sync", status: "success", error_message: null, created_at: "2026-03-10T09:00:00Z" },
+  { id: "log-005", connection_id: "conn-fred", direction: "inbound", entity_type: "economic_series", action: "sync", status: "success", error_message: null, created_at: "2026-03-10T06:00:00Z" },
+  { id: "log-006", connection_id: "conn-fred", direction: "inbound", entity_type: "economic_series", action: "sync", status: "success", error_message: null, created_at: "2026-03-03T06:00:00Z" },
+  { id: "log-007", connection_id: "conn-salesforce", direction: "outbound", entity_type: "contact", action: "upsert", status: "success", error_message: null, created_at: "2026-03-12T18:00:00Z" },
+  { id: "log-008", connection_id: "conn-salesforce", direction: "inbound", entity_type: "contact", action: "sync", status: "error", error_message: "Duplicate contact detected: erik.lindstrom@npe-fund.se already exists", created_at: "2026-03-10T12:00:00Z" },
+  { id: "log-009", connection_id: "conn-salesforce", direction: "outbound", entity_type: "deal", action: "upsert", status: "success", error_message: null, created_at: "2026-03-09T10:00:00Z" },
+  { id: "log-010", connection_id: "conn-refinitiv", direction: "inbound", entity_type: "market_data", action: "auth", status: "failed", error_message: "Authentication failed: API token expired. Please reconfigure your Refinitiv credentials.", created_at: "2026-03-05T08:00:00Z" },
+  { id: "log-011", connection_id: "conn-refinitiv", direction: "inbound", entity_type: "market_data", action: "auth", status: "failed", error_message: "Authentication failed: API token expired.", created_at: "2026-02-28T14:00:00Z" },
+  { id: "log-012", connection_id: "conn-bloomberg", direction: "inbound", entity_type: "market_data", action: "sync", status: "success", error_message: null, created_at: "2026-03-09T09:00:00Z" },
+];
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string): string {
@@ -146,13 +202,17 @@ function SyncLogRow({ log }: { log: SyncLog }) {
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function SyncHistoryPage() {
-  const [selectedConnectionId, setSelectedConnectionId] = useState<string>("");
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string>("conn-bloomberg");
 
-  const { data: connections, isLoading: connectionsLoading } = useCRMConnections();
-  const { data: logs, isLoading: logsLoading } = useSyncLogs(selectedConnectionId || undefined);
+  const { data: connectionsData, isLoading: connectionsLoading } = useCRMConnections();
+  const { data: logsData, isLoading: logsLoading } = useSyncLogs(selectedConnectionId || undefined);
 
-  const allConnections: CRMConnection[] = connections ?? [];
-  const allLogs: SyncLog[] = logs ?? [];
+  const allConnections: CRMConnection[] = (connectionsData && connectionsData.length > 0) ? connectionsData : MOCK_CONNECTIONS;
+  // Filter mock logs by selected connection when no real data
+  const logsForConnection = logsData ?? (selectedConnectionId
+    ? MOCK_LOGS.filter(l => l.connection_id === selectedConnectionId)
+    : MOCK_LOGS);
+  const allLogs: SyncLog[] = logsForConnection;
 
   const successCount = allLogs.filter((l) => l.status === "success").length;
   const failedCount = allLogs.filter((l) => l.status === "error" || l.status === "failed").length;
@@ -178,7 +238,7 @@ export default function SyncHistoryPage() {
           <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400">
             Connections ({allConnections.length})
           </h2>
-          {connectionsLoading ? (
+          {connectionsLoading && !connectionsData ? (
             <div className="space-y-3 animate-pulse">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="h-20 rounded-lg border border-neutral-200 bg-neutral-100" />
@@ -239,7 +299,7 @@ export default function SyncHistoryPage() {
               </h2>
             </div>
 
-            {logsLoading ? (
+            {logsLoading && !logsData ? (
               <div className="animate-pulse">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="border-b border-neutral-100 px-4 py-4 flex gap-4">

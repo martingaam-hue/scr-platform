@@ -24,6 +24,88 @@ import {
   type AdvisorSearchResult,
 } from "@/lib/board-advisor";
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_ADVISORS: AdvisorSearchResult[] = [
+  {
+    id: "adv-001",
+    match_score: 94,
+    bio: "Former CFO of a pan-European renewable energy infrastructure fund with 18 years experience in project finance, LP relations, and cross-border M&A.",
+    expertise_areas: { "Project Finance": 1, "Renewable Energy": 1, "M&A": 1, "LP Relations": 1 },
+    board_positions_held: 7,
+    availability_status: "available",
+    avg_rating: 4.8,
+    verified: true,
+  },
+  {
+    id: "adv-002",
+    match_score: 88,
+    bio: "Independent board member and former Head of Infrastructure at a Nordic pension fund. Deep expertise in ESG governance and Article 9 compliance frameworks.",
+    expertise_areas: { "ESG Governance": 1, "Pension Funds": 1, "Article 9": 1 },
+    board_positions_held: 5,
+    availability_status: "available",
+    avg_rating: 4.6,
+    verified: true,
+  },
+  {
+    id: "adv-003",
+    match_score: 82,
+    bio: "Energy transition specialist with operational background running wind farm portfolios in Scandinavia and the UK. Technical advisory and board roles across 12 projects.",
+    expertise_areas: { "Wind Energy": 1, "Operations": 1, "Technical Advisory": 1 },
+    board_positions_held: 12,
+    availability_status: "limited",
+    avg_rating: 4.4,
+    verified: true,
+  },
+  {
+    id: "adv-004",
+    match_score: 76,
+    bio: "Partner at a European infrastructure law firm, specialising in energy regulation, grid connection agreements, and PPAs across EU jurisdictions.",
+    expertise_areas: { "Energy Law": 1, "PPA Structuring": 1, "Regulation": 1 },
+    board_positions_held: 4,
+    availability_status: "available",
+    avg_rating: 4.5,
+    verified: false,
+  },
+  {
+    id: "adv-005",
+    match_score: 71,
+    bio: "Digital transformation and asset management technology advisor. Previously CTO at a large infra asset manager. Focused on data and AI integration in portfolio management.",
+    expertise_areas: { "Technology": 1, "Asset Management": 1, "AI": 1 },
+    board_positions_held: 3,
+    availability_status: "unavailable",
+    avg_rating: 4.2,
+    verified: false,
+  },
+];
+
+const MOCK_APPLICATIONS = [
+  {
+    id: "app-001",
+    role_offered: "Independent Board Member — Baltic BESS Grid Storage",
+    project_id: "proj-bess-001",
+    message: "I have direct experience with grid-scale BESS projects in the Baltic region and would welcome the opportunity to contribute to the board oversight of this asset.",
+    status: "pending" as const,
+    equity_offered: null,
+  },
+  {
+    id: "app-002",
+    role_offered: "Advisory Board Member — ESG & Sustainability",
+    project_id: "proj-alpine-005",
+    message: "Given my background in ESG governance for Swiss infrastructure projects, I believe I can add value to Alpine Hydro's sustainability committee.",
+    status: "accepted" as const,
+    equity_offered: null,
+  },
+  {
+    id: "app-003",
+    role_offered: "Finance Committee Advisor — Nordvik Wind Farm II",
+    project_id: "proj-wind-002",
+    message: "Happy to support the refinancing process with LP reporting expertise.",
+    status: "pending" as const,
+    equity_offered: null,
+  },
+];
+
 function AdvisorCard({ advisor }: { advisor: AdvisorSearchResult }) {
   const expertise = advisor.expertise_areas
     ? Object.keys(advisor.expertise_areas).slice(0, 3)
@@ -87,10 +169,12 @@ function AdvisorCard({ advisor }: { advisor: AdvisorSearchResult }) {
 
 export default function BoardAdvisorPage() {
   const [expertise, setExpertise] = useState("");
-  const { data: advisors = [], isLoading } = useAdvisorSearch(
+  const { data: advisorsData = [], isLoading } = useAdvisorSearch(
     expertise || undefined
   );
-  const { data: applications = [] } = useAdvisorApplications();
+  const advisors = advisorsData.length > 0 ? advisorsData : MOCK_ADVISORS;
+  const { data: applicationsData = [] } = useAdvisorApplications();
+  const applications = applicationsData.length > 0 ? applicationsData : MOCK_APPLICATIONS;
   const updateStatus = useUpdateApplicationStatus();
 
   return (
@@ -133,7 +217,7 @@ export default function BoardAdvisorPage() {
               onChange={(e) => setExpertise(e.target.value)}
             />
           </div>
-          {isLoading ? (
+          {isLoading && advisorsData.length === 0 ? (
             <div className="flex h-40 items-center justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
             </div>
@@ -153,7 +237,7 @@ export default function BoardAdvisorPage() {
         </TabsContent>
 
         <TabsContent value="applications" className="space-y-4 mt-4">
-          {applications.length === 0 ? (
+          {applicationsData.length === 0 && applications.length === 0 ? (
             <EmptyState
               icon={<Briefcase className="h-10 w-10 text-neutral-400" />}
               title="No applications yet"

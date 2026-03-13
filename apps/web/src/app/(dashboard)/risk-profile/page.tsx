@@ -19,6 +19,28 @@ import {
 } from "@/lib/risk-profile";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_RISK_PROFILE = {
+  has_profile: true,
+  risk_category: "moderate_high" as const,
+  sophistication_score: 0.82,
+  risk_appetite_score: 0.74,
+  experience_level: "extensive",
+  investment_horizon_years: 10,
+  loss_tolerance_percentage: 25,
+  liquidity_needs: "low",
+  concentration_max_percentage: 15,
+  max_drawdown_tolerance: 20,
+  recommended_allocation: {
+    renewable_energy: 40,
+    infrastructure: 25,
+    hydro_storage: 15,
+    biomass: 10,
+    co_investments: 10,
+  },
+};
+
 // ── Question step ─────────────────────────────────────────────────────────────
 
 function OptionButton({
@@ -197,7 +219,8 @@ function ProfileDisplay({ profile }: { profile: NonNullable<ReturnType<typeof us
 const STEPS = ["Experience", "Horizon", "Risk Tolerance", "Liquidity", "Limits"];
 
 export default function RiskProfilePage() {
-  const { data: profile, isLoading } = useRiskProfile();
+  const { data: profileData, isLoading } = useRiskProfile();
+  const profile = profileData ?? MOCK_RISK_PROFILE;
   const { mutate: submit, isPending } = useSubmitRiskAssessment();
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
   const [step, setStep] = useState(0);
@@ -215,7 +238,7 @@ export default function RiskProfilePage() {
     submit(form, { onSuccess: () => setShowQuestionnaire(false) });
   };
 
-  if (isLoading) {
+  if (isLoading && !profile) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />

@@ -80,42 +80,65 @@ import { InfoBanner } from "@/components/info-banner";
 
 const MOCK_ABOUT = {
   left: [
-    { label: "Project Type", value: "Biochar" },
-    { label: "Solution Type", value: "Engineered Carbon Removals" },
-    { label: "Standard", value: "Puro Standard" },
-    { label: "Co-certification", value: "—" },
-    { label: "Registry", value: "Puro Earth" },
-    { label: "Registration Number", value: "Not Registered Yet" },
-    { label: "Start Date", value: "2025" },
+    { label: "Fund Name",     value: "European Renewables Fund IV" },
+    { label: "Strategy",      value: "Infrastructure — Renewables" },
+    { label: "Fund Size",     value: "€450M (target)" },
+    { label: "Vintage Year",  value: "2022" },
+    { label: "Jurisdiction",  value: "Luxembourg (RAIF)" },
+    { label: "SFDR",          value: "Article 9" },
+    { label: "GP",            value: "European Renewables GP S.à r.l." },
   ],
   right: [
-    { label: "Project Length", value: "27 years" },
-    { label: "Methodology", value: "Puro Standard Biochar v3", link: true },
-    { label: "Annual Credits", value: "139K tCO2e" },
-    { label: "Lifetime Credits", value: "3.75M tCO2e" },
-    { label: "Vintage Year", value: "2025" },
-    { label: "First Year of Delivery", value: "2026" },
-    { label: "SDGs", value: "8, 12, 13, 14, 15" },
+    { label: "Investment Period", value: "5 years (2022–2027)" },
+    { label: "Fund Term",         value: "10 years + 2x1 extensions" },
+    { label: "Target Net IRR",    value: "12–14%", link: false },
+    { label: "Target TVPI",       value: "1.6x+" },
+    { label: "Assets Under Mgmt", value: "€238M (deployed)" },
+    { label: "Portfolio Holdings",value: "7 assets" },
+    { label: "Auditor",           value: "Deloitte Luxembourg" },
   ],
-  lastAnalyzed: "21 Oct 2025",
+  lastAnalyzed: "10 Mar 2026",
 };
 
 const MOCK_DOCUMENTS = [
-  { id: "d1", name: "View Meeting - OnBase Agenda Online.pdf", date: "17-01-2025", type: "pdf" },
-  { id: "d2", name: "Organisation Certification.pdf", date: "27-01-2025", type: "pdf" },
-  { id: "d3", name: "Corporate Structure and Bio.pdf", date: "28-01-2025", type: "pdf" },
-  { id: "d4", name: "250125DH01 - Org. Structure.pdf", date: "22-10-2025", type: "pdf" },
-  { id: "d5", name: "Biochar sampling protocol.pdf", date: "17-01-2025", type: "pdf" },
-  { id: "d6", name: "Market Validation.pdf", date: "28-12-2024", type: "pdf" },
-  { id: "d7", name: "CO2 Sequestration Calculator.xlsx", date: "17-01-2025", type: "xlsx" },
-  { id: "d8", name: "Biochar Analysis.pdf", date: "17-01-2025", type: "pdf" },
-  { id: "d9", name: "Biochar Off Take Agreement Full.pdf", date: "21-10-2025", type: "pdf" },
-  { id: "d10", name: "MACT Sampling SOP.pdf", date: "21-10-2025", type: "pdf" },
-  { id: "d11", name: "Biochar Analysis Report.pdf", date: "21-10-2025", type: "pdf" },
-  { id: "d12", name: "250205 - Biochar Analysis.pdf", date: "21-10-2025", type: "pdf" },
-  { id: "d13", name: "250122 IBI Biochar Report.pdf", date: "21-10-2025", type: "pdf" },
-  { id: "d14", name: "241230 - BET Surface Area for biochar.pdf", date: "21-10-2025", type: "pdf" },
-  { id: "d15", name: "241219 - PAH Analysis.pdf", date: "21-10-2025", type: "pdf" },
+  // Fund Documents folder
+  { id: "fd1",  folder: "Fund Documents", name: "Private Placement Memorandum (PPM).pdf",       date: "15-01-2022", type: "pdf",  size: "2.4 MB", views: 8 },
+  { id: "fd2",  folder: "Fund Documents", name: "Limited Partnership Agreement (LPA).pdf",      date: "18-01-2022", type: "pdf",  size: "1.8 MB", views: 6 },
+  { id: "fd3",  folder: "Fund Documents", name: "Side Letter Template.docx",                    date: "20-01-2022", type: "docx", size: "340 KB", views: 3 },
+  // Legal folder
+  { id: "lg1",  folder: "Legal",          name: "Subscription Agreement.pdf",                   date: "05-02-2022", type: "pdf",  size: "1.2 MB", views: 5 },
+  { id: "lg2",  folder: "Legal",          name: "ISDA Framework Agreement.pdf",                 date: "12-03-2022", type: "pdf",  size: "890 KB", views: 2 },
+  // Financial folder
+  { id: "fn1",  folder: "Financial",      name: "Q4 2025 NAV Report.xlsx",                      date: "15-01-2026", type: "xlsx", size: "445 KB", views: 12 },
+  { id: "fn2",  folder: "Financial",      name: "Annual Audited Accounts 2024.pdf",              date: "28-02-2025", type: "pdf",  size: "3.1 MB", views: 7 },
+  // DD Reports folder
+  { id: "dd1",  folder: "DD Reports",     name: "Helios Solar Portfolio Iberia — DD Report.pdf",date: "10-06-2022", type: "pdf",  size: "5.2 MB", views: 4 },
+  { id: "dd2",  folder: "DD Reports",     name: "Alpine Hydro Partners — Technical Report.pdf", date: "22-09-2022", type: "pdf",  size: "4.8 MB", views: 3 },
+  // Portfolio folder
+  { id: "pt1",  folder: "Portfolio",      name: "Portfolio Overview Mar 2026.pdf",               date: "05-03-2026", type: "pdf",  size: "1.1 MB", views: 9 },
+  { id: "pt2",  folder: "Portfolio",      name: "ESG Impact Report 2025.pdf",                    date: "20-02-2026", type: "pdf",  size: "2.9 MB", views: 6 },
+  { id: "pt3",  folder: "Portfolio",      name: "LP Quarterly Report Q4 2025.pdf",               date: "15-01-2026", type: "pdf",  size: "1.7 MB", views: 9 },
+];
+
+const MOCK_FOLDERS = [
+  { id: "f1", name: "Fund Documents", count: 3 },
+  { id: "f2", name: "Legal",          count: 2 },
+  { id: "f3", name: "Financial",      count: 2 },
+  { id: "f4", name: "DD Reports",     count: 2 },
+  { id: "f5", name: "Portfolio",      count: 3 },
+];
+
+const MOCK_ACCESS_LOG = [
+  { id: "al1",  investor: "Nordic Pension Fund",          doc: "Q4 2025 NAV Report.xlsx",                       date: "10 Mar 2026", duration: "18 min" },
+  { id: "al2",  investor: "EIB Co-Investment Facility",   doc: "LP Quarterly Report Q4 2025.pdf",               date: "09 Mar 2026", duration: "12 min" },
+  { id: "al3",  investor: "Dutch Infrastructure Trust",   doc: "Portfolio Overview Mar 2026.pdf",               date: "09 Mar 2026", duration: "8 min"  },
+  { id: "al4",  investor: "Nordic Pension Fund",          doc: "Annual Audited Accounts 2024.pdf",              date: "08 Mar 2026", duration: "24 min" },
+  { id: "al5",  investor: "Swiss Re Infrastructure",      doc: "Q4 2025 NAV Report.xlsx",                       date: "07 Mar 2026", duration: "15 min" },
+  { id: "al6",  investor: "EIB Co-Investment Facility",   doc: "Private Placement Memorandum (PPM).pdf",        date: "07 Mar 2026", duration: "32 min" },
+  { id: "al7",  investor: "German Family Office",         doc: "ESG Impact Report 2025.pdf",                    date: "06 Mar 2026", duration: "10 min" },
+  { id: "al8",  investor: "Dutch Infrastructure Trust",   doc: "Helios Solar Portfolio Iberia — DD Report.pdf", date: "05 Mar 2026", duration: "41 min" },
+  { id: "al9",  investor: "Swiss Re Infrastructure",      doc: "Alpine Hydro Partners — Technical Report.pdf",  date: "04 Mar 2026", duration: "35 min" },
+  { id: "al10", investor: "German Family Office",         doc: "LP Quarterly Report Q4 2025.pdf",               date: "03 Mar 2026", duration: "14 min" },
 ];
 
 const MOCK_GALLERY = [
@@ -257,33 +280,106 @@ function AboutSection() {
 
 function MockDocumentsSection() {
   const [search, setSearch] = useState("");
-  const [showAll, setShowAll] = useState(false);
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [showAccessLog, setShowAccessLog] = useState(false);
 
-  const filtered = MOCK_DOCUMENTS.filter((d) =>
-    d.name.toLowerCase().includes(search.toLowerCase())
-  );
-  const visible = showAll ? filtered : filtered.slice(0, 9);
+  const filtered = MOCK_DOCUMENTS.filter((d) => {
+    const matchesSearch = d.name.toLowerCase().includes(search.toLowerCase());
+    const matchesFolder = activeFolder === null || d.folder === activeFolder;
+    return matchesSearch && matchesFolder;
+  });
+
+  // Most-viewed documents
+  const topDocs = [...MOCK_DOCUMENTS].sort((a, b) => b.views - a.views).slice(0, 3);
 
   return (
     <section>
       <SectionHeading
         title="Documents"
         action={
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
-            <input
-              type="text"
-              placeholder="Search files…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 pr-3 py-1.5 text-xs border border-neutral-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-300 w-52"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search files…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 pr-3 py-1.5 text-xs border border-neutral-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-300 w-48"
+              />
+            </div>
+            <button
+              onClick={() => setShowAccessLog((v) => !v)}
+              className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+            >
+              <Eye className="h-3 w-3" />
+              Access Log
+            </button>
           </div>
         }
       />
 
+      {/* Folder tabs */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <button
+          onClick={() => setActiveFolder(null)}
+          className={cn("rounded-full px-3 py-1 text-xs font-medium border transition-colors",
+            activeFolder === null ? "bg-primary-600 text-white border-primary-600" : "bg-white text-neutral-600 border-neutral-200 hover:border-primary-300"
+          )}
+        >
+          All ({MOCK_DOCUMENTS.length})
+        </button>
+        {MOCK_FOLDERS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setActiveFolder(f.name === activeFolder ? null : f.name)}
+            className={cn("rounded-full px-3 py-1 text-xs font-medium border transition-colors",
+              activeFolder === f.name ? "bg-primary-600 text-white border-primary-600" : "bg-white text-neutral-600 border-neutral-200 hover:border-primary-300"
+            )}
+          >
+            {f.name} ({f.count})
+          </button>
+        ))}
+      </div>
+
+      {/* Most viewed strip */}
+      {!showAccessLog && !search && !activeFolder && (
+        <div className="mb-4 rounded-lg border border-amber-100 bg-amber-50 px-4 py-3">
+          <p className="text-xs font-semibold text-amber-700 mb-2">Most Viewed by LPs</p>
+          <div className="flex flex-wrap gap-4">
+            {topDocs.map((doc) => (
+              <div key={doc.id} className="flex items-center gap-2 text-xs text-amber-800">
+                <FileTypeIcon type={doc.type} size="sm" />
+                <span className="font-medium">{doc.name}</span>
+                <span className="text-amber-500">· {doc.views} views</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Access log */}
+      {showAccessLog && (
+        <div className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
+          <div className="px-4 py-3 bg-neutral-50 border-b border-neutral-200">
+            <p className="text-xs font-semibold text-neutral-600">LP Document Access Log</p>
+          </div>
+          <div className="divide-y divide-neutral-100">
+            {MOCK_ACCESS_LOG.map((entry) => (
+              <div key={entry.id} className="flex items-center gap-3 px-4 py-2.5 text-xs">
+                <div className="w-40 shrink-0 font-medium text-neutral-800 truncate">{entry.investor}</div>
+                <div className="flex-1 text-neutral-600 truncate">{entry.doc}</div>
+                <div className="w-20 shrink-0 text-neutral-400 text-right">{entry.duration}</div>
+                <div className="w-24 shrink-0 text-neutral-400 text-right">{entry.date}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Document grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {visible.map((doc) => (
+        {filtered.map((doc) => (
           <div
             key={doc.id}
             className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 hover:bg-neutral-50 hover:border-neutral-300 transition-colors cursor-pointer group"
@@ -293,23 +389,21 @@ function MockDocumentsSection() {
               <p className="text-sm font-medium text-neutral-900 truncate group-hover:text-primary-700 transition-colors">
                 {doc.name}
               </p>
-              <p className="text-xs text-neutral-400 mt-0.5">{doc.date}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-xs text-neutral-400">{doc.date}</p>
+                <span className="text-neutral-300">·</span>
+                <p className="text-xs text-neutral-400">{doc.size}</p>
+                {doc.views > 0 && (
+                  <>
+                    <span className="text-neutral-300">·</span>
+                    <p className="text-xs text-neutral-400">{doc.views} views</p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         ))}
       </div>
-
-      {filtered.length > 9 && (
-        <div className="mt-4 flex justify-end">
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className="flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
-          >
-            {showAll ? "Show Less" : `View All (${filtered.length})`}
-            <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", showAll && "rotate-90")} />
-          </button>
-        </div>
-      )}
 
       {filtered.length === 0 && (
         <p className="text-sm text-neutral-400 py-6 text-center">No files match &ldquo;{search}&rdquo;</p>
@@ -829,19 +923,40 @@ export default function DataRoomPage() {
   const imageDocs = documents.filter((d) => isImageFile(d.file_type));
   const textDocs = documents.filter((d) => !isImageFile(d.file_type));
 
-  // ── No project selected ─────────────────────────────────────────────────
+  // ── No project selected — show fund-level data room ─────────────────────
   if (!projectId) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary-100 rounded-lg">
-            <Brain className="h-6 w-6 text-primary-600" />
+      <div className="space-y-8">
+        {/* Page header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary-100 rounded-lg shrink-0">
+              <Brain className="h-6 w-6 text-primary-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-neutral-900">Data Room</h1>
+              <p className="mt-1 text-sm text-neutral-500">
+                European Renewables Fund IV — {MOCK_DOCUMENTS.length} documents
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-neutral-900">Data Room</h1>
-            <p className="mt-1 text-sm text-neutral-500">
-              AI-powered document management with auto-detection and project summaries
-            </p>
+          <div className="flex items-center gap-3">
+            <select
+              className="border border-neutral-300 rounded-lg px-3 py-1.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              value=""
+              onChange={(e) => e.target.value && setProjectId(e.target.value)}
+            >
+              <option value="">📁 Fund — European Renewables IV</option>
+              <option value="UNASSIGNED">📥 Unassigned Documents</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            {canUpload && (
+              <Button onClick={() => setUploadOpen(true)} iconLeft={<Upload className="h-4 w-4" />}>
+                Upload
+              </Button>
+            )}
           </div>
         </div>
 
@@ -850,23 +965,21 @@ export default function DataRoomPage() {
           automatic file categorization, and engagement analytics. Track who viewed which documents and for how long.
         </InfoBanner>
 
-        <EmptyState
-          icon={<Brain className="h-8 w-8" />}
-          title="Select a project"
-          description="Choose a project to view its AI summary, documents, and gallery."
-          action={
-            <select
-              className="border border-neutral-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[260px]"
-              value=""
-              onChange={(e) => e.target.value && setProjectId(e.target.value)}
-            >
-              <option value="">— Select a project —</option>
-              <option value="UNASSIGNED">📥 Unassigned Documents</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          }
+        {/* About section */}
+        <AboutSection />
+
+        {/* Documents */}
+        <MockDocumentsSection />
+
+        {/* Gallery */}
+        <GallerySection images={[]} />
+
+        {/* Upload modal */}
+        <UploadModal
+          open={uploadOpen}
+          onOpenChange={setUploadOpen}
+          projectId={projectId}
+          folderId={selectedFolderId}
         />
       </div>
     );

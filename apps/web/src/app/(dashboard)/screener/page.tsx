@@ -15,6 +15,30 @@ import {
 } from "@/lib/screener";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock screener results shown on initial load ────────────────────────────
+
+const MOCK_DEFAULT_RESULTS: ScreenerResult[] = [
+  { id: "p1", name: "Sahara CSP Development",        project_type: "solar",   geography_country: "Morocco",      stage: "screening",     total_investment_required: 65000000,  currency: "EUR", signal_score: 58, status: "active" },
+  { id: "p2", name: "Danube Hydro Expansion",         project_type: "hydro",   geography_country: "Romania",      stage: "due_diligence", total_investment_required: 28000000,  currency: "EUR", signal_score: 72, status: "active" },
+  { id: "p3", name: "Aegean Wind Cluster",            project_type: "wind",    geography_country: "Greece",       stage: "due_diligence", total_investment_required: 42000000,  currency: "EUR", signal_score: 69, status: "active" },
+  { id: "p4", name: "Bavarian Biomass Network",       project_type: "biomass", geography_country: "Germany",      stage: "negotiation",   total_investment_required: 15000000,  currency: "EUR", signal_score: 76, status: "active" },
+  { id: "p5", name: "Porto Solar Park",               project_type: "solar",   geography_country: "Portugal",     stage: "screening",     total_investment_required: 35000000,  currency: "EUR", signal_score: 81, status: "active" },
+  { id: "d1", name: "Aegean Solar Extension",         project_type: "solar",   geography_country: "Greece",       stage: "development",   total_investment_required: 22000000,  currency: "EUR", signal_score: 66, status: "active" },
+  { id: "d2", name: "Finnish Wind Portfolio",         project_type: "wind",    geography_country: "Finland",      stage: "development",   total_investment_required: 55000000,  currency: "EUR", signal_score: 74, status: "active" },
+  { id: "d4", name: "Polish Biomass Cluster",         project_type: "biomass", geography_country: "Poland",       stage: "permitting",    total_investment_required: 18000000,  currency: "EUR", signal_score: 63, status: "active" },
+];
+
+const MOCK_DEFAULT_RESPONSE: ScreenerResponse = {
+  query: "renewable energy projects in Europe",
+  parsed_filters: { geographies: ["Europe"], project_types: ["solar", "wind", "hydro", "biomass"] },
+  results: MOCK_DEFAULT_RESULTS,
+  total_results: MOCK_DEFAULT_RESULTS.length,
+  suggestions: [
+    "Try filtering by score ≥70 for highest-quality matches",
+    "Narrow to wind sector for Nordic exposure",
+  ],
+};
+
 // ── Signal score badge ────────────────────────────────────────────────────
 
 function SignalBadge({ score }: { score: number | null }) {
@@ -172,7 +196,7 @@ export default function SmartScreenerPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [query, setQuery] = useState("");
-  const [response, setResponse] = useState<ScreenerResponse | null>(null);
+  const [response, setResponse] = useState<ScreenerResponse | null>(MOCK_DEFAULT_RESPONSE);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [activeFilters, setActiveFilters] = useState<ParsedFilters>({});
 

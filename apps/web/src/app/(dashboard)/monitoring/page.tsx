@@ -5,6 +5,8 @@ import { Activity } from "lucide-react";
 import { usePortfolioDashboard } from "@/lib/monitoring";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock Data ────────────────────────────────────────────────────────────────
+
 interface ProjectSummaryRow {
   project_id: string;
   project_name: string;
@@ -13,6 +15,71 @@ interface ProjectSummaryRow {
   breach: number;
   traffic_light: string;
 }
+
+const MOCK_SUMMARIES: ProjectSummaryRow[] = [
+  {
+    project_id: "h1",
+    project_name: "Helios Solar Portfolio Iberia",
+    compliant: 6,
+    warning: 1,
+    breach: 0,
+    traffic_light: "amber",
+  },
+  {
+    project_id: "h2",
+    project_name: "Nordvik Wind Farm II",
+    compliant: 5,
+    warning: 0,
+    breach: 0,
+    traffic_light: "green",
+  },
+  {
+    project_id: "h3",
+    project_name: "Adriatic Infrastructure Holdings",
+    compliant: 7,
+    warning: 0,
+    breach: 0,
+    traffic_light: "green",
+  },
+  {
+    project_id: "h4",
+    project_name: "Baltic BESS Grid Storage",
+    compliant: 3,
+    warning: 2,
+    breach: 1,
+    traffic_light: "red",
+  },
+  {
+    project_id: "h5",
+    project_name: "Alpine Hydro Partners",
+    compliant: 8,
+    warning: 0,
+    breach: 0,
+    traffic_light: "green",
+  },
+  {
+    project_id: "h6",
+    project_name: "Nordic Biomass Energy",
+    compliant: 4,
+    warning: 1,
+    breach: 0,
+    traffic_light: "amber",
+  },
+  {
+    project_id: "h7",
+    project_name: "Thames Clean Energy Hub",
+    compliant: 6,
+    warning: 1,
+    breach: 0,
+    traffic_light: "amber",
+  },
+];
+
+const MOCK_DASHBOARD = {
+  project_summaries: MOCK_SUMMARIES,
+};
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 const TRAFFIC_LIGHT_VARIANT: Record<
   string,
@@ -30,8 +97,9 @@ const TRAFFIC_LIGHT_LABEL: Record<string, string> = {
 };
 
 export default function MonitoringPage() {
-  const { data, isLoading } = usePortfolioDashboard();
+  const { data: apiData, isLoading } = usePortfolioDashboard();
 
+  const data = apiData ?? MOCK_DASHBOARD;
   const summaries = data?.project_summaries ?? [];
 
   const totalProjects = summaries.length;

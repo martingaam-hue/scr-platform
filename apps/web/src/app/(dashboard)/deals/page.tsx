@@ -6,7 +6,6 @@ import {
   Globe,
   Search,
   SlidersHorizontal,
-  TrendingUp,
   CheckSquare,
   Square,
   ChevronRight,
@@ -16,7 +15,6 @@ import {
   Button,
   Card,
   CardContent,
-  EmptyState,
   ScoreGauge,
   Tabs,
   TabsList,
@@ -37,6 +35,119 @@ import {
 } from "@/lib/deals";
 import { formatCurrency } from "@/lib/projects";
 import { InfoBanner } from "@/components/info-banner";
+
+// ── Mock data ─────────────────────────────────────────────────────────────
+
+// Pipeline mock — 5 canonical pipeline deals
+const MOCK_PIPELINE_DATA = {
+  discovered: [] as DealCard[],
+  screening: [
+    {
+      project_id: "p1", match_id: "m-p1", project_name: "Sahara CSP Development",
+      project_type: "solar", geography_country: "Morocco", stage: "screening",
+      total_investment_required: "65000000", currency: "EUR",
+      signal_score: 58, alignment_score: 62, status: "viewed", cover_image_url: null,
+      updated_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    },
+    {
+      project_id: "p5", match_id: "m-p5", project_name: "Porto Solar Park",
+      project_type: "solar", geography_country: "Portugal", stage: "screening",
+      total_investment_required: "35000000", currency: "EUR",
+      signal_score: 81, alignment_score: 78, status: "viewed", cover_image_url: null,
+      updated_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+    },
+  ] as DealCard[],
+  due_diligence: [
+    {
+      project_id: "p2", match_id: "m-p2", project_name: "Danube Hydro Expansion",
+      project_type: "hydro", geography_country: "Romania", stage: "due_diligence",
+      total_investment_required: "28000000", currency: "EUR",
+      signal_score: 72, alignment_score: 75, status: "interested", cover_image_url: null,
+      updated_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+    },
+    {
+      project_id: "p3", match_id: "m-p3", project_name: "Aegean Wind Cluster",
+      project_type: "wind", geography_country: "Greece", stage: "due_diligence",
+      total_investment_required: "42000000", currency: "EUR",
+      signal_score: 69, alignment_score: 71, status: "interested", cover_image_url: null,
+      updated_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+    },
+  ] as DealCard[],
+  negotiation: [
+    {
+      project_id: "p4", match_id: "m-p4", project_name: "Bavarian Biomass Network",
+      project_type: "biomass", geography_country: "Germany", stage: "negotiation",
+      total_investment_required: "15000000", currency: "EUR",
+      signal_score: 76, alignment_score: 80, status: "intro_requested", cover_image_url: null,
+      updated_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+    },
+  ] as DealCard[],
+  passed: [] as DealCard[],
+};
+
+// Discovery mock — 5 new deals not yet in pipeline
+const MOCK_DISCOVER_RESPONSE = {
+  items: [
+    {
+      project_id: "d1", project_name: "Aegean Solar Extension",
+      project_type: "solar", geography_country: "Greece", stage: "development",
+      total_investment_required: "22000000", currency: "EUR",
+      signal_score: 66, alignment_score: 68,
+      alignment_reasons: ["Sector match", "EU geography", "Score ≥60"],
+      cover_image_url: null, is_in_pipeline: false,
+    },
+    {
+      project_id: "d2", project_name: "Finnish Wind Portfolio",
+      project_type: "wind", geography_country: "Finland", stage: "development",
+      total_investment_required: "55000000", currency: "EUR",
+      signal_score: 74, alignment_score: 76,
+      alignment_reasons: ["Wind sector match", "Nordic geography", "Strong IRR profile"],
+      cover_image_url: null, is_in_pipeline: false,
+    },
+    {
+      project_id: "d3", project_name: "Moroccan Green Hydrogen",
+      project_type: "other", geography_country: "Morocco", stage: "concept",
+      total_investment_required: "120000000", currency: "EUR",
+      signal_score: 52, alignment_score: 55,
+      alignment_reasons: ["Emerging market growth", "Green H2 policy momentum"],
+      cover_image_url: null, is_in_pipeline: false,
+    },
+    {
+      project_id: "d4", project_name: "Polish Biomass Cluster",
+      project_type: "biomass", geography_country: "Poland", stage: "permitting",
+      total_investment_required: "18000000", currency: "EUR",
+      signal_score: 63, alignment_score: 65,
+      alignment_reasons: ["Biomass sector", "EU cohesion market", "Grid-connected"],
+      cover_image_url: null, is_in_pipeline: false,
+    },
+    {
+      project_id: "d5", project_name: "Czech Hydro Upgrade",
+      project_type: "hydro", geography_country: "Czech Republic", stage: "development",
+      total_investment_required: "9000000", currency: "EUR",
+      signal_score: 70, alignment_score: 72,
+      alignment_reasons: ["Hydro sector match", "Central Europe", "Operational upgrade"],
+      cover_image_url: null, is_in_pipeline: false,
+    },
+  ] as DiscoveryDeal[],
+  total: 5,
+  mandate_name: "European Renewables Fund Mandate",
+};
+
+// Compare mock — p2/p3/p4 side by side
+const MOCK_COMPARE_RESULT: CompareResponse = {
+  project_ids: ["p2", "p3", "p4"],
+  project_names: ["Danube Hydro Expansion", "Aegean Wind Cluster", "Bavarian Biomass Network"],
+  rows: [
+    { dimension: "Signal Score",    values: [72, 69, 76],        best_index: 2, worst_index: 1 },
+    { dimension: "IRR (%)",         values: ["11.8%", "10.4%", "12.1%"], best_index: 2, worst_index: 1 },
+    { dimension: "Target Size",     values: ["€28M", "€42M", "€15M"],   best_index: null, worst_index: null },
+    { dimension: "Sector",          values: ["Hydro", "Wind", "Biomass"], best_index: null, worst_index: null },
+    { dimension: "Geography",       values: ["Romania", "Greece", "Germany"], best_index: 2, worst_index: null },
+    { dimension: "Stage",           values: ["Due Diligence", "Due Diligence", "Negotiation"], best_index: 2, worst_index: null },
+    { dimension: "Alignment Score", values: [75, 71, 80],        best_index: 2, worst_index: 1 },
+    { dimension: "Risk Score",      values: [68, 65, 72],        best_index: 2, worst_index: 1 },
+  ],
+};
 
 // ── Project type icons ────────────────────────────────────────────────────
 
@@ -144,7 +255,7 @@ function PipelineCard({ card }: { card: DealCard }) {
 }
 
 function PipelineTab() {
-  const { data, isLoading } = useDealPipeline();
+  const { data: apiData, isLoading } = useDealPipeline();
 
   if (isLoading) {
     return (
@@ -154,15 +265,7 @@ function PipelineTab() {
     );
   }
 
-  if (!data) {
-    return (
-      <EmptyState
-        icon={<TrendingUp className="h-10 w-10 text-neutral-300" />}
-        title="No pipeline data"
-        description="Discover deals and add them to your pipeline to get started."
-      />
-    );
-  }
+  const data = apiData ?? MOCK_PIPELINE_DATA;
 
   const columnData: Record<string, DealCard[]> = {
     discovered: data.discovered,
@@ -324,9 +427,11 @@ function DiscoverTab({
   const [filters, setFilters] = useState<DiscoverParams>({});
   const [applied, setApplied] = useState<DiscoverParams>({});
 
-  const { data, isLoading } = useDiscoverDeals(applied);
+  const { data: apiData, isLoading } = useDiscoverDeals(applied);
 
   const handleApply = () => setApplied({ ...filters });
+
+  const data = apiData && apiData.items.length > 0 ? apiData : MOCK_DISCOVER_RESPONSE;
 
   return (
     <div>
@@ -402,7 +507,7 @@ function DiscoverTab({
         </Button>
       </div>
 
-      {data?.mandate_name && (
+      {data.mandate_name && (
         <p className="text-sm text-neutral-500 mb-4">
           Matching against mandate:{" "}
           <span className="font-medium">{data.mandate_name}</span>
@@ -413,16 +518,6 @@ function DiscoverTab({
         <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
         </div>
-      ) : !data || data.items.length === 0 ? (
-        <EmptyState
-          icon={<TrendingUp className="h-12 w-12 text-neutral-400" />}
-          title="No deals found"
-          description={
-            !data?.mandate_name
-              ? "Set up an investor mandate to start discovering deals."
-              : "No published projects match your current filters."
-          }
-        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.items.map((deal) => (
@@ -450,7 +545,8 @@ function CompareTab({ selectedIds, onClear }: { selectedIds: string[]; onClear: 
     }
   };
 
-  const result: CompareResponse | undefined = compare.data;
+  // Fall back to mock compare result when no user comparison has been run
+  const result: CompareResponse = compare.data ?? MOCK_COMPARE_RESULT;
 
   return (
     <div>
@@ -472,9 +568,8 @@ function CompareTab({ selectedIds, onClear }: { selectedIds: string[]; onClear: 
         )}
       </div>
 
-      {result && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
             <thead>
               <tr>
                 <th className="text-left p-3 bg-neutral-50 border border-neutral-200 font-semibold text-neutral-700 w-40">
@@ -523,7 +618,6 @@ function CompareTab({ selectedIds, onClear }: { selectedIds: string[]; onClear: 
             </tbody>
           </table>
         </div>
-      )}
     </div>
   );
 }

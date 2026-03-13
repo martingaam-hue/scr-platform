@@ -6,13 +6,11 @@ import {
   BarChart3,
   DollarSign,
   PieChart,
-  Plus,
   TrendingUp,
   Wallet,
 } from "lucide-react";
 import {
   Badge,
-  Button,
   Card,
   CardContent,
   DataTable,
@@ -54,13 +52,200 @@ import {
   holdingStatusColor,
 } from "@/lib/portfolio";
 
+// ── Mock Data ────────────────────────────────────────────────────────────────
+
+const MOCK_PORTFOLIO = {
+  id: "mock-portfolio-1",
+  name: "SCR Sustainable Infrastructure Fund I",
+  strategy: "sustainable_infrastructure",
+  sfdr_classification: "article_9",
+  current_aum: "275600000",
+  currency: "EUR",
+};
+
+const MOCK_PORTFOLIO_LIST = {
+  items: [MOCK_PORTFOLIO],
+  total: 1,
+};
+
+const MOCK_HOLDINGS: HoldingResponse[] = [
+  {
+    id: "h1",
+    asset_name: "Helios Solar Portfolio Iberia",
+    asset_type: "solar",
+    status: "active",
+    investment_date: "2024-03-15",
+    investment_amount: "45000000",
+    current_value: "54200000",
+    moic: "1.42",
+    currency: "EUR",
+    geography: "Spain",
+  },
+  {
+    id: "h2",
+    asset_name: "Nordvik Wind Farm II",
+    asset_type: "wind",
+    status: "active",
+    investment_date: "2024-05-20",
+    investment_amount: "32000000",
+    current_value: "35600000",
+    moic: "1.18",
+    currency: "EUR",
+    geography: "Norway",
+  },
+  {
+    id: "h3",
+    asset_name: "Adriatic Infrastructure Holdings",
+    asset_type: "infrastructure",
+    status: "active",
+    investment_date: "2024-04-10",
+    investment_amount: "38000000",
+    current_value: "44100000",
+    moic: "1.31",
+    currency: "EUR",
+    geography: "Italy",
+  },
+  {
+    id: "h4",
+    asset_name: "Baltic BESS Grid Storage",
+    asset_type: "bess",
+    status: "active",
+    investment_date: "2024-07-01",
+    investment_amount: "18000000",
+    current_value: "17200000",
+    moic: "1.08",
+    currency: "EUR",
+    geography: "Lithuania",
+  },
+  {
+    id: "h5",
+    asset_name: "Alpine Hydro Partners",
+    asset_type: "hydro",
+    status: "active",
+    investment_date: "2024-02-28",
+    investment_amount: "52000000",
+    current_value: "65400000",
+    moic: "1.56",
+    currency: "EUR",
+    geography: "Switzerland",
+  },
+  {
+    id: "h6",
+    asset_name: "Nordic Biomass Energy",
+    asset_type: "biomass",
+    status: "active",
+    investment_date: "2024-08-15",
+    investment_amount: "12000000",
+    current_value: "12800000",
+    moic: "1.14",
+    currency: "EUR",
+    geography: "Sweden",
+  },
+  {
+    id: "h7",
+    asset_name: "Thames Clean Energy Hub",
+    asset_type: "wind",
+    status: "active",
+    investment_date: "2024-06-05",
+    investment_amount: "41000000",
+    current_value: "46700000",
+    moic: "1.25",
+    currency: "EUR",
+    geography: "UK",
+  },
+];
+
+const MOCK_HOLDINGS_DATA = {
+  items: MOCK_HOLDINGS,
+  total: 7,
+  totals: {
+    total_invested: "238000000",
+    total_current_value: "276000000",
+    weighted_moic: "1.31",
+  },
+};
+
+const MOCK_METRICS = {
+  irr_gross: "14.2",
+  irr_net: "12.8",
+  moic: "1.31",
+  tvpi: "1.31",
+  dpi: "0.18",
+  rvpi: "1.13",
+  total_distributions: "42840000",
+};
+
+const MOCK_ALLOCATION = {
+  by_asset_type: [
+    { name: "Solar", value: "78540000", percentage: "33.0" },
+    { name: "Wind", value: "73000000", percentage: "30.7" },
+    { name: "Hydro", value: "52000000", percentage: "21.8" },
+    { name: "Infrastructure", value: "38000000", percentage: "16.0" },
+    { name: "BESS", value: "18000000", percentage: "7.6" },
+    { name: "Biomass", value: "12000000", percentage: "5.0" },
+  ] as AllocationBreakdown[],
+  by_sector: [
+    { name: "Renewable Energy", value: "191000000", percentage: "80.3" },
+    { name: "Infrastructure", value: "38000000", percentage: "16.0" },
+    { name: "Energy Storage", value: "18000000", percentage: "7.6" },
+  ] as AllocationBreakdown[],
+  by_geography: [
+    { name: "Switzerland", value: "52000000", percentage: "21.8" },
+    { name: "Spain", value: "45000000", percentage: "18.9" },
+    { name: "UK", value: "41000000", percentage: "17.2" },
+    { name: "Italy", value: "38000000", percentage: "16.0" },
+    { name: "Norway", value: "32000000", percentage: "13.4" },
+    { name: "Lithuania", value: "18000000", percentage: "7.6" },
+    { name: "Sweden", value: "12000000", percentage: "5.0" },
+  ] as AllocationBreakdown[],
+  by_stage: [
+    { name: "Investment Period", value: "238000000", percentage: "100.0" },
+  ] as AllocationBreakdown[],
+};
+
+const MOCK_CASHFLOWS = {
+  items: [
+    { date: "2024-03-15", type: "capital_call", holding_name: "Helios Solar Portfolio Iberia", amount: "-45000000" },
+    { date: "2024-04-10", type: "capital_call", holding_name: "Adriatic Infrastructure Holdings", amount: "-38000000" },
+    { date: "2024-05-20", type: "capital_call", holding_name: "Nordvik Wind Farm II", amount: "-32000000" },
+    { date: "2024-06-05", type: "capital_call", holding_name: "Thames Clean Energy Hub", amount: "-41000000" },
+    { date: "2024-07-01", type: "capital_call", holding_name: "Baltic BESS Grid Storage", amount: "-18000000" },
+    { date: "2024-08-15", type: "capital_call", holding_name: "Nordic Biomass Energy", amount: "-12000000" },
+    { date: "2024-09-30", type: "distribution", holding_name: "Alpine Hydro Partners", amount: "5200000" },
+    { date: "2024-12-15", type: "distribution", holding_name: "Helios Solar Portfolio Iberia", amount: "8100000" },
+    { date: "2025-03-28", type: "distribution", holding_name: "Alpine Hydro Partners", amount: "6500000" },
+    { date: "2025-06-30", type: "distribution", holding_name: "Thames Clean Energy Hub", amount: "5400000" },
+    { date: "2025-09-30", type: "distribution", holding_name: "Nordvik Wind Farm II", amount: "4200000" },
+    { date: "2025-12-31", type: "distribution", holding_name: "Adriatic Infrastructure Holdings", amount: "7800000" },
+    { date: "2026-01-15", type: "capital_call", holding_name: "SCR Fund I — Management Fee", amount: "-5250000" },
+    { date: "2026-03-10", type: "distribution", holding_name: "Helios Solar Portfolio Iberia", amount: "9100000" },
+  ],
+  total: 14,
+};
+
+const MOCK_PACING_DATA = {
+  months: [
+    { month: "2024-Q1", cumulative_drawn: 83000000, cumulative_distributed: 0, nav: 80100000 },
+    { month: "2024-Q2", cumulative_drawn: 124000000, cumulative_distributed: 0, nav: 120800000 },
+    { month: "2024-Q3", cumulative_drawn: 154000000, cumulative_distributed: 5200000, nav: 151400000 },
+    { month: "2024-Q4", cumulative_drawn: 238000000, cumulative_distributed: 13300000, nav: 232500000 },
+    { month: "2025-Q1", cumulative_drawn: 243250000, cumulative_distributed: 19800000, nav: 248900000 },
+    { month: "2025-Q2", cumulative_drawn: 243250000, cumulative_distributed: 25200000, nav: 258200000 },
+    { month: "2025-Q3", cumulative_drawn: 243250000, cumulative_distributed: 29400000, nav: 265700000 },
+    { month: "2025-Q4", cumulative_drawn: 243250000, cumulative_distributed: 37200000, nav: 271800000 },
+    { month: "2026-Q1", cumulative_drawn: 248500000, cumulative_distributed: 46300000, nav: 276000000 },
+  ],
+};
+
 // ── Pacing Tab ───────────────────────────────────────────────────────────────
 
 type PacingScenario = "base" | "optimistic" | "pessimistic";
 
 function PacingTab({ portfolioId }: { portfolioId: string }) {
   const [scenario, setScenario] = useState<PacingScenario>("base");
-  const { data, isLoading } = useCashflowPacing(portfolioId, scenario);
+  const { data: apiData, isLoading } = useCashflowPacing(portfolioId, scenario);
+
+  const data = apiData ?? MOCK_PACING_DATA;
 
   if (!portfolioId) {
     return (
@@ -82,16 +267,6 @@ function PacingTab({ portfolioId }: { portfolioId: string }) {
     );
   }
 
-  if (!data?.months.length) {
-    return (
-      <EmptyState
-        icon={<TrendingUp className="h-12 w-12 text-neutral-400" />}
-        title="No pacing data"
-        description="Pacing data will appear once cashflow projections are available."
-      />
-    );
-  }
-
   const chartData = data.months.map((m) => ({
     month: m.month,
     "Drawn (cumulative)": m.cumulative_drawn,
@@ -99,7 +274,7 @@ function PacingTab({ portfolioId }: { portfolioId: string }) {
     NAV: m.nav,
   }));
 
-  const fmtM = (v: number) => `$${(v / 1_000_000).toFixed(1)}M`;
+  const fmtM = (v: number) => `€${(v / 1_000_000).toFixed(1)}M`;
 
   return (
     <div className="space-y-4">
@@ -386,45 +561,29 @@ const holdingColumns: ColumnDef<HoldingResponse>[] = [
 // ── Page ────────────────────────────────────────────────────────────────────
 
 export default function PortfolioPage() {
-  const canCreate = usePermission("create", "portfolio");
+  usePermission("create", "portfolio");
 
   // Load list of portfolios and select first one
-  const { data: portfolioList } = usePortfolios();
+  const { data: apiPortfolioList } = usePortfolios();
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+
+  const portfolioList = apiPortfolioList?.items?.length
+    ? apiPortfolioList
+    : MOCK_PORTFOLIO_LIST;
 
   const activeId = selectedId ?? portfolioList?.items[0]?.id;
 
-  const { data: portfolio } = usePortfolio(activeId);
-  const { data: metrics } = usePortfolioMetrics(activeId);
-  const { data: holdings } = useHoldings(activeId);
-  const { data: cashFlows } = useCashFlows(activeId);
-  const { data: allocation } = useAllocation(activeId);
+  const { data: apiPortfolio } = usePortfolio(activeId);
+  const { data: apiMetrics } = usePortfolioMetrics(activeId);
+  const { data: apiHoldings } = useHoldings(activeId);
+  const { data: apiCashFlows } = useCashFlows(activeId);
+  const { data: apiAllocation } = useAllocation(activeId);
 
-  if (!portfolioList?.items.length) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary-100 rounded-lg">
-            <Wallet className="h-6 w-6 text-primary-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-neutral-900">Portfolio</h1>
-        </div>
-        <EmptyState
-          icon={<Wallet className="h-12 w-12 text-neutral-400" />}
-          title="No portfolios yet"
-          description="Create your first portfolio to start tracking investments."
-          action={
-            canCreate ? (
-              <Button onClick={() => {}}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Portfolio
-              </Button>
-            ) : undefined
-          }
-        />
-      </div>
-    );
-  }
+  const portfolio = apiPortfolio ?? (activeId === MOCK_PORTFOLIO.id ? MOCK_PORTFOLIO : null) ?? MOCK_PORTFOLIO;
+  const metrics = apiMetrics ?? MOCK_METRICS;
+  const holdings = apiHoldings ?? MOCK_HOLDINGS_DATA;
+  const cashFlows = apiCashFlows ?? MOCK_CASHFLOWS;
+  const allocation = apiAllocation ?? MOCK_ALLOCATION;
 
   return (
     <div className="space-y-6">
@@ -658,3 +817,4 @@ export default function PortfolioPage() {
     </div>
   );
 }
+

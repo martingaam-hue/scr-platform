@@ -22,6 +22,33 @@ import {
   type ValueQuantifierRequest,
 } from "@/lib/value-quantifier";
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_VALUE_DATA = {
+  project_name: "Alpine Hydro Partners",
+  total_investment: 52_000_000,
+  jobs_created: 142,
+  kpis: [
+    { label: "Net IRR", value: "17.6%", quality: "excellent", description: "Net internal rate of return over 7-year hold period" },
+    { label: "NPV", value: "€13.4M", quality: "excellent", description: "Net present value at 10% discount rate" },
+    { label: "TVPI", value: "1.56x", quality: "excellent", description: "Total value to paid-in capital" },
+    { label: "DPI", value: "0.00x", quality: "neutral", description: "Distributions to paid-in (no distributions yet — hold period)" },
+    { label: "DSCR", value: "1.42", description: "Debt service coverage ratio (target ≥ 1.25)", quality: "good" },
+    { label: "LCOE", value: "€34/MWh", description: "Levelised cost of energy — competitive vs market €58/MWh", quality: "excellent" },
+    { label: "CO₂ Avoided", value: "48,200 t/yr", description: "Annual CO₂ equivalent avoided vs gas benchmark", quality: "excellent" },
+    { label: "Payback Period", value: "5.8 years", description: "Simple payback on equity investment", quality: "good" },
+  ] as ValueKPI[],
+  assumptions: {
+    discount_rate: "10.0%",
+    electricity_price_kwh: "€0.078",
+    project_lifetime_years: 30,
+    debt_ratio: "65%",
+    interest_rate: "4.5%",
+    capacity_mw: 48,
+    annual_yield_gwh: 187,
+  },
+};
+
 // ── KPI Card ─────────────────────────────────────────────────────────────────
 
 function KpiCard({ kpi }: { kpi: ValueKPI }) {
@@ -89,9 +116,11 @@ export default function ValueQuantifierPage() {
   // POST calculate with overrides
   const calculateMutation = useCalculateValue();
 
-  const data =
+  const apiData =
     calculateMutation.data ??
     (calculateMutation.isIdle ? defaultQuery.data : undefined);
+  // Show mock data when no project has been selected yet
+  const data = apiData ?? (!activeProjectId ? MOCK_VALUE_DATA : undefined);
   const isLoading =
     defaultQuery.isLoading ||
     calculateMutation.isPending;

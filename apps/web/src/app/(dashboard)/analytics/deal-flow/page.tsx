@@ -27,6 +27,53 @@ import {
 } from "@/lib/deal-flow";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_FUNNEL = {
+  total_entered: 47,
+  total_closed: 7,
+  overall_conversion_rate: 0.149,
+  stage_counts: [
+    { stage: "sourcing", count: 47 },
+    { stage: "screening", count: 23 },
+    { stage: "due_diligence", count: 8 },
+    { stage: "ic_review", count: 3 },
+    { stage: "committed", count: 7 },
+  ] as StageCount[],
+  conversions: [
+    { from_stage: "sourcing", to_stage: "screening", from_count: 47, to_count: 23, conversion_rate: 0.489 },
+    { from_stage: "screening", to_stage: "due_diligence", from_count: 23, to_count: 8, conversion_rate: 0.348 },
+    { from_stage: "due_diligence", to_stage: "ic_review", from_count: 8, to_count: 3, conversion_rate: 0.375 },
+    { from_stage: "ic_review", to_stage: "committed", from_count: 3, to_count: 7, conversion_rate: 0.700 },
+  ],
+  drop_off_reasons: {
+    "Valuation mismatch": 32,
+    "Competition": 28,
+    "Mandate fit": 20,
+    "Score below threshold": 20,
+  },
+};
+
+const MOCK_PIPELINE_VALUE = {
+  total: 185_000_000,
+  by_stage: {
+    screening: 100_000_000,
+    due_diligence: 70_000_000,
+    ic_review: 15_000_000,
+  },
+};
+
+const MOCK_VELOCITY = {
+  avg_days_to_close: 160,
+  by_stage: [
+    { stage: "sourcing", avg_days: 14 },
+    { stage: "screening", avg_days: 21 },
+    { stage: "due_diligence", avg_days: 65 },
+    { stage: "ic_review", avg_days: 18 },
+    { stage: "closing", avg_days: 42 },
+  ] as AvgTimeInStage[],
+};
+
 // ── Period Options ─────────────────────────────────────────────────────────
 
 const PERIODS = [
@@ -373,11 +420,15 @@ function Skeleton({ className }: { className?: string }) {
 export default function DealFlowAnalyticsPage() {
   const [periodDays, setPeriodDays] = useState<number>(90);
 
-  const { data: funnel, isLoading: funnelLoading } = useFunnelData(periodDays);
-  const { data: pipelineValue, isLoading: pvLoading } = usePipelineValue();
-  const { data: velocity, isLoading: velocityLoading } = useVelocity();
+  const { data: funnelData, isLoading: funnelLoading } = useFunnelData(periodDays);
+  const { data: pipelineValueData, isLoading: pvLoading } = usePipelineValue();
+  const { data: velocityData, isLoading: velocityLoading } = useVelocity();
 
-  const isLoading = funnelLoading || pvLoading || velocityLoading;
+  const funnel = funnelData ?? MOCK_FUNNEL;
+  const pipelineValue = pipelineValueData ?? MOCK_PIPELINE_VALUE;
+  const velocity = velocityData ?? MOCK_VELOCITY;
+
+  const isLoading = (funnelLoading && !funnelData) || (pvLoading && !pipelineValueData) || (velocityLoading && !velocityData);
 
   return (
     <div className="p-6 max-w-screen-xl mx-auto space-y-6">
@@ -479,9 +530,9 @@ export default function DealFlowAnalyticsPage() {
       {/* Row 3: Pipeline Value + Time in Stage */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ChartCard title="Pipeline Value by Stage">
-          {pvLoading ? (
+          {pvLoading && !pipelineValueData ? (
             <Skeleton className="h-64" />
-          ) : pipelineValue ? (
+          ) : (
             <>
               <PipelineValueChart byStage={pipelineValue.by_stage} />
               <p className="mt-2 text-right text-xs text-neutral-400">
@@ -491,15 +542,15 @@ export default function DealFlowAnalyticsPage() {
                 </span>
               </p>
             </>
-          ) : null}
+          )}
         </ChartCard>
 
         <ChartCard title="Avg Time in Stage">
-          {velocityLoading ? (
+          {velocityLoading && !velocityData ? (
             <Skeleton className="h-64" />
-          ) : velocity ? (
+          ) : (
             <TimeInStageChart stages={velocity.by_stage} />
-          ) : null}
+          )}
         </ChartCard>
       </div>
 

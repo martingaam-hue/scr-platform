@@ -37,10 +37,53 @@ import {
   useCreateAssumption,
   formatMillions,
   type ProjectionRow,
+  type PacingData,
+  type CashflowAssumption,
   type CreateAssumptionPayload,
 } from "@/lib/pacing";
 import { usePortfolios } from "@/lib/portfolio";
 import { InfoBanner } from "@/components/info-banner";
+
+// ── Mock Data ─────────────────────────────────────────────────────────────────
+
+const MOCK_PORTFOLIO_LIST = {
+  items: [{ id: "mock-portfolio-1", name: "SCR Sustainable Infrastructure Fund I" }],
+  total: 1,
+};
+
+const MOCK_PACING_DATA: PacingData = {
+  portfolio_id: "mock-portfolio-1",
+  assumption_id: "assumption-1",
+  total_commitment: 500000000,
+  currency: "EUR",
+  trough_year: 2025,
+  trough_value: -48500000,
+  projections: [
+    { year: 2024, base_net: -83000000, optimistic_net: -78000000, pessimistic_net: -91000000, base_cumulative: -83000000, optimistic_cumulative: -78000000, pessimistic_cumulative: -91000000, actual_invested: 83000000, actual_distributed: 0 },
+    { year: 2025, base_net: -95000000, optimistic_net: -85000000, pessimistic_net: -108000000, base_cumulative: -178000000, optimistic_cumulative: -163000000, pessimistic_cumulative: -199000000, actual_invested: 155000000, actual_distributed: 43200000 },
+    { year: 2026, base_net: -12000000, optimistic_net: 8000000, pessimistic_net: -38000000, base_cumulative: -190000000, optimistic_cumulative: -155000000, pessimistic_cumulative: -237000000, actual_invested: 10500000, actual_distributed: 46300000 },
+    { year: 2027, base_net: 48000000, optimistic_net: 72000000, pessimistic_net: 22000000, base_cumulative: -142000000, optimistic_cumulative: -83000000, pessimistic_cumulative: -215000000, actual_invested: null, actual_distributed: null },
+    { year: 2028, base_net: 82000000, optimistic_net: 115000000, pessimistic_net: 54000000, base_cumulative: -60000000, optimistic_cumulative: 32000000, pessimistic_cumulative: -161000000, actual_invested: null, actual_distributed: null },
+    { year: 2029, base_net: 115000000, optimistic_net: 148000000, pessimistic_net: 78000000, base_cumulative: 55000000, optimistic_cumulative: 180000000, pessimistic_cumulative: -83000000, actual_invested: null, actual_distributed: null },
+    { year: 2030, base_net: 138000000, optimistic_net: 172000000, pessimistic_net: 98000000, base_cumulative: 193000000, optimistic_cumulative: 352000000, pessimistic_cumulative: 15000000, actual_invested: null, actual_distributed: null },
+    { year: 2031, base_net: 88000000, optimistic_net: 112000000, pessimistic_net: 62000000, base_cumulative: 281000000, optimistic_cumulative: 464000000, pessimistic_cumulative: 77000000, actual_invested: null, actual_distributed: null },
+    { year: 2032, base_net: 42000000, optimistic_net: 58000000, pessimistic_net: 28000000, base_cumulative: 323000000, optimistic_cumulative: 522000000, pessimistic_cumulative: 105000000, actual_invested: null, actual_distributed: null },
+  ],
+};
+
+const MOCK_ASSUMPTIONS: CashflowAssumption[] = [
+  {
+    id: "assumption-1",
+    portfolio_id: "mock-portfolio-1",
+    total_commitment: 500000000,
+    currency: "EUR",
+    deployment_years: 4,
+    annual_management_fee_pct: 1.75,
+    preferred_return_pct: 8,
+    carry_pct: 20,
+    created_at: "2024-01-15T00:00:00Z",
+  },
+];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -311,7 +354,8 @@ function AssumptionForm({
 
 function AssumptionsTab({ portfolioId }: { portfolioId: string }) {
   const [showForm, setShowForm] = useState(false);
-  const { data: assumptions, isLoading } = useListAssumptions(portfolioId);
+  const { data: apiAssumptions, isLoading } = useListAssumptions(portfolioId);
+  const assumptions = apiAssumptions ?? MOCK_ASSUMPTIONS;
 
   if (isLoading) {
     return (
@@ -384,8 +428,10 @@ export default function PacingPage() {
   const searchParams = useSearchParams();
   const paramPortfolioId = searchParams.get("portfolio") ?? "";
 
-  const { data: portfolios } = usePortfolios();
-  const portfolioList = portfolios?.items ?? [];
+  const { data: apiPortfolios } = usePortfolios();
+  const portfolioList = apiPortfolios?.items?.length
+    ? apiPortfolios.items
+    : MOCK_PORTFOLIO_LIST.items;
 
   const [selectedPortfolioId, setSelectedPortfolioId] = useState(
     paramPortfolioId || ""
@@ -396,7 +442,8 @@ export default function PacingPage() {
     selectedPortfolioId ||
     (portfolioList.length > 0 ? portfolioList[0].id : "");
 
-  const { data: pacing, isLoading } = usePacingData(portfolioId);
+  const { data: apiPacing, isLoading } = usePacingData(portfolioId);
+  const pacing = apiPacing ?? MOCK_PACING_DATA;
 
   return (
     <div className="p-6 space-y-6 max-w-screen-xl mx-auto">

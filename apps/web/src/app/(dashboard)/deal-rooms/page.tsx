@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/format"
 import {
   useDealRooms, useRoomMessages, useRoomActivity,
   useCreateRoom, useInviteMember, useSendMessage,
+  type DealRoom, type DealRoomMessage, type DealRoomActivity,
 } from "@/lib/deal-rooms"
 import { useProjectQuestions, useCreateQuestion, useQAStats } from "@/lib/qa"
 import {
@@ -18,8 +19,97 @@ const STATUS_BADGE: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700",
 }
 
+// ── Mock data ──────────────────────────────────────────────────────────────
+
+const MOCK_ROOMS: DealRoom[] = [
+  {
+    id: "room-p2",
+    name: "Danube Hydro Expansion — Due Diligence",
+    project_id: "p2",
+    status: "active",
+    created_by: "user-sofia",
+    settings: { nda_required: true, download_restricted: false },
+    members: [
+      { id: "mbr-1", room_id: "room-p2", user_id: "user-sofia",  email: "sofia.bergman@fund.eu",    role: "admin",  org_name: "European Renewables Fund", permissions: {}, invited_at: "2026-02-10T09:00:00Z", joined_at: "2026-02-10T09:00:00Z", nda_signed_at: "2026-02-10T09:05:00Z" },
+      { id: "mbr-2", room_id: "room-p2", user_id: "user-marco",  email: "marco.rossi@fund.eu",      role: "member", org_name: "European Renewables Fund", permissions: {}, invited_at: "2026-02-10T09:10:00Z", joined_at: "2026-02-10T10:00:00Z", nda_signed_at: "2026-02-10T10:00:00Z" },
+      { id: "mbr-3", room_id: "room-p2", user_id: "user-danube", email: "ceo@danubehydro.ro",       role: "member", org_name: "Danube Hydro SA",          permissions: {}, invited_at: "2026-02-11T08:00:00Z", joined_at: "2026-02-11T09:00:00Z", nda_signed_at: "2026-02-11T09:05:00Z" },
+    ],
+    created_at: "2026-02-10T09:00:00Z",
+  },
+  {
+    id: "room-p3",
+    name: "Aegean Wind Cluster — Due Diligence",
+    project_id: "p3",
+    status: "active",
+    created_by: "user-erik",
+    settings: { nda_required: true, download_restricted: true },
+    members: [
+      { id: "mbr-4", room_id: "room-p3", user_id: "user-erik",   email: "erik.lindstrom@fund.eu",   role: "admin",  org_name: "European Renewables Fund", permissions: {}, invited_at: "2026-02-15T10:00:00Z", joined_at: "2026-02-15T10:00:00Z", nda_signed_at: "2026-02-15T10:05:00Z" },
+      { id: "mbr-5", room_id: "room-p3", user_id: "user-sofia",  email: "sofia.bergman@fund.eu",    role: "member", org_name: "European Renewables Fund", permissions: {}, invited_at: "2026-02-15T10:10:00Z", joined_at: "2026-02-15T11:00:00Z", nda_signed_at: "2026-02-15T11:05:00Z" },
+      { id: "mbr-6", room_id: "room-p3", user_id: "user-aegean", email: "ir@aegeanwind.gr",         role: "member", org_name: "Aegean Wind GmbH",         permissions: {}, invited_at: "2026-02-16T08:00:00Z", joined_at: "2026-02-16T09:30:00Z", nda_signed_at: "2026-02-16T09:35:00Z" },
+    ],
+    created_at: "2026-02-15T10:00:00Z",
+  },
+  {
+    id: "room-p4",
+    name: "Bavarian Biomass Network — Negotiation",
+    project_id: "p4",
+    status: "active",
+    created_by: "user-marco",
+    settings: { nda_required: false, download_restricted: false },
+    members: [
+      { id: "mbr-7", room_id: "room-p4", user_id: "user-marco",   email: "marco.rossi@fund.eu",     role: "admin",  org_name: "European Renewables Fund", permissions: {}, invited_at: "2026-02-20T09:00:00Z", joined_at: "2026-02-20T09:00:00Z", nda_signed_at: null },
+      { id: "mbr-8", room_id: "room-p4", user_id: "user-erik",    email: "erik.lindstrom@fund.eu",  role: "member", org_name: "European Renewables Fund", permissions: {}, invited_at: "2026-02-20T09:10:00Z", joined_at: "2026-02-20T10:00:00Z", nda_signed_at: null },
+      { id: "mbr-9", room_id: "room-p4", user_id: "user-bavarian",email: "cfo@bavarianbiomass.de",  role: "member", org_name: "Bavarian Biomass GmbH",    permissions: {}, invited_at: "2026-02-21T08:00:00Z", joined_at: "2026-02-21T09:00:00Z", nda_signed_at: null },
+    ],
+    created_at: "2026-02-20T09:00:00Z",
+  },
+]
+
+const MOCK_MESSAGES: Record<string, DealRoomMessage[]> = {
+  "room-p2": [
+    { id: "msg-1", room_id: "room-p2", user_id: "user-sofia",  parent_id: null, content: "Welcome to the Danube Hydro DD room. Please upload the latest hydrology report and grid connection permit by end of week.", mentions: [], created_at: "2026-02-10T09:15:00Z" },
+    { id: "msg-2", room_id: "room-p2", user_id: "user-danube", parent_id: null, content: "Thank you. We will upload the Q4 2025 hydrology study and the ANRE grid permit today. The technical report from Bureau Veritas will follow Thursday.", mentions: [], created_at: "2026-02-10T11:30:00Z" },
+    { id: "msg-3", room_id: "room-p2", user_id: "user-marco",  parent_id: null, content: "I have reviewed the P50/P90 yield study. The P50 annual generation is 142 GWh which is in line with our assumptions. Can you confirm the curtailment assumptions used?", mentions: [], created_at: "2026-02-12T14:00:00Z" },
+    { id: "msg-4", room_id: "room-p2", user_id: "user-danube", parent_id: null, content: "Curtailment is modelled at 3.2% based on the 2024 grid operator report for the Craiova substation. We have the detailed model available for sharing.", mentions: [], created_at: "2026-02-12T15:45:00Z" },
+    { id: "msg-5", room_id: "room-p2", user_id: "user-sofia",  parent_id: null, content: "DD checklist is now 65% complete. Outstanding items: environmental permit, land title registry, and offtake term sheet. Target completion: 5 March.", mentions: [], created_at: "2026-03-01T10:00:00Z" },
+  ],
+  "room-p3": [
+    { id: "msg-6", room_id: "room-p3", user_id: "user-erik",   parent_id: null, content: "Aegean Wind room is open. We are targeting IC submission by 28 March. Key focus areas: turbine supply chain, grid capacity, and permitting timeline.", mentions: [], created_at: "2026-02-15T10:30:00Z" },
+    { id: "msg-7", room_id: "room-p3", user_id: "user-aegean", parent_id: null, content: "Site visit has been scheduled for 4 March at 09:00 local time. We will arrange transport from Athens airport. Please confirm attendee names for permits.", mentions: [], created_at: "2026-02-16T09:00:00Z" },
+    { id: "msg-8", room_id: "room-p3", user_id: "user-sofia",  parent_id: null, content: "Erik and I will attend. Marco will join remotely. We are also requesting the RWE technical advisor to join for the turbine foundation inspection.", mentions: [], created_at: "2026-02-16T11:00:00Z" },
+    { id: "msg-9", room_id: "room-p3", user_id: "user-aegean", parent_id: null, content: "Understood. Term sheet draft has been shared via the data room. Section 4.2 on development fee recoverability is open for discussion.", mentions: [], created_at: "2026-03-02T14:00:00Z" },
+    { id: "msg-10", room_id: "room-p3", user_id: "user-erik",  parent_id: null, content: "We reviewed section 4.2. The development fee cap of €1.8M is acceptable subject to a milestone-linked disbursement schedule. We will provide redlines by Friday.", mentions: [], created_at: "2026-03-03T09:30:00Z" },
+  ],
+  "room-p4": [
+    { id: "msg-11", room_id: "room-p4", user_id: "user-marco",   parent_id: null, content: "Bavarian Biomass negotiation room is now active. We have agreed the headline terms. This room is for finalising the SPA and ancillary documents.", mentions: [], created_at: "2026-02-20T09:15:00Z" },
+    { id: "msg-12", room_id: "room-p4", user_id: "user-bavarian",parent_id: null, content: "Understood. Our legal team (Noerr München) will upload the first draft SPA by 25 February. Key open items: change of control consent and biomass supply warranties.", mentions: [], created_at: "2026-02-20T11:00:00Z" },
+    { id: "msg-13", room_id: "room-p4", user_id: "user-erik",    parent_id: null, content: "We engaged Linklaters on our side. They will revert within 5 business days on the SPA draft. The biomass supply warranties are a key risk point for us — we need a 10-year indexed supply contract.", mentions: [], created_at: "2026-02-21T10:00:00Z" },
+    { id: "msg-14", room_id: "room-p4", user_id: "user-bavarian",parent_id: null, content: "We have a 7-year supply agreement in place with Bayerische Holzwerke. Extension option for 5 years at pre-agreed index. Full contract is uploaded in folder /Legal.", mentions: [], created_at: "2026-02-25T14:00:00Z" },
+  ],
+}
+
+const MOCK_ACTIVITIES: Record<string, DealRoomActivity[]> = {
+  "room-p2": [
+    { id: "act-1", room_id: "room-p2", user_id: "user-danube", activity_type: "document_uploaded", entity_type: "document", entity_id: "doc-1", description: "Uploaded Q4 2025 Hydrology Study", created_at: "2026-02-11T10:00:00Z" },
+    { id: "act-2", room_id: "room-p2", user_id: "user-danube", activity_type: "document_uploaded", entity_type: "document", entity_id: "doc-2", description: "Uploaded ANRE Grid Connection Permit", created_at: "2026-02-11T14:00:00Z" },
+    { id: "act-3", room_id: "room-p2", user_id: "user-marco",  activity_type: "document_viewed",   entity_type: "document", entity_id: "doc-1", description: "Viewed hydrology study (12 min)", created_at: "2026-02-13T09:30:00Z" },
+    { id: "act-4", room_id: "room-p2", user_id: "user-danube", activity_type: "document_uploaded", entity_type: "document", entity_id: "doc-3", description: "Uploaded Bureau Veritas Technical Report", created_at: "2026-02-13T16:00:00Z" },
+  ],
+  "room-p3": [
+    { id: "act-5", room_id: "room-p3", user_id: "user-aegean", activity_type: "document_uploaded", entity_type: "document", entity_id: "doc-4", description: "Uploaded Wind Resource Assessment (WRA)", created_at: "2026-02-17T09:00:00Z" },
+    { id: "act-6", room_id: "room-p3", user_id: "user-erik",   activity_type: "document_viewed",   entity_type: "document", entity_id: "doc-4", description: "Viewed WRA report (28 min)", created_at: "2026-02-17T14:00:00Z" },
+    { id: "act-7", room_id: "room-p3", user_id: "user-aegean", activity_type: "document_uploaded", entity_type: "document", entity_id: "doc-5", description: "Uploaded Term Sheet Draft v1", created_at: "2026-03-02T13:00:00Z" },
+  ],
+  "room-p4": [
+    { id: "act-8",  room_id: "room-p4", user_id: "user-bavarian",activity_type: "document_uploaded", entity_type: "document", entity_id: "doc-6", description: "Uploaded SPA First Draft", created_at: "2026-02-25T10:00:00Z" },
+    { id: "act-9",  room_id: "room-p4", user_id: "user-erik",    activity_type: "document_viewed",   entity_type: "document", entity_id: "doc-6", description: "Viewed SPA draft (45 min)", created_at: "2026-02-25T15:00:00Z" },
+    { id: "act-10", room_id: "room-p4", user_id: "user-bavarian",activity_type: "document_uploaded", entity_type: "document", entity_id: "doc-7", description: "Uploaded Biomass Supply Agreement", created_at: "2026-02-25T16:00:00Z" },
+  ],
+}
+
 export default function DealRoomsPage() {
-  const [selectedRoom, setSelectedRoom] = useState<string | null>(null)
+  const [selectedRoom, setSelectedRoom] = useState<string | null>("room-p2")
   const [showCreate, setShowCreate] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
   const [newMessage, setNewMessage] = useState("")
@@ -30,9 +120,12 @@ export default function DealRoomsPage() {
   const [showAskForm, setShowAskForm] = useState(false)
   const [qaForm, setQaForm] = useState({ category: "financial", priority: "normal", title: "", body: "" })
 
-  const { data: rooms = [] } = useDealRooms()
-  const { data: messages = [], refetch: refetchMessages } = useRoomMessages(selectedRoom)
-  const { data: activities = [] } = useRoomActivity(selectedRoom)
+  const { data: apiRooms = [] } = useDealRooms()
+  const rooms: DealRoom[] = apiRooms.length > 0 ? apiRooms : MOCK_ROOMS
+  const { data: apiMessages = [], refetch: refetchMessages } = useRoomMessages(selectedRoom)
+  const messages: DealRoomMessage[] = apiMessages.length > 0 ? apiMessages : (selectedRoom ? (MOCK_MESSAGES[selectedRoom] ?? []) : [])
+  const { data: apiActivities = [] } = useRoomActivity(selectedRoom)
+  const activities: DealRoomActivity[] = apiActivities.length > 0 ? apiActivities : (selectedRoom ? (MOCK_ACTIVITIES[selectedRoom] ?? []) : [])
   const createMutation = useCreateRoom()
   const inviteMutation = useInviteMember(selectedRoom ?? "")
   const messageMutation = useSendMessage(selectedRoom ?? "")
@@ -224,20 +317,29 @@ export default function DealRoomsPage() {
                   <span className="font-semibold text-gray-900 text-sm">Messages</span>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {messages.map((msg) => (
+                  {messages.map((msg) => {
+                    const nameMap: Record<string, string> = {
+                      "user-sofia": "Sofia Bergman", "user-erik": "Erik Lindström",
+                      "user-marco": "Marco Rossi", "user-danube": "Danube Hydro SA",
+                      "user-aegean": "Aegean Wind GmbH", "user-bavarian": "Bavarian Biomass GmbH",
+                    }
+                    const displayName = nameMap[msg.user_id] ?? msg.user_id.slice(0, 8) + "…"
+                    const initials = displayName.split(" ").slice(0, 2).map((w: string) => w[0] ?? "").join("").toUpperCase()
+                    return (
                     <div key={msg.id} className="flex gap-3">
                       <div className="h-7 w-7 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-700 flex-shrink-0">
-                        {String(msg.user_id).slice(0, 2).toUpperCase()}
+                        {initials}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2">
-                          <span className="text-sm font-medium text-gray-900 font-mono">{String(msg.user_id).slice(0, 8)}…</span>
+                          <span className="text-sm font-medium text-gray-900">{displayName}</span>
                           <span className="text-xs text-gray-400">{formatDate(msg.created_at)}</span>
                         </div>
                         <p className="text-sm text-gray-700 mt-0.5">{msg.content}</p>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                   {messages.length === 0 && (
                     <p className="text-center text-sm text-gray-400 py-8">No messages yet. Start the conversation.</p>
                   )}
@@ -275,18 +377,29 @@ export default function DealRoomsPage() {
                   <span className="font-semibold text-gray-900 text-sm">Activity</span>
                 </div>
                 <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                  {activities.map((act) => (
+                  {activities.map((act) => {
+                    const nameMap: Record<string, string> = {
+                      "user-sofia": "Sofia B.", "user-erik": "Erik L.",
+                      "user-marco": "Marco R.", "user-danube": "Danube Hydro",
+                      "user-aegean": "Aegean Wind", "user-bavarian": "Bavarian Biomass",
+                    }
+                    const displayName = nameMap[act.user_id] ?? act.user_id.slice(0, 8) + "…"
+                    return (
                     <div key={act.id} className="flex gap-2 text-xs">
                       <div className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <Activity className="h-3 w-3 text-gray-400" />
                       </div>
                       <div>
-                        <span className="font-medium text-gray-700 font-mono">{String(act.user_id).slice(0, 8)}…</span>
-                        <span className="text-gray-500"> {act.activity_type.replace(/_/g, " ")}</span>
+                        <span className="font-medium text-gray-700">{displayName}</span>
+                        {act.description
+                          ? <span className="text-gray-500"> {act.description}</span>
+                          : <span className="text-gray-500"> {act.activity_type.replace(/_/g, " ")}</span>
+                        }
                         <p className="text-gray-400 mt-0.5">{formatDate(act.created_at)}</p>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                   {activities.length === 0 && (
                     <p className="text-center text-xs text-gray-400 py-8">No activity yet</p>
                   )}

@@ -10,6 +10,53 @@ import {
   Plus,
   X,
 } from "lucide-react";
+
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_BACKTEST_SUMMARY = {
+  total_outcomes: 7,
+  funded_count: 6,
+  pass_count: 0,
+  closed_lost_count: 0,
+  in_progress_count: 1,
+  funded_rate: 0.857,
+  avg_score_of_funded: 79.6,
+  latest_run: {
+    id: "run-mock-001",
+    accuracy: "0.857",
+    precision: "0.920",
+    recall: "0.857",
+    f1_score: "0.887",
+    auc_roc: "0.84",
+    methodology: "threshold",
+    min_score_threshold: 65,
+    sample_size: 7,
+    created_at: "2026-03-01T09:00:00Z",
+    results: {
+      metrics: { tp: 6, fp: 1, tn: 0, fn: 0, calibration: [
+        { score_band: "60-70", funded_rate: 0.50, count: 2 },
+        { score_band: "70-80", funded_rate: 0.85, count: 3 },
+        { score_band: "80-90", funded_rate: 1.00, count: 2 },
+      ]},
+      cohort_analysis: { quartiles: [
+        { quartile: "Q1 (60-68)", funded_rate: 0.50, count: 2 },
+        { quartile: "Q2 (68-76)", funded_rate: 0.80, count: 2 },
+        { quartile: "Q3 (76-83)", funded_rate: 1.00, count: 2 },
+        { quartile: "Q4 (83-91)", funded_rate: 1.00, count: 1 },
+      ]},
+    },
+  },
+};
+
+const MOCK_OUTCOMES = [
+  { id: "out-001", project_id: "proj-helios-001", outcome_type: "funded", signal_score_at_decision: "85.0", actual_irr: "0.161", actual_moic: "1.42", decision_date: "2024-01-15", outcome_date: null, notes: "Outperforming — solar resource above P50" },
+  { id: "out-002", project_id: "proj-nordic-002", outcome_type: "funded", signal_score_at_decision: "72.0", actual_irr: "0.118", actual_moic: "1.18", decision_date: "2024-02-20", outcome_date: null, notes: "On track" },
+  { id: "out-003", project_id: "proj-adriatic-003", outcome_type: "funded", signal_score_at_decision: "80.0", actual_irr: "0.134", actual_moic: "1.31", decision_date: "2024-01-30", outcome_date: null, notes: "Outperforming" },
+  { id: "out-004", project_id: "proj-bess-004", outcome_type: "in_progress", signal_score_at_decision: "70.0", actual_irr: "0.092", actual_moic: "1.08", decision_date: "2024-06-15", outcome_date: null, notes: "Watch list — grid connection delayed" },
+  { id: "out-005", project_id: "proj-alpine-005", outcome_type: "funded", signal_score_at_decision: "88.0", actual_irr: "0.176", actual_moic: "1.56", decision_date: "2024-01-10", outcome_date: null, notes: "Top performer" },
+  { id: "out-006", project_id: "proj-biomass-006", outcome_type: "funded", signal_score_at_decision: "73.0", actual_irr: "0.105", actual_moic: "1.14", decision_date: "2024-03-05", outcome_date: null, notes: "On track" },
+  { id: "out-007", project_id: "proj-thames-007", outcome_type: "funded", signal_score_at_decision: "76.0", actual_irr: "0.129", actual_moic: "1.25", decision_date: "2024-02-28", outcome_date: null, notes: "On track" },
+];
 import {
   Badge,
   Button,
@@ -97,9 +144,10 @@ function KpiCard({
 // ── Summary Tab ──────────────────────────────────────────────────────────────
 
 function SummaryTab() {
-  const { data, isLoading } = useBacktestSummary();
+  const { data: apiData, isLoading } = useBacktestSummary();
+  const data = apiData ?? MOCK_BACKTEST_SUMMARY;
 
-  if (isLoading) {
+  if (isLoading && !apiData) {
     return (
       <div className="flex justify-center py-16">
         <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
@@ -716,7 +764,8 @@ function RecordOutcomeForm({ onClose }: { onClose: () => void }) {
 // ── Outcomes Tab ─────────────────────────────────────────────────────────────
 
 function OutcomesTab() {
-  const { data: outcomes, isLoading } = useDealOutcomes();
+  const { data: outcomesData, isLoading } = useDealOutcomes();
+  const outcomes = (outcomesData && outcomesData.length > 0) ? outcomesData : MOCK_OUTCOMES;
   const [showForm, setShowForm] = useState(false);
 
   return (
@@ -737,7 +786,7 @@ function OutcomesTab() {
         <RecordOutcomeForm onClose={() => setShowForm(false)} />
       )}
 
-      {isLoading ? (
+      {isLoading && !outcomesData ? (
         <div className="flex justify-center py-10">
           <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
         </div>

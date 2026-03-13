@@ -30,6 +30,58 @@ import {
 } from "@/lib/equity-calculator";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_SCENARIOS: EquityScenario[] = [
+  {
+    id: "scen-001",
+    scenario_name: "Alpine Hydro — Base Case",
+    pre_money_valuation: 52_000_000,
+    investment_amount: 52_000_000,
+    security_type: "common_equity",
+    shares_outstanding_before: 52_000_000,
+    post_money_valuation: 52_000_000,
+    new_shares_issued: 52_000_000,
+    equity_percentage: 100,
+    price_per_share: 1.0,
+    anti_dilution_type: "none",
+    description: "Alpine Hydro Partners — entry Jan 2024, 7-year hold, target exit Dec 2031",
+    cap_table: [
+      { name: "SCR Infrastructure Fund", percentage: 100, investment: 52_000_000 },
+    ],
+    waterfall: [
+      { multiple: 1.2, exit_value: 62_400_000, investor_proceeds: 62_400_000, investor_moic: 1.2 },
+      { multiple: 1.4, exit_value: 72_800_000, investor_proceeds: 72_800_000, investor_moic: 1.4 },
+      { multiple: 1.6, exit_value: 83_200_000, investor_proceeds: 83_200_000, investor_moic: 1.6 },
+      { multiple: 1.8, exit_value: 93_600_000, investor_proceeds: 93_600_000, investor_moic: 1.8 },
+      { multiple: 2.0, exit_value: 104_000_000, investor_proceeds: 104_000_000, investor_moic: 2.0 },
+    ],
+  },
+  {
+    id: "scen-002",
+    scenario_name: "Baltic BESS — Watch List",
+    pre_money_valuation: 18_000_000,
+    investment_amount: 18_000_000,
+    security_type: "common_equity",
+    shares_outstanding_before: 18_000_000,
+    post_money_valuation: 18_000_000,
+    new_shares_issued: 18_000_000,
+    equity_percentage: 100,
+    price_per_share: 1.0,
+    anti_dilution_type: "none",
+    description: "Baltic BESS Grid Storage — entry Jun 2024, delayed grid connection risk",
+    cap_table: [
+      { name: "SCR Infrastructure Fund", percentage: 100, investment: 18_000_000 },
+    ],
+    waterfall: [
+      { multiple: 0.8, exit_value: 14_400_000, investor_proceeds: 14_400_000, investor_moic: 0.8 },
+      { multiple: 1.0, exit_value: 18_000_000, investor_proceeds: 18_000_000, investor_moic: 1.0 },
+      { multiple: 1.08, exit_value: 19_440_000, investor_proceeds: 19_440_000, investor_moic: 1.08 },
+      { multiple: 1.2, exit_value: 21_600_000, investor_proceeds: 21_600_000, investor_moic: 1.2 },
+    ],
+  },
+];
+
 // ── New Scenario Form ─────────────────────────────────────────────────────
 
 interface ScenarioFormProps {
@@ -507,11 +559,12 @@ function ComparePanel({
 export default function EquityCalculatorPage() {
   const [showForm, setShowForm] = useState(false);
   const [activeScenario, setActiveScenario] = useState<EquityScenario | null>(
-    null
+    MOCK_SCENARIOS[0]
   );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const { data: scenarios, isLoading: scenariosLoading } = useEquityScenarios();
+  const { data: scenariosData, isLoading: scenariosLoading } = useEquityScenarios();
+  const scenarios = (scenariosData && scenariosData.length > 0) ? scenariosData : MOCK_SCENARIOS;
   const { mutate: createScenario, isPending: creating } = useCreateScenario();
 
   const handleCreate = (data: CreateScenarioRequest) => {
@@ -649,7 +702,7 @@ export default function EquityCalculatorPage() {
               />
             ))}
           </div>
-        ) : !scenarios || scenarios.length === 0 ? (
+        ) : scenarios.length === 0 ? (
           <div className="text-sm text-gray-500 py-4">
             No saved scenarios yet. Create your first scenario above.
           </div>
@@ -678,7 +731,7 @@ export default function EquityCalculatorPage() {
             </CardHeader>
             <CardContent>
               <ComparePanel
-                scenarios={scenarios ?? []}
+                scenarios={scenarios}
                 selectedIds={selectedIds}
               />
             </CardContent>

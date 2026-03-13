@@ -31,6 +31,195 @@ import {
   type ReviewQueueItem,
 } from "@/lib/market-enrichment";
 
+// ── Mock Data ─────────────────────────────────────────────────────────────────
+
+const MOCK_DASHBOARD = {
+  sources_count: 5,
+  active_sources_count: 5,
+  records_today: 143,
+  pending_review_count: 3,
+  recent_fetches: [
+    { id: "f1", source_id: "bloomberg-terminal-001", status: "success", records_fetched: 48, records_new: 12, completed_at: "2026-03-13T08:14:22Z" },
+    { id: "f2", source_id: "fred-api-002", status: "success", records_fetched: 31, records_new: 8, completed_at: "2026-03-13T07:45:10Z" },
+    { id: "f3", source_id: "refinitiv-feed-003", status: "success", records_fetched: 27, records_new: 5, completed_at: "2026-03-13T06:30:55Z" },
+    { id: "f4", source_id: "sp-global-004", status: "partial", records_fetched: 19, records_new: 3, completed_at: "2026-03-13T05:00:00Z" },
+    { id: "f5", source_id: "ecb-statistical-005", status: "success", records_fetched: 18, records_new: 4, completed_at: "2026-03-12T22:00:05Z" },
+  ],
+};
+
+const MOCK_SOURCES: MarketDataSource[] = [
+  {
+    id: "bloomberg-terminal-001",
+    name: "Bloomberg Terminal",
+    slug: "bloomberg_terminal",
+    source_type: "official_api",
+    tier: 1,
+    base_url: "https://api.bloomberg.com/eap/",
+    legal_basis: "commercial_license",
+    description: "Real-time and historical price, rate, and index data for infrastructure and energy assets.",
+    is_active: true,
+  },
+  {
+    id: "fred-api-002",
+    name: "FRED (Federal Reserve)",
+    slug: "fred_api",
+    source_type: "official_api",
+    tier: 1,
+    base_url: "https://api.stlouisfed.org/fred/",
+    legal_basis: "public_data",
+    description: "Macroeconomic indicators: interest rates, CPI, energy prices, GDP growth.",
+    is_active: true,
+  },
+  {
+    id: "refinitiv-feed-003",
+    name: "Refinitiv Eikon",
+    slug: "refinitiv_eikon",
+    source_type: "official_api",
+    tier: 1,
+    base_url: "https://api.refinitiv.com/",
+    legal_basis: "commercial_license",
+    description: "ESG scores, renewable energy capacity data, and infrastructure deal comps.",
+    is_active: true,
+  },
+  {
+    id: "sp-global-004",
+    name: "S&P Global Market Intelligence",
+    slug: "sp_global_mi",
+    source_type: "official_api",
+    tier: 1,
+    base_url: "https://api.spglobal.com/marketintelligence/",
+    legal_basis: "commercial_license",
+    description: "Credit ratings, project finance benchmarks, and infrastructure sector metrics.",
+    is_active: true,
+  },
+  {
+    id: "ecb-statistical-005",
+    name: "ECB Statistical Data Warehouse",
+    slug: "ecb_sdw",
+    source_type: "official_api",
+    tier: 1,
+    base_url: "https://sdw-wsrest.ecb.europa.eu/service/",
+    legal_basis: "public_data",
+    description: "EU-wide interest rate data, money market rates, and euro area financial statistics.",
+    is_active: true,
+  },
+];
+
+const MOCK_REVIEW_ITEMS: ReviewQueueItem[] = [
+  {
+    id: "rq1",
+    processed_id: "proc-001",
+    reason: "Value exceeds 3-sigma threshold for EU solar PPA prices",
+    priority: 1,
+    processed: {
+      id: "proc-001",
+      data_type: "price",
+      category: "solar_ppa_price",
+      region: "EU",
+      technology: "solar",
+      effective_date: "2026-03-12",
+      value_numeric: 68.5,
+      value_text: null,
+      unit: "EUR/MWh",
+      confidence: 0.72,
+      review_status: "pending_review",
+    },
+  },
+  {
+    id: "rq2",
+    processed_id: "proc-002",
+    reason: "New metric category not previously seen: offshore_wind_lcoe",
+    priority: 0,
+    processed: {
+      id: "proc-002",
+      data_type: "cost",
+      category: "offshore_wind_lcoe",
+      region: "Northern Europe",
+      technology: "wind",
+      effective_date: "2026-03-11",
+      value_numeric: 82.3,
+      value_text: null,
+      unit: "EUR/MWh",
+      confidence: 0.88,
+      review_status: "pending_review",
+    },
+  },
+  {
+    id: "rq3",
+    processed_id: "proc-003",
+    reason: "Source credibility score below threshold (0.55)",
+    priority: 0,
+    processed: {
+      id: "proc-003",
+      data_type: "regulation",
+      category: "eu_taxonomy_eligibility",
+      region: "EU",
+      technology: "biomass",
+      effective_date: "2026-03-10",
+      value_numeric: null,
+      value_text: "Biomass taxonomy eligibility criteria updated under Delegated Act 2026/C",
+      unit: null,
+      confidence: 0.55,
+      review_status: "pending_review",
+    },
+  },
+];
+
+const MOCK_DATA_ROWS: MarketDataProcessed[] = [
+  {
+    id: "dp1",
+    data_type: "price",
+    category: "solar_ppa_price",
+    region: "Spain",
+    technology: "solar",
+    effective_date: "2026-03-01",
+    value_numeric: 52.4,
+    value_text: null,
+    unit: "EUR/MWh",
+    confidence: 0.97,
+    review_status: "approved",
+  },
+  {
+    id: "dp2",
+    data_type: "rate",
+    category: "euribor_3m",
+    region: "EU",
+    technology: null,
+    effective_date: "2026-03-12",
+    value_numeric: 3.42,
+    value_text: null,
+    unit: "%",
+    confidence: 0.99,
+    review_status: "auto_accepted",
+  },
+  {
+    id: "dp3",
+    data_type: "cost",
+    category: "onshore_wind_capex",
+    region: "Northern Europe",
+    technology: "wind",
+    effective_date: "2026-02-28",
+    value_numeric: 1180,
+    value_text: null,
+    unit: "EUR/kW",
+    confidence: 0.91,
+    review_status: "approved",
+  },
+  {
+    id: "dp4",
+    data_type: "index",
+    category: "eu_energy_price_index",
+    region: "EU",
+    technology: null,
+    effective_date: "2026-03-10",
+    value_numeric: 142.7,
+    value_text: null,
+    unit: "index",
+    confidence: 0.98,
+    review_status: "auto_accepted",
+  },
+];
+
 type Tab = "overview" | "data" | "sources" | "review";
 
 export default function MarketEnrichmentPage() {
@@ -66,12 +255,17 @@ export default function MarketEnrichmentPage() {
     source_url: "",
   });
 
-  const { data: dashboard, isLoading: dashLoading } = useMarketEnrichmentDashboard();
-  const { data: sources } = useMarketDataSources(sourceFilters);
-  const { data: dataRows, isLoading: dataLoading } = useMarketData(
+  const { data: apiDashboard, isLoading: dashLoading } = useMarketEnrichmentDashboard();
+  const { data: apiSources } = useMarketDataSources(sourceFilters);
+  const { data: apiDataRows, isLoading: dataLoading } = useMarketData(
     Object.fromEntries(Object.entries(dataFilters).filter(([, v]) => v !== ""))
   );
-  const { data: reviewItems } = useReviewQueue();
+  const { data: apiReviewItems } = useReviewQueue();
+
+  const dashboard = apiDashboard ?? MOCK_DASHBOARD;
+  const sources = apiSources ?? MOCK_SOURCES;
+  const dataRows = apiDataRows ?? MOCK_DATA_ROWS;
+  const reviewItems = apiReviewItems ?? MOCK_REVIEW_ITEMS;
 
   const createSource = useCreateSource();
   const triggerFetch = useTriggerFetch();
@@ -82,7 +276,7 @@ export default function MarketEnrichmentPage() {
     { id: "overview", label: "Overview" },
     { id: "data", label: "Data Browser" },
     { id: "sources", label: "Sources" },
-    { id: "review", label: `Review Queue${(reviewItems?.length ?? 0) > 0 ? ` (${reviewItems!.length})` : ""}` },
+    { id: "review", label: `Review Queue${reviewItems.length > 0 ? ` (${reviewItems.length})` : ""}` },
   ];
 
   return (
@@ -139,7 +333,7 @@ export default function MarketEnrichmentPage() {
         <div className="space-y-6">
           {dashLoading ? (
             <div className="text-gray-400 text-sm">Loading...</div>
-          ) : dashboard ? (
+          ) : (
             <>
               {/* Stats cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -219,7 +413,7 @@ export default function MarketEnrichmentPage() {
                 </div>
               </div>
             </>
-          ) : null}
+          )}
         </div>
       )}
 
@@ -271,7 +465,7 @@ export default function MarketEnrichmentPage() {
             </select>
           </div>
 
-          <DataTable rows={dataRows ?? []} isLoading={dataLoading} />
+          <DataTable rows={dataRows} isLoading={dataLoading} />
         </div>
       )}
 

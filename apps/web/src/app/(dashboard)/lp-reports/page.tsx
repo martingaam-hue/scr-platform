@@ -37,6 +37,118 @@ import {
 } from "@/lib/lp-reports";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock Data ─────────────────────────────────────────────────────────────────
+
+const BASE_RPT = {
+  org_id: "org1",
+  portfolio_id: "mock-portfolio-1",
+  approved_by: "user-erik",
+  approved_at: null,
+  gross_irr: null,
+  rvpi: null,
+  narrative: null,
+  investments_data: [],
+  generated_at: null,
+};
+
+const MOCK_REPORTS: LPReport[] = [
+  {
+    ...BASE_RPT,
+    id: "rpt-1",
+    report_period: "Q4 2025 Quarterly Report",
+    status: "approved",
+    net_irr: 0.138,
+    tvpi: 1.28,
+    dpi: 0.16,
+    moic: 1.28,
+    total_committed: 500000000,
+    total_invested: 238000000,
+    total_returned: 38100000,
+    total_nav: 276000000,
+    period_start: "2025-10-01",
+    period_end: "2025-12-31",
+    pdf_s3_key: "reports/q4-2025.pdf",
+    download_url: null,
+    created_at: "2026-01-15T09:00:00Z",
+    updated_at: "2026-01-15T09:00:00Z",
+  },
+  {
+    ...BASE_RPT,
+    id: "rpt-2",
+    report_period: "ESG Impact Report H2 2025",
+    status: "approved",
+    net_irr: 0.132,
+    tvpi: 1.24,
+    dpi: 0.14,
+    moic: 1.24,
+    total_committed: 500000000,
+    total_invested: 238000000,
+    total_returned: 33300000,
+    total_nav: 271000000,
+    period_start: "2025-07-01",
+    period_end: "2025-12-31",
+    pdf_s3_key: "reports/esg-h2-2025.pdf",
+    download_url: null,
+    created_at: "2026-02-05T10:30:00Z",
+    updated_at: "2026-02-05T10:30:00Z",
+  },
+  {
+    ...BASE_RPT,
+    id: "rpt-3",
+    report_period: "Annual Report 2025",
+    status: "draft",
+    net_irr: null,
+    tvpi: null,
+    dpi: null,
+    moic: null,
+    total_committed: 500000000,
+    total_invested: 238000000,
+    total_returned: 38100000,
+    total_nav: 276000000,
+    period_start: "2025-01-01",
+    period_end: "2025-12-31",
+    pdf_s3_key: null,
+    download_url: null,
+    created_at: "2026-03-01T08:00:00Z",
+    updated_at: "2026-03-01T08:00:00Z",
+  },
+  {
+    ...BASE_RPT,
+    id: "rpt-4",
+    report_period: "Q3 2025 Quarterly Report",
+    status: "approved",
+    net_irr: 0.124,
+    tvpi: 1.19,
+    dpi: 0.11,
+    moic: 1.19,
+    total_committed: 500000000,
+    total_invested: 238000000,
+    total_returned: 26200000,
+    total_nav: 257000000,
+    period_start: "2025-07-01",
+    period_end: "2025-09-30",
+    pdf_s3_key: "reports/q3-2025.pdf",
+    download_url: null,
+    created_at: "2025-10-10T09:00:00Z",
+    updated_at: "2025-10-10T09:00:00Z",
+  },
+];
+
+const MOCK_LP_REPORTS_DATA = {
+  items: MOCK_REPORTS,
+  total: MOCK_REPORTS.length,
+};
+
+const MOCK_LP_DRAFT_DATA = {
+  items: MOCK_REPORTS.filter((r) => r.status === "draft"),
+  total: MOCK_REPORTS.filter((r) => r.status === "draft").length,
+};
+
+const MOCK_LP_APPROVED_DATA = {
+  items: MOCK_REPORTS.filter((r) => r.status === "approved"),
+  total: MOCK_REPORTS.filter((r) => r.status === "approved").length,
+};
+
 // ── Metric Card ─────────────────────────────────────────────────────────────
 
 function MetricCard({
@@ -247,9 +359,13 @@ export default function LPReportsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [tab, setTab] = useState("all");
 
-  const { data: allData, isLoading } = useLPReports();
-  const { data: draftData } = useLPReports({ status: "draft" });
-  const { data: approvedData } = useLPReports({ status: "approved" });
+  const { data: apiAllData, isLoading } = useLPReports();
+  const { data: apiDraftData } = useLPReports({ status: "draft" });
+  const { data: apiApprovedData } = useLPReports({ status: "approved" });
+
+  const allData = apiAllData?.items?.length ? apiAllData : MOCK_LP_REPORTS_DATA;
+  const draftData = apiDraftData?.items?.length ? apiDraftData : MOCK_LP_DRAFT_DATA;
+  const approvedData = apiApprovedData?.items?.length ? apiApprovedData : MOCK_LP_APPROVED_DATA;
 
   const reports = allData?.items ?? [];
   const latestApproved = approvedData?.items?.[0];

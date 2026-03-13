@@ -6,7 +6,6 @@ import {
   Briefcase,
   Target,
   CheckCircle,
-  BarChart3,
 } from "lucide-react";
 import {
   Badge,
@@ -14,7 +13,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  EmptyState,
 } from "@scr/ui";
 import { InfoBanner } from "@/components/info-banner";
 import {
@@ -25,6 +23,68 @@ import {
   efficiencyScoreColor,
   percentileLabel,
 } from "@/lib/capital-efficiency";
+
+// ── Mock Data ─────────────────────────────────────────────────────────────────
+
+const MOCK_METRICS = {
+  id: "eff-mock-1",
+  org_id: "org1",
+  portfolio_id: "mock-portfolio-1",
+  period_start: "2025-01-01",
+  period_end: "2025-12-31",
+  dd_cost_savings: 320000,
+  legal_cost_savings: 480000,
+  risk_analytics_savings: 180000,
+  tax_credit_value_captured: 0,
+  time_saved_hours: 1248,
+  deals_screened: 28,
+  deals_closed: 3,
+  avg_time_to_close_days: 126,
+  portfolio_irr_improvement: 1.4,
+  industry_avg_dd_cost: 480000,
+  industry_avg_time_to_close: 204,
+  platform_efficiency_score: 84.2,
+  total_savings: 2300000,
+  breakdown: null,
+  created_at: "2026-01-02T00:00:00Z",
+  updated_at: "2026-03-01T00:00:00Z",
+};
+
+const MOCK_BREAKDOWN = {
+  categories: [
+    { name: "Legal Fees", value: 480000, percentage: 40, vs_industry: "−38% vs industry" },
+    { name: "Due Diligence", value: 320000, percentage: 27, vs_industry: "−33% vs industry" },
+    { name: "Administrative", value: 180000, percentage: 15, vs_industry: "−22% vs industry" },
+    { name: "Travel & Site Visits", value: 90000, percentage: 8, vs_industry: "−45% vs industry" },
+    { name: "Risk Assessment", value: 230000, percentage: 10, vs_industry: "−28% vs industry" },
+  ],
+  totals: { total: 2300000 },
+};
+
+const MOCK_BENCHMARK = {
+  platform: {
+    dd_cost: 320000,
+    time_to_close_days: 126,
+    legal_cost: 480000,
+    risk_assessment_cost: 180000,
+    efficiency_score: 84.2,
+  },
+  industry_avg: {
+    dd_cost: 480000,
+    time_to_close_days: 204,
+    legal_cost: 775000,
+    risk_assessment_cost: 250000,
+    efficiency_score: 62.0,
+  },
+  percentile: 82,
+  outperforming: [
+    "Due Diligence Cost",
+    "Avg. Time to Close (days)",
+    "Legal & Compliance Cost",
+    "Risk Assessment Cost",
+    "Platform Efficiency Score",
+  ],
+};
 
 // ── KPI Card ──────────────────────────────────────────────────────────────
 
@@ -58,7 +118,8 @@ function KpiCard({ label, value, subtext, icon, colorClass = "text-blue-600" }: 
 // ── Savings Breakdown ─────────────────────────────────────────────────────
 
 function SavingsBreakdown() {
-  const { data: breakdown, isLoading } = useEfficiencyBreakdown();
+  const { data: apiBreakdown, isLoading } = useEfficiencyBreakdown();
+  const breakdown = apiBreakdown ?? MOCK_BREAKDOWN;
 
   if (isLoading) {
     return (
@@ -69,8 +130,6 @@ function SavingsBreakdown() {
       </div>
     );
   }
-
-  if (!breakdown) return null;
 
   const maxValue = Math.max(...breakdown.categories.map((c) => c.value), 1);
 
@@ -113,7 +172,8 @@ const BENCHMARK_LABELS: Record<string, string> = {
 };
 
 function BenchmarkTable() {
-  const { data: benchmark, isLoading } = useEfficiencyBenchmark();
+  const { data: apiBenchmark, isLoading } = useEfficiencyBenchmark();
+  const benchmark = apiBenchmark ?? MOCK_BENCHMARK;
 
   if (isLoading) {
     return (
@@ -124,8 +184,6 @@ function BenchmarkTable() {
       </div>
     );
   }
-
-  if (!benchmark) return null;
 
   const outperformingSet = new Set(benchmark.outperforming);
 
@@ -238,7 +296,8 @@ function BenchmarkTable() {
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function CapitalEfficiencyPage() {
-  const { data: metrics, isLoading: metricsLoading } = useCapitalEfficiency();
+  const { data: apiMetrics, isLoading: metricsLoading } = useCapitalEfficiency();
+  const metrics = apiMetrics ?? MOCK_METRICS;
 
   const kpiLoading = metricsLoading;
 
@@ -272,7 +331,7 @@ export default function CapitalEfficiencyPage() {
             <div key={i} className="h-28 rounded-xl bg-gray-100 animate-pulse" />
           ))}
         </div>
-      ) : metrics ? (
+      ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
             label="Total Savings"
@@ -303,12 +362,6 @@ export default function CapitalEfficiencyPage() {
             colorClass={efficiencyScoreColor(metrics.platform_efficiency_score)}
           />
         </div>
-      ) : (
-        <EmptyState
-          icon={<BarChart3 className="h-8 w-8 text-gray-400" />}
-          title="No efficiency data yet"
-          description="Efficiency metrics are computed automatically as you use the platform."
-        />
       )}
 
       {/* Savings Breakdown + Benchmark */}

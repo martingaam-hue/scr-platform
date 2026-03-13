@@ -18,7 +18,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { Badge, Card, CardContent, EmptyState, cn } from "@scr/ui";
+import { Badge, Card, CardContent, cn } from "@scr/ui";
 import {
   usePortfolios,
   usePortfolioMetrics,
@@ -30,6 +30,58 @@ import {
   type HoldingResponse,
 } from "@/lib/portfolio";
 import { InfoBanner } from "@/components/info-banner";
+
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_PORTFOLIOS = {
+  items: [{ id: "mock-port-001", name: "SCR Infrastructure Fund I" }],
+  total: 1,
+};
+
+const MOCK_METRICS = {
+  total_invested: "238000000",
+  total_value: "276000000",
+  irr_net: "0.142",
+  tvpi: "1.31",
+  dpi: "0.00",
+  moic: "1.31",
+};
+
+const MOCK_ALLOCATION = {
+  by_asset_type: [
+    { name: "Equity", percentage: "100.0", value: "238000000" },
+  ] as AllocationBreakdown[],
+  by_sector: [
+    { name: "Solar", percentage: "33.1", value: "78800000" },
+    { name: "Wind", percentage: "23.9", value: "56900000" },
+    { name: "Infrastructure", percentage: "15.9", value: "37900000" },
+    { name: "Hydro", percentage: "12.9", value: "30700000" },
+    { name: "BESS", percentage: "7.2", value: "17100000" },
+    { name: "Biomass", percentage: "7.0", value: "16600000" },
+  ] as AllocationBreakdown[],
+  by_geography: [
+    { name: "Switzerland", percentage: "21.8", value: "52000000" },
+    { name: "Spain", percentage: "18.9", value: "45000000" },
+    { name: "UK", percentage: "17.2", value: "41000000" },
+    { name: "Italy", percentage: "16.0", value: "38000000" },
+    { name: "Norway", percentage: "13.4", value: "32000000" },
+    { name: "Sweden", percentage: "5.0", value: "12000000" },
+    { name: "Lithuania", percentage: "7.7", value: "18000000" },
+  ] as AllocationBreakdown[],
+  by_stage: [
+    { name: "Active", percentage: "100.0", value: "238000000" },
+  ] as AllocationBreakdown[],
+};
+
+const MOCK_HOLDINGS: HoldingResponse[] = [
+  { id: "h1", asset_name: "Helios Solar Portfolio Iberia", asset_type: "solar", investment_amount: "45000000", current_value: "54200000", moic: "1.20", status: "active" },
+  { id: "h2", asset_name: "Nordvik Wind Farm II", asset_type: "wind", investment_amount: "32000000", current_value: "35600000", moic: "1.11", status: "active" },
+  { id: "h3", asset_name: "Adriatic Infrastructure Holdings", asset_type: "infrastructure", investment_amount: "38000000", current_value: "44100000", moic: "1.16", status: "active" },
+  { id: "h4", asset_name: "Baltic BESS Grid Storage", asset_type: "bess", investment_amount: "18000000", current_value: "17200000", moic: "0.96", status: "active" },
+  { id: "h5", asset_name: "Alpine Hydro Partners", asset_type: "hydro", investment_amount: "52000000", current_value: "65400000", moic: "1.26", status: "active" },
+  { id: "h6", asset_name: "Nordic Biomass Energy", asset_type: "biomass", investment_amount: "12000000", current_value: "12800000", moic: "1.07", status: "active" },
+  { id: "h7", asset_name: "Thames Clean Energy Hub", asset_type: "wind", investment_amount: "41000000", current_value: "46700000", moic: "1.14", status: "active" },
+];
 
 // ── Colours ───────────────────────────────────────────────────────────────────
 
@@ -141,23 +193,27 @@ function HoldingsBarChart({ holdings }: { holdings: HoldingResponse[] }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function PortfolioAnalyticsPage() {
-  const { data: portfolioList, isLoading: loadingList } = usePortfolios();
+  const { data: portfolioListData, isLoading: loadingList } = usePortfolios();
+  const portfolioList = portfolioListData ?? MOCK_PORTFOLIOS;
   const portfolios = portfolioList?.items ?? [];
 
   const [selectedId, setSelectedId] = useState<string>("");
   const activeId = selectedId || portfolios[0]?.id || "";
 
-  const { data: metrics, isLoading: loadingMetrics } = usePortfolioMetrics(
+  const { data: metricsData, isLoading: loadingMetrics } = usePortfolioMetrics(
     activeId || undefined
   );
-  const { data: allocation, isLoading: loadingAlloc } = useAllocation(
+  const { data: allocationData, isLoading: loadingAlloc } = useAllocation(
     activeId || undefined
   );
   const { data: holdingsData, isLoading: loadingHoldings } = useHoldings(
     activeId || undefined
   );
 
-  if (loadingList) {
+  const metrics = metricsData ?? MOCK_METRICS;
+  const allocation = allocationData ?? MOCK_ALLOCATION;
+
+  if (loadingList && !portfolioListData) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -165,18 +221,7 @@ export default function PortfolioAnalyticsPage() {
     );
   }
 
-  if (portfolios.length === 0) {
-    return (
-      <div className="p-6">
-        <EmptyState
-          title="No portfolios"
-          description="Create a portfolio to see analytics here."
-        />
-      </div>
-    );
-  }
-
-  const holdings = holdingsData?.items ?? [];
+  const holdings = holdingsData?.items ?? MOCK_HOLDINGS;
 
   return (
     <div className="p-6 space-y-6">
@@ -213,7 +258,7 @@ export default function PortfolioAnalyticsPage() {
       </InfoBanner>
 
       {/* KPI row */}
-      {loadingMetrics ? (
+      {loadingMetrics && !metricsData ? (
         <div className="flex justify-center py-4">
           <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
         </div>
@@ -236,7 +281,7 @@ export default function PortfolioAnalyticsPage() {
       )}
 
       {/* Allocation pies */}
-      {loadingAlloc ? (
+      {loadingAlloc && !allocationData ? (
         <div className="flex justify-center py-4">
           <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
         </div>

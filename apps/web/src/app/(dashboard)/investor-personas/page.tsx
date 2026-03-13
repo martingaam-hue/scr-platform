@@ -18,6 +18,106 @@ import {
   type PersonaMatch,
 } from "@/lib/investor-personas";
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_PERSONAS: InvestorPersona[] = [
+  {
+    id: "persona-001",
+    persona_name: "Nordic Pension Profile",
+    strategy_type: "core",
+    target_irr_min: 10,
+    target_irr_max: 14,
+    ticket_size_min: 50_000_000,
+    ticket_size_max: 100_000_000,
+    preferred_asset_types: ["Solar", "Wind", "Hydro"],
+    preferred_geographies: ["Sweden", "Norway", "Denmark", "Finland"],
+    esg_requirements: "Article 9 — SFDR aligned, net zero commitment required",
+    description: "Pension fund mandate targeting stable, long-duration renewable energy assets with strong ESG credentials. Preference for operating assets in Nordic/Western European markets.",
+  },
+  {
+    id: "persona-002",
+    persona_name: "Insurance Capital Profile",
+    strategy_type: "core",
+    target_irr_min: 9,
+    target_irr_max: 13,
+    ticket_size_min: 30_000_000,
+    ticket_size_max: 80_000_000,
+    preferred_asset_types: ["Infrastructure", "Wind", "Solar"],
+    preferred_geographies: ["Netherlands", "Belgium", "Germany", "France"],
+    esg_requirements: "Article 8 minimum, ESG integration required",
+    description: "Insurance company deploying infrastructure capital with a focus on regulated, cash-yield assets in Benelux and core European markets.",
+  },
+  {
+    id: "persona-003",
+    persona_name: "Reinsurance Profile",
+    strategy_type: "core_plus",
+    target_irr_min: 11,
+    target_irr_max: 15,
+    ticket_size_min: 30_000_000,
+    ticket_size_max: 60_000_000,
+    preferred_asset_types: ["Solar", "Wind", "Hydro", "Infrastructure"],
+    preferred_geographies: ["Switzerland", "Germany", "Austria", "France"],
+    esg_requirements: "Article 8/9, carbon accounting required",
+    description: "Swiss-headquartered reinsurer with broad infrastructure mandate. Open to construction-stage risk with appropriate risk premium.",
+  },
+  {
+    id: "persona-004",
+    persona_name: "DFI / Development Bank Profile",
+    strategy_type: "impact",
+    target_irr_min: 8,
+    target_irr_max: 12,
+    ticket_size_min: 20_000_000,
+    ticket_size_max: 50_000_000,
+    preferred_asset_types: ["Solar", "Wind", "BESS", "Hydro"],
+    preferred_geographies: ["Morocco", "Romania", "Greece", "Portugal"],
+    esg_requirements: "Article 9, additionality required, SDG alignment",
+    description: "Development finance institution targeting emerging and transition markets. Catalytic capital approach, willing to take first-loss in blended finance structures.",
+  },
+  {
+    id: "persona-005",
+    persona_name: "Family Office Profile",
+    strategy_type: "opportunistic",
+    target_irr_min: 14,
+    target_irr_max: 20,
+    ticket_size_min: 10_000_000,
+    ticket_size_max: 30_000_000,
+    preferred_asset_types: ["Solar", "BESS", "Biomass"],
+    preferred_geographies: ["Germany", "Austria", "Switzerland"],
+    esg_requirements: "Article 8, impact reporting preferred",
+    description: "German DACH family office seeking higher-return co-investment opportunities alongside established fund managers. Comfortable with early-stage and development risk.",
+  },
+];
+
+const MOCK_MATCHES: PersonaMatch[] = [
+  {
+    project_id: "proj-alpine-005",
+    project_name: "Alpine Hydro Partners",
+    project_type: "Hydro",
+    geography_country: "Switzerland",
+    stage: "Active",
+    alignment_score: 92,
+    alignment_reasons: ["IRR 17.6% within target range", "Article 9 aligned", "Swiss domicile preferred"],
+  },
+  {
+    project_id: "proj-helios-001",
+    project_name: "Helios Solar Portfolio Iberia",
+    project_type: "Solar",
+    geography_country: "Spain",
+    stage: "Active",
+    alignment_score: 86,
+    alignment_reasons: ["Solar preferred asset type", "Strong ESG score 87", "IRR 16.1% exceeds minimum"],
+  },
+  {
+    project_id: "proj-bavarian-p4",
+    project_name: "Bavarian Biomass",
+    project_type: "Biomass",
+    geography_country: "Germany",
+    stage: "Negotiation",
+    alignment_score: 78,
+    alignment_reasons: ["DACH geography match", "Ticket size €15M within range", "Biomass in preferred types"],
+  },
+];
+
 function PersonaCard({
   persona,
   selected,
@@ -82,9 +182,10 @@ function PersonaCard({
 }
 
 function MatchList({ personaId }: { personaId: string }) {
-  const { data: matches = [], isLoading } = usePersonaMatches(personaId);
+  const { data: matchesData = [], isLoading } = usePersonaMatches(personaId);
+  const matches = matchesData.length > 0 ? matchesData : MOCK_MATCHES;
 
-  if (isLoading) {
+  if (isLoading && !matchesData.length) {
     return (
       <div className="flex justify-center py-4">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
@@ -135,9 +236,10 @@ function MatchList({ personaId }: { personaId: string }) {
 }
 
 export default function InvestorPersonasPage() {
-  const { data: personas = [], isLoading } = useInvestorPersonas();
+  const { data: personasData = [], isLoading } = useInvestorPersonas();
+  const personas = personasData.length > 0 ? personasData : MOCK_PERSONAS;
   const generatePersona = useGeneratePersona();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>("persona-001");
   const [showGenerate, setShowGenerate] = useState(false);
   const [description, setDescription] = useState("");
 
@@ -200,7 +302,7 @@ export default function InvestorPersonasPage() {
         </Card>
       )}
 
-      {isLoading ? (
+      {isLoading && !personasData.length ? (
         <div className="flex h-40 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
         </div>

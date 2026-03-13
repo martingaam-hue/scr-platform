@@ -21,10 +21,63 @@ import {
   useTemplates,
   useComputeDCF,
   type FinancialTemplate,
+  type TaxonomyNode,
   type DCFInput,
   type DCFResult,
 } from "@/lib/financial-templates";
 import { InfoBanner } from "@/components/info-banner";
+
+// ── Mock Data ─────────────────────────────────────────────────────────────────
+
+const MOCK_TAXONOMY_NODES: TaxonomyNode[] = [
+  { code: "RENEW", name: "Renewable Energy", level: 0, parent_code: null, sector: "Energy", description: "All renewable energy technologies", is_leaf: false },
+  { code: "RENEW.SOLAR", name: "Solar Power", level: 1, parent_code: "RENEW", sector: "Energy", description: "Photovoltaic and CSP installations", is_leaf: true },
+  { code: "RENEW.WIND", name: "Wind Power", level: 1, parent_code: "RENEW", sector: "Energy", description: "Onshore and offshore wind generation", is_leaf: true },
+  { code: "RENEW.HYDRO", name: "Hydropower", level: 1, parent_code: "RENEW", sector: "Energy", description: "Run-of-river and reservoir hydro", is_leaf: true },
+  { code: "RENEW.BIOMASS", name: "Biomass & Bioenergy", level: 1, parent_code: "RENEW", sector: "Energy", description: "Solid biomass and biogas energy", is_leaf: true },
+  { code: "INFRA", name: "Infrastructure", level: 0, parent_code: null, sector: "Infrastructure", description: "Core infrastructure assets", is_leaf: false },
+  { code: "INFRA.BESS", name: "Battery Energy Storage", level: 1, parent_code: "INFRA", sector: "Infrastructure", description: "Grid-scale battery storage systems", is_leaf: true },
+  { code: "INFRA.GRID", name: "Electricity Transmission", level: 1, parent_code: "INFRA", sector: "Infrastructure", description: "Transmission and distribution infrastructure", is_leaf: true },
+];
+
+const MOCK_TEMPLATES: FinancialTemplate[] = [
+  {
+    id: "tpl-1",
+    name: "Renewable Energy DCF (Solar/Wind)",
+    taxonomy_code: "RENEW",
+    description: "Levelised cost and discounted cashflow model for utility-scale solar PV and onshore/offshore wind projects. Includes capacity factor degradation, O&M cost escalation, and PPA/merchant revenue splitting.",
+    assumptions: { capacity_mw: 50, capex_per_mw: 1200000, discount_rate: 8, useful_life_years: 25 },
+    is_system: true,
+    created_at: "2024-06-01T00:00:00Z",
+  },
+  {
+    id: "tpl-2",
+    name: "Infrastructure Concession Model",
+    taxonomy_code: "INFRA",
+    description: "Long-duration infrastructure cashflow model for PPP/concession structures. Models availability payments, shadow tolls, and step-in rights. Includes DSCR covenant testing and refinancing analysis.",
+    assumptions: { concession_years: 30, availability_payment_annual: 8500000, discount_rate: 7 },
+    is_system: true,
+    created_at: "2024-06-01T00:00:00Z",
+  },
+  {
+    id: "tpl-3",
+    name: "BESS Revenue Model",
+    taxonomy_code: "INFRA.BESS",
+    description: "Battery energy storage system revenue stack model. Captures frequency response, capacity market, arbitrage, and ancillary services revenue streams. Includes battery degradation and replacement capex.",
+    assumptions: { capacity_mwh: 100, power_mw: 50, discount_rate: 9, degradation_pct_annual: 2.5 },
+    is_system: true,
+    created_at: "2024-09-15T00:00:00Z",
+  },
+  {
+    id: "tpl-4",
+    name: "Biomass / Hydro Cash Flow",
+    taxonomy_code: "RENEW.BIOMASS",
+    description: "Dispatchable renewable cashflow model for biomass CHP and run-of-river hydro. Handles fuel cost uncertainty for biomass, hydrology risk for hydro, and CFD/ROC subsidy structures.",
+    assumptions: { capacity_mw: 20, capex_per_mw: 2800000, discount_rate: 8.5, fuel_cost_index: 1.02 },
+    is_system: true,
+    created_at: "2025-01-10T00:00:00Z",
+  },
+];
 
 // ── Sector filter ──────────────────────────────────────────────────────────────
 
@@ -288,7 +341,8 @@ function TaxonomyPanel({
   selectedCode: string;
   onChange: (code: string) => void;
 }) {
-  const { data: nodes, isLoading } = useTaxonomy(undefined, false);
+  const { data: apiNodes, isLoading } = useTaxonomy(undefined, false);
+  const nodes = apiNodes ?? MOCK_TAXONOMY_NODES;
 
   if (isLoading) {
     return (
@@ -338,7 +392,10 @@ export default function FinancialTemplatesPage() {
   // otherwise fall back to the sector tab.
   const filterCode = selectedTaxonomyCode || selectedSector || undefined;
 
-  const { data: templates, isLoading } = useTemplates(filterCode);
+  const { data: apiTemplates, isLoading } = useTemplates(filterCode);
+  const templates = apiTemplates ?? MOCK_TEMPLATES.filter(
+    (t) => !filterCode || t.taxonomy_code === filterCode || t.taxonomy_code.startsWith(filterCode + ".")
+  );
 
   const handleSectorChange = (code: string) => {
     setSelectedSector(code);

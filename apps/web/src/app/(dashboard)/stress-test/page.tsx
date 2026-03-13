@@ -26,6 +26,61 @@ import {
 import { usePortfolios } from "@/lib/portfolio";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock Data ─────────────────────────────────────────────────────────────────
+
+const MOCK_SCENARIOS: ScenarioResponse[] = [
+  {
+    key: "base_case",
+    name: "Base Case",
+    description: "Expected market conditions with moderate energy price growth and stable interest rates. Portfolio IRR impact: neutral.",
+  },
+  {
+    key: "combined_downturn",
+    name: "Combined Downturn",
+    description: "Simultaneous energy price decline of 25%, GDP contraction of 2%, and credit spread widening of 150bps.",
+  },
+  {
+    key: "interest_rate_shock",
+    name: "Interest Rate Shock +300bps",
+    description: "Central bank emergency rate hike of 300bps driven by persistent inflation, increasing refinancing costs across the portfolio.",
+  },
+  {
+    key: "energy_price_collapse",
+    name: "Energy Price Collapse",
+    description: "Renewable energy capture prices fall 40% due to grid saturation and subsidy removal across EU markets.",
+  },
+];
+
+const MOCK_PORTFOLIO_LIST = {
+  items: [{ id: "mock-portfolio-1", name: "SCR Sustainable Infrastructure Fund I" }],
+  total: 1,
+};
+
+const MOCK_RESULT: StressTestResult = {
+  id: "mock-result-1",
+  scenario_name: "Combined Downturn",
+  base_nav: 276000000,
+  mean_nav: 241700000,
+  var_95: 218400000,
+  p5_nav: 208900000,
+  p95_nav: 261200000,
+  probability_of_loss: 0.12,
+  max_loss_pct: 28.4,
+  simulations_count: 10000,
+  created_at: new Date().toISOString(),
+  histogram: [12, 28, 65, 148, 312, 486, 621, 789, 932, 1048, 1124, 1087, 984, 823, 651, 498, 312, 198, 121, 74, 42, 21, 9, 4],
+  histogram_edges: Array.from({ length: 24 }, (_, i) => 185000000 + i * 4000000),
+  project_sensitivities: [
+    { project_id: "h4", project_name: "Baltic BESS Grid Storage", stressed_value: 13800000, change_pct: -19.8 },
+    { project_id: "h6", project_name: "Nordic Biomass Energy", stressed_value: 10200000, change_pct: -14.6 },
+    { project_id: "h2", project_name: "Nordvik Wind Farm II", stressed_value: 31200000, change_pct: -11.2 },
+    { project_id: "h7", project_name: "Thames Clean Energy Hub", stressed_value: 42400000, change_pct: -9.2 },
+    { project_id: "h3", project_name: "Adriatic Infrastructure Holdings", stressed_value: 40600000, change_pct: -7.9 },
+    { project_id: "h1", project_name: "Helios Solar Portfolio Iberia", stressed_value: 50800000, change_pct: -6.3 },
+    { project_id: "h5", project_name: "Alpine Hydro Partners", stressed_value: 62400000, change_pct: -4.6 },
+  ],
+};
+
 // ── Scenario Card ────────────────────────────────────────────────────────────
 
 function ScenarioCard({
@@ -183,12 +238,15 @@ export default function StressTestPage() {
   const [selectedPortfolio, setSelectedPortfolio] = useState<string>("");
   const [activeResult, setActiveResult] = useState<StressTestResult | null>(null);
 
-  const { data: scenarios, isLoading: loadingScenarios } = useStressTestScenarios();
-  const { data: portfolios } = usePortfolios();
+  const { data: apiScenarios, isLoading: loadingScenarios } = useStressTestScenarios();
+  const { data: apiPortfolios } = usePortfolios();
   const { data: history } = useStressTests(selectedPortfolio);
   const { mutate: runTest, isPending: running } = useRunStressTest();
 
-  const portfolioList = portfolios?.items ?? [];
+  const scenarios = apiScenarios ?? MOCK_SCENARIOS;
+  const portfolios = { items: apiPortfolios?.items?.length ? apiPortfolios.items : MOCK_PORTFOLIO_LIST.items };
+
+  const portfolioList = portfolios.items ?? [];
 
   const handleRun = () => {
     if (!selectedPortfolio) return;
@@ -302,8 +360,8 @@ export default function StressTestPage() {
               <p className="text-sm text-gray-500">Running Monte Carlo simulation…</p>
             </div>
           )}
-          {!running && activeResult && <ResultsPanel result={activeResult} />}
-          {!running && !activeResult && (
+          {!running && (activeResult ?? MOCK_RESULT) && <ResultsPanel result={activeResult ?? MOCK_RESULT} />}
+          {!running && false && (
             <div className="space-y-4">
               <EmptyState
                 title="No result yet"
