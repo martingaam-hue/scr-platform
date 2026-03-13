@@ -1,7 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Briefcase, CheckCircle2, Star, Users, Filter, Search, Globe, Award } from "lucide-react";
+import {
+  Briefcase,
+  CheckCircle2,
+  Star,
+  Users,
+  Filter,
+  Search,
+  Globe,
+  Award,
+  DollarSign,
+  Building2,
+  Lightbulb,
+  Shield,
+  Target,
+  UserPlus,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import {
   Badge,
   Button,
@@ -23,6 +40,29 @@ import {
   useUpdateApplicationStatus,
   type AdvisorSearchResult,
 } from "@/lib/board-advisor";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+interface ExpertiseCategory {
+  id: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+  accentColor: string;
+  available: number;
+  impact: number;
+}
+
+interface CategoryAdvisor {
+  id: string;
+  name: string;
+  title: string;
+  org: string;
+  experience: string;
+  matchScore: number;
+}
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -152,6 +192,423 @@ const MOCK_APPLICATIONS = [
   },
 ];
 
+// ── Suggested expertise data ──────────────────────────────────────────────────
+
+const EXPERTISE_CATEGORIES: ExpertiseCategory[] = [
+  {
+    id: "financial",
+    title: "Financial Expertise",
+    description: "CFO-level financial strategy, fundraising, and investor relations",
+    icon: DollarSign,
+    iconBg: "bg-green-100",
+    iconColor: "text-green-600",
+    accentColor: "#22c55e",
+    available: 12,
+    impact: 1.5,
+  },
+  {
+    id: "industry",
+    title: "Industry Veteran",
+    description: "Deep sector experience and market knowledge",
+    icon: Building2,
+    iconBg: "bg-blue-100",
+    iconColor: "text-blue-600",
+    accentColor: "#3b82f6",
+    available: 8,
+    impact: 1.5,
+  },
+  {
+    id: "technical",
+    title: "Technical Leadership",
+    description: "CTO-level technical guidance and innovation strategy",
+    icon: Lightbulb,
+    iconBg: "bg-indigo-100",
+    iconColor: "text-indigo-700",
+    accentColor: "#4338ca",
+    available: 15,
+    impact: 1.3,
+  },
+  {
+    id: "regulatory",
+    title: "Regulatory & Legal",
+    description: "Compliance, regulatory navigation, and legal frameworks",
+    icon: Shield,
+    iconBg: "bg-amber-100",
+    iconColor: "text-amber-600",
+    accentColor: "#f59e0b",
+    available: 6,
+    impact: 1.0,
+  },
+  {
+    id: "strategic",
+    title: "Strategic Growth",
+    description: "Business development, partnerships, and scaling expertise",
+    icon: Target,
+    iconBg: "bg-emerald-100",
+    iconColor: "text-emerald-600",
+    accentColor: "#10b981",
+    available: 10,
+    impact: 1.4,
+  },
+  {
+    id: "international",
+    title: "International Expansion",
+    description: "Global market entry and cross-border operations",
+    icon: Globe,
+    iconBg: "bg-teal-100",
+    iconColor: "text-teal-600",
+    accentColor: "#14b8a6",
+    available: 7,
+    impact: 1.1,
+  },
+];
+
+// Sorted highest impact first (already ordered above, kept explicit)
+const SORTED_EXPERTISE = [...EXPERTISE_CATEGORIES].sort((a, b) => b.impact - a.impact);
+
+const CATEGORY_ADVISORS: Record<string, CategoryAdvisor[]> = {
+  financial: [
+    {
+      id: "f1",
+      name: "Henrik Larsson",
+      title: "CFO",
+      org: "Nordic Green Capital",
+      experience: "15 years infrastructure finance",
+      matchScore: 96,
+    },
+    {
+      id: "f2",
+      name: "Maria Santos",
+      title: "Partner",
+      org: "Iberian Ventures",
+      experience: "IPO and M&A specialist",
+      matchScore: 91,
+    },
+    {
+      id: "f3",
+      name: "Thomas Weber",
+      title: "Director",
+      org: "Deutsche Infra Bank",
+      experience: "Project finance structuring",
+      matchScore: 87,
+    },
+  ],
+  industry: [
+    {
+      id: "i1",
+      name: "Jean-Pierre Moreau",
+      title: "Former CEO",
+      org: "EDF Renewables",
+      experience: "25 years energy sector leadership",
+      matchScore: 98,
+    },
+    {
+      id: "i2",
+      name: "Ingrid Haugen",
+      title: "Board Member",
+      org: "Statkraft",
+      experience: "Nordic energy markets expert",
+      matchScore: 93,
+    },
+    {
+      id: "i3",
+      name: "Paolo Bianchi",
+      title: "Managing Director",
+      org: "Enel Green Power",
+      experience: "Southern European renewables",
+      matchScore: 88,
+    },
+  ],
+  technical: [
+    {
+      id: "t1",
+      name: "Dr. Akira Tanaka",
+      title: "CTO",
+      org: "SolarTech Global",
+      experience: "PV technology and grid integration",
+      matchScore: 94,
+    },
+    {
+      id: "t2",
+      name: "Fiona MacGregor",
+      title: "VP Engineering",
+      org: "Vestas",
+      experience: "Wind turbine technology",
+      matchScore: 90,
+    },
+    {
+      id: "t3",
+      name: "Lars Nilsson",
+      title: "Chief Architect",
+      org: "Northvolt",
+      experience: "Battery storage systems",
+      matchScore: 85,
+    },
+  ],
+  regulatory: [
+    {
+      id: "r1",
+      name: "Dr. Elise Beaumont",
+      title: "Senior Partner",
+      org: "Linklaters Energy",
+      experience: "EU energy regulatory frameworks",
+      matchScore: 95,
+    },
+    {
+      id: "r2",
+      name: "Carlos Navarro",
+      title: "Head of Compliance",
+      org: "Iberdrola Group",
+      experience: "Permitting and grid connection",
+      matchScore: 89,
+    },
+    {
+      id: "r3",
+      name: "Annika Berg",
+      title: "Partner",
+      org: "Mannheimer Swartling",
+      experience: "Nordic energy law and PPAs",
+      matchScore: 83,
+    },
+  ],
+  strategic: [
+    {
+      id: "s1",
+      name: "Rolf Hansen",
+      title: "Chief Strategy Officer",
+      org: "Ørsted",
+      experience: "Offshore wind scaling and partnerships",
+      matchScore: 92,
+    },
+    {
+      id: "s2",
+      name: "Nadia Al-Rashid",
+      title: "Partner",
+      org: "McKinsey Sustainability",
+      experience: "Clean energy growth strategy",
+      matchScore: 88,
+    },
+    {
+      id: "s3",
+      name: "Victor Osei",
+      title: "VP Business Development",
+      org: "Mainstream Renewable Power",
+      experience: "Emerging market project development",
+      matchScore: 84,
+    },
+  ],
+  international: [
+    {
+      id: "x1",
+      name: "Sophia Chen",
+      title: "Managing Director",
+      org: "APAC Infrastructure Partners",
+      experience: "Cross-border energy investment",
+      matchScore: 91,
+    },
+    {
+      id: "x2",
+      name: "Mohammed Al-Farsi",
+      title: "Director",
+      org: "MENA Clean Energy Fund",
+      experience: "Middle East and North Africa renewables",
+      matchScore: 86,
+    },
+    {
+      id: "x3",
+      name: "Isabela Rodrigues",
+      title: "Partner",
+      org: "Vinci Energies Brasil",
+      experience: "Latin American market entry",
+      matchScore: 82,
+    },
+  ],
+};
+
+// ── Expertise card ─────────────────────────────────────────────────────────────
+
+function ExpertiseCategoryCard({
+  category,
+  onApply,
+}: {
+  category: ExpertiseCategory;
+  onApply: (id: string) => void;
+}) {
+  const Icon = category.icon;
+  return (
+    <div
+      className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col"
+      style={{ borderLeftColor: category.accentColor, borderLeftWidth: 3 }}
+    >
+      <div className="p-4 flex-1">
+        {/* Top row: icon + available badge */}
+        <div className="flex items-start justify-between mb-3">
+          <div className={`p-2 rounded-full ${category.iconBg}`}>
+            <Icon className={`h-4 w-4 ${category.iconColor}`} />
+          </div>
+          <span className="text-[10px] font-semibold bg-neutral-100 text-neutral-500 rounded-full px-2 py-0.5 uppercase tracking-wide">
+            {category.available} available
+          </span>
+        </div>
+
+        {/* Title + description */}
+        <p className="text-sm font-bold text-neutral-900 mb-1">{category.title}</p>
+        <p className="text-xs text-neutral-500 leading-relaxed">{category.description}</p>
+      </div>
+
+      {/* Footer band */}
+      <div className="flex items-center justify-between px-4 py-2.5 bg-green-50/60 border-t border-neutral-100">
+        <div>
+          <p className="text-[10px] text-neutral-400 uppercase tracking-wide font-semibold">
+            Signal Score Impact
+          </p>
+          <p className="text-sm font-bold text-green-600">
+            +{category.impact.toFixed(1)}
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-xs h-7 gap-1"
+          onClick={() => onApply(category.id)}
+        >
+          <UserPlus className="h-3 w-3" />
+          Apply
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ── Suggested expertise section ────────────────────────────────────────────────
+
+function SuggestedBoardSupportSection({ onApply }: { onApply: (id: string) => void }) {
+  return (
+    <div className="space-y-4">
+      {/* Section header */}
+      <div className="flex items-center gap-3">
+        <div className="p-1.5 bg-amber-100 rounded-lg">
+          <Star className="h-4 w-4 text-amber-500" />
+        </div>
+        <div>
+          <p className="text-base font-bold text-neutral-900">Suggested Board Support Members</p>
+          <p className="text-xs text-neutral-500">Strategic expertise areas to strengthen your team</p>
+        </div>
+        <div className="ml-auto">
+          <span className="text-[10px] font-semibold bg-blue-50 text-blue-600 border border-blue-200 rounded-full px-3 py-1 uppercase tracking-wide">
+            AI-Powered
+          </span>
+        </div>
+      </div>
+
+      {/* Analysis context pill */}
+      <div className="flex items-center gap-2 text-xs text-neutral-500 bg-neutral-50 rounded-lg px-3 py-2 border border-neutral-100">
+        <Lightbulb className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+        <span>
+          Recommendations based on Signal Score dimension gaps, risk profile, project stage, and sector analysis.
+          Sorted by highest estimated score impact.
+        </span>
+      </div>
+
+      {/* 3×2 grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {SORTED_EXPERTISE.map((cat) => (
+          <ExpertiseCategoryCard key={cat.id} category={cat} onApply={onApply} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Advisor modal ──────────────────────────────────────────────────────────────
+
+function CategoryAdvisorsModal({
+  categoryId,
+  onClose,
+}: {
+  categoryId: string;
+  onClose: () => void;
+}) {
+  const category = EXPERTISE_CATEGORIES.find((c) => c.id === categoryId);
+  const advisors = CATEGORY_ADVISORS[categoryId] ?? [];
+  if (!category) return null;
+  const Icon = category.icon;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Panel */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+        {/* Header */}
+        <div
+          className="px-5 py-4 flex items-center justify-between"
+          style={{ borderBottom: `3px solid ${category.accentColor}` }}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-full ${category.iconBg}`}>
+              <Icon className={`h-4 w-4 ${category.iconColor}`} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-neutral-900">{category.title}</p>
+              <p className="text-xs text-neutral-500">{advisors.length} advisors available</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 hover:bg-neutral-100 transition-colors text-neutral-500"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Advisor list */}
+        <div className="divide-y divide-neutral-100 max-h-[60vh] overflow-y-auto">
+          {advisors.map((adv) => (
+            <div key={adv.id} className="px-5 py-4 flex items-center gap-4 hover:bg-neutral-50 transition-colors">
+              {/* Score bubble */}
+              <div
+                className="h-10 w-10 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                style={{ backgroundColor: category.accentColor }}
+              >
+                {adv.matchScore}
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-neutral-900">{adv.name}</p>
+                <p className="text-xs text-neutral-500 truncate">
+                  {adv.title} · {adv.org}
+                </p>
+                <p className="text-[11px] text-neutral-400 mt-0.5">{adv.experience}</p>
+              </div>
+
+              {/* CTA */}
+              <Button size="sm" variant="outline" className="text-xs h-7 shrink-0">
+                Request Intro
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3 bg-neutral-50 border-t border-neutral-100 flex items-center justify-between">
+          <p className="text-xs text-neutral-400">
+            Signal Score impact: <span className="font-bold text-green-600">+{category.impact.toFixed(1)}</span> estimated
+          </p>
+          <Button size="sm" onClick={onClose} variant="outline" className="text-xs">
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Advisor card ──────────────────────────────────────────────────────────────
 
 function AdvisorCard({ advisor }: {
@@ -257,6 +714,7 @@ export default function BoardAdvisorPage() {
   const [expertise, setExpertise] = useState("");
   const [availFilter, setAvailFilter] = useState<"all" | "available" | "limited" | "unavailable">("all");
   const [platformOnly, setPlatformOnly] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   const { data: advisorsData = [], isLoading } = useAdvisorSearch(expertise || undefined);
   const rawAdvisors = advisorsData.length > 0 ? advisorsData : MOCK_ADVISORS;
@@ -299,6 +757,18 @@ export default function BoardAdvisorPage() {
         <strong>Platform Members</strong> to find advisors already verified within the SCR network.
       </InfoBanner>
 
+      {/* ── AI-Suggested Board Support ──────────────────────────────────────── */}
+      <SuggestedBoardSupportSection onApply={setSelectedCategoryId} />
+
+      {/* ── Advisor modal ──────────────────────────────────────────────────── */}
+      {selectedCategoryId && (
+        <CategoryAdvisorsModal
+          categoryId={selectedCategoryId}
+          onClose={() => setSelectedCategoryId(null)}
+        />
+      )}
+
+      {/* ── Search & Applications tabs ─────────────────────────────────────── */}
       <Tabs defaultValue="find">
         <TabsList>
           <TabsTrigger value="find">
