@@ -186,6 +186,7 @@ const allyNav: NavSection[] = [
     items: [
       { label: "Investor Matching", href: "/matching", icon: Zap },
       { label: "Warm Introductions", href: "/warm-intros", icon: Users },
+      { label: "Deal Room", href: "/deal-rooms", icon: MessageSquare },
       { label: "Data Room", href: "/data-room", icon: FolderLock, tourId: "nav-data-room" },
       { label: "Funding", href: "/funding", icon: Wallet, tourId: "nav-funding" },
       { label: "Reports", href: "/reports", icon: BarChart3 },
