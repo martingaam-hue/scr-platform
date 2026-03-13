@@ -29,6 +29,7 @@ import {
   type AllocationBreakdown,
   type HoldingResponse,
 } from "@/lib/portfolio";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Colours ───────────────────────────────────────────────────────────────────
 
@@ -204,6 +205,12 @@ export default function PortfolioAnalyticsPage() {
           ))}
         </select>
       </div>
+
+      <InfoBanner>
+        <strong>Portfolio Analytics</strong> provides performance, allocation, and risk breakdowns across
+        your fund&apos;s holdings. Drill into sector, geography, and vintage diversification, and benchmark
+        performance against your target return profile.
+      </InfoBanner>
 
       {/* KPI row */}
       {loadingMetrics ? (

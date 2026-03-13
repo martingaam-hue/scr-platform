@@ -28,6 +28,7 @@ import {
   type CreateScenarioRequest,
   type EquityScenario,
 } from "@/lib/equity-calculator";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── New Scenario Form ─────────────────────────────────────────────────────
 
@@ -553,6 +554,12 @@ export default function EquityCalculatorPage() {
           </Button>
         )}
       </div>
+
+      <InfoBanner>
+        <strong>Equity Calculator</strong> models equity ownership, dilution, and waterfall distributions
+        across financing scenarios. Add multiple funding rounds, adjust ownership stakes, and see how
+        exits distribute proceeds across the full capital structure.
+      </InfoBanner>
 
       {/* Main content: form + results */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

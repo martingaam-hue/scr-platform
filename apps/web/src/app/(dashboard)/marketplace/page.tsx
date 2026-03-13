@@ -51,6 +51,7 @@ import {
   type ListingFilters,
   type ListingType,
 } from "@/lib/marketplace";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -762,6 +763,12 @@ export default function MarketplacePage() {
           Secondary market for private impact assets — equity, debt, co-investment, carbon credits
         </p>
       </div>
+
+      <InfoBanner>
+        <strong>Marketplace</strong> surfaces curated investment opportunities matched to your fund&apos;s
+        mandate and risk profile. Browse listings, review AI-scored projects, and connect directly with
+        deal sponsors through the platform&apos;s warm introduction system.
+      </InfoBanner>
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">

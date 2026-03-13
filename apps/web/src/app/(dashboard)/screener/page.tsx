@@ -13,6 +13,7 @@ import {
   type ScreenerResult,
   type ScreenerResponse,
 } from "@/lib/screener";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Signal score badge ────────────────────────────────────────────────────
 
@@ -246,6 +247,12 @@ export default function SmartScreenerPage() {
           Search deals using natural language
         </p>
       </div>
+
+      <InfoBanner>
+        <strong>Smart Screener</strong> lets you search the deal pipeline using natural language queries.
+        Describe the investment profile you are looking for and the AI will match it against available
+        opportunities, ranked by signal score and strategic fit with your mandate.
+      </InfoBanner>
 
       {/* Search bar */}
       <div className="relative">

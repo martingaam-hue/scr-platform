@@ -12,7 +12,6 @@ import {
   Download,
   FileText,
   Globe,
-  Info,
   Leaf,
   Loader2,
   Plus,
@@ -37,6 +36,7 @@ import {
   useStreamMessage,
   type RalphMessage,
 } from "@/lib/ralph";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -555,17 +555,11 @@ export default function RalphPage() {
         )}
       </div>
 
-      {/* Info banner */}
-      <div className="flex items-start gap-3 rounded-lg bg-primary-50 border border-primary-200 px-4 py-3">
-        <Info className="h-4 w-4 text-primary-500 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-primary-800">
-          Ralph is your conversational AI partner with access to{" "}
-          <strong>19 specialised tools</strong> across the whole platform. Every answer is
-          grounded in your uploaded documents and platform data — with source citations. Ralph
-          can for example generate reports, analyze documents, score projects, review legal
-          terms, model financials, and more. Just ask.
-        </p>
-      </div>
+      <InfoBanner>
+        <strong>Ralph AI</strong> is your AI investment analyst powered by Claude. Ask questions about
+        your portfolio, request analysis of specific holdings, get deal screening summaries, or generate
+        reports — all using natural language. Ralph has full context of your fund and portfolio.
+      </InfoBanner>
 
       {/* Main prompt section */}
       <Card>

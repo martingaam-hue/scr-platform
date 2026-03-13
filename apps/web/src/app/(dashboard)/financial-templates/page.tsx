@@ -24,6 +24,7 @@ import {
   type DCFInput,
   type DCFResult,
 } from "@/lib/financial-templates";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Sector filter ──────────────────────────────────────────────────────────────
 
@@ -366,6 +367,12 @@ export default function FinancialTemplatesPage() {
           </p>
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Financial Models</strong> provides sector-specific DCF templates and cashflow models that
+        can be applied to portfolio holdings and pipeline deals. Select a template, input deal parameters,
+        and generate a structured valuation model ready for investment committee review.
+      </InfoBanner>
 
       {/* Sector filter */}
       <SectorFilter selected={selectedSector} onChange={handleSectorChange} />

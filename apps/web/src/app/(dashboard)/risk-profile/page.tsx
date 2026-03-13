@@ -17,6 +17,7 @@ import {
   LIQUIDITY_LABELS,
   type AssessmentRequest,
 } from "@/lib/risk-profile";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Question step ─────────────────────────────────────────────────────────────
 
@@ -238,6 +239,12 @@ export default function RiskProfilePage() {
           </Button>
         )}
       </div>
+
+      <InfoBanner>
+        <strong>Risk Profile</strong> captures your investment mandate, risk tolerance, sector preferences,
+        and return targets. The platform uses this profile to personalise opportunity matching, portfolio
+        alerts, and AI recommendations across all investor tools.
+      </InfoBanner>
 
       {/* Profile exists */}
       {profile?.has_profile && !showQuestionnaire && (

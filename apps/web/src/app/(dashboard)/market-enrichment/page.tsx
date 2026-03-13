@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Activity,
 } from "lucide-react";
+import { InfoBanner } from "@/components/info-banner";
 import {
   useMarketEnrichmentDashboard,
   useMarketDataSources,
@@ -107,6 +108,12 @@ export default function MarketEnrichmentPage() {
           </button>
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Market Data Enrichment</strong> ingests structured market data from official APIs, RSS feeds,
+        and manual sources, making it available for scoring, analysis, and reporting across the platform.
+        Review, approve, or reject incoming data points before they influence your portfolio analytics.
+      </InfoBanner>
 
       {/* Tabs */}
       <div className="border-b border-gray-200">

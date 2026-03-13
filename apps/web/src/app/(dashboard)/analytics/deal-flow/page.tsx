@@ -25,6 +25,7 @@ import {
   type StageCount,
   type AvgTimeInStage,
 } from "@/lib/deal-flow";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Period Options ─────────────────────────────────────────────────────────
 
@@ -409,6 +410,12 @@ export default function DealFlowAnalyticsPage() {
           ))}
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Deal Flow Analytics</strong> tracks how opportunities progress through your screening
+        pipeline — from initial sourcing to investment committee review. Monitor stage conversion rates,
+        pipeline velocity, and deal volume trends over time.
+      </InfoBanner>
 
       {/* Row 1: KPI Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

@@ -24,6 +24,7 @@ import {
   type ScenarioResponse,
 } from "@/lib/stress-test";
 import { usePortfolios } from "@/lib/portfolio";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Scenario Card ────────────────────────────────────────────────────────────
 
@@ -213,6 +214,12 @@ export default function StressTestPage() {
           </Badge>
         )}
       </div>
+
+      <InfoBanner>
+        <strong>Portfolio Stress Test</strong> runs Monte Carlo simulations across 10,000 scenarios to model
+        how your portfolio performs under adverse market conditions. Adjust input parameters, select stress
+        scenarios, and analyse NAV, IRR, and loss distributions under tail-risk events.
+      </InfoBanner>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Controls */}

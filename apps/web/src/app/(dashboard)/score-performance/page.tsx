@@ -41,6 +41,7 @@ import {
   type BacktestRunRequest,
   type RecordOutcomeRequest,
 } from "@/lib/backtesting";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -836,6 +837,12 @@ export default function ScorePerformancePage() {
           </p>
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Score Performance</strong> backtests the Signal Score algorithm against historical deal
+        outcomes to validate its predictive accuracy. Review model calibration, outcome attribution, and
+        identify where score thresholds align with actual investment performance.
+      </InfoBanner>
 
       <Tabs defaultValue="summary">
         <TabsList>

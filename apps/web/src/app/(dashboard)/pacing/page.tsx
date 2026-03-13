@@ -40,6 +40,7 @@ import {
   type CreateAssumptionPayload,
 } from "@/lib/pacing";
 import { usePortfolios } from "@/lib/portfolio";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -435,6 +436,12 @@ export default function PacingPage() {
           </div>
         )}
       </div>
+
+      <InfoBanner>
+        <strong>J-Curve Pacing</strong> models your fund&apos;s cashflow trajectory — capital calls,
+        distributions, and net cash position — over the full fund lifecycle. Adjust assumptions to
+        stress-test pacing against different deployment speeds and exit scenarios.
+      </InfoBanner>
 
       {/* Stats row */}
       {pacing && (

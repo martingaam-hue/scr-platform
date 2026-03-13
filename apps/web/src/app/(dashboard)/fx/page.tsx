@@ -22,6 +22,7 @@ import {
   MAJOR_CURRENCIES,
   type CurrencyExposureItem,
 } from "@/lib/fx";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Exposure Bar ──────────────────────────────────────────────────────────────
 
@@ -192,6 +193,12 @@ export default function FXPage() {
           ))}
         </select>
       </div>
+
+      <InfoBanner>
+        <strong>FX Exposure</strong> shows the currency breakdown of your portfolio holdings and compares
+        against ECB reference rates. Monitor cross-currency risk, hedging requirements, and the impact of
+        exchange rate movements on your fund&apos;s reported returns.
+      </InfoBanner>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Exposure breakdown */}

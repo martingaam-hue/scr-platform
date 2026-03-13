@@ -5,6 +5,7 @@ import { useComps, useCreateComp, useCompsValuation, QUALITY_BADGE, ASSET_TYPES,
 import { formatCurrency, formatPct } from "@/lib/format"
 import { Plus, Calculator, TrendingUp, X } from "lucide-react"
 import { AIFeedback } from "@/components/ai-feedback"
+import { InfoBanner } from "@/components/info-banner"
 
 export default function CompsPage() {
   const [filters, setFilters] = useState({
@@ -52,6 +53,12 @@ export default function CompsPage() {
           </button>
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Comparable Transactions</strong> provides a database of public and private deal transactions
+        for benchmarking purposes. Use transaction multiples to calibrate your valuation assumptions and
+        contextualise portfolio holdings against the broader market.
+      </InfoBanner>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">

@@ -25,6 +25,7 @@ import {
   useBatchSubmit,
   type AnchorResponse,
 } from "@/lib/blockchain";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -152,6 +153,12 @@ export default function BlockchainAuditPage() {
           </Button>
         </div>
       </div>
+
+      <InfoBanner>
+        <strong>Blockchain Audit Trail</strong> provides an immutable, tamper-proof log of key platform
+        events — document uploads, score changes, approvals, and user actions — anchored on-chain via
+        Polygon. Use it to satisfy LP due diligence and regulatory audit requirements.
+      </InfoBanner>
 
       {isLoading ? (
         <div className="flex h-64 items-center justify-center">

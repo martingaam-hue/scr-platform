@@ -35,6 +35,7 @@ import {
   type LPReport,
   type CreateLPReportRequest,
 } from "@/lib/lp-reports";
+import { InfoBanner } from "@/components/info-banner";
 
 // ── Metric Card ─────────────────────────────────────────────────────────────
 
@@ -268,6 +269,12 @@ export default function LPReportsPage() {
           New Report
         </Button>
       </div>
+
+      <InfoBanner>
+        <strong>LP Reports</strong> provides a consolidated view of your fund&apos;s investor reporting
+        obligations — quarterly and annual letters, capital account statements, and performance summaries.
+        Generate, review, and distribute reports to your limited partners directly from this panel.
+      </InfoBanner>
 
       {/* KPI bar */}
       {latestApproved && (
