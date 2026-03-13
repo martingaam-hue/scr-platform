@@ -40,8 +40,8 @@ import { useProjects } from "@/lib/projects";
 
 function InfoBanner() {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-      <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+    <div className="flex items-start gap-3 rounded-lg border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-800">
+      <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary-500" />
       <span>
         Your Signal Score measures your project&apos;s{" "}
         <strong>investment readiness</strong> based on the quality and completeness of your
@@ -57,7 +57,7 @@ function InfoBanner() {
 
 function PortfolioHero({ avg, total, ready }: { avg: number; total: number; ready: number }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-8 py-10">
+    <div className="rounded-2xl border border-neutral-200 bg-white px-8 py-10">
       <p className="mb-8 text-xs font-semibold uppercase tracking-widest text-neutral-400">
         Portfolio Signal Score Overview
       </p>

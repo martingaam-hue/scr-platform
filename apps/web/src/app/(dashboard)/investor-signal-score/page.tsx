@@ -437,8 +437,8 @@ function ringColor(s: number) {
 
 function InfoBanner() {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-      <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+    <div className="flex items-start gap-3 rounded-lg border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-800">
+      <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary-500" />
       <span>
         <strong>Investment Signal Score</strong> evaluates projects from an investor perspective — analyzing
         investment readiness, financial robustness, risk-adjusted return potential, team credibility,
@@ -983,17 +983,17 @@ export default function InvestorSignalScorePage() {
       <InfoBanner />
 
       {/* ── Hero Stats (dark navy) ─────────────────────────────────────── */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#1B2A4A] to-[#243660] px-8 py-10 text-white shadow-lg">
-        <p className="mb-8 text-xs font-semibold uppercase tracking-widest text-indigo-300">
+      <div className="rounded-2xl border border-neutral-200 bg-white px-8 py-10 shadow-sm">
+        <p className="mb-8 text-xs font-semibold uppercase tracking-widest text-primary-600">
           Portfolio Signal Score Overview
         </p>
         <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
           {[
-            { label: "Average Investment Score", value: HERO_STATS.avg_score,          color: "text-white",     sub: "across all evaluated" },
-            { label: "Projects Evaluated",       value: HERO_STATS.projects_evaluated,  color: "text-white",     sub: "total scored" },
-            { label: "Investment Ready",         value: HERO_STATS.investment_ready,    color: "text-green-400", sub: "score ≥ 80" },
-            { label: "Portfolio Avg",            value: HERO_STATS.portfolio_avg,        color: "text-blue-300",  sub: "current holdings" },
-            { label: "Pipeline Avg",             value: HERO_STATS.pipeline_avg,         color: "text-indigo-200",sub: "screening deals" },
+            { label: "Average Investment Score", value: HERO_STATS.avg_score,          color: "text-neutral-900", sub: "across all evaluated" },
+            { label: "Projects Evaluated",       value: HERO_STATS.projects_evaluated,  color: "text-neutral-900", sub: "total scored" },
+            { label: "Investment Ready",         value: HERO_STATS.investment_ready,    color: "text-green-600",   sub: "score ≥ 80" },
+            { label: "Portfolio Avg",            value: HERO_STATS.portfolio_avg,        color: "text-blue-600",    sub: "current holdings" },
+            { label: "Pipeline Avg",             value: HERO_STATS.pipeline_avg,         color: "text-indigo-600",  sub: "screening deals" },
           ].map(({ label, value, color, sub }) => (
             <div key={label} className={HERO_STATS.avg_score === value ? "col-span-2 sm:col-span-1" : ""}>
               <p className={cn(
@@ -1003,8 +1003,8 @@ export default function InvestorSignalScorePage() {
               )}>
                 {value}
               </p>
-              <p className="mt-2 text-sm font-medium text-indigo-100">{label}</p>
-              <p className="mt-0.5 text-xs text-indigo-300">{sub}</p>
+              <p className="mt-2 text-sm font-medium text-neutral-600">{label}</p>
+              <p className="mt-0.5 text-xs text-neutral-400">{sub}</p>
             </div>
           ))}
         </div>

@@ -648,17 +648,16 @@ export default function MarketDataPage() {
         {/* ── TAB: Briefing ───────────────────────────────────────────────────── */}
         <TabsContent value="briefing" className="space-y-6 mt-6">
           {/* Daily brief hero */}
-          <div className="rounded-2xl bg-gradient-to-br from-[#1B2A4A] to-[#243660] p-6 text-white">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <p className="text-xs font-semibold text-indigo-300 uppercase tracking-wide mb-1">Today&apos;s Portfolio Intelligence Brief</p>
-                <h2 className="text-lg font-bold">AI Daily Summary</h2>
+                <p className="text-xs font-semibold text-primary-600 uppercase tracking-wide mb-1">Today&apos;s Portfolio Intelligence Brief</p>
+                <h2 className="text-lg font-bold text-neutral-900">AI Daily Summary</h2>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-white hover:bg-white/10"
                   onClick={handleBriefingRefresh}
                   disabled={briefingGenerating}
                 >
@@ -667,7 +666,6 @@ export default function MarketDataPage() {
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-indigo-500 hover:bg-indigo-400 text-white"
                   onClick={() => handleAiAction("brief")}
                   disabled={aiActionRunning === "brief"}
                 >
@@ -677,50 +675,56 @@ export default function MarketDataPage() {
               </div>
             </div>
             {briefingGenerating ? (
-              <div className="flex items-center gap-2 text-indigo-200 text-sm py-4">
+              <div className="flex items-center gap-2 text-neutral-400 text-sm py-4">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Scanning {(1247).toLocaleString()} sources for portfolio-relevant developments…
               </div>
             ) : (
-              <p className="text-sm text-indigo-100 leading-relaxed">{BRIEFING_SUMMARY}</p>
+              <p className="text-sm text-neutral-600 leading-relaxed">{BRIEFING_SUMMARY}</p>
             )}
-            <p className="text-xs text-indigo-400 mt-3 flex items-center gap-1.5">
+            <p className="text-xs text-neutral-400 mt-3 flex items-center gap-1.5">
               <Clock className="h-3 w-3" /> Last updated: Today at 08:30 UTC
             </p>
             {/* Stats row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
               {BRIEFING_STATS.map((stat) => (
-                <div key={stat.label} className="bg-white/10 rounded-xl p-3">
-                  <stat.icon className="h-4 w-4 text-indigo-300 mb-1" />
-                  <p className="text-2xl font-bold text-white">{stat.value}</p>
-                  <p className="text-xs text-indigo-300 mt-0.5">{stat.label}</p>
+                <div key={stat.label} className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
+                  <stat.icon className="h-4 w-4 text-primary-500 mb-1" />
+                  <p className="text-2xl font-bold text-neutral-900">{stat.value}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">{stat.label}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* AI Actions */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">AI Intelligence Actions</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {AI_ACTIONS.map((action) => (
-                <button
-                  key={action.id}
-                  className="text-left p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-sm transition-all"
-                  onClick={() => handleAiAction(action.id)}
-                  disabled={aiActionRunning === action.id}
-                >
-                  <div className={`inline-flex p-2 rounded-lg mb-3 ${action.color}`}>
-                    {aiActionRunning === action.id
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : <action.icon className="h-4 w-4" />}
-                  </div>
-                  <p className="text-sm font-semibold text-gray-900">{action.label}</p>
-                  <p className="text-xs text-gray-500 mt-1">{action.description}</p>
-                </button>
-              ))}
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-gray-500" /> AI Intelligence Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {AI_ACTIONS.map((action) => (
+                  <button
+                    key={action.id}
+                    className="text-left p-4 rounded-xl border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition-all"
+                    onClick={() => handleAiAction(action.id)}
+                    disabled={aiActionRunning === action.id}
+                  >
+                    <div className={`inline-flex p-2 rounded-lg mb-3 ${action.color}`}>
+                      {aiActionRunning === action.id
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <action.icon className="h-4 w-4" />}
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900">{action.label}</p>
+                    <p className="text-xs text-gray-500 mt-1">{action.description}</p>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Sources transparency */}
           <Card>
