@@ -76,8 +76,8 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
+      Effect = "Allow"
+      Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
       Resource = [
         aws_s3_bucket.documents.arn,
         "${aws_s3_bucket.documents.arn}/*"
@@ -1001,6 +1001,202 @@ resource "aws_appautoscaling_policy" "worker_default_cpu" {
       predefined_metric_type = "ECSServiceAverageCPUUtilization"
     }
     target_value       = 70
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# ── API — ALB Request Count Policy (supplement to CPU) ────────────────────────
+# Responds to burst traffic faster than CPU metrics alone.
+
+resource "aws_appautoscaling_policy" "api_alb_requests" {
+  count              = var.environment == "production" ? 1 : 0
+  name               = "scr-${var.environment}-api-alb-requests"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.api[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.api[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.api[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ALBRequestCountPerTarget"
+      resource_label         = "${aws_lb.main.arn_suffix}/${aws_lb_target_group.api.arn_suffix}"
+    }
+    target_value       = 1000
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# ── AI Gateway Auto Scaling (production only) ─────────────────────────────────
+# Latency-sensitive: fast scale-out (30s), slow scale-in (300s).
+
+resource "aws_appautoscaling_target" "gateway" {
+  count              = var.environment == "production" ? 1 : 0
+  max_capacity       = 4
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.gateway.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "gateway_cpu" {
+  count              = var.environment == "production" ? 1 : 0
+  name               = "scr-${var.environment}-gateway-cpu"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.gateway[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.gateway[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.gateway[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 60
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 30
+  }
+}
+
+# ── Web Service Auto Scaling (production only) ────────────────────────────────
+
+resource "aws_appautoscaling_target" "web" {
+  count              = var.environment == "production" ? 1 : 0
+  max_capacity       = 4
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.web.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "web_cpu" {
+  count              = var.environment == "production" ? 1 : 0
+  name               = "scr-${var.environment}-web-cpu"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.web[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.web[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.web[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# ── worker-bulk Auto Scaling (production only) ────────────────────────────────
+# Memory is often the binding constraint for bulk data workers — track both.
+
+resource "aws_appautoscaling_target" "worker_bulk" {
+  count              = var.environment == "production" ? 1 : 0
+  max_capacity       = 6
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.worker_bulk.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "worker_bulk_cpu" {
+  count              = var.environment == "production" ? 1 : 0
+  name               = "scr-${var.environment}-worker-bulk-cpu"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.worker_bulk[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.worker_bulk[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.worker_bulk[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 75
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+resource "aws_appautoscaling_policy" "worker_bulk_memory" {
+  count              = var.environment == "production" ? 1 : 0
+  name               = "scr-${var.environment}-worker-bulk-memory"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.worker_bulk[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.worker_bulk[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.worker_bulk[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+    target_value       = 80
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# ── worker-webhooks Auto Scaling (production only) ────────────────────────────
+
+resource "aws_appautoscaling_target" "worker_webhooks" {
+  count              = var.environment == "production" ? 1 : 0
+  max_capacity       = 3
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.worker_webhooks.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "worker_webhooks_cpu" {
+  count              = var.environment == "production" ? 1 : 0
+  name               = "scr-${var.environment}-worker-webhooks-cpu"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.worker_webhooks[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.worker_webhooks[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.worker_webhooks[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# ── Memory policies for existing workers (supplement CPU) ─────────────────────
+
+resource "aws_appautoscaling_policy" "worker_critical_memory" {
+  count              = var.environment == "production" ? 1 : 0
+  name               = "scr-${var.environment}-worker-critical-memory"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.worker_critical[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.worker_critical[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.worker_critical[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+    target_value       = 80
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+resource "aws_appautoscaling_policy" "worker_default_memory" {
+  count              = var.environment == "production" ? 1 : 0
+  name               = "scr-${var.environment}-worker-default-memory"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.worker_default[0].resource_id
+  scalable_dimension = aws_appautoscaling_target.worker_default[0].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.worker_default[0].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+    target_value       = 80
     scale_in_cooldown  = 300
     scale_out_cooldown = 60
   }
