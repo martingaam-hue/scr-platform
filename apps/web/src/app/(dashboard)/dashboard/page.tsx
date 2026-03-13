@@ -759,61 +759,73 @@ function invActivityMeta(type: string): { Icon: React.ElementType; color: string
 
 function InvestorDashboard() {
   const router = useRouter();
+  const { user } = useSCRUser();
+  const { toggle: toggleRalph } = useRalphStore();
 
   const deployedPct = Math.round((FUND.deployed / FUND.committed) * 100);
   const totalNAV = INV_HOLDINGS.reduce((s, h) => s + h.valuation, 0);
   const totalCost = INV_HOLDINGS.reduce((s, h) => s + h.amount, 0);
   const unrealizedGain = totalNAV - totalCost;
 
+  const firstName = user?.full_name?.split(" ")[0] ?? "there";
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
     <div className="space-y-6">
 
-      {/* ── 1. Hero stats ──────────────────────────────────────────────────── */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#1B2A4A] to-[#243660] p-6 text-white shadow-lg">
+      {/* ── 1. Greeting header ─────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">
+            {greeting()}, {firstName}
+          </h1>
+          <p className="mt-1 text-sm text-neutral-500">{today} · Your portfolio overview</p>
+        </div>
+        <Button onClick={() => router.push("/portfolio")}>
+          <Briefcase className="mr-2 h-4 w-4" /> View Fund
+        </Button>
+      </div>
+
+      {/* ── 2. Fund overview card ──────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-300">
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary-600">
               {FUND.strategy}
             </p>
-            <h1 className="mt-1 text-xl font-bold leading-tight text-white">
+            <p className="mt-1 text-lg font-bold leading-tight text-neutral-900">
               {FUND.name}
-            </h1>
-            <p className="mt-0.5 text-xs text-indigo-200">
+            </p>
+            <p className="mt-0.5 text-xs text-neutral-400">
               Vintage {FUND.vintage} · {FUND.lp_count} LPs
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="success">Deploying</Badge>
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-white/30 text-white hover:bg-white/10"
-              onClick={() => router.push("/portfolio")}
-            >
-              <Briefcase className="mr-1.5 h-3.5 w-3.5" /> View Fund
-            </Button>
-          </div>
+          <Badge variant="success">Deploying</Badge>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {[
-            { label: "Fund Size",        value: fmtM(FUND.committed),          sub: "committed capital" },
-            { label: "Deployed",         value: fmtM(FUND.deployed),           sub: `${deployedPct}% of fund` },
-            { label: "Total NAV",        value: fmtM(totalNAV),                sub: "portfolio fair value" },
-            { label: "Net IRR",          value: `${FUND.net_irr}%`,            sub: "since inception" },
-            { label: "TVPI",             value: `${FUND.tvpi}×`,               sub: "total value / paid-in" },
-            { label: "Active Deals",     value: `${FUND.active_investments}`,  sub: `avg score ${FUND.avg_signal_score}` },
+            { label: "Fund Size",    value: fmtM(FUND.committed),         sub: "committed capital" },
+            { label: "Deployed",     value: fmtM(FUND.deployed),          sub: `${deployedPct}% of fund` },
+            { label: "Total NAV",    value: fmtM(totalNAV),               sub: "portfolio fair value" },
+            { label: "Net IRR",      value: `${FUND.net_irr}%`,           sub: "since inception" },
+            { label: "TVPI",         value: `${FUND.tvpi}×`,              sub: "total value / paid-in" },
+            { label: "Active Deals", value: `${FUND.active_investments}`, sub: `avg score ${FUND.avg_signal_score}` },
           ].map(({ label, value, sub }) => (
-            <div key={label} className="rounded-xl bg-white/10 px-4 py-3">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-indigo-300">{label}</p>
-              <p className="mt-1 text-xl font-bold tabular-nums text-white">{value}</p>
-              <p className="text-[10px] text-indigo-200">{sub}</p>
+            <div key={label} className="rounded-xl bg-neutral-50 px-4 py-3">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-400">{label}</p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-neutral-900">{value}</p>
+              <p className="text-[10px] text-neutral-400">{sub}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── 2. Fund performance + capital deployment ───────────────────────── */}
+      {/* ── 3. Fund performance + capital deployment ───────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
         {/* Performance multiples */}
@@ -873,7 +885,7 @@ function InvestorDashboard() {
             </div>
             <div className="h-3 w-full overflow-hidden rounded-full bg-neutral-100">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#1B2A4A] to-[#3b82f6] transition-all"
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 transition-all"
                 style={{ width: `${deployedPct}%` }}
               />
             </div>
@@ -988,7 +1000,7 @@ function InvestorDashboard() {
       {/* ── 4. Portfolio holdings table ───────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-6">
             <CardTitle className="flex items-center gap-2">
               <Building className="h-4 w-4 text-primary-600" />
               Portfolio Holdings
@@ -1010,6 +1022,11 @@ function InvestorDashboard() {
                   <th className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-500">IRR</th>
                   <th className="px-3 py-2.5 text-center text-xs font-semibold text-neutral-500">Signal</th>
                   <th className="px-3 py-2.5 text-center text-xs font-semibold text-neutral-500">Status</th>
+                  <th className="px-3 py-2.5 text-center text-xs font-semibold text-neutral-400">
+                    <span className="flex items-center justify-center gap-1">
+                      Details <ChevronRight className="h-3 w-3" />
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-50">
@@ -1040,6 +1057,9 @@ function InvestorDashboard() {
                         {h.status === "performing" ? "Performing" : "Watch"}
                       </Badge>
                     </td>
+                    <td className="px-3 py-3 text-center">
+                      <ChevronRight className="h-4 w-4 text-neutral-300 inline" />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1048,7 +1068,7 @@ function InvestorDashboard() {
                   <td colSpan={2} className="px-6 py-2.5 text-xs font-semibold text-neutral-600">Total ({INV_HOLDINGS.length} holdings)</td>
                   <td className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-700">{fmtM(totalCost)}</td>
                   <td className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-900">{fmtM(totalNAV)}</td>
-                  <td colSpan={3} className="px-3 py-2.5 text-right text-xs text-green-600 font-semibold">+{fmtM(unrealizedGain)} unrealised</td>
+                  <td colSpan={4} className="px-3 py-2.5 text-right text-xs text-green-600 font-semibold">+{fmtM(unrealizedGain)} unrealised</td>
                 </tr>
               </tfoot>
             </table>
@@ -1067,12 +1087,12 @@ function InvestorDashboard() {
               Signal Score Distribution
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-3">
             <div className="mb-1 flex items-end justify-between">
               <p className="text-3xl font-bold text-neutral-900">{FUND.avg_signal_score}</p>
               <p className="text-xs text-neutral-400">portfolio avg</p>
             </div>
-            <ResponsiveContainer width="100%" height={160}>
+            <ResponsiveContainer width="100%" height={148}>
               <RBarChart data={SCORE_DIST} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
                 <XAxis dataKey="range" tick={{ fontSize: 10 }} tickLine={false} />
@@ -1096,9 +1116,9 @@ function InvestorDashboard() {
                 <Shield className="h-4 w-4 text-primary-600" />
                 Risk Exposure
               </CardTitle>
-              <button onClick={() => router.push("/risk")} className="text-xs text-primary-600 hover:underline">
-                Full report
-              </button>
+              <Button variant="ghost" size="sm" onClick={() => router.push("/risk")}>
+                Full report <ChevronRight className="ml-1 h-3.5 w-3.5" />
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -1213,28 +1233,48 @@ function InvestorDashboard() {
         </Card>
       </div>
 
-      {/* ── 7. Quick actions ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: "Browse Deals",     icon: Target,     path: "/deals",       color: "text-indigo-600", bg: "bg-indigo-50"  },
-          { label: "Run ESG Report",   icon: Leaf,       path: "/esg",         color: "text-green-600",  bg: "bg-green-50"   },
-          { label: "Risk Assessment",  icon: Shield,     path: "/risk",        color: "text-red-600",    bg: "bg-red-50"     },
-          { label: "Ask Ralph AI",     icon: Sparkles,   path: "/dashboard",   color: "text-purple-600", bg: "bg-purple-50"  },
-        ].map(({ label, icon: Icon, path, color, bg }) => (
-          <button
-            key={label}
-            onClick={() => router.push(path)}
-            className={cn(
-              "flex flex-col items-center gap-2 rounded-xl border border-neutral-100 p-4 transition-all hover:shadow-md hover:-translate-y-0.5",
-              bg
-            )}
-          >
-            <div className={cn("flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm", color)}>
-              <Icon className="h-4 w-4" />
-            </div>
-            <span className="text-xs font-semibold text-neutral-700">{label}</span>
-          </button>
-        ))}
+      {/* ── 7. Quick actions + Ask Ralph ──────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Quick action buttons */}
+        <div className="grid grid-cols-3 gap-3 lg:col-span-2">
+          {[
+            { label: "Browse Deals",    icon: Target,  path: "/deals", color: "text-indigo-600", bg: "bg-indigo-50" },
+            { label: "Run ESG Report",  icon: Leaf,    path: "/esg",   color: "text-green-600",  bg: "bg-green-50"  },
+            { label: "Risk Assessment", icon: Shield,  path: "/risk",  color: "text-red-600",    bg: "bg-red-50"    },
+          ].map(({ label, icon: Icon, path, color, bg }) => (
+            <button
+              key={label}
+              onClick={() => router.push(path)}
+              className={cn(
+                "flex flex-col items-center gap-2 rounded-xl border border-neutral-100 p-4 transition-all hover:shadow-md hover:-translate-y-0.5",
+                bg
+              )}
+            >
+              <div className={cn("flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm", color)}>
+                <Icon className="h-4 w-4" />
+              </div>
+              <span className="text-xs font-semibold text-neutral-700">{label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Ask Ralph — ally-style dark navy card */}
+        <div
+          className="cursor-pointer rounded-xl border border-[#243660]/20 bg-gradient-to-br from-[#1B2A4A] to-[#243660] p-5 transition-all hover:shadow-lg"
+          onClick={toggleRalph}
+        >
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-indigo-300" />
+            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">AI Assistant</p>
+          </div>
+          <p className="mt-3 text-base font-bold text-white">Ask Ralph</p>
+          <p className="mt-0.5 text-xs text-indigo-200">
+            Get AI-powered insights on your portfolio, risk exposure, and deal pipeline
+          </p>
+          <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-white">
+            Start a conversation <ArrowRight className="h-3 w-3" />
+          </div>
+        </div>
       </div>
 
     </div>
