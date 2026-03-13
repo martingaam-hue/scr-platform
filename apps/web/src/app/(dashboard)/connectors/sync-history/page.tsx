@@ -51,7 +51,7 @@ const MOCK_CONNECTIONS: CRMConnection[] = [
   },
 ];
 
-const MOCK_LOGS: SyncLog[] = [
+const MOCK_LOGS = [
   { id: "log-001", connection_id: "conn-bloomberg", direction: "inbound", entity_type: "market_data", action: "sync", status: "success", error_message: null, created_at: "2026-03-13T09:00:00Z" },
   { id: "log-002", connection_id: "conn-bloomberg", direction: "inbound", entity_type: "market_data", action: "sync", status: "success", error_message: null, created_at: "2026-03-12T09:00:00Z" },
   { id: "log-003", connection_id: "conn-bloomberg", direction: "inbound", entity_type: "market_data", action: "sync", status: "success", error_message: null, created_at: "2026-03-11T09:00:00Z" },
@@ -64,7 +64,7 @@ const MOCK_LOGS: SyncLog[] = [
   { id: "log-010", connection_id: "conn-refinitiv", direction: "inbound", entity_type: "market_data", action: "auth", status: "failed", error_message: "Authentication failed: API token expired. Please reconfigure your Refinitiv credentials.", created_at: "2026-03-05T08:00:00Z" },
   { id: "log-011", connection_id: "conn-refinitiv", direction: "inbound", entity_type: "market_data", action: "auth", status: "failed", error_message: "Authentication failed: API token expired.", created_at: "2026-02-28T14:00:00Z" },
   { id: "log-012", connection_id: "conn-bloomberg", direction: "inbound", entity_type: "market_data", action: "sync", status: "success", error_message: null, created_at: "2026-03-09T09:00:00Z" },
-];
+] as unknown as SyncLog[];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -210,7 +210,7 @@ export default function SyncHistoryPage() {
   const allConnections: CRMConnection[] = (connectionsData && connectionsData.length > 0) ? connectionsData : MOCK_CONNECTIONS;
   // Filter mock logs by selected connection when no real data
   const logsForConnection = logsData ?? (selectedConnectionId
-    ? MOCK_LOGS.filter(l => l.connection_id === selectedConnectionId)
+    ? MOCK_LOGS.filter(l => (l as unknown as { connection_id: string }).connection_id === selectedConnectionId)
     : MOCK_LOGS);
   const allLogs: SyncLog[] = logsForConnection;
 

@@ -47,7 +47,7 @@ const MOCK_DASHBOARD = {
   ],
 };
 
-const MOCK_SOURCES: MarketDataSource[] = [
+const MOCK_SOURCES = [
   {
     id: "bloomberg-terminal-001",
     name: "Bloomberg Terminal",
@@ -103,9 +103,9 @@ const MOCK_SOURCES: MarketDataSource[] = [
     description: "EU-wide interest rate data, money market rates, and euro area financial statistics.",
     is_active: true,
   },
-];
+] as unknown as MarketDataSource[];
 
-const MOCK_REVIEW_ITEMS: ReviewQueueItem[] = [
+const MOCK_REVIEW_ITEMS = [
   {
     id: "rq1",
     processed_id: "proc-001",
@@ -163,9 +163,9 @@ const MOCK_REVIEW_ITEMS: ReviewQueueItem[] = [
       review_status: "pending_review",
     },
   },
-];
+] as unknown as ReviewQueueItem[];
 
-const MOCK_DATA_ROWS: MarketDataProcessed[] = [
+const MOCK_DATA_ROWS = [
   {
     id: "dp1",
     data_type: "price",
@@ -218,7 +218,7 @@ const MOCK_DATA_ROWS: MarketDataProcessed[] = [
     confidence: 0.98,
     review_status: "auto_accepted",
   },
-];
+] as unknown as MarketDataProcessed[];
 
 type Tab = "overview" | "data" | "sources" | "review";
 

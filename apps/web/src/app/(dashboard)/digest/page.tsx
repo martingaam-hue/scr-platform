@@ -90,7 +90,7 @@ const MOCK_DIGEST_PREVIEW = {
     new_risks: 1,
     new_comments: 7,
     ai_tasks_completed: 12,
-  } as DigestSummary & { period_start: string },
+  } as unknown as DigestSummary & { period_start: string },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

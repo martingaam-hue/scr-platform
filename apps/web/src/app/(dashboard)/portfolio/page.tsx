@@ -43,6 +43,8 @@ import {
   useAllocation,
   type HoldingResponse,
   type AllocationBreakdown,
+  type PortfolioStrategy,
+  type SFDRClassification,
   formatCurrency,
   formatPercent,
   formatMultiple,
@@ -57,8 +59,8 @@ import {
 const MOCK_PORTFOLIO = {
   id: "mock-portfolio-1",
   name: "SCR Sustainable Infrastructure Fund I",
-  strategy: "sustainable_infrastructure",
-  sfdr_classification: "article_9",
+  strategy: "sustainable_infrastructure" as PortfolioStrategy,
+  sfdr_classification: "article_9" as SFDRClassification,
   current_aum: "275600000",
   currency: "EUR",
 };
@@ -68,7 +70,7 @@ const MOCK_PORTFOLIO_LIST = {
   total: 1,
 };
 
-const MOCK_HOLDINGS: HoldingResponse[] = [
+const MOCK_HOLDINGS = [
   {
     id: "h1",
     asset_name: "Helios Solar Portfolio Iberia",
@@ -153,7 +155,7 @@ const MOCK_HOLDINGS: HoldingResponse[] = [
     currency: "EUR",
     geography: "UK",
   },
-];
+] as unknown as HoldingResponse[];
 
 const MOCK_HOLDINGS_DATA = {
   items: MOCK_HOLDINGS,

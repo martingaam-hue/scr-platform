@@ -26,7 +26,7 @@ import {
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
-const MOCK_ADVISORS: AdvisorSearchResult[] = [
+const MOCK_ADVISORS = [
   {
     id: "adv-001",
     match_score: 94,
@@ -77,7 +77,7 @@ const MOCK_ADVISORS: AdvisorSearchResult[] = [
     avg_rating: 4.2,
     verified: false,
   },
-];
+] as unknown as AdvisorSearchResult[];
 
 const MOCK_APPLICATIONS = [
   {

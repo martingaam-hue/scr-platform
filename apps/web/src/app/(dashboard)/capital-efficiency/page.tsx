@@ -227,7 +227,7 @@ function BenchmarkTable() {
           </thead>
           <tbody>
             {Object.entries(benchmark.platform).map(([key, platformVal]) => {
-              const industryVal = benchmark.industry_avg[key] ?? 0;
+              const industryVal = (benchmark.industry_avg as Record<string, number>)[key] ?? 0;
               const isScore = key === "efficiency_score";
               const isOutperforming = outperformingSet.has(
                 BENCHMARK_LABELS[key] ?? key

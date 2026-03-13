@@ -20,7 +20,7 @@ import {
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
-const MOCK_PERSONAS: InvestorPersona[] = [
+const MOCK_PERSONAS = [
   {
     id: "persona-001",
     persona_name: "Nordic Pension Profile",
@@ -86,9 +86,9 @@ const MOCK_PERSONAS: InvestorPersona[] = [
     esg_requirements: "Article 8, impact reporting preferred",
     description: "German DACH family office seeking higher-return co-investment opportunities alongside established fund managers. Comfortable with early-stage and development risk.",
   },
-];
+] as unknown as InvestorPersona[];
 
-const MOCK_MATCHES: PersonaMatch[] = [
+const MOCK_MATCHES = [
   {
     project_id: "proj-alpine-005",
     project_name: "Alpine Hydro Partners",
@@ -116,7 +116,7 @@ const MOCK_MATCHES: PersonaMatch[] = [
     alignment_score: 78,
     alignment_reasons: ["DACH geography match", "Ticket size €15M within range", "Biomass in preferred types"],
   },
-];
+] as unknown as PersonaMatch[];
 
 function PersonaCard({
   persona,

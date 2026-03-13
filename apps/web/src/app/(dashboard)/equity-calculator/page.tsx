@@ -32,7 +32,7 @@ import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
-const MOCK_SCENARIOS: EquityScenario[] = [
+const MOCK_SCENARIOS = [
   {
     id: "scen-001",
     scenario_name: "Alpine Hydro — Base Case",
@@ -80,7 +80,7 @@ const MOCK_SCENARIOS: EquityScenario[] = [
       { multiple: 1.2, exit_value: 21_600_000, investor_proceeds: 21_600_000, investor_moic: 1.2 },
     ],
   },
-];
+] as unknown as EquityScenario[];
 
 // ── New Scenario Form ─────────────────────────────────────────────────────
 

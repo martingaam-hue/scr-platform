@@ -73,7 +73,7 @@ const MOCK_ALLOCATION = {
   ] as AllocationBreakdown[],
 };
 
-const MOCK_HOLDINGS: HoldingResponse[] = [
+const MOCK_HOLDINGS = [
   { id: "h1", asset_name: "Helios Solar Portfolio Iberia", asset_type: "solar", investment_amount: "45000000", current_value: "54200000", moic: "1.20", status: "active" },
   { id: "h2", asset_name: "Nordvik Wind Farm II", asset_type: "wind", investment_amount: "32000000", current_value: "35600000", moic: "1.11", status: "active" },
   { id: "h3", asset_name: "Adriatic Infrastructure Holdings", asset_type: "infrastructure", investment_amount: "38000000", current_value: "44100000", moic: "1.16", status: "active" },
@@ -81,7 +81,7 @@ const MOCK_HOLDINGS: HoldingResponse[] = [
   { id: "h5", asset_name: "Alpine Hydro Partners", asset_type: "hydro", investment_amount: "52000000", current_value: "65400000", moic: "1.26", status: "active" },
   { id: "h6", asset_name: "Nordic Biomass Energy", asset_type: "biomass", investment_amount: "12000000", current_value: "12800000", moic: "1.07", status: "active" },
   { id: "h7", asset_name: "Thames Clean Energy Hub", asset_type: "wind", investment_amount: "41000000", current_value: "46700000", moic: "1.14", status: "active" },
-];
+] as HoldingResponse[];
 
 // ── Colours ───────────────────────────────────────────────────────────────────
 

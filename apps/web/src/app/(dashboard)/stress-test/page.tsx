@@ -28,7 +28,7 @@ import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 
-const MOCK_SCENARIOS: ScenarioResponse[] = [
+const MOCK_SCENARIOS = [
   {
     key: "base_case",
     name: "Base Case",
@@ -49,14 +49,14 @@ const MOCK_SCENARIOS: ScenarioResponse[] = [
     name: "Energy Price Collapse",
     description: "Renewable energy capture prices fall 40% due to grid saturation and subsidy removal across EU markets.",
   },
-];
+] as ScenarioResponse[];
 
 const MOCK_PORTFOLIO_LIST = {
   items: [{ id: "mock-portfolio-1", name: "SCR Sustainable Infrastructure Fund I" }],
   total: 1,
 };
 
-const MOCK_RESULT: StressTestResult = {
+const MOCK_RESULT = {
   id: "mock-result-1",
   scenario_name: "Combined Downturn",
   base_nav: 276000000,
@@ -71,15 +71,15 @@ const MOCK_RESULT: StressTestResult = {
   histogram: [12, 28, 65, 148, 312, 486, 621, 789, 932, 1048, 1124, 1087, 984, 823, 651, 498, 312, 198, 121, 74, 42, 21, 9, 4],
   histogram_edges: Array.from({ length: 24 }, (_, i) => 185000000 + i * 4000000),
   project_sensitivities: [
-    { project_id: "h4", project_name: "Baltic BESS Grid Storage", stressed_value: 13800000, change_pct: -19.8 },
-    { project_id: "h6", project_name: "Nordic Biomass Energy", stressed_value: 10200000, change_pct: -14.6 },
-    { project_id: "h2", project_name: "Nordvik Wind Farm II", stressed_value: 31200000, change_pct: -11.2 },
-    { project_id: "h7", project_name: "Thames Clean Energy Hub", stressed_value: 42400000, change_pct: -9.2 },
-    { project_id: "h3", project_name: "Adriatic Infrastructure Holdings", stressed_value: 40600000, change_pct: -7.9 },
-    { project_id: "h1", project_name: "Helios Solar Portfolio Iberia", stressed_value: 50800000, change_pct: -6.3 },
-    { project_id: "h5", project_name: "Alpine Hydro Partners", stressed_value: 62400000, change_pct: -4.6 },
+    { project_id: "h4", project_name: "Baltic BESS Grid Storage",           base_value: 17200000, stressed_value: 13800000, change_pct: -19.8 },
+    { project_id: "h6", project_name: "Nordic Biomass Energy",               base_value: 12800000, stressed_value: 10200000, change_pct: -14.6 },
+    { project_id: "h2", project_name: "Nordvik Wind Farm II",                base_value: 35600000, stressed_value: 31200000, change_pct: -11.2 },
+    { project_id: "h7", project_name: "Thames Clean Energy Hub",             base_value: 46700000, stressed_value: 42400000, change_pct: -9.2 },
+    { project_id: "h3", project_name: "Adriatic Infrastructure Holdings",    base_value: 44100000, stressed_value: 40600000, change_pct: -7.9 },
+    { project_id: "h1", project_name: "Helios Solar Portfolio Iberia",       base_value: 54200000, stressed_value: 50800000, change_pct: -6.3 },
+    { project_id: "h5", project_name: "Alpine Hydro Partners",               base_value: 65400000, stressed_value: 62400000, change_pct: -4.6 },
   ],
-};
+} as StressTestResult;
 
 // ── Scenario Card ────────────────────────────────────────────────────────────
 

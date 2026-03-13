@@ -111,11 +111,11 @@ function SFDRPill({ article }: { article: number | null }) {
 function SDGBadges({
   contributions,
 }: {
-  contributions: ESGMetricsResponse["sdg_contributions"];
+  contributions: Record<string, { contribution_level: string } | undefined> | null | undefined;
 }) {
   if (!contributions) return null;
   const sdgs = Object.entries(contributions)
-    .filter(([, v]) => v.contribution_level !== "none")
+    .filter(([, v]) => v && (v as { contribution_level: string }).contribution_level !== "none")
     .slice(0, 5);
   if (!sdgs.length) return null;
   return (
