@@ -1079,36 +1079,75 @@ function InvestorDashboard() {
       {/* ── 5. Signal scores + risk exposure ──────────────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-        {/* Score distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-primary-600" />
-              Signal Score Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3">
-            <div className="mb-1 flex items-end justify-between">
-              <p className="text-3xl font-bold text-neutral-900">{FUND.avg_signal_score}</p>
-              <p className="text-xs text-neutral-400">portfolio avg</p>
-            </div>
-            <ResponsiveContainer width="100%" height={148}>
-              <RBarChart data={SCORE_DIST} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
-                <XAxis dataKey="range" tick={{ fontSize: 10 }} tickLine={false} />
-                <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
-                <ChartTooltip contentStyle={{ fontSize: 11 }} formatter={(v) => [v as number, "Holdings"]} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                  {SCORE_DIST.map((d) => (
-                    <Cell key={d.range} fill={d.color} />
-                  ))}
-                </Bar>
-              </RBarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        {/* Left column: Signal Score Distribution stacked above LP Reporting */}
+        <div className="flex flex-col gap-6">
 
-        {/* Risk exposure by domain */}
+          {/* Score distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary-600" />
+                Signal Score Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <div className="mb-1 flex items-end justify-between">
+                <p className="text-3xl font-bold text-neutral-900">{FUND.avg_signal_score}</p>
+                <p className="text-xs text-neutral-400">portfolio avg</p>
+              </div>
+              <ResponsiveContainer width="100%" height={148}>
+                <RBarChart data={SCORE_DIST} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
+                  <XAxis dataKey="range" tick={{ fontSize: 10 }} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <ChartTooltip contentStyle={{ fontSize: 11 }} formatter={(v) => [v as number, "Holdings"]} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {SCORE_DIST.map((d) => (
+                      <Cell key={d.range} fill={d.color} />
+                    ))}
+                  </Bar>
+                </RBarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* LP reporting */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary-600" />
+                LP Reporting
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[
+                { label: "Q4 2025 Report",   status: "Sent",     date: "Jan 15",   variant: "success"  as const },
+                { label: "Q3 2025 Report",   status: "Sent",     date: "Oct 12",   variant: "success"  as const },
+                { label: "Q1 2026 Report",   status: "Due",      date: "Apr 30",   variant: "warning"  as const },
+                { label: "Annual Accounts",  status: "In prep",  date: "Mar 31",   variant: "info"     as const },
+              ].map(({ label, status, date, variant }) => (
+                <div key={label} className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-neutral-800">{label}</p>
+                    <p className="text-[10px] text-neutral-400">{date}</p>
+                  </div>
+                  <Badge variant={variant}>{status}</Badge>
+                </div>
+              ))}
+              <div className="mt-2 border-t border-neutral-100 pt-3">
+                <div className="flex items-center justify-between text-xs text-neutral-500">
+                  <span>{FUND.lp_count} LPs registered</span>
+                  <button onClick={() => router.push("/data-room")} className="text-primary-600 hover:underline font-medium">
+                    Data Room <ArrowRight className="inline h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+        </div>
+
+        {/* Right column: Risk exposure by domain */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -1157,81 +1196,43 @@ function InvestorDashboard() {
         </Card>
       </div>
 
-      {/* ── 6. ESG snapshot + LP reporting ────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-
-        {/* ESG snapshot */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Leaf className="h-4 w-4 text-green-600" />
-              ESG Portfolio Snapshot
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {[
-                { label: "Avg ESG Score",       value: "81/100",     color: "text-green-600", bg: "bg-green-50"  },
-                { label: "SFDR Art. 9",          value: "5 / 7",      color: "text-indigo-600", bg: "bg-indigo-50" },
-                { label: "CO₂ Avoided (YTD)",    value: "142k tCO₂e", color: "text-teal-600",  bg: "bg-teal-50"  },
-                { label: "Renewable Capacity",   value: "423 MW",     color: "text-blue-600",  bg: "bg-blue-50"  },
-              ].map(({ label, value, color, bg }) => (
-                <div key={label} className={cn("rounded-xl p-4", bg)}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{label}</p>
-                  <p className={cn("mt-1.5 text-xl font-bold", color)}>{value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              {INV_HOLDINGS.slice(0, 3).map((h) => (
-                <div key={h.id} className="rounded-lg border border-neutral-100 p-3">
-                  <p className="truncate text-xs font-semibold text-neutral-700">{h.name.split(" ").slice(0, 2).join(" ")}</p>
-                  <div className="mt-1.5 flex items-center gap-1.5">
-                    <div className="flex-1 h-1.5 rounded-full bg-neutral-100 overflow-hidden">
-                      <div className="h-full rounded-full bg-green-400" style={{ width: `${h.signal_score}%` }} />
-                    </div>
-                    <span className={cn("text-xs font-bold", scoreColor(h.signal_score))}>{h.signal_score}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* LP reporting */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary-600" />
-              LP Reporting
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+      {/* ── 6. ESG snapshot (full width) ───────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Leaf className="h-4 w-4 text-green-600" />
+            ESG Portfolio Snapshot
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
-              { label: "Q4 2025 Report",   status: "Sent",     date: "Jan 15",   variant: "success"  as const },
-              { label: "Q3 2025 Report",   status: "Sent",     date: "Oct 12",   variant: "success"  as const },
-              { label: "Q1 2026 Report",   status: "Due",      date: "Apr 30",   variant: "warning"  as const },
-              { label: "Annual Accounts",  status: "In prep",  date: "Mar 31",   variant: "info"     as const },
-            ].map(({ label, status, date, variant }) => (
-              <div key={label} className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-neutral-800">{label}</p>
-                  <p className="text-[10px] text-neutral-400">{date}</p>
-                </div>
-                <Badge variant={variant}>{status}</Badge>
+              { label: "Avg ESG Score",       value: "81/100",     color: "text-green-600",   bg: "bg-green-50"   },
+              { label: "SFDR Art. 9",          value: "5 / 7",      color: "text-indigo-600",  bg: "bg-indigo-50"  },
+              { label: "CO₂ Avoided (YTD)",    value: "142k tCO₂e", color: "text-teal-600",    bg: "bg-teal-50"    },
+              { label: "Renewable Capacity",   value: "423 MW",     color: "text-blue-600",    bg: "bg-blue-50"    },
+            ].map(({ label, value, color, bg }) => (
+              <div key={label} className={cn("rounded-xl p-4", bg)}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{label}</p>
+                <p className={cn("mt-1.5 text-xl font-bold", color)}>{value}</p>
               </div>
             ))}
-            <div className="mt-2 border-t border-neutral-100 pt-3">
-              <div className="flex items-center justify-between text-xs text-neutral-500">
-                <span>{FUND.lp_count} LPs registered</span>
-                <button onClick={() => router.push("/data-room")} className="text-primary-600 hover:underline font-medium">
-                  Data Room <ArrowRight className="inline h-3 w-3" />
-                </button>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-3 lg:grid-cols-6">
+            {INV_HOLDINGS.slice(0, 6).map((h) => (
+              <div key={h.id} className="rounded-lg border border-neutral-100 p-3">
+                <p className="truncate text-xs font-semibold text-neutral-700">{h.name.split(" ").slice(0, 2).join(" ")}</p>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <div className="flex-1 h-1.5 rounded-full bg-neutral-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-green-400" style={{ width: `${h.signal_score}%` }} />
+                  </div>
+                  <span className={cn("text-xs font-bold", scoreColor(h.signal_score))}>{h.signal_score}</span>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ── 7. Quick actions + Ask Ralph ──────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
