@@ -251,12 +251,8 @@ def test_lc_enum_helper_covers_all_advisory_str_enum_columns():
         for attr_name, enum_type in _str_enum_columns(model_cls):
             bad = [v for v in enum_type.enums if v != v.lower()]
             if bad:
-                violations.append(
-                    f"{model_cls.__name__}.{attr_name}: uppercase values {bad}"
-                )
-    assert not violations, (
-        "Advisory enum columns missing _lc_enum():\n" + "\n".join(violations)
-    )
+                violations.append(f"{model_cls.__name__}.{attr_name}: uppercase values {bad}")
+    assert not violations, "Advisory enum columns missing _lc_enum():\n" + "\n".join(violations)
 
 
 # ── Layer 2: ORM round-trip (DB write + raw SQL read) ─────────────────────────
@@ -376,10 +372,7 @@ class TestMonitoringAlertORM:
         await db.flush()
 
         rows = await db.execute(
-            text(
-                "SELECT alert_type::text FROM monitoring_alerts "
-                "WHERE org_id = :org_id"
-            ),
+            text("SELECT alert_type::text FROM monitoring_alerts " "WHERE org_id = :org_id"),
             {"org_id": str(AE_ORG_ID)},
         )
         db_values = {r[0] for r in rows}
@@ -411,9 +404,7 @@ class TestMonitoringAlertORM:
         expected = {s.value for s in MonitoringAlertSeverity}
         assert db_values == expected
 
-    async def test_domain_stored_lowercase(
-        self, db: AsyncSession, ae_org: Organization
-    ):
+    async def test_domain_stored_lowercase(self, db: AsyncSession, ae_org: Organization):
         for i, domain in enumerate(MonitoringAlertDomain):
             alert = MonitoringAlert(
                 id=uuid.UUID(f"00000000-0000-0000-eee3-{i:012d}"),
@@ -561,9 +552,9 @@ class TestBoardAdvisorApplicationAPI:
             json={"status": "accepted"},
         )
         assert resp.status_code == 200, resp.text
-        assert resp.json()["status"] == "accepted", (
-            f"Expected 'accepted', got {resp.json()['status']!r}"
-        )
+        assert (
+            resp.json()["status"] == "accepted"
+        ), f"Expected 'accepted', got {resp.json()['status']!r}"
 
 
 class TestInvestorPersonaAPI:
@@ -577,9 +568,9 @@ class TestInvestorPersonaAPI:
             json={"persona_name": "Conservative Fund", "strategy_type": "conservative"},
         )
         assert resp.status_code == 201, resp.text
-        assert resp.json()["strategy_type"] == "conservative", (
-            f"Expected 'conservative', got {resp.json()['strategy_type']!r}"
-        )
+        assert (
+            resp.json()["strategy_type"] == "conservative"
+        ), f"Expected 'conservative', got {resp.json()['strategy_type']!r}"
 
     async def test_all_strategy_types_round_trip_lowercase(
         self, ae_investor_client: AsyncClient, ae_investor_user: User
@@ -620,9 +611,9 @@ class TestEquityScenarioAPI:
         )
         assert resp.status_code == 201, resp.text
         data = resp.json()
-        assert data["security_type"] == "common_equity", (
-            f"Expected 'common_equity', got {data['security_type']!r}"
-        )
+        assert (
+            data["security_type"] == "common_equity"
+        ), f"Expected 'common_equity', got {data['security_type']!r}"
 
     async def test_all_security_types_round_trip_lowercase(
         self, ae_client: AsyncClient, ae_org: Organization
@@ -640,9 +631,9 @@ class TestEquityScenarioAPI:
             )
             assert resp.status_code == 201, f"{sec_type.value}: {resp.text}"
             returned = resp.json()["security_type"]
-            assert returned == sec_type.value, (
-                f"security_type '{sec_type.value}' came back as {returned!r}"
-            )
+            assert (
+                returned == sec_type.value
+            ), f"security_type '{sec_type.value}' came back as {returned!r}"
 
     async def test_anti_dilution_type_broad_based_is_lowercase(
         self, ae_client: AsyncClient, ae_org: Organization
@@ -660,9 +651,9 @@ class TestEquityScenarioAPI:
         )
         assert resp.status_code == 201, resp.text
         data = resp.json()
-        assert data["anti_dilution_type"] == "broad_based", (
-            f"Expected 'broad_based', got {data['anti_dilution_type']!r}"
-        )
+        assert (
+            data["anti_dilution_type"] == "broad_based"
+        ), f"Expected 'broad_based', got {data['anti_dilution_type']!r}"
 
     async def test_all_anti_dilution_types_round_trip_lowercase(
         self, ae_client: AsyncClient, ae_org: Organization
@@ -681,17 +672,15 @@ class TestEquityScenarioAPI:
             )
             assert resp.status_code == 201, f"{ad_type.value}: {resp.text}"
             returned = resp.json()["anti_dilution_type"]
-            assert returned == ad_type.value, (
-                f"anti_dilution_type '{ad_type.value}' came back as {returned!r}"
-            )
+            assert (
+                returned == ad_type.value
+            ), f"anti_dilution_type '{ad_type.value}' came back as {returned!r}"
 
 
 class TestInsuranceQuoteAPI:
     """POST /v1/insurance/quotes → side field is lowercase."""
 
-    async def test_investor_side_is_lowercase(
-        self, ae_client: AsyncClient, ae_org: Organization
-    ):
+    async def test_investor_side_is_lowercase(self, ae_client: AsyncClient, ae_org: Organization):
         resp = await ae_client.post(
             "/v1/insurance/quotes",
             json={
@@ -709,9 +698,7 @@ class TestInsuranceQuoteAPI:
             "InsuranceSide enum may be returning uppercase NAME."
         )
 
-    async def test_ally_side_is_lowercase(
-        self, ae_client: AsyncClient, ae_org: Organization
-    ):
+    async def test_ally_side_is_lowercase(self, ae_client: AsyncClient, ae_org: Organization):
         resp = await ae_client.post(
             "/v1/insurance/quotes",
             json={
@@ -724,9 +711,7 @@ class TestInsuranceQuoteAPI:
             },
         )
         assert resp.status_code == 201, resp.text
-        assert resp.json()["side"] == "ally", (
-            f"Expected 'ally', got {resp.json()['side']!r}"
-        )
+        assert resp.json()["side"] == "ally", f"Expected 'ally', got {resp.json()['side']!r}"
 
     async def test_both_insurance_sides_round_trip(
         self, ae_client: AsyncClient, ae_org: Organization
@@ -792,9 +777,9 @@ class TestInsurancePolicyAPI:
             f"Expected 'active', got {data['status']!r}. "
             "InsurancePolicyStatus may be returning uppercase NAME."
         )
-        assert data["premium_frequency"] == "annual", (
-            f"Expected 'annual', got {data['premium_frequency']!r}"
-        )
+        assert (
+            data["premium_frequency"] == "annual"
+        ), f"Expected 'annual', got {data['premium_frequency']!r}"
         assert data["side"] == "investor"
 
     async def test_all_premium_frequencies_round_trip_lowercase(
@@ -819,9 +804,9 @@ class TestInsurancePolicyAPI:
             )
             assert resp.status_code == 201, f"{freq.value}: {resp.text}"
             returned = resp.json()["premium_frequency"]
-            assert returned == freq.value, (
-                f"premium_frequency '{freq.value}' came back as {returned!r}"
-            )
+            assert (
+                returned == freq.value
+            ), f"premium_frequency '{freq.value}' came back as {returned!r}"
 
     async def test_policy_side_ally_is_lowercase(
         self, ae_client: AsyncClient, ae_org: Organization, ae_project: Project
