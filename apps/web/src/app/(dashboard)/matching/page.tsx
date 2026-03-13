@@ -714,15 +714,15 @@ export default function MatchingPage() {
           { label: "Avg. Match Score", value: `${stats.avgMatch}%`, icon: null },
           { label: "High Match (≥80%)", value: stats.highMatch, icon: null, color: "text-blue-600" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="flex items-center gap-3 px-5 py-4">
+          <div key={label} className="flex items-center gap-4 px-6 py-8 min-h-[110px]">
             {Icon && (
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-neutral-50">
-                <Icon className="h-4 w-4 text-neutral-400" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-50">
+                <Icon className="h-5 w-5 text-neutral-400" />
               </div>
             )}
             <div>
-              <p className="text-xs text-neutral-500">{label}</p>
-              <p className={cn("text-xl font-bold text-neutral-900", color)}>{value}</p>
+              <p className={cn("text-4xl font-bold text-neutral-900 tabular-nums leading-none", color)}>{value}</p>
+              <p className="mt-1.5 text-sm text-neutral-500">{label}</p>
             </div>
           </div>
         ))}

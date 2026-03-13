@@ -987,22 +987,24 @@ export default function InvestorSignalScorePage() {
         <p className="mb-8 text-xs font-semibold uppercase tracking-widest text-primary-600">
           Portfolio Signal Score Overview
         </p>
-        <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
+        {/* Primary score card */}
+        <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm text-center">
+          <p className={cn("font-bold tabular-nums leading-none text-[80px] text-neutral-900")}>
+            {HERO_STATS.avg_score}
+          </p>
+          <p className="mt-2 text-sm font-medium text-neutral-600">Average Investment Score</p>
+          <p className="mt-0.5 text-xs text-neutral-400">across all evaluated</p>
+        </div>
+        {/* 2×2 grid of supporting metric cards */}
+        <div className="grid grid-cols-2 gap-4">
           {[
-            { label: "Average Investment Score", value: HERO_STATS.avg_score,          color: "text-neutral-900", sub: "across all evaluated" },
-            { label: "Projects Evaluated",       value: HERO_STATS.projects_evaluated,  color: "text-neutral-900", sub: "total scored" },
-            { label: "Investment Ready",         value: HERO_STATS.investment_ready,    color: "text-green-600",   sub: "score ≥ 80" },
-            { label: "Portfolio Avg",            value: HERO_STATS.portfolio_avg,        color: "text-blue-600",    sub: "current holdings" },
-            { label: "Pipeline Avg",             value: HERO_STATS.pipeline_avg,         color: "text-indigo-600",  sub: "screening deals" },
+            { label: "Projects Evaluated", value: HERO_STATS.projects_evaluated, color: "text-neutral-900", sub: "total scored" },
+            { label: "Investment Ready",   value: HERO_STATS.investment_ready,   color: "text-green-600",   sub: "score ≥ 80" },
+            { label: "Portfolio Avg",      value: HERO_STATS.portfolio_avg,      color: "text-blue-600",    sub: "current holdings" },
+            { label: "Pipeline Avg",       value: HERO_STATS.pipeline_avg,       color: "text-indigo-600",  sub: "screening deals" },
           ].map(({ label, value, color, sub }) => (
-            <div key={label} className={HERO_STATS.avg_score === value ? "col-span-2 sm:col-span-1" : ""}>
-              <p className={cn(
-                "font-bold tabular-nums leading-none",
-                HERO_STATS.avg_score === value ? "text-[80px]" : "text-[80px] sm:text-[56px]",
-                color
-              )}>
-                {value}
-              </p>
+            <div key={label} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+              <p className={cn("text-4xl font-bold tabular-nums leading-none", color)}>{value}</p>
               <p className="mt-2 text-sm font-medium text-neutral-600">{label}</p>
               <p className="mt-0.5 text-xs text-neutral-400">{sub}</p>
             </div>

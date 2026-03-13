@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  ArrowLeftRight,
   BarChart2,
   Bell,
   BookOpen,
@@ -50,6 +51,15 @@ import {
   type MarketDataSummary,
   type ExternalDataPoint,
 } from "@/lib/market-data";
+import {
+  useFXRates,
+  useFXExposure,
+  useConvertCurrency,
+  useRefreshFXRates,
+  flagEmoji,
+  MAJOR_CURRENCIES,
+  type CurrencyExposureItem,
+} from "@/lib/fx";
 import { InfoBanner } from "@/components/info-banner";
 import { AIFeedback } from "@/components/ai-feedback";
 
@@ -572,6 +582,137 @@ function EcoSeriesCard({ source, seriesId, seriesName, unit }: { source: string;
   );
 }
 
+// ── FX Exposure sub-components ────────────────────────────────────────────────
+
+function ExposureBar({ item, max }: { item: CurrencyExposureItem; max: number }) {
+  const barWidth = max > 0 ? (item.value_eur / max) * 100 : 0;
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-sm">
+        <span className="flex items-center gap-1.5 font-medium">
+          <span>{flagEmoji(item.currency)}</span>
+          <span>{item.currency}</span>
+          <span className="text-xs text-gray-400 font-normal">{item.project_count} project{item.project_count !== 1 ? "s" : ""}</span>
+        </span>
+        <span className="tabular-nums text-gray-700">{item.pct.toFixed(1)}%</span>
+      </div>
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-indigo-500 rounded-full transition-all"
+          style={{ width: `${barWidth}%` }}
+        />
+      </div>
+      <p className="text-xs text-gray-400 text-right">${(item.value_eur / 1_000_000).toFixed(1)}M</p>
+    </div>
+  );
+}
+
+function FXCurrencyConverter() {
+  const { data: rates } = useFXRates();
+  const { mutate: convert, isPending, data: result, reset } = useConvertCurrency();
+
+  const [amount, setAmount] = useState("10000");
+  const [from, setFrom] = useState("USD");
+  const [to, setTo] = useState("EUR");
+
+  const handleConvert = () => {
+    const n = parseFloat(amount);
+    if (!isNaN(n)) convert({ amount: n, from_currency: from, to_currency: to });
+  };
+
+  const allCurrencies = rates ? Object.keys(rates).sort() : MAJOR_CURRENCIES;
+
+  const CurrencySelect = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+    <select
+      value={value}
+      onChange={(e) => { onChange(e.target.value); reset(); }}
+      className="border border-gray-300 rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    >
+      {allCurrencies.map((c) => (
+        <option key={c} value={c}>{c}</option>
+      ))}
+    </select>
+  );
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-4">
+        <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
+          <ArrowLeftRight className="h-4 w-4 text-indigo-500" />
+          Currency Converter
+        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => { setAmount(e.target.value); reset(); }}
+            className="w-28 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <CurrencySelect value={from} onChange={setFrom} />
+          <span className="text-gray-400">→</span>
+          <CurrencySelect value={to} onChange={setTo} />
+          <Button size="sm" onClick={handleConvert} disabled={isPending}>
+            {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Convert"}
+          </Button>
+        </div>
+        {result && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-sm">
+            <span className="font-semibold text-indigo-800">
+              {result.converted_amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {result.to_currency}
+            </span>
+            {result.rate && (
+              <span className="text-indigo-500 ml-2">(rate: {result.rate.toFixed(4)})</span>
+            )}
+            {result.rate_date && (
+              <span className="text-gray-400 ml-2 text-xs">as of {result.rate_date}</span>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FXRateTable() {
+  const { data, isLoading } = useFXRates();
+  const { mutate: refresh, isPending } = useRefreshFXRates();
+
+  if (isLoading) return <Loader2 className="h-5 w-5 animate-spin text-gray-400 m-4" />;
+
+  const rates = data?.rates ?? {};
+  const displayed = MAJOR_CURRENCIES.filter((c) => c !== "USD" && rates[c]);
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-medium text-gray-700">ECB Reference Rates</p>
+          <div className="flex items-center gap-2">
+            {data?.rate_date && (
+              <span className="text-xs text-gray-400">as of {data.rate_date}</span>
+            )}
+            <Button size="sm" variant="outline" onClick={() => refresh()} disabled={isPending}>
+              {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+            </Button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {displayed.map((currency) => (
+            <div key={currency} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-sm">
+              <span className="flex items-center gap-1">
+                <span>{flagEmoji(currency)}</span>
+                <span className="font-medium">{currency}</span>
+              </span>
+              <span className="tabular-nums text-gray-700">{rates[currency]?.toFixed(4)}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 mt-2">Base: 1 USD = x {"{currency}"} — ECB daily fix</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MarketDataPage() {
@@ -582,6 +723,10 @@ export default function MarketDataPage() {
   const [newsSearch, setNewsSearch] = useState("");
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>(WATCHLIST_ITEMS);
   const [aiActionRunning, setAiActionRunning] = useState<string | null>(null);
+  const [fxBaseCurrency, setFxBaseCurrency] = useState("USD");
+
+  const { data: fxExposure, isLoading: fxLoading } = useFXExposure(undefined, fxBaseCurrency);
+  const fxMaxExposure = Math.max(...(fxExposure?.exposure.map((e) => e.value_eur) ?? [1]));
 
   const { data: summary, isLoading: summaryLoading } = useMarketDataSummary();
   const { data: seriesGroups, isLoading: seriesLoading } = useMarketDataSeries();
@@ -642,6 +787,7 @@ export default function MarketDataPage() {
           <TabsTrigger value="regulatory">Regulatory</TabsTrigger>
           <TabsTrigger value="market">Market Data</TabsTrigger>
           <TabsTrigger value="economic">Economic Series</TabsTrigger>
+          <TabsTrigger value="fx">FX Exposure</TabsTrigger>
           <TabsTrigger value="watchlists">Watchlists</TabsTrigger>
         </TabsList>
 
@@ -1000,6 +1146,76 @@ export default function MarketDataPage() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* ── TAB: FX Exposure ─────────────────────────────────────────────── */}
+        <TabsContent value="fx" className="space-y-6 mt-6">
+          <InfoBanner>
+            <strong>FX Exposure</strong> shows the currency breakdown of your portfolio holdings and compares
+            against ECB reference rates. Monitor cross-currency risk, hedging requirements, and the impact of
+            exchange rate movements on your fund&apos;s reported returns.
+          </InfoBanner>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700">Portfolio Currency Breakdown</h3>
+              <p className="text-xs text-gray-400 mt-0.5">ECB reference rates and currency exposure analysis</p>
+            </div>
+            <select
+              value={fxBaseCurrency}
+              onChange={(e) => setFxBaseCurrency(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {["EUR", "USD", "GBP"].map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Exposure breakdown */}
+            <Card>
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-indigo-500" />
+                    Currency Exposure
+                  </p>
+                  {fxExposure && (
+                    <span className="text-xs text-gray-400">
+                      Total: ${(fxExposure.total_value_base / 1_000_000).toFixed(1)}M
+                    </span>
+                  )}
+                </div>
+
+                {fxLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                  </div>
+                ) : !fxExposure || fxExposure.exposure.length === 0 ? (
+                  <EmptyState title="No exposure data" description="Add holdings to your portfolios to see currency exposure." />
+                ) : (
+                  <div className="space-y-4">
+                    {fxExposure.exposure.map((item) => (
+                      <ExposureBar key={item.currency} item={item} max={fxMaxExposure} />
+                    ))}
+                  </div>
+                )}
+
+                {fxExposure?.hedging_recommendation && (
+                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                    <strong>Hedging note:</strong> {fxExposure.hedging_recommendation}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Right column: rates + converter */}
+            <div className="space-y-4">
+              <FXRateTable />
+              <FXCurrencyConverter />
+            </div>
+          </div>
         </TabsContent>
 
         {/* ── TAB: Watchlists ───────────────────────────────────────────────── */}

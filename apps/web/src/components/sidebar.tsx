@@ -26,7 +26,6 @@ import {
   TrendingUp,
   GitCompare,
   Users,
-  Globe,
   Calendar,
   Leaf,
   Shield,
@@ -93,7 +92,6 @@ const investorNav: NavSection[] = [
     items: [
       { label: "Overview", href: "/portfolio", icon: Briefcase, tourId: "nav-portfolio" },
       { label: "Monitoring", href: "/monitoring", icon: Monitor },
-      { label: "FX Exposure", href: "/fx", icon: Globe },
       { label: "Market Intelligence", href: "/market-data", icon: BarChart2 },
       { label: "Data Enrichment", href: "/market-enrichment", icon: Database },
       { label: "Stress Testing", href: "/stress-test", icon: Activity },
@@ -256,7 +254,6 @@ const adminNav: NavSection[] = [
     items: [
       { label: "Overview", href: "/portfolio", icon: Briefcase },
       { label: "Monitoring", href: "/monitoring", icon: Monitor },
-      { label: "FX Exposure", href: "/fx", icon: Globe },
       { label: "Market Intelligence", href: "/market-data", icon: BarChart2 },
       { label: "Data Enrichment", href: "/market-enrichment", icon: Database },
       { label: "Stress Testing", href: "/stress-test", icon: Activity },

@@ -903,8 +903,8 @@ function InvestorDashboard() {
                   margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} unit="M" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#9ca3af" }} tickLine={false} axisLine={{ stroke: "#9ca3af" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} tickLine={false} axisLine={false} unit="M" />
                   <ChartTooltip
                     formatter={(v) => [`$${v as number}M`, "Deployed"]}
                     contentStyle={{ fontSize: 11 }}
