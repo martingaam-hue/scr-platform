@@ -54,6 +54,15 @@ import { LineagePanel } from "@/components/lineage/lineage-panel";
 import { useSimilarComps } from "@/lib/comps";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_VALUATIONS: ValuationResponse[] = [
+  { id: "mv1", method: "dcf", enterprise_value: 420_000_000, equity_value: 380_000_000, currency: "EUR", status: "approved", version: 2, valued_at: "2026-02-15T10:00:00Z", assumptions: { method: "dcf", discount_rate: 0.075, terminal_growth_rate: 0.02 } } as unknown as ValuationResponse,
+  { id: "mv2", method: "comparables", enterprise_value: 312_000_000, equity_value: 285_000_000, currency: "EUR", status: "approved", version: 1, valued_at: "2026-03-01T09:00:00Z", assumptions: { method: "comparables", ev_mw: 3_900_000 } } as unknown as ValuationResponse,
+  { id: "mv3", method: "dcf", enterprise_value: 180_000_000, equity_value: 155_000_000, currency: "EUR", status: "draft", version: 1, valued_at: "2026-02-20T14:00:00Z", assumptions: { method: "dcf", discount_rate: 0.09, terminal_growth_rate: 0.015 } } as unknown as ValuationResponse,
+  { id: "mv4", method: "replacement_cost", enterprise_value: 95_000_000, equity_value: 82_000_000, currency: "EUR", status: "draft", version: 1, valued_at: "2026-03-05T11:00:00Z", assumptions: { method: "replacement_cost", depreciation_pct: 5 } } as unknown as ValuationResponse,
+];
+
 // ── Wizard steps ─────────────────────────────────────────────────────────────
 
 const METHODS: Array<{
@@ -1199,7 +1208,9 @@ function HistoryTab({ projectId }: { projectId: string | null }) {
     );
   }
 
-  if (!data?.items?.length) {
+  const valuationItems = data?.items?.length ? data.items : (!isLoading ? MOCK_VALUATIONS : []);
+
+  if (!isLoading && !valuationItems.length) {
     return (
       <EmptyState
         title="No valuations yet"
@@ -1210,7 +1221,7 @@ function HistoryTab({ projectId }: { projectId: string | null }) {
   }
 
   // Group by method for trend chart data
-  const byMethod = data.items.reduce<Record<string, ValuationResponse[]>>(
+  const byMethod = valuationItems.reduce<Record<string, ValuationResponse[]>>(
     (acc, v) => {
       acc[v.method] = acc[v.method] ?? [];
       acc[v.method].push(v);
@@ -1259,7 +1270,7 @@ function HistoryTab({ projectId }: { projectId: string | null }) {
       </div>
 
       <DataTable
-        data={data.items}
+        data={valuationItems}
         columns={columns}
       />
     </div>

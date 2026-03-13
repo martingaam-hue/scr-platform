@@ -10,6 +10,107 @@ import {
   type Citation,
 } from "@/lib/citations";
 
+// ── Mock data ──────────────────────────────────────────────────────────────
+
+const MOCK_CITATIONS: Citation[] = [
+  {
+    id: "cit-001",
+    claim_index: 1,
+    claim_text: "Helios Solar Portfolio Iberia generated 185,000 MWh in FY2025, consistent with the P50 energy yield assessment.",
+    document_id: "doc-helios-fm",
+    document_name: "Helios Solar — Financial Model Q1 2026",
+    page_or_section: "Sheet: Revenue Assumptions",
+    source_type: "financial",
+    confidence: 0.94,
+    verified: true,
+  },
+  {
+    id: "cit-002",
+    claim_index: 2,
+    claim_text: "The P50 energy yield of 185,000 MWh/year was independently assessed by DNV GL in January 2026.",
+    document_id: "doc-dnvgl",
+    document_name: "DNV GL Energy Yield Assessment Jan 2026",
+    page_or_section: "Section 4.2",
+    source_type: "technical",
+    confidence: 0.97,
+    verified: true,
+  },
+  {
+    id: "cit-003",
+    claim_index: 3,
+    claim_text: "The project qualifies under the EU Taxonomy Technical Screening Criteria for climate change mitigation (solar energy, DNSH compliant).",
+    document_id: "doc-eutaxonomy",
+    document_name: "EU Taxonomy Technical Screening Criteria 2023",
+    page_or_section: "Annex I, Section 4.1",
+    source_type: "regulatory",
+    confidence: 0.99,
+    verified: true,
+  },
+  {
+    id: "cit-004",
+    claim_index: 4,
+    claim_text: "PAMP Sustainable Holdings targets net-zero Scope 1 and 2 emissions across its portfolio by 2035.",
+    document_id: "doc-esg-framework",
+    document_name: "PAMP Holdings — ESG Framework 2025",
+    page_or_section: "Chapter 3: Climate Commitments",
+    source_type: "esg",
+    confidence: 0.91,
+    verified: null,
+  },
+  {
+    id: "cit-005",
+    claim_index: 5,
+    claim_text: "Alpine Hydro Partners benefits from a long-term average annual flow of 142 GWh based on 40 years of hydrological records.",
+    document_id: "doc-alpine-hydro",
+    document_name: "Alpine Hydro — Hydrology Study 2024",
+    page_or_section: "Section 2.3",
+    source_type: "technical",
+    confidence: 0.89,
+    verified: null,
+  },
+  {
+    id: "cit-006",
+    claim_index: 6,
+    claim_text: "Infrastructure IRR benchmarks for operational European hydro assets averaged 12.4% net in Q3 2025.",
+    document_id: "doc-bloomberg-irr",
+    document_name: "Bloomberg Infrastructure IRR Benchmark Q3 2025",
+    page_or_section: "Table 7",
+    source_type: "market_data",
+    confidence: 0.86,
+    verified: null,
+  },
+  {
+    id: "cit-007",
+    claim_index: 7,
+    claim_text: "Baltic BESS Grid Storage submitted its grid connection application to Litgrid on 14 November 2025.",
+    document_id: "doc-bess-grid",
+    document_name: "Baltic BESS — Grid Connection Application",
+    page_or_section: "Cover page",
+    source_type: "regulatory",
+    confidence: 0.78,
+    verified: null,
+  },
+  {
+    id: "cit-008",
+    claim_index: 8,
+    claim_text: "Nordvik Wind Farm II P90 resource assessment indicates a minimum annual yield of 312,000 MWh at 90% exceedance probability.",
+    document_id: "doc-nordvik-p90",
+    document_name: "Nordvik Wind — P90 Resource Assessment",
+    page_or_section: "Executive Summary",
+    source_type: "technical",
+    confidence: 0.82,
+    verified: null,
+  },
+];
+
+const MOCK_CITATION_STATS = {
+  total_citations: 8,
+  verified_count: 3,
+  unverified_count: 5,
+  avg_confidence: 0.895,
+  by_source_type: { financial: 1, technical: 3, regulatory: 2, esg: 1, market_data: 1 },
+};
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function confidenceBadge(confidence: number) {
@@ -127,10 +228,11 @@ export default function CitationsPage() {
   const [groupBy, setGroupBy] = useState<GroupBy>("analysis");
   const [aiTaskLogId, setAiTaskLogId] = useState<string>("");
 
-  const { data: stats, isLoading: statsLoading } = useCitationStats();
+  const { data: statsApi, isLoading: statsLoading } = useCitationStats();
   const { data: citations, isLoading: citationsLoading } = useCitations(aiTaskLogId || undefined);
 
-  const allCitations: Citation[] = citations ?? [];
+  const stats = statsApi ?? (!aiTaskLogId ? MOCK_CITATION_STATS : undefined);
+  const allCitations: Citation[] = citations ?? (!aiTaskLogId ? MOCK_CITATIONS : []);
 
   const filtered = allCitations.filter(
     (c) =>
@@ -264,10 +366,6 @@ export default function CitationsPage() {
               <div className="h-3 bg-neutral-100 rounded w-1/2" />
             </div>
           ))}
-        </div>
-      ) : !aiTaskLogId ? (
-        <div className="rounded-lg border border-neutral-200 bg-white py-16 text-center text-neutral-400 text-sm">
-          Enter an AI Task Log ID above to load citations, or view stats above for org-wide summary
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border border-neutral-200 bg-white py-16 text-center text-neutral-400 text-sm">

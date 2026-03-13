@@ -1,6 +1,17 @@
 "use client"
 
 import { useState } from "react"
+
+// ── Mock data ────────────────────────────────────────────────────────────────
+
+const MOCK_CONNECTIONS = [
+  { id: "mc1", connected_org_name: "GreenBridge Capital", connected_person_name: "Lars Petersen", connected_person_email: "lars@greenbridge.com", relationship_strength: "hot", connection_type: "co_investor", last_interaction_date: "2026-02-15", notes: "Met at Nordic Green Finance Summit 2025" },
+  { id: "mc2", connected_org_name: "Nordic Clean Energy Fund", connected_person_name: "Emma Svensson", connected_person_email: "emma.svensson@ncef.se", relationship_strength: "warm", connection_type: "investor", last_interaction_date: "2026-01-20", notes: "Interested in hydro and wind assets" },
+  { id: "mc3", connected_org_name: "Deutsche Bank Infrastructure", connected_person_name: "Thomas Mueller", connected_person_email: "t.mueller@db.com", relationship_strength: "moderate", connection_type: "lender", last_interaction_date: "2025-11-30", notes: "Project finance desk, €50M+ tickets" },
+  { id: "mc4", connected_org_name: "Clifford Chance", connected_person_name: "Isabelle Fontaine", connected_person_email: "i.fontaine@cliffordchance.com", relationship_strength: "warm", connection_type: "advisor", last_interaction_date: "2026-02-01", notes: "Energy & infrastructure legal specialist" },
+  { id: "mc5", connected_org_name: "EIB Advisory Services", connected_person_name: "Henrik Olsen", connected_person_email: "h.olsen@eib.org", relationship_strength: "moderate", connection_type: "advisor", last_interaction_date: "2025-12-10", notes: "EU green transition financing programmes" },
+  { id: "mc6", connected_org_name: "Bloomberg Intelligence", connected_person_name: "Priya Sharma", connected_person_email: "priya.sharma@bloomberg.com", relationship_strength: "cool", connection_type: "other", last_interaction_date: "2025-10-05", notes: "Renewable energy analyst coverage" },
+];
 import { formatDate } from "@/lib/format"
 import {
   useConnections, useAddConnection, useDeleteConnection, useIntroPath,
@@ -31,7 +42,9 @@ export default function WarmIntrosPage() {
   const deleteMutation = useDeleteConnection()
   const pathsMutation = useIntroPath()
 
-  const connections = connectionsData?.connections ?? []
+  const connections = connectionsData?.connections?.length
+    ? connectionsData.connections
+    : (!isLoading ? MOCK_CONNECTIONS : [])
 
   return (
     <div className="space-y-6">
@@ -68,14 +81,6 @@ export default function WarmIntrosPage() {
           </h2>
 
           {isLoading && <div className="text-center py-8 text-neutral-400">Loading…</div>}
-
-          {!isLoading && connections.length === 0 && (
-            <div className="text-center py-12 text-neutral-500 border border-dashed border-neutral-300 rounded-xl">
-              <Users className="h-10 w-10 text-neutral-300 mx-auto mb-3" />
-              <p className="font-medium">No connections yet</p>
-              <p className="text-sm mt-1">Add your professional network to find warm introduction paths</p>
-            </div>
-          )}
 
           <div className="space-y-3">
             {connections.map((conn) => (

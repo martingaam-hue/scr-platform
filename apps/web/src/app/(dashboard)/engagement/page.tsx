@@ -8,6 +8,51 @@ import {
 } from "@/lib/engagement";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock data ──────────────────────────────────────────────────────────────
+
+const MOCK_ENGAGEMENT_ENTRIES: DealEngagementSummary[] = [
+  {
+    investor_org_id: "org-nordic-pension-fund",
+    unique_documents_viewed: 14,
+    total_time_seconds: 2_340,
+    avg_completion_pct: 78.4,
+    engagement_score: 91,
+    last_active_at: "2026-03-11T14:22:00Z",
+  },
+  {
+    investor_org_id: "org-dutch-infrastructure",
+    unique_documents_viewed: 9,
+    total_time_seconds: 1_680,
+    avg_completion_pct: 64.2,
+    engagement_score: 76,
+    last_active_at: "2026-03-10T09:45:00Z",
+  },
+  {
+    investor_org_id: "org-eib-co-investment",
+    unique_documents_viewed: 7,
+    total_time_seconds: 1_020,
+    avg_completion_pct: 55.0,
+    engagement_score: 62,
+    last_active_at: "2026-03-08T16:10:00Z",
+  },
+  {
+    investor_org_id: "org-swiss-re",
+    unique_documents_viewed: 5,
+    total_time_seconds: 780,
+    avg_completion_pct: 48.5,
+    engagement_score: 48,
+    last_active_at: "2026-03-07T11:30:00Z",
+  },
+  {
+    investor_org_id: "org-german-family-office",
+    unique_documents_viewed: 4,
+    total_time_seconds: 540,
+    avg_completion_pct: 38.0,
+    engagement_score: 34,
+    last_active_at: "2026-03-05T08:55:00Z",
+  },
+];
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function formatSeconds(s: number): string {
@@ -118,7 +163,7 @@ export default function EngagementPage() {
 
   const { data: engagementData, isLoading } = useDealRoomEngagement(dealRoomId || undefined);
 
-  const entries: DealEngagementSummary[] = engagementData ?? [];
+  const entries: DealEngagementSummary[] = engagementData ?? (!dealRoomId ? MOCK_ENGAGEMENT_ENTRIES : []);
 
   const totalTime = entries.reduce((sum, e) => sum + e.total_time_seconds, 0);
   const totalDocs = entries.reduce((sum, e) => sum + e.unique_documents_viewed, 0);
@@ -201,10 +246,6 @@ export default function EngagementPage() {
                 ))}
               </div>
             ))}
-          </div>
-        ) : !dealRoomId ? (
-          <div className="py-16 text-center text-neutral-400 text-sm">
-            Enter a deal room ID above to load engagement analytics
           </div>
         ) : entries.length === 0 ? (
           <div className="py-16 text-center text-neutral-400 text-sm">No data available</div>

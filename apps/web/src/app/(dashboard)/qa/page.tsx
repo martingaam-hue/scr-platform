@@ -9,6 +9,133 @@ import {
   type QAQuestion,
 } from "@/lib/qa";
 
+// ── Mock data ──────────────────────────────────────────────────────────────
+
+const MOCK_QA_QUESTIONS: QAQuestion[] = [
+  {
+    id: "q-001",
+    question_number: 1,
+    project_id: "p1",
+    deal_room_id: null,
+    asked_by_org_id: "org-nordic-pension",
+    title: "What is the current P50 energy yield assessment?",
+    body: "Please provide the latest independent energy yield assessment for the Iberia portfolio.",
+    status: "answered",
+    priority: "high",
+    category: "technical",
+    assigned_team: null,
+    sla_deadline: "2026-03-05T00:00:00Z",
+    sla_breached: false,
+    answered_at: "2026-02-27T14:00:00Z",
+    created_at: "2026-02-25T09:00:00Z",
+    answers: [
+      { id: "a-001", question_id: "q-001", body: "The P50 yield is 185,000 MWh/year based on the DNV GL assessment from Jan 2026. Full report available in the data room under Technical > Energy Yield.", is_official: true, author_id: "u-anders", created_at: "2026-02-27T14:00:00Z" },
+    ],
+  },
+  {
+    id: "q-002",
+    question_number: 2,
+    project_id: "p1",
+    deal_room_id: null,
+    asked_by_org_id: "org-dutch-infra",
+    title: "Please provide the grid connection agreement for the Iberia assets",
+    body: "We require the executed grid connection agreement including contracted capacity and term.",
+    status: "answered",
+    priority: "high",
+    category: "legal",
+    assigned_team: null,
+    sla_deadline: "2026-03-10T00:00:00Z",
+    sla_breached: false,
+    answered_at: "2026-03-04T10:00:00Z",
+    created_at: "2026-03-02T11:30:00Z",
+    answers: [
+      { id: "a-002", question_id: "q-002", body: "Grid connection agreement attached. Contracted capacity 80MW, valid until 2049. Document uploaded to Data Room > Legal > Grid Agreements.", is_official: true, author_id: "u-karl", created_at: "2026-03-04T10:00:00Z" },
+    ],
+  },
+  {
+    id: "q-003",
+    question_number: 3,
+    project_id: "p1",
+    deal_room_id: null,
+    asked_by_org_id: "org-eib",
+    title: "What is the DSCR under the base case financial model?",
+    body: "Please confirm the Debt Service Coverage Ratio for the base case scenario over the debt tenor.",
+    status: "open",
+    priority: "medium",
+    category: "financial",
+    assigned_team: null,
+    sla_deadline: "2026-03-15T00:00:00Z",
+    sla_breached: false,
+    answered_at: null,
+    created_at: "2026-03-08T08:00:00Z",
+    answers: [],
+  },
+  {
+    id: "q-004",
+    question_number: 4,
+    project_id: "p4",
+    deal_room_id: null,
+    asked_by_org_id: "org-nordic-pension",
+    title: "What is the status of the grid connection permit?",
+    body: "Please provide an update on the Lithuanian grid connection permit application for Baltic BESS.",
+    status: "open",
+    priority: "high",
+    category: "regulatory",
+    assigned_team: null,
+    sla_deadline: "2026-03-12T00:00:00Z",
+    sla_breached: false,
+    answered_at: null,
+    created_at: "2026-03-05T15:00:00Z",
+    answers: [],
+  },
+  {
+    id: "q-005",
+    question_number: 5,
+    project_id: "p4",
+    deal_room_id: null,
+    asked_by_org_id: "org-swiss-re",
+    title: "Can you share the offtake/CfD contract negotiation status?",
+    body: "We need an update on the Contracts for Difference negotiations with Litgrid for Baltic BESS.",
+    status: "answered",
+    priority: "medium",
+    category: "commercial",
+    assigned_team: null,
+    sla_deadline: "2026-03-07T00:00:00Z",
+    sla_breached: false,
+    answered_at: "2026-03-02T16:00:00Z",
+    created_at: "2026-02-28T10:00:00Z",
+    answers: [
+      { id: "a-005", question_id: "q-005", body: "CfD negotiations ongoing with Litgrid. Term sheet agreed on key commercial parameters. Expected contract execution Q2 2026.", is_official: true, author_id: "u-helena", created_at: "2026-03-02T16:00:00Z" },
+    ],
+  },
+  {
+    id: "q-006",
+    question_number: 6,
+    project_id: "p4",
+    deal_room_id: null,
+    asked_by_org_id: "org-german-fo",
+    title: "What is the battery degradation warranty?",
+    body: "Please provide the manufacturer warranty terms for battery capacity degradation over the project lifetime.",
+    status: "open",
+    priority: "medium",
+    category: "technical",
+    assigned_team: null,
+    sla_deadline: "2026-03-17T00:00:00Z",
+    sla_breached: false,
+    answered_at: null,
+    created_at: "2026-03-10T09:30:00Z",
+    answers: [],
+  },
+];
+
+const MOCK_QA_STATS = {
+  total: 6,
+  open: 3,
+  answered: 3,
+  sla_breached: 0,
+  avg_response_hours: 38.5,
+};
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function statusBadge(status: string, slaBreached: boolean) {
@@ -114,7 +241,8 @@ export default function QAPage() {
   const { data: questions, isLoading } = useProjectQuestions(selectedProject || undefined);
   const { data: stats, isLoading: statsLoading } = useQAStats(selectedProject || undefined);
 
-  const allQuestions: QAQuestion[] = questions ?? [];
+  const allQuestions: QAQuestion[] = questions ?? (!selectedProject ? MOCK_QA_QUESTIONS : []);
+  const displayStats = stats ?? (!selectedProject ? MOCK_QA_STATS : undefined);
 
   const filtered = allQuestions.filter((q) => {
     if (activeTab === "open") return q.status !== "answered" && !q.sla_breached;
@@ -124,9 +252,9 @@ export default function QAPage() {
   });
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: "open", label: "Open", count: stats?.open ?? 0 },
-    { key: "answered", label: "Answered", count: stats?.answered ?? 0 },
-    { key: "overdue", label: "Overdue", count: stats?.sla_breached ?? 0 },
+    { key: "open", label: "Open", count: displayStats?.open ?? 0 },
+    { key: "answered", label: "Answered", count: displayStats?.answered ?? 0 },
+    { key: "overdue", label: "Overdue", count: displayStats?.sla_breached ?? 0 },
   ];
 
   return (
@@ -181,12 +309,12 @@ export default function QAPage() {
         </div>
       ) : (
         <div className="grid grid-cols-4 gap-4">
-          <StatCard label="Total Questions" value={stats?.total ?? 0} />
-          <StatCard label="Open" value={stats?.open ?? 0} />
-          <StatCard label="Answered" value={stats?.answered ?? 0} />
+          <StatCard label="Total Questions" value={displayStats?.total ?? 0} />
+          <StatCard label="Open" value={displayStats?.open ?? 0} />
+          <StatCard label="Answered" value={displayStats?.answered ?? 0} />
           <StatCard
             label="Avg Response Time"
-            value={stats?.avg_response_hours != null ? `${stats.avg_response_hours.toFixed(1)}h` : "—"}
+            value={displayStats?.avg_response_hours != null ? `${displayStats.avg_response_hours.toFixed(1)}h` : "—"}
             sub="SLA breached: "
           />
         </div>
@@ -225,10 +353,6 @@ export default function QAPage() {
                 ))}
               </div>
             ))}
-          </div>
-        ) : !selectedProject ? (
-          <div className="py-16 text-center text-neutral-400 text-sm">
-            Enter a project ID above to load questions
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-neutral-400 text-sm">No data available</div>

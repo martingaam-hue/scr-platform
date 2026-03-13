@@ -37,7 +37,6 @@ import {
   Card,
   CardContent,
   SearchInput,
-  EmptyState,
   DataTable,
   type ColumnDef,
   cn,
@@ -56,6 +55,19 @@ import {
   stageLabel,
   formatCurrency,
 } from "@/lib/projects";
+
+// ── Mock data (fallback when API returns empty) ──────────────────────────────
+
+const MOCK_PROJECTS: ProjectResponse[] = [
+  { id: "p1", name: "Helios Solar Iberia", project_type: "solar", geography_country: "Spain", status: "operational", stage: "operational", capacity_mw: 80, total_investment_required: 312_000_000, currency: "EUR", latest_signal_score: 87, created_at: "2025-06-01T00:00:00Z" } as unknown as ProjectResponse,
+  { id: "p2", name: "Nordvik Wind Farm II", project_type: "wind", geography_country: "Norway", status: "construction", stage: "construction", capacity_mw: 120, total_investment_required: 180_000_000, currency: "EUR", latest_signal_score: 74, created_at: "2025-07-15T00:00:00Z" } as unknown as ProjectResponse,
+  { id: "p3", name: "Adriatic Infrastructure", project_type: "infrastructure", geography_country: "Italy", status: "operational", stage: "operational", capacity_mw: null, total_investment_required: 245_000_000, currency: "EUR", latest_signal_score: 82, created_at: "2025-05-20T00:00:00Z" } as unknown as ProjectResponse,
+  { id: "p4", name: "Baltic BESS Grid Storage", project_type: "storage", geography_country: "Lithuania", status: "draft", stage: "development", capacity_mw: 50, total_investment_required: 95_000_000, currency: "EUR", latest_signal_score: 65, created_at: "2025-09-10T00:00:00Z" } as unknown as ProjectResponse,
+  { id: "p5", name: "Alpine Hydro Partners", project_type: "hydro", geography_country: "Switzerland", status: "operational", stage: "operational", capacity_mw: 35, total_investment_required: 420_000_000, currency: "EUR", latest_signal_score: 91, created_at: "2025-04-01T00:00:00Z" } as unknown as ProjectResponse,
+  { id: "p6", name: "Sahara CSP Development", project_type: "solar", geography_country: "Morocco", status: "draft", stage: "feasibility", capacity_mw: 150, total_investment_required: 560_000_000, currency: "EUR", latest_signal_score: 58, created_at: "2025-11-01T00:00:00Z" } as unknown as ProjectResponse,
+  { id: "p7", name: "Nordic Biomass Energy", project_type: "biomass", geography_country: "Sweden", status: "active", stage: "operational", capacity_mw: 25, total_investment_required: 75_000_000, currency: "EUR", latest_signal_score: 71, created_at: "2025-08-05T00:00:00Z" } as unknown as ProjectResponse,
+  { id: "p8", name: "Thames Clean Energy Hub", project_type: "wind", geography_country: "UK", status: "draft", stage: "development", capacity_mw: 200, total_investment_required: 290_000_000, currency: "GBP", latest_signal_score: 78, created_at: "2025-10-12T00:00:00Z" } as unknown as ProjectResponse,
+];
 
 // ── Icon map ────────────────────────────────────────────────────────────────
 
@@ -377,25 +389,13 @@ export default function ProjectsPage() {
       </div>
 
       {/* Table */}
-      {!data?.items.length && !isLoading ? (
-        <EmptyState
-          icon={<FolderKanban className="h-12 w-12 text-neutral-400" />}
-          title="No projects yet"
-          description="Create your first project to get started with your pipeline."
-          action={
-            canCreate ? (
-              <Button onClick={() => router.push("/projects/new")}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Project
-              </Button>
-            ) : undefined
-          }
-        />
-      ) : (
+      {(() => {
+        const items = data?.items?.length ? data.items : (!isLoading ? MOCK_PROJECTS : []);
+        return (
         <Card>
           <DataTable
             columns={columns}
-            data={data?.items ?? []}
+            data={items}
             loading={isLoading}
             onRowClick={(project) => router.push(`/projects/${project.id}`)}
           />
@@ -436,7 +436,8 @@ export default function ProjectsPage() {
             </div>
           )}
         </Card>
-      )}
+        );
+      })()}
     </div>
   );
 }

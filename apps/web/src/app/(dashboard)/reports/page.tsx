@@ -44,6 +44,16 @@ import {
 import { GenerateDialog } from "@/components/reports/generate-dialog";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock data ──────────────────────────────────────────────────────────────
+
+const MOCK_ALLY_REPORTS: GeneratedReportResponse[] = [
+  { id: "mr1", title: "Helios Solar Investor Readiness", template_name: "Investor Readiness Report", status: "completed", parameters: { output_format: "pdf" }, created_at: "2026-03-05T10:00:00Z", download_url: null } as unknown as GeneratedReportResponse,
+  { id: "mr2", title: "Portfolio ESG Summary Q4 2025", template_name: "ESG Impact Report", status: "completed", parameters: { output_format: "pdf" }, created_at: "2026-01-15T09:00:00Z", download_url: null } as unknown as GeneratedReportResponse,
+  { id: "mr3", title: "Annual Performance 2025", template_name: "Portfolio Performance", status: "completed", parameters: { output_format: "xlsx" }, created_at: "2026-01-08T14:00:00Z", download_url: null } as unknown as GeneratedReportResponse,
+  { id: "mr4", title: "Nordvik Technical Progress", template_name: "Project Status Report", status: "completed", parameters: { output_format: "pdf" }, created_at: "2026-02-20T11:30:00Z", download_url: null } as unknown as GeneratedReportResponse,
+  { id: "mr5", title: "Baltic BESS Risk Assessment", template_name: "Risk Assessment", status: "completed", parameters: { output_format: "pdf" }, created_at: "2026-02-28T16:00:00Z", download_url: null } as unknown as GeneratedReportResponse,
+];
+
 // ── Category filter ────────────────────────────────────────────────────────
 
 const CATEGORIES: { value: ReportCategory | "all"; label: string }[] = [
@@ -306,11 +316,14 @@ export default function ReportsPage() {
           <TabsTrigger value="reports">
             <BarChart3 className="mr-1.5 h-4 w-4" />
             Generated
-            {reportsData && reportsData.total > 0 && (
-              <span className="ml-1.5 rounded-full bg-neutral-200 px-1.5 text-[10px] font-bold">
-                {reportsData.total}
-              </span>
-            )}
+            {(() => {
+              const count = reportsData?.total ?? MOCK_ALLY_REPORTS.length;
+              return count > 0 ? (
+                <span className="ml-1.5 rounded-full bg-neutral-200 px-1.5 text-[10px] font-bold">
+                  {count}
+                </span>
+              ) : null;
+            })()}
           </TabsTrigger>
           <TabsTrigger value="schedules">
             <Calendar className="mr-1.5 h-4 w-4" />
@@ -371,21 +384,15 @@ export default function ReportsPage() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
             </div>
-          ) : !reportsData?.items.length ? (
-            <EmptyState
-              icon={<BarChart3 className="h-8 w-8" />}
-              title="No reports generated"
-              description="Generate a report from the Templates tab to get started."
-            />
           ) : (
             <DataTable
               columns={reportColumnsWithActions}
-              data={reportsData.items}
-              pagination={{
-                page: reportsData.page,
-                limit: reportsData.page_size,
-                total: reportsData.total,
-              }}
+              data={reportsData?.items?.length ? reportsData.items : MOCK_ALLY_REPORTS}
+              pagination={
+                reportsData?.items?.length
+                  ? { page: reportsData.page, limit: reportsData.page_size, total: reportsData.total }
+                  : undefined
+              }
               onPaginationChange={(newPage) => setPage(newPage)}
             />
           )}

@@ -21,6 +21,23 @@ import {
   type ActivityResponse,
 } from "@/lib/collaboration";
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_ACTIVITY_FEED: ActivityResponse[] = [
+  { id: "act-01", org_id: "org-pamp", user_id: "u-martin", user_name: "Martin Gaam", user_avatar: null, entity_type: "document", entity_id: "doc-q4nav", action: "uploaded", description: "Q4 2025 NAV Report", created_at: "2026-03-13T09:00:00Z", changes: {} },
+  { id: "act-02", org_id: "org-pamp", user_id: "u-jonas", user_name: "Jonas Eriksson", user_avatar: null, entity_type: "project", entity_id: "p2", action: "updated", description: "Nordvik Wind Farm II technical specifications", created_at: "2026-03-12T14:30:00Z", changes: { turbine_model: true, capacity_mw: true } },
+  { id: "act-03", org_id: "org-pamp", user_id: null, user_name: "Nordic Pension Fund", user_avatar: null, entity_type: "document", entity_id: "dr-helios", action: "viewed", description: "Helios Solar data room (12 documents)", created_at: "2026-03-11T11:15:00Z", changes: {} },
+  { id: "act-04", org_id: "org-pamp", user_id: "u-helena", user_name: "Helena Strand", user_avatar: null, entity_type: "document", entity_id: "doc-q1fin", action: "created", description: "Q1 2026 financial projections published", created_at: "2026-03-10T10:00:00Z", changes: {} },
+  { id: "act-05", org_id: "org-pamp", user_id: "u-anders", user_name: "Anders Nyström", user_avatar: null, entity_type: "risk", entity_id: "p4", action: "completed", description: "Baltic BESS Grid Storage risk assessment", created_at: "2026-03-09T16:45:00Z", changes: {} },
+  { id: "act-06", org_id: "org-pamp", user_id: null, user_name: "EIB Co-Investment", user_avatar: null, entity_type: "portfolio", entity_id: "p1", action: "created", description: "co-investment term request for Helios Solar", created_at: "2026-03-08T13:20:00Z", changes: {} },
+  { id: "act-07", org_id: "org-pamp", user_id: "u-karl", user_name: "Karl Bergström", user_avatar: null, entity_type: "document", entity_id: "doc-alpine-agr", action: "signed", description: "Alpine Hydro Partners investment agreement executed", created_at: "2026-03-05T09:30:00Z", changes: {} },
+  { id: "act-08", org_id: "org-pamp", user_id: "u-maja", user_name: "Maja Lindqvist", user_avatar: null, entity_type: "document", entity_id: "doc-esg-q1", action: "created", description: "ESG monitoring report published for Q1 2026", created_at: "2026-03-03T11:00:00Z", changes: {} },
+  { id: "act-09", org_id: "org-pamp", user_id: null, user_name: "Sofia Bergman (SCR Capital)", user_avatar: null, entity_type: "portfolio", entity_id: "p8", action: "created", description: "term sheet sent for Thames Clean Energy Hub", created_at: "2026-03-01T15:00:00Z", changes: {} },
+  { id: "act-10", org_id: "org-pamp", user_id: null, user_name: "Dutch Infrastructure Trust", user_avatar: null, entity_type: "document", entity_id: "doc-helios-nda", action: "signed", description: "Helios Solar Portfolio Iberia NDA", created_at: "2026-02-28T10:45:00Z", changes: {} },
+  { id: "act-11", org_id: "org-pamp", user_id: "u-martin", user_name: "Martin Gaam", user_avatar: null, entity_type: "project", entity_id: "p6", action: "completed", description: "Sahara CSP Development feasibility study", created_at: "2026-02-25T17:00:00Z", changes: {} },
+  { id: "act-12", org_id: "org-pamp", user_id: "u-jonas", user_name: "Jonas Eriksson", user_avatar: null, entity_type: "project", entity_id: "p8", action: "created", description: "Thames Clean Energy Hub grid connection application submitted", created_at: "2026-02-20T09:15:00Z", changes: {} },
+];
+
 // ── Entity icon + colour ──────────────────────────────────────────────────────
 
 const ENTITY_META: Record<string, { icon: React.ElementType; color: string; label: string }> = {
@@ -100,7 +117,7 @@ export default function CollaborationPage() {
   const [page, setPage] = useState(1);
   const { data, isLoading } = useActivityFeed(page);
 
-  const items = data?.items ?? [];
+  const items = data?.items ?? (page === 1 ? MOCK_ACTIVITY_FEED : []);
   const totalPages = data?.total_pages ?? 1;
 
   return (

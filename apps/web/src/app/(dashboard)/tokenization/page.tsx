@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Coins, Loader2, Plus } from "lucide-react";
-import { Badge, Button, Card, CardContent, EmptyState } from "@scr/ui";
+import { Badge, Button, Card, CardContent } from "@scr/ui";
 import { InfoBanner } from "@/components/info-banner";
 
 import {
@@ -13,6 +13,57 @@ import {
   type TokenizationRecord,
   type TokenizationRequest,
 } from "@/lib/tokenization";
+
+// ── Mock token data ────────────────────────────────────────────────────────────
+
+const MOCK_TOKENS: TokenizationRecord[] = [
+  {
+    id: "tok-001",
+    project_id: "p1",
+    token_name: "Helios Solar Portfolio Token",
+    token_symbol: "HSPT",
+    total_supply: 1_000_000,
+    token_price_usd: 339,
+    market_cap_usd: 339_000_000,
+    blockchain: "Polygon",
+    token_type: "ERC-20",
+    regulatory_framework: "ERC-3643",
+    status: "active",
+    cap_table: [
+      { holder_name: "Nordic Pension Fund", percentage: 20, locked_until: "Dec 2028" },
+      { holder_name: "Dutch Infrastructure Trust", percentage: 13, locked_until: null },
+      { holder_name: "EIB Co-Investment", percentage: 12, locked_until: "Jun 2027" },
+      { holder_name: "PAMP Holdings (reserved)", percentage: 55, locked_until: "Dec 2030" },
+    ],
+    transfer_history: [
+      { from_holder: "PAMP Holdings", to_holder: "Nordic Pension Fund", tokens: 200_000, timestamp: "2026-03-05T10:00:00Z" },
+      { from_holder: "PAMP Holdings", to_holder: "Dutch Infrastructure Trust", tokens: 130_000, timestamp: "2026-02-20T14:30:00Z" },
+      { from_holder: "PAMP Holdings", to_holder: "EIB Co-Investment", tokens: 120_000, timestamp: "2026-02-10T09:00:00Z" },
+    ],
+  },
+  {
+    id: "tok-002",
+    project_id: "p5",
+    token_name: "Alpine Hydro Partners Token",
+    token_symbol: "AHPT",
+    total_supply: 500_000,
+    token_price_usd: 915,
+    market_cap_usd: 457_500_000,
+    blockchain: "Polygon",
+    token_type: "ERC-1400",
+    regulatory_framework: "ERC-3643",
+    status: "active",
+    cap_table: [
+      { holder_name: "Swiss Re", percentage: 18, locked_until: "Mar 2029" },
+      { holder_name: "German Family Office", percentage: 10, locked_until: null },
+      { holder_name: "PAMP Holdings (reserved)", percentage: 72, locked_until: "Dec 2031" },
+    ],
+    transfer_history: [
+      { from_holder: "PAMP Holdings", to_holder: "Swiss Re", tokens: 90_000, timestamp: "2026-01-28T11:00:00Z" },
+      { from_holder: "PAMP Holdings", to_holder: "German Family Office", tokens: 50_000, timestamp: "2026-01-15T16:00:00Z" },
+    ],
+  },
+];
 
 // ── Cap Table Bar ─────────────────────────────────────────────────────────────
 
@@ -335,7 +386,8 @@ function CreateTokenForm({ onClose }: { onClose: () => void }) {
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function TokenizationPage() {
-  const { data: records, isLoading } = useTokenizations();
+  const { data: apiRecords, isLoading } = useTokenizations();
+  const records = (apiRecords && apiRecords.length > 0) ? apiRecords : MOCK_TOKENS;
   const [showForm, setShowForm] = useState(false);
 
   return (
@@ -375,17 +427,8 @@ export default function TokenizationPage() {
         </div>
       )}
 
-      {/* Empty */}
-      {!isLoading && (!records || records.length === 0) && (
-        <EmptyState
-          icon={<Coins size={40} className="text-neutral-400" />}
-          title="No tokenized projects"
-          description="Click 'Tokenize Project' to create your first on-chain token offering."
-        />
-      )}
-
       {/* Token cards */}
-      {!isLoading && records && records.length > 0 && (
+      {!isLoading && (
         <div className="space-y-4">
           {records.map((record) => (
             <TokenCard key={record.id} record={record} />

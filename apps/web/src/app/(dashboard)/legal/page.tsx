@@ -58,6 +58,17 @@ import {
 } from "@/lib/legal";
 import { usePermission } from "@/lib/auth";
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
+const MOCK_ALLY_LEGAL_DOCS: LegalDocumentResponse[] = [
+  { id: "mld1", title: "Helios Solar Investment Agreement", doc_type: "investment_agreement", status: "executed", generation_status: "completed", download_url: null, created_at: "2026-02-01T10:00:00Z" } as unknown as LegalDocumentResponse,
+  { id: "mld2", title: "PAMP NDA Template", doc_type: "nda", status: "final", generation_status: "completed", download_url: null, created_at: "2026-01-15T09:00:00Z" } as unknown as LegalDocumentResponse,
+  { id: "mld3", title: "Baltic BESS Development Agreement", doc_type: "loi", status: "draft", generation_status: "completed", download_url: null, created_at: "2026-03-02T14:00:00Z" } as unknown as LegalDocumentResponse,
+  { id: "mld4", title: "Alpine Hydro Shareholders Agreement", doc_type: "investment_agreement", status: "executed", generation_status: "completed", download_url: null, created_at: "2025-11-20T11:00:00Z" } as unknown as LegalDocumentResponse,
+  { id: "mld5", title: "Nordvik Wind EPC Contract", doc_type: "investment_agreement", status: "executed", generation_status: "completed", download_url: null, created_at: "2026-01-05T08:00:00Z" } as unknown as LegalDocumentResponse,
+  { id: "mld6", title: "Sahara CSP Letter of Intent", doc_type: "loi", status: "draft", generation_status: "completed", download_url: null, created_at: "2026-03-08T16:00:00Z" } as unknown as LegalDocumentResponse,
+];
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 const DOC_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -598,19 +609,11 @@ function MyDocumentsTab() {
     );
   }
 
-  if (!data?.items.length) {
-    return (
-      <EmptyState
-        icon={<FileText className="h-12 w-12 text-neutral-400" />}
-        title="No documents yet"
-        description="Generate your first legal document from the Templates tab, or analyse an uploaded document above."
-      />
-    );
-  }
+  const displayDocs = data?.items?.length ? data.items : MOCK_ALLY_LEGAL_DOCS;
 
   return (
     <div className="space-y-3">
-      {data.items.map((doc: LegalDocumentResponse) => (
+      {displayDocs.map((doc: LegalDocumentResponse) => (
         <Card key={doc.id}>
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3 min-w-0">

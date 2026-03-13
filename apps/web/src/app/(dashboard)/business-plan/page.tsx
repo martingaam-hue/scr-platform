@@ -42,6 +42,15 @@ import { api } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { InfoBanner } from "@/components/info-banner";
 
+// ── Mock data ──────────────────────────────────────────────────────────────
+
+const MOCK_BUSINESS_PLANS = [
+  { id: "mbp1", title: "Helios Solar Full Business Plan", version: 1, status: "finalized", page_count: 42, quality_score: 94, created_at: "2026-02-10T10:00:00Z" },
+  { id: "mbp2", title: "Alpine Hydro Investment Memo", version: 2, status: "finalized", page_count: 38, quality_score: 91, created_at: "2026-01-22T09:00:00Z" },
+  { id: "mbp3", title: "Baltic BESS Development Case", version: 1, status: "draft", page_count: 28, quality_score: 72, created_at: "2026-03-01T14:00:00Z" },
+  { id: "mbp4", title: "Nordvik Wind Construction Update", version: 3, status: "finalized", page_count: 24, quality_score: 79, created_at: "2026-02-25T11:00:00Z" },
+];
+
 // ── Icon + colour config ───────────────────────────────────────────────────
 
 const SECTION_ICONS: Record<
@@ -539,13 +548,15 @@ export default function BusinessPlanPage() {
           )}
 
           {/* Recent Business Plans */}
-          {plans && plans.length > 0 && (
+          {(() => {
+            const displayPlans = plans && plans.length > 0 ? plans : MOCK_BUSINESS_PLANS;
+            return displayPlans.length > 0 && (
             <div>
               <h2 className="text-sm font-semibold text-neutral-900 mb-3">
                 Recent Business Plans
               </h2>
               <div className="space-y-2">
-                {plans.map((plan) => (
+                {displayPlans.map((plan) => (
                   <div
                     key={plan.id}
                     className="flex items-center justify-between p-3 bg-white border border-neutral-200 rounded-lg hover:border-neutral-300 transition-colors"
@@ -597,7 +608,8 @@ export default function BusinessPlanPage() {
                 ))}
               </div>
             </div>
-          )}
+            );
+          })()}
         </>
       )}
     </div>
