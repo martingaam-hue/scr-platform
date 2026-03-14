@@ -14,7 +14,7 @@ logger = structlog.get_logger()
 
 async def transcribe_audio(audio_bytes: bytes, filename: str, content_type: str) -> str:
     """Transcribe audio via OpenAI Whisper API."""
-    if not getattr(settings, "OPENAI_API_KEY", None):
+    if not settings.OPENAI_API_KEY:
         raise RuntimeError("OPENAI_API_KEY not configured")
 
     async with httpx.AsyncClient(timeout=120) as client:

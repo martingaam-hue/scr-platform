@@ -346,6 +346,7 @@ class AIAgentType(str, enum.Enum):
     REPORT = "report"
     CONVERSATIONAL = "conversational"
     COMPLIANCE = "compliance"
+    VOICE_TRANSCRIPTION = "voice_transcription"
 
 
 class AITaskStatus(str, enum.Enum):

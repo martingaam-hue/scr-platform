@@ -133,6 +133,9 @@ class Settings(BaseSettings):
     # Google (Maps, Places, Custom Search)
     GOOGLE_API_KEY: str = ""
 
+    # OpenAI (Whisper voice transcription)
+    OPENAI_API_KEY: str | None = None
+
     # Additional LLM providers (routed via AI Gateway)
     XAI_API_KEY: str = ""  # xAI Grok — https://x.ai/api
     DEEPSEEK_API_KEY: str = ""  # DeepSeek — https://platform.deepseek.com
