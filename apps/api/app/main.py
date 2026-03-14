@@ -292,6 +292,24 @@ async def health_check() -> dict:
         logger.error(f"Health check failed for postgresql: {exc}")
         checks["postgresql"] = {"status": "unhealthy", "error": "connection_failed"}
 
+    # ── Read replica lag ──────────────────────────────────────────────────────
+    try:
+        from app.core.database import _read_replica_url, get_cached_replica_lag
+
+        if _read_replica_url:
+            lag = await get_cached_replica_lag()
+            if lag is None:
+                checks["replica"] = {"status": "unknown", "lag_seconds": None}
+            elif lag > 10:
+                checks["replica"] = {"status": "degraded", "lag_seconds": round(lag, 1)}
+            else:
+                checks["replica"] = {"status": "healthy", "lag_seconds": round(lag, 1)}
+        else:
+            checks["replica"] = {"status": "not_configured"}
+    except Exception as exc:
+        logger.error(f"Health check failed for replica: {exc}")
+        checks["replica"] = {"status": "unhealthy", "error": "connection_failed"}
+
     # ── Redis ─────────────────────────────────────────────────────────────────
     try:
         from redis.asyncio import from_url as redis_from_url

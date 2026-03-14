@@ -91,7 +91,7 @@ def _holding_to_response(h) -> HoldingResponse:
 )
 async def list_portfolios(
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """List all portfolios for the current org."""
     portfolios = await service.list_portfolios(db, current_user.org_id)
@@ -139,7 +139,7 @@ async def create_portfolio(
 async def get_portfolio(
     portfolio_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get portfolio details with latest metrics."""
     try:
@@ -330,7 +330,7 @@ async def update_holding(
 async def get_cash_flows(
     portfolio_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get cash flow time series for a portfolio."""
     try:
@@ -352,7 +352,7 @@ async def get_cash_flows(
 async def get_allocation(
     portfolio_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get portfolio allocation breakdowns by sector, geography, stage, asset type."""
     try:

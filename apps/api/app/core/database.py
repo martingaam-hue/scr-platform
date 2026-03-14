@@ -66,6 +66,71 @@ read_only_session_factory = async_sessionmaker(
     expire_on_commit=False,
 )
 
+# ── Replica lag monitoring ────────────────────────────────────────────────────
+
+_REPLICA_LAG_REDIS_KEY = "replica_lag_seconds"
+_REPLICA_LAG_REDIS_TTL = 30  # seconds — cache TTL for lag value
+_REPLICA_LAG_FAILOVER_THRESHOLD = 30.0  # seconds — route to primary above this
+
+
+async def get_cached_replica_lag() -> float | None:
+    """Return replica lag in seconds (Redis-cached, 30 s TTL).
+
+    Returns ``None`` when:
+    - No read replica is configured.
+    - Both Redis and the replica are unreachable (fail-open).
+
+    On a Redis cache-miss the lag is queried from the replica directly and
+    written back to Redis so subsequent callers within the TTL window skip
+    the SQL round-trip.
+    """
+    if _read_replica_url is None:
+        return None
+
+    try:
+        import redis.asyncio as aioredis
+
+        from app.core.config import settings
+
+        r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+        raw = await r.get(_REPLICA_LAG_REDIS_KEY)
+        await r.aclose()
+        if raw is not None:
+            return float(raw)
+    except Exception:
+        pass
+
+    # Cache miss — query the replica directly
+    try:
+        from sqlalchemy import text
+
+        async with read_only_session_factory() as session:
+            result = await session.execute(
+                text("SELECT EXTRACT(EPOCH FROM" " (now() - pg_last_xact_replay_timestamp()))")
+            )
+            lag = result.scalar()
+
+        if lag is None:
+            return None
+
+        lag_f = float(lag)
+
+        # Write back to Redis (best-effort)
+        try:
+            import redis.asyncio as aioredis
+
+            from app.core.config import settings
+
+            r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+            await r.set(_REPLICA_LAG_REDIS_KEY, str(lag_f), ex=_REPLICA_LAG_REDIS_TTL)
+            await r.aclose()
+        except Exception:
+            pass
+
+        return lag_f
+    except Exception:
+        return None  # fail open — caller will use replica as normal
+
 
 class Base(DeclarativeBase):
     type_annotation_map: ClassVar[dict] = {
@@ -88,9 +153,22 @@ async def get_db() -> AsyncSession:  # type: ignore[misc]
 async def get_readonly_db() -> AsyncSession:  # type: ignore[misc]
     """Read-only session — routed to replica if DATABASE_URL_READ_REPLICA is set.
 
+    Automatically falls back to the primary when replica lag exceeds
+    ``_REPLICA_LAG_FAILOVER_THRESHOLD`` seconds (cached in Redis for 30 s).
     Use for analytics, dashboards, and listing endpoints that don't need writes.
     """
-    async with read_only_session_factory() as session:
+    factory = read_only_session_factory
+    if _read_replica_url:
+        lag = await get_cached_replica_lag()
+        if lag is not None and lag > _REPLICA_LAG_FAILOVER_THRESHOLD:
+            logger.warning(
+                "replica_lag_failover",
+                lag_seconds=round(lag, 1),
+                msg="Replica lag too high — routing read to primary",
+            )
+            factory = async_session_factory
+
+    async with factory() as session:
         try:
             yield session
         except Exception:
@@ -103,9 +181,22 @@ async def get_readonly_db() -> AsyncSession:  # type: ignore[misc]
 async def get_readonly_session() -> AsyncSession:  # type: ignore[misc]
     """Yields a read-only session — routes to read replica if configured.
 
+    Automatically falls back to the primary when replica lag exceeds
+    ``_REPLICA_LAG_FAILOVER_THRESHOLD`` seconds (cached in Redis for 30 s).
     Alias for get_readonly_db with the naming convention used by replica-routed routers.
     """
-    async with read_only_session_factory() as session:
+    factory = read_only_session_factory
+    if _read_replica_url:
+        lag = await get_cached_replica_lag()
+        if lag is not None and lag > _REPLICA_LAG_FAILOVER_THRESHOLD:
+            logger.warning(
+                "replica_lag_failover",
+                lag_seconds=round(lag, 1),
+                msg="Replica lag too high — routing read to primary",
+            )
+            factory = async_session_factory
+
+    async with factory() as session:
         try:
             yield session
         finally:

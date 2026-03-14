@@ -519,11 +519,11 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
 
 resource "aws_cloudwatch_metric_alarm" "rds_replica_lag" {
   count               = var.environment == "production" ? 1 : 0
-  alarm_name          = "scr-production-rds-replica-lag"
-  alarm_description   = "RDS read replica lag exceeds 60 seconds"
+  alarm_name          = "scr-${var.environment}-replica-lag-high"
+  alarm_description   = "RDS read replica lag exceeds 30 seconds — automatic failover to primary is active"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  threshold           = 60
+  evaluation_periods  = 3
+  threshold           = 30
   namespace           = "AWS/RDS"
   metric_name         = "ReplicaLag"
   dimensions = {

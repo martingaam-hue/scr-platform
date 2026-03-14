@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_permission
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_db
 from app.modules.market_data import service
 from app.modules.market_data.schemas import (
     ExternalDataPointResponse,
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/market-data", tags=["market-data"])
 @router.get("/series")
 async def list_series(
     current_user: CurrentUser = Depends(require_permission("view", "portfolio")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ) -> list[dict]:
     """Return all available series grouped by data source."""
     return await service.list_series(db)
@@ -36,7 +36,7 @@ async def get_series_history(
     series_id: str,
     days: int = 90,
     current_user: CurrentUser = Depends(require_permission("view", "portfolio")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ) -> list[ExternalDataPointResponse]:
     """Return historical data points for a specific series (default last 90 days)."""
     points = await service.get_series(db, source=source, series_id=series_id, days=days)
@@ -48,7 +48,7 @@ async def get_series_history(
 @router.get("/summary", response_model=MarketDataSummaryResponse)
 async def get_summary(
     current_user: CurrentUser = Depends(require_permission("view", "portfolio")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ) -> MarketDataSummaryResponse:
     """Return latest values for key economic indicators (10Y Treasury, Fed Funds, etc.)."""
     indicators = await service.get_summary(db)

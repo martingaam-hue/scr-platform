@@ -51,7 +51,7 @@ router = APIRouter(prefix="/signal-score", tags=["signal-score"])
 async def get_task_status(
     task_log_id: uuid.UUID,
     current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Check status of a signal score calculation task."""
     task_log = await service.get_task_status(db, task_log_id, current_user.org_id)
@@ -223,7 +223,7 @@ async def live_score(
 async def get_latest_score(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get latest signal score with full dimension breakdown."""
     ck = cache_key("signal_score", str(current_user.org_id), str(project_id))
@@ -252,7 +252,7 @@ async def get_latest_score(
 async def get_score_details(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get detailed scoring breakdown with criteria and AI assessments."""
     try:
@@ -270,7 +270,7 @@ async def get_score_details(
 async def get_gaps(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get gap analysis with prioritized recommendations."""
     try:
@@ -292,7 +292,7 @@ async def get_gaps(
 async def get_strengths(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get strengths identified by the scoring engine."""
     try:
@@ -316,7 +316,7 @@ async def get_strengths(
 async def get_improvement_guidance(
     project_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "project")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_session),
 ):
     """Get structured improvement guidance from the latest signal score."""
     try:
