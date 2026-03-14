@@ -16,7 +16,6 @@ from fastapi import APIRouter
 
 from app.core.module_discovery import DISABLED_MODULES, discover_routers
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
