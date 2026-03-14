@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -68,8 +69,9 @@ class EngagementService:
         """Record (or accumulate) dwell time for a single page within an engagement session."""
         engagement = await self._load_engagement(engagement_id)
 
-        # Build updated pages_viewed list — accumulate time if page already seen
-        pages: list[dict[str, Any]] = list(engagement.pages_viewed or [])
+        # Build updated pages_viewed list — use deep copy to ensure SQLAlchemy
+        # detects the JSONB mutation on reassignment
+        pages: list[dict[str, Any]] = copy.deepcopy(list(engagement.pages_viewed or []))
         for entry in pages:
             if entry.get("page") == page_number:
                 entry["time_seconds"] = entry.get("time_seconds", 0) + time_seconds

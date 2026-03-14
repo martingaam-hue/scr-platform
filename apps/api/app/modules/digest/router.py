@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Literal
 
 import structlog
@@ -58,7 +58,7 @@ async def preview_digest(
 
     Returns a structured summary without sending any email.
     """
-    since = datetime.now(UTC) - timedelta(days=days)
+    since = datetime.utcnow() - timedelta(days=days)
     data = await service.gather_digest_data(db, current_user.org_id, current_user.user_id, since)
     return {"days": days, "summary": data}
 
@@ -75,7 +75,7 @@ async def trigger_digest(
     a narrative, and returns the result. Does not send email — call the email
     dispatch service separately if needed.
     """
-    since = datetime.now(UTC) - timedelta(days=days)
+    since = datetime.utcnow() - timedelta(days=days)
 
     # Gather org name for narrative context
     try:

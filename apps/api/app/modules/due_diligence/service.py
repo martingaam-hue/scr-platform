@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 import structlog
@@ -417,7 +417,7 @@ async def update_item_status(
     if document_id is not None:
         item_status.satisfied_by_document_id = document_id
     if status in ("satisfied", "partially_met", "not_met", "waived"):
-        item_status.reviewed_at = datetime.now(UTC)
+        item_status.reviewed_at = datetime.utcnow()
 
     await db.flush()
     await _update_completion_percentage(db, checklist_id)
@@ -447,7 +447,7 @@ async def add_custom_item(
         "description": description,
         "priority": priority,
         "status": "pending",
-        "created_at": datetime.now(UTC).isoformat(),
+        "created_at": datetime.utcnow().isoformat(),
     }
 
     current_items = list(checklist.custom_items or [])

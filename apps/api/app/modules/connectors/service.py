@@ -6,7 +6,7 @@ import uuid
 from typing import Any
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -480,7 +480,7 @@ async def get_usage_stats(db: AsyncSession, org_id: uuid.UUID) -> list[dict[str,
         select(
             DataFetchLog.connector_id,
             func.count(DataFetchLog.id).label("total_calls"),
-            func.sum(func.case((DataFetchLog.status_code >= 400, 1), else_=0)).label("error_count"),
+            func.sum(case((DataFetchLog.status_code >= 400, 1), else_=0)).label("error_count"),
             func.avg(DataFetchLog.response_time_ms).label("avg_ms"),
         )
         .where(DataFetchLog.org_id == org_id)

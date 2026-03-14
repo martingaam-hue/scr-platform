@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import math
 import uuid
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from typing import Any
 
 import boto3
@@ -482,7 +482,7 @@ def _render_html_report(report: LPReport) -> str:
         period_start=str(report.period_start),
         period_end=str(report.period_end),
         status=report.status.upper(),
-        generated_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
+        generated_at=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
         narrative=narrative_obj,
         gross_irr=_fmt_pct(report.gross_irr),
         net_irr=_fmt_pct(report.net_irr),
@@ -672,7 +672,7 @@ async def approve_report(
 
     report.status = "approved"
     report.approved_by = approver_id
-    report.approved_at = datetime.now(UTC)
+    report.approved_at = datetime.utcnow()
     await db.flush()
     return report
 
@@ -715,7 +715,7 @@ async def generate_html_report(
         s3_key = f"local/{report_id}/report.html"
 
     report.pdf_s3_key = s3_key
-    report.generated_at = datetime.now(UTC)
+    report.generated_at = datetime.utcnow()
     await db.flush()
 
     return s3_key, presigned_url
