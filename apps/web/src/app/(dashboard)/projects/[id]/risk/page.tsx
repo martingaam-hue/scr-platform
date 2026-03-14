@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
 import { RiskDashboardView } from "@/components/risk/risk-dashboard-view";
-import { InfoBanner } from "@/components/info-banner";
+import { InfoBanner } from "@scr/ui";
 
 export default function ProjectRiskPage() {
   const { id } = useParams<{ id: string }>();

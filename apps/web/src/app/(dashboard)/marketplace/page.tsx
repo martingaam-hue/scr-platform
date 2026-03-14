@@ -25,6 +25,7 @@ import {
   CardContent,
   DataTable,
   EmptyState,
+  InfoBanner,
   ScoreGauge,
   Tabs,
   TabsList,
@@ -54,7 +55,6 @@ import {
   type ListingFilters,
   type ListingType,
 } from "@/lib/marketplace";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock listings ──────────────────────────────────────────────────────────────
 

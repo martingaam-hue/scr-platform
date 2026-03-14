@@ -8,7 +8,7 @@ import {
   type BenchmarkEntry,
   type BenchmarkMetricComparison,
 } from "@/lib/metrics";
-import { InfoBanner } from "@/components/info-banner";
+import { InfoBanner } from "@scr/ui";
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 

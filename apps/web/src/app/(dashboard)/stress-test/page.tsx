@@ -13,6 +13,7 @@ import {
   Card,
   CardContent,
   EmptyState,
+  InfoBanner,
   cn,
 } from "@scr/ui";
 import {
@@ -24,7 +25,6 @@ import {
   type ScenarioResponse,
 } from "@/lib/stress-test";
 import { usePortfolios } from "@/lib/portfolio";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 

@@ -11,7 +11,7 @@ import {
   AlertTriangle,
   Activity,
 } from "lucide-react";
-import { InfoBanner } from "@/components/info-banner";
+import { InfoBanner } from "@scr/ui";
 import {
   useMarketEnrichmentDashboard,
   useMarketDataSources,

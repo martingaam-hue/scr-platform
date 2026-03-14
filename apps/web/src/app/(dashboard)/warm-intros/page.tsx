@@ -19,8 +19,7 @@ import {
   type IntroPath,
 } from "@/lib/warm-intros"
 import { Users, Plus, Flame, X, Send } from "lucide-react"
-import { Button } from "@scr/ui"
-import { InfoBanner } from "@/components/info-banner"
+import { Button, InfoBanner } from "@scr/ui"
 
 export default function WarmIntrosPage() {
   const [showAddForm, setShowAddForm] = useState(false)

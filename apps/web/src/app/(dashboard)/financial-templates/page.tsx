@@ -8,13 +8,14 @@ import {
 } from "lucide-react";
 import {
   Badge,
+  BarChart,
   Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   EmptyState,
-  BarChart,
+  InfoBanner,
 } from "@scr/ui";
 import {
   useTaxonomy,
@@ -25,7 +26,6 @@ import {
   type DCFInput,
   type DCFResult,
 } from "@/lib/financial-templates";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 

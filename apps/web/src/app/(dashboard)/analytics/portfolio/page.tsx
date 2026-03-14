@@ -18,7 +18,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { Badge, Card, CardContent, cn } from "@scr/ui";
+import { Badge, Card, CardContent, InfoBanner, cn } from "@scr/ui";
 import {
   usePortfolios,
   usePortfolioMetrics,
@@ -29,7 +29,6 @@ import {
   type AllocationBreakdown,
   type HoldingResponse,
 } from "@/lib/portfolio";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 

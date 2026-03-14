@@ -5,7 +5,7 @@ import { useComps, useCreateComp, useCompsValuation, QUALITY_BADGE, ASSET_TYPES,
 import { formatCurrency, formatPct } from "@/lib/format"
 import { Plus, Calculator, TrendingUp, X } from "lucide-react"
 import { AIFeedback } from "@/components/ai-feedback"
-import { InfoBanner } from "@/components/info-banner"
+import { InfoBanner } from "@scr/ui"
 
 // ── Mock comps data matching specified transactions ────────────────────────
 

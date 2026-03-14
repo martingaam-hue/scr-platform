@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
+  InfoBanner,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -42,7 +43,6 @@ import {
   type CreateAssumptionPayload,
 } from "@/lib/pacing";
 import { usePortfolios } from "@/lib/portfolio";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 

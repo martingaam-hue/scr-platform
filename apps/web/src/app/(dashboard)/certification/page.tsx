@@ -30,8 +30,8 @@ import {
   Button,
   Card,
   CardContent,
+  InfoBanner,
 } from "@scr/ui";
-import { InfoBanner } from "@/components/info-banner";
 import {
   LineChart,
   Line,

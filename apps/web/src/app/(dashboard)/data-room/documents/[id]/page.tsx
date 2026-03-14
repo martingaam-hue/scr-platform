@@ -25,6 +25,7 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
+  LoadingSpinner,
 } from "@scr/ui";
 import {
   useDocument,
@@ -656,7 +657,7 @@ export default function DocumentVersionsPage() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -801,7 +802,7 @@ export default function DocumentVersionsPage() {
           <CardContent>
             {logLoading ? (
               <div className="flex h-24 items-center justify-center">
-                <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+                <LoadingSpinner className="h-6 w-6" />
               </div>
             ) : !accessLog?.items || accessLog.items.length === 0 ? (
               <EmptyState

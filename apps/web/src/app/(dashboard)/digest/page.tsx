@@ -14,7 +14,7 @@ import {
   Settings,
   Sparkles,
 } from "lucide-react";
-import { Badge, Button, Card, CardContent, cn, EmptyState } from "@scr/ui";
+import { Badge, Button, Card, CardContent, EmptyState, InfoBanner, cn } from "@scr/ui";
 import {
   useDigestPreview,
   useDigestHistory,
@@ -25,7 +25,6 @@ import {
   type DigestSummary,
 } from "@/lib/digest";
 import { useSCRUser } from "@/lib/auth";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 

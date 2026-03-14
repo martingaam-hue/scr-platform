@@ -17,6 +17,8 @@ import {
   CardContent,
   DataTable,
   EmptyState,
+  InfoBanner,
+  LoadingSpinner,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -38,7 +40,6 @@ import {
   type SDGGoal,
 } from "@/lib/impact";
 import { useProjects } from "@/lib/projects";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Stat card ─────────────────────────────────────────────────────────────
 
@@ -214,7 +215,7 @@ function DashboardTab() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -567,7 +568,7 @@ function CarbonCreditsTab() {
 
       {isLoading ? (
         <div className="flex h-48 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          <LoadingSpinner />
         </div>
       ) : !data || data.items.length === 0 ? (
         <EmptyState
@@ -597,7 +598,7 @@ function SDGTrackerTab() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        <LoadingSpinner />
       </div>
     );
   }

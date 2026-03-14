@@ -15,7 +15,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { cn } from "@scr/ui";
+import { InfoBanner, cn } from "@scr/ui";
 import {
   useFunnelData,
   usePipelineValue,
@@ -25,7 +25,6 @@ import {
   type StageCount,
   type AvgTimeInStage,
 } from "@/lib/deal-flow";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 

@@ -2,7 +2,7 @@
 
 import { ShieldAlert } from "lucide-react";
 import { RiskDashboardView } from "@/components/risk/risk-dashboard-view";
-import { InfoBanner } from "@/components/info-banner";
+import { InfoBanner } from "@scr/ui";
 
 export default function RiskDashboardPage() {
   return (

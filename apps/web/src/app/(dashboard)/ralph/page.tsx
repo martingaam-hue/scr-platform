@@ -25,7 +25,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { Button, Card, CardContent } from "@scr/ui";
+import { Button, Card, CardContent, InfoBanner } from "@scr/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { AIFeedback } from "@/components/ai-feedback";
 import { api } from "@/lib/api";
@@ -36,7 +36,6 @@ import {
   useStreamMessage,
   type RalphMessage,
 } from "@/lib/ralph";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 

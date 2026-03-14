@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   CardContent,
+  InfoBanner,
   cn,
 } from "@scr/ui";
 import {
@@ -17,7 +18,6 @@ import {
   LIQUIDITY_LABELS,
   type AssessmentRequest,
 } from "@/lib/risk-profile";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 

@@ -9,9 +9,8 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import { Badge, Button, Card, CardContent, EmptyState } from "@scr/ui";
+import { Badge, Button, Card, CardContent, EmptyState, InfoBanner } from "@scr/ui";
 
-import { InfoBanner } from "@/components/info-banner";
 import {
   formatCurrency,
   kpiQualityBg,

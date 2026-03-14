@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { HelpCircle, Plus, Clock, CheckCircle, AlertTriangle } from "lucide-react";
-import { InfoBanner } from "@/components/info-banner";
+import { InfoBanner } from "@scr/ui";
 import {
   useProjectQuestions,
   useQAStats,

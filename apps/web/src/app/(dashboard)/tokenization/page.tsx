@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Coins, Loader2, Plus } from "lucide-react";
-import { Badge, Button, Card, CardContent } from "@scr/ui";
-import { InfoBanner } from "@/components/info-banner";
+import { Badge, Button, Card, CardContent, InfoBanner } from "@scr/ui";
 
 import {
   blockchainColor,

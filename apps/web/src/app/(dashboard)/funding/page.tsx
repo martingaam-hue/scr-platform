@@ -34,6 +34,7 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
+  InfoBanner,
   Tabs,
   TabsContent,
   TabsList,
@@ -41,7 +42,6 @@ import {
   cn,
 } from "@scr/ui";
 import { useProjects, useProjectStats, formatCurrency, type ProjectResponse } from "@/lib/projects";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data — project-holder / ally perspective ─────────────────────────────
 

@@ -42,7 +42,7 @@ import {
   type OutputFormat,
 } from "@/lib/reports";
 import { GenerateDialog } from "@/components/reports/generate-dialog";
-import { InfoBanner } from "@/components/info-banner";
+import { InfoBanner } from "@scr/ui";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 

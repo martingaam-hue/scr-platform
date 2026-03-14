@@ -71,10 +71,10 @@ import {
 } from "@/lib/dataroom";
 import { useProjects, type ProjectResponse } from "@/lib/projects";
 import { FolderTree } from "@/components/dataroom/folder-tree";
+import { InfoBanner } from "@scr/ui";
 import { UploadModal } from "@/components/dataroom/upload-modal";
 import { DocumentPreview } from "@/components/dataroom/document-preview";
 import { ExtractionPanel } from "@/components/dataroom/extraction-panel";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 

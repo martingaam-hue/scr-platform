@@ -8,6 +8,7 @@ import {
   Card,
   CardContent,
   EmptyState,
+  LoadingSpinner,
 } from "@scr/ui";
 import {
   STRATEGY_LABELS,
@@ -188,7 +189,7 @@ function MatchList({ personaId }: { personaId: string }) {
   if (isLoading && !matchesData.length) {
     return (
       <div className="flex justify-center py-4">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -304,7 +305,7 @@ export default function InvestorPersonasPage() {
 
       {isLoading && !personasData.length ? (
         <div className="flex h-40 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          <LoadingSpinner />
         </div>
       ) : personas.length === 0 ? (
         <EmptyState

@@ -3,8 +3,7 @@
 import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bookmark, Search, X, SlidersHorizontal, Loader2 } from "lucide-react";
-import { Button, Card, CardContent, EmptyState } from "@scr/ui";
-import { cn } from "@scr/ui";
+import { Button, Card, CardContent, EmptyState, InfoBanner, cn } from "@scr/ui";
 import {
   useSavedSearches,
   useScreenerSearch,
@@ -13,7 +12,6 @@ import {
   type ScreenerResult,
   type ScreenerResponse,
 } from "@/lib/screener";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock screener results shown on initial load ────────────────────────────
 

@@ -18,8 +18,8 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
+  InfoBanner,
 } from "@scr/ui";
-import { InfoBanner } from "@/components/info-banner";
 import {
   useInsuranceImpact,
   type CoverageRecommendation,

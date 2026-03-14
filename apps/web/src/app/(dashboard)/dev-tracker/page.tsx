@@ -38,6 +38,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  InfoBanner,
   Tabs,
   TabsContent,
   TabsList,
@@ -45,7 +46,6 @@ import {
   cn,
 } from "@scr/ui";
 import { useProjects } from "@/lib/projects";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 

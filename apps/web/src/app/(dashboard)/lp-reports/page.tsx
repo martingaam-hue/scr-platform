@@ -17,6 +17,7 @@ import {
   CardContent,
   DataTable,
   EmptyState,
+  InfoBanner,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -35,7 +36,6 @@ import {
   type LPReport,
   type CreateLPReportRequest,
 } from "@/lib/lp-reports";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 

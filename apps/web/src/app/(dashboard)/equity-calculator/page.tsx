@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
+  InfoBanner,
 } from "@scr/ui";
 import {
   useEquityScenarios,
@@ -28,7 +29,6 @@ import {
   type CreateScenarioRequest,
   type EquityScenario,
 } from "@/lib/equity-calculator";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 

@@ -8,7 +8,9 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  InfoBanner,
   LineChart,
+  LoadingSpinner,
 } from "@scr/ui";
 import { usePortfolios } from "@/lib/portfolio";
 import {
@@ -19,7 +21,6 @@ import {
   SDG_NAMES,
   SFDR_COLORS,
 } from "@/lib/esg";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 
@@ -216,7 +217,7 @@ export default function ESGDashboardPage() {
 
       {isLoading ? (
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          <LoadingSpinner />
         </div>
       ) : (
         <>

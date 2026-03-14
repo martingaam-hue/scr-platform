@@ -14,7 +14,7 @@ import {
   Calendar, List, AlertTriangle, CheckCircle, Clock, Plus, Zap, X,
   Shield, FileText, Landmark, Leaf, Briefcase, RefreshCw
 } from "lucide-react"
-import { InfoBanner } from "@/components/info-banner"
+import { InfoBanner } from "@scr/ui"
 
 const CATEGORY_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   regulatory_filing: Landmark,

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BookOpen, Search, CheckCircle, XCircle, HelpCircle } from "lucide-react";
-import { InfoBanner } from "@/components/info-banner";
+import { InfoBanner } from "@scr/ui";
 import {
   useCitationStats,
   useCitations,

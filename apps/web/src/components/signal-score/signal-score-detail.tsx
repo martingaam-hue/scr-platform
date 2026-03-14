@@ -24,6 +24,7 @@ import {
   Card,
   CardContent,
   EmptyState,
+  InfoBanner,
   LineChart,
   ScoreGauge,
   Tabs,
@@ -64,7 +65,6 @@ import {
 import { useProject } from "@/lib/projects";
 import { usePermission } from "@/lib/auth";
 import { AIFeedback } from "@/components/ai-feedback";
-import { InfoBanner } from "@/components/info-banner";
 import { CitationBadges } from "@/components/citations/citation-badges";
 import { LineagePanel } from "@/components/lineage/lineage-panel";
 import {

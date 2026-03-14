@@ -12,8 +12,7 @@ import {
   AlertTriangle,
   Settings,
 } from "lucide-react";
-import { Badge, Button, Card, CardContent, EmptyState, cn } from "@scr/ui";
-import { InfoBanner } from "@/components/info-banner";
+import { Badge, Button, Card, CardContent, EmptyState, InfoBanner, cn } from "@scr/ui";
 import {
   useNotifications,
   useMarkRead,

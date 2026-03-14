@@ -58,6 +58,7 @@ import {
   CardTitle,
   DataTable,
   EmptyState,
+  LoadingSpinner,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -113,7 +114,7 @@ function OrgTab() {
   if (isLoading) {
     return (
       <div className="flex h-48 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -449,7 +450,7 @@ function TeamTab() {
 
       {isLoading ? (
         <div className="flex h-48 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          <LoadingSpinner />
         </div>
       ) : !data || data.items.length === 0 ? (
         <EmptyState
@@ -646,7 +647,7 @@ function ApiKeysTab() {
 
       {isLoading ? (
         <div className="flex h-48 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          <LoadingSpinner />
         </div>
       ) : !data || data.items.length === 0 ? (
         <EmptyState
@@ -725,7 +726,7 @@ function PreferencesTab() {
   if (isLoading) {
     return (
       <div className="flex h-48 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        <LoadingSpinner />
       </div>
     );
   }

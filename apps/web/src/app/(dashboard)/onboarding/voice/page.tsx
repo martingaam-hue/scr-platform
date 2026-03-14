@@ -48,12 +48,12 @@ export default function VoiceInputPage() {
   const recognitionRef = useRef<SpeechRecognitionType | null>(null)
 
   const processMutation = useProcessAudio()
-  const onProcessSuccess = (data: { transcript: string; extracted: ExtractedProject }) => {
+  const onProcessSuccess = useCallback((data: { transcript: string; extracted: ExtractedProject }) => {
     setTranscript(data.transcript ?? "")
     setExtracted(data.extracted ?? null)
     setRecordingState("done")
-  }
-  const onProcessError = () => setRecordingState("error")
+  }, [])
+  const onProcessError = useCallback(() => setRecordingState("error"), [])
 
   const startRecording = useCallback(async () => {
     try {

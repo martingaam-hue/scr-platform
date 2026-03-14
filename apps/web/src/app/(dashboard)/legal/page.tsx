@@ -24,6 +24,8 @@ import {
   CardContent,
   EmptyState,
   FileUploader,
+  InfoBanner,
+  LoadingSpinner,
   type FileItem,
   Tabs,
   TabsList,
@@ -32,7 +34,6 @@ import {
 } from "@scr/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AIFeedback } from "@/components/ai-feedback";
-import { InfoBanner } from "@/components/info-banner";
 import { api } from "@/lib/api";
 import {
   useTemplates,
@@ -211,7 +212,7 @@ function DocumentWizard({
   if (!template) {
     return (
       <div className="flex items-center justify-center h-40">
-        <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        <LoadingSpinner className="h-6 w-6" />
       </div>
     );
   }
@@ -248,7 +249,7 @@ function DocumentWizard({
           ) : isFailed ? (
             <AlertTriangle className="h-8 w-8 text-red-500" />
           ) : (
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+            <LoadingSpinner />
           )}
           <div>
             <p className="font-semibold text-neutral-900">
@@ -546,7 +547,7 @@ function TemplatesTab() {
   if (isLoading) {
     return (
       <div className="flex h-40 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -604,7 +605,7 @@ function MyDocumentsTab() {
   if (isLoading) {
     return (
       <div className="flex h-40 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        <LoadingSpinner />
       </div>
     );
   }

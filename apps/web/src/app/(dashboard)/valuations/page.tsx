@@ -23,6 +23,7 @@ import {
   CardTitle,
   DataTable,
   EmptyState,
+  InfoBanner,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -53,7 +54,6 @@ import { CitationBadges } from "@/components/citations/citation-badges";
 import { LineagePanel } from "@/components/lineage/lineage-panel";
 import { useSimilarComps } from "@/lib/comps";
 import { useProjects } from "@/lib/projects";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 

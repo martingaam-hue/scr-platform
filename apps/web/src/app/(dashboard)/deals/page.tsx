@@ -21,6 +21,8 @@ import {
   Button,
   Card,
   CardContent,
+  InfoBanner,
+  LoadingSpinner,
   ScoreGauge,
   Tabs,
   TabsList,
@@ -40,7 +42,6 @@ import {
   type DiscoverParams,
 } from "@/lib/deals";
 import { formatCurrency } from "@/lib/projects";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ─────────────────────────────────────────────────────────────
 
@@ -326,7 +327,7 @@ function PipelineTab() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -605,7 +606,7 @@ function DiscoverTab({
 
       {isLoading ? (
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          <LoadingSpinner />
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

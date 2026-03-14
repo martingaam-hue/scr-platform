@@ -13,8 +13,7 @@ import {
   Shield,
   Users,
 } from "lucide-react";
-import { Badge, Card, CardContent, EmptyState, cn } from "@scr/ui";
-import { InfoBanner } from "@/components/info-banner";
+import { Badge, Card, CardContent, EmptyState, InfoBanner, cn } from "@scr/ui";
 import {
   useActivityFeed,
   timeAgo,

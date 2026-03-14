@@ -35,6 +35,7 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
+  InfoBanner,
   Tabs,
   TabsContent,
   TabsList,
@@ -60,7 +61,6 @@ import {
   MAJOR_CURRENCIES,
   type CurrencyExposureItem,
 } from "@/lib/fx";
-import { InfoBanner } from "@/components/info-banner";
 import { AIFeedback } from "@/components/ai-feedback";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

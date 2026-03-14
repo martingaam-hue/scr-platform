@@ -6,7 +6,7 @@ import {
   useDealRoomEngagement,
   type DealEngagementSummary,
 } from "@/lib/engagement";
-import { InfoBanner } from "@/components/info-banner";
+import { InfoBanner } from "@scr/ui";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 

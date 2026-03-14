@@ -16,6 +16,7 @@ import {
   Card,
   CardContent,
   EmptyState,
+  LoadingSpinner,
   ScoreGauge,
 } from "@scr/ui";
 import {
@@ -319,7 +320,7 @@ export default function DealScreeningPage() {
 
       {isLoading && (
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          <LoadingSpinner />
         </div>
       )}
 
@@ -342,7 +343,7 @@ export default function DealScreeningPage() {
       {!isLoading && report && isPolling && (
         <Card>
           <CardContent className="p-8 flex flex-col items-center gap-4">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+            <LoadingSpinner className="h-10 w-10" />
             <div className="text-center">
               <p className="font-medium text-neutral-700">
                 Screening in progress...

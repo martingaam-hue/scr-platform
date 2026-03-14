@@ -65,6 +65,7 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
+  InfoBanner,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -88,7 +89,6 @@ import {
   type BacktestRunRequest,
   type RecordOutcomeRequest,
 } from "@/lib/backtesting";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

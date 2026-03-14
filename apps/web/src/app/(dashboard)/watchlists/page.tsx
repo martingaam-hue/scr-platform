@@ -10,7 +10,7 @@ import {
   Bell, BellOff, Plus, X, Trash2, CheckCircle, TrendingUp,
   AlertTriangle, Activity, Zap, Circle, ToggleLeft, ToggleRight, Sparkles, Loader2,
 } from "lucide-react"
-import { InfoBanner } from "@/components/info-banner"
+import { InfoBanner } from "@scr/ui"
 
 const WATCH_TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   new_projects: Zap,

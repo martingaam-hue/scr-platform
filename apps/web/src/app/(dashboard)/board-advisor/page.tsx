@@ -25,12 +25,13 @@ import {
   Card,
   CardContent,
   EmptyState,
+  InfoBanner,
+  LoadingSpinner,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@scr/ui";
-import { InfoBanner } from "@/components/info-banner";
 import {
   APPLICATION_STATUS_LABELS,
   AVAILABILITY_LABELS,
@@ -854,7 +855,7 @@ export default function BoardAdvisorPage() {
           {/* Advisor grid */}
           {isLoading && advisorsData.length === 0 ? (
             <div className="flex h-40 items-center justify-center">
-              <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+              <LoadingSpinner className="h-6 w-6" />
             </div>
           ) : advisors.length === 0 ? (
             <EmptyState

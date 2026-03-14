@@ -1,9 +1,8 @@
 "use client";
 
-import { Badge, Card, CardContent, DataTable, EmptyState, type ColumnDef } from "@scr/ui";
+import { Badge, Card, CardContent, DataTable, EmptyState, InfoBanner, LoadingSpinner, type ColumnDef } from "@scr/ui";
 import { Activity } from "lucide-react";
 import { usePortfolioDashboard } from "@/lib/monitoring";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock Data ────────────────────────────────────────────────────────────────
 
@@ -222,7 +221,7 @@ export default function MonitoringPage() {
           </h2>
           {isLoading ? (
             <div className="flex h-48 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+              <LoadingSpinner />
             </div>
           ) : summaries.length === 0 ? (
             <EmptyState

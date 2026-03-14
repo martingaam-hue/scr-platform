@@ -15,6 +15,7 @@ import {
   CardContent,
   DataTable,
   EmptyState,
+  InfoBanner,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -32,7 +33,6 @@ import {
   Tooltip,
 } from "recharts";
 import { useCashflowPacing } from "@/lib/metrics";
-import { InfoBanner } from "@/components/info-banner";
 import { usePermission } from "@/lib/auth";
 import {
   usePortfolios,

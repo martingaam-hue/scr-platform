@@ -25,6 +25,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  InfoBanner,
   Tabs,
   TabsContent,
   TabsList,
@@ -39,7 +40,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { AIFeedback } from "@/components/ai-feedback";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Color helpers ─────────────────────────────────────────────────────────────
 

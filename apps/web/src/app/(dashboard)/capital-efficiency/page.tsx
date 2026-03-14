@@ -13,8 +13,8 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  InfoBanner,
 } from "@scr/ui";
-import { InfoBanner } from "@/components/info-banner";
 import {
   useCapitalEfficiency,
   useEfficiencyBreakdown,

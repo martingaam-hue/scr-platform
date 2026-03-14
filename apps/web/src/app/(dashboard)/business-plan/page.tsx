@@ -29,6 +29,7 @@ import {
   Card,
   CardContent,
   EmptyState,
+  InfoBanner,
 } from "@scr/ui";
 import {
   BUSINESS_PLAN_ACTIONS,
@@ -40,7 +41,6 @@ import { useProjects } from "@/lib/projects";
 import { useBusinessPlans } from "@/lib/business-plans";
 import { api } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 

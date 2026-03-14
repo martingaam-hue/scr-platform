@@ -26,6 +26,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  InfoBanner,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -38,7 +39,6 @@ import {
   type IdentificationResponse,
 } from "@/lib/tax-credits";
 import { useProjects } from "@/lib/projects";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock EU tax credits ────────────────────────────────────────────────────────
 

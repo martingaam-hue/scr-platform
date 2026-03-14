@@ -19,13 +19,14 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
+  InfoBanner,
+  LoadingSpinner,
 } from "@scr/ui";
 import {
   useAuditReport,
   useBatchSubmit,
   type AnchorResponse,
 } from "@/lib/blockchain";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -162,7 +163,7 @@ export default function BlockchainAuditPage() {
 
       {isLoading ? (
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          <LoadingSpinner />
         </div>
       ) : !data ? (
         <EmptyState

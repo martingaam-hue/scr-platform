@@ -17,7 +17,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { Badge, cn } from "@scr/ui";
+import { Badge, InfoBanner, cn } from "@scr/ui";
 import {
   useUpdateMatchStatus,
   alignmentColor,
@@ -28,7 +28,6 @@ import {
   PIPELINE_STAGES,
   type MatchingInvestor,
 } from "@/lib/matching";
-import { InfoBanner } from "@/components/info-banner";
 
 // ── Mock investor data ────────────────────────────────────────────────────────
 
