@@ -244,3 +244,201 @@ class TestRateLimitConstants:
         from app.modules.voice_input.router import _VOICE_RATE_WINDOW
 
         assert _VOICE_RATE_WINDOW == 3600
+
+
+# ── HTTP endpoint integration tests ─────────────────────────────────────────────
+
+import io
+import uuid
+
+import pytest
+from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.ai import AITaskLog
+
+
+def _make_mock_redis(count: int = 1) -> MagicMock:
+    """Return a mock aioredis client whose pipeline returns *count* for zcard."""
+    mock_pipe = MagicMock()
+    mock_pipe.execute = AsyncMock(return_value=[1, 0, count, 1])
+    mock_pipe.zadd = MagicMock()
+    mock_pipe.zremrangebyscore = MagicMock()
+    mock_pipe.zcard = MagicMock()
+    mock_pipe.expire = MagicMock()
+
+    mock_redis = AsyncMock()
+    mock_redis.pipeline = MagicMock(return_value=mock_pipe)
+    return mock_redis
+
+
+@pytest.fixture
+def mock_ai_budget():
+    """Override enforce_ai_budget dependency to a no-op."""
+    from app.main import app as _app
+    from app.services.ai_budget import enforce_ai_budget
+
+    _app.dependency_overrides[enforce_ai_budget] = lambda: None
+    yield
+    _app.dependency_overrides.pop(enforce_ai_budget, None)
+
+
+@pytest.fixture
+def mock_redis_ok():
+    """Patch get_redis to return a well-behaved mock (count=1, under limit)."""
+    mock_redis = _make_mock_redis(count=1)
+    with patch(
+        "app.modules.voice_input.router.get_redis",
+        new=AsyncMock(return_value=mock_redis),
+    ):
+        yield mock_redis
+
+
+class TestTranscribeEndpointIntegration:
+    async def test_transcribe_success_returns_transcript_and_result_id(
+        self,
+        authenticated_client: AsyncClient,
+        db: AsyncSession,
+        sample_user,
+        mock_ai_budget,
+        mock_redis_ok,
+    ):
+        with patch(
+            "app.modules.voice_input.service.transcribe_audio",
+            new=AsyncMock(return_value="Hello world"),
+        ):
+            fake_audio = io.BytesIO(b"fake audio content" * 100)
+            response = await authenticated_client.post(
+                "/v1/voice/transcribe",
+                files={"file": ("test.mp3", fake_audio, "audio/mpeg")},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["transcript"] == "Hello world"
+        # result_id should be a valid UUID string
+        result_id = data["result_id"]
+        assert uuid.UUID(result_id)  # raises ValueError if not valid UUID
+
+        # Verify AITaskLog was persisted in the DB
+        stmt = select(AITaskLog).where(AITaskLog.id == uuid.UUID(result_id))
+        row = await db.execute(stmt)
+        log = row.scalar_one_or_none()
+        assert log is not None
+        assert log.output_data["transcript"] == "Hello world"
+
+    async def test_transcribe_unsupported_content_type_returns_415(
+        self,
+        authenticated_client: AsyncClient,
+        sample_user,
+        mock_ai_budget,
+        mock_redis_ok,
+    ):
+        fake_file = io.BytesIO(b"%PDF-fake")
+        response = await authenticated_client.post(
+            "/v1/voice/transcribe",
+            files={"file": ("doc.pdf", fake_file, "application/pdf")},
+        )
+        assert response.status_code == 415
+
+    async def test_transcribe_file_too_large_returns_413(
+        self,
+        authenticated_client: AsyncClient,
+        sample_user,
+        mock_ai_budget,
+        mock_redis_ok,
+    ):
+        # Create bytes slightly over the 25 MB limit
+        oversized = io.BytesIO(b"x" * (25 * 1024 * 1024 + 1))
+        response = await authenticated_client.post(
+            "/v1/voice/transcribe",
+            files={"file": ("big.mp3", oversized, "audio/mpeg")},
+        )
+        assert response.status_code == 413
+
+    async def test_transcribe_service_error_returns_502(
+        self,
+        authenticated_client: AsyncClient,
+        sample_user,
+        mock_ai_budget,
+        mock_redis_ok,
+    ):
+        with patch(
+            "app.modules.voice_input.service.transcribe_audio",
+            new=AsyncMock(side_effect=RuntimeError("OPENAI_API_KEY not configured")),
+        ):
+            fake_audio = io.BytesIO(b"fake audio content" * 100)
+            response = await authenticated_client.post(
+                "/v1/voice/transcribe",
+                files={"file": ("test.mp3", fake_audio, "audio/mpeg")},
+            )
+        assert response.status_code == 502
+
+
+class TestExtractEndpointIntegration:
+    async def test_extract_returns_extracted_data(
+        self,
+        authenticated_client: AsyncClient,
+        sample_user,
+        mock_ai_budget,
+    ):
+        with patch(
+            "app.modules.voice_input.service.extract_project_data",
+            new=AsyncMock(return_value={"project_name": "Solar"}),
+        ):
+            response = await authenticated_client.post(
+                "/v1/voice/extract",
+                json={"transcript": "test"},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["extracted"] == {"project_name": "Solar"}
+
+
+class TestProcessEndpointIntegration:
+    async def test_process_returns_combined_result(
+        self,
+        authenticated_client: AsyncClient,
+        sample_user,
+        mock_ai_budget,
+        mock_redis_ok,
+    ):
+        with patch(
+            "app.modules.voice_input.service.process_audio",
+            new=AsyncMock(return_value={"transcript": "hello", "extracted": {"name": "test"}}),
+        ):
+            fake_audio = io.BytesIO(b"fake audio content" * 100)
+            response = await authenticated_client.post(
+                "/v1/voice/process",
+                files={"file": ("test.mp3", fake_audio, "audio/mpeg")},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["transcript"] == "hello"
+        assert data["extracted"] == {"name": "test"}
+        # result_id must be present and a valid UUID
+        assert uuid.UUID(data["result_id"])
+
+
+class TestVoiceRateLimiting:
+    async def test_rate_limit_exceeded_returns_429(
+        self,
+        authenticated_client: AsyncClient,
+        sample_user,
+        mock_ai_budget,
+    ):
+        # Mock Redis to report count=11 (> _VOICE_RATE_LIMIT=10)
+        mock_redis = _make_mock_redis(count=11)
+        with patch(
+            "app.modules.voice_input.router.get_redis",
+            new=AsyncMock(return_value=mock_redis),
+        ):
+            fake_audio = io.BytesIO(b"fake audio content" * 100)
+            response = await authenticated_client.post(
+                "/v1/voice/transcribe",
+                files={"file": ("test.mp3", fake_audio, "audio/mpeg")},
+            )
+        assert response.status_code == 429
