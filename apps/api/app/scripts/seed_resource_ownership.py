@@ -29,8 +29,7 @@ _api_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 if _api_root not in sys.path:
     sys.path.insert(0, _api_root)
 
-from sqlalchemy import create_engine, select, text
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, text
 
 from app.core.config import settings
 from app.models.enums import UserRole

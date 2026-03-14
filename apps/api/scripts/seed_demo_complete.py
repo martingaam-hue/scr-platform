@@ -24,6 +24,7 @@ import sys
 import uuid
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from typing import Any
 
 _api_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _api_root not in sys.path:
@@ -237,7 +238,7 @@ def ensure_portfolio(session: Session, org_id: uuid.UUID, dry_run: bool) -> uuid
 # Projects
 # ---------------------------------------------------------------------------
 
-PROJECTS = [
+PROJECTS: list[dict[str, Any]] = [
     {
         "slug": "helios-solar-portfolio-iberia",
         "name": "Helios Solar Portfolio Iberia",

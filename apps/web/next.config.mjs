@@ -21,6 +21,8 @@ const CSP = [
     "wss://clerk.pampgroup.com",
     "wss://*.clerk.services",
     "wss://*.clerk.accounts.dev",
+    "https://*.sentry.io",
+    "https://*.ingest.sentry.io",
   ].join(" "),
   "frame-src 'self' https://clerk.pampgroup.com https://*.clerk.services https://*.clerk.accounts.dev https://accounts.clerk.dev https://challenges.cloudflare.com",
   "frame-ancestors 'none'",

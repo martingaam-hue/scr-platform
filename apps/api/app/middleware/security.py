@@ -18,6 +18,20 @@ logger = structlog.get_logger()
 
 # ── 1. Security Headers ───────────────────────────────────────────────────────
 
+# Restrictive CSP for all API responses — the API serves JSON, not HTML.
+_CSP_API = "default-src 'none'; frame-ancestors 'none'"
+
+# Swagger / Redoc need inline scripts and styles plus CDN assets.
+_CSP_DOCS = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "img-src 'self' data: https://fastapi.tiangolo.com"
+)
+
+# Paths served as HTML (Swagger UI / Redoc).
+_DOCS_PATHS: frozenset[str] = frozenset({"/docs", "/redoc", "/openapi.json"})
+
 
 class SecurityHeadersMiddleware:
     """Append security headers to every HTTP response."""
@@ -43,11 +57,15 @@ class SecurityHeadersMiddleware:
             await self.app(scope, receive, send)
             return
 
+        path: str = scope.get("path", "")
+        csp = _CSP_DOCS if path in _DOCS_PATHS else _CSP_API
+
         async def _send(message: dict) -> None:
             if message["type"] == "http.response.start":
                 raw = MutableHeaders(scope=message)
                 for name, value in self._headers:
                     raw.append(name, value)
+                raw.append("content-security-policy", csp)
                 # Strip server fingerprint
                 raw.update({"server": "SCR"})
             await send(message)
