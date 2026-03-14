@@ -267,6 +267,31 @@ jobs:
       - name: ESLint
         run: pnpm --filter @scr/web lint
 
+  web-unit-test:
+    name: Web — Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build internal packages
+        run: |
+          pnpm --filter @scr/types build
+          pnpm --filter @scr/ui build
+
+      - name: Run unit tests
+        run: cd apps/web && pnpm test
+
   web-build:
     name: Web — Build
     runs-on: ubuntu-latest
