@@ -249,6 +249,9 @@ from app.models.stress_test import StressTestRun
 # Industry Taxonomy & Financial Templates
 from app.models.taxonomy import IndustryTaxonomy
 
+# Tokenization
+from app.models.tokenization import TokenHolding, TokenizationRecord, TokenTransfer
+
 # Watchlists & Alerts
 from app.models.watchlists import Watchlist, WatchlistAlert
 
@@ -416,6 +419,9 @@ __all__ = [
     "StressTestRun",
     "TaxCredit",
     "TimestampedModel",
+    "TokenHolding",
+    "TokenTransfer",
+    "TokenizationRecord",
     "Transaction",
     "UsageEvent",
     "User",

@@ -136,6 +136,11 @@ class Settings(BaseSettings):
     # OpenAI (Whisper voice transcription)
     OPENAI_API_KEY: str | None = None
 
+    # Polygon blockchain anchoring
+    POLYGON_RPC_URL: str | None = None
+    POLYGON_PRIVATE_KEY: str | None = None
+    POLYGON_CONTRACT_ADDRESS: str | None = None
+
     # Additional LLM providers (routed via AI Gateway)
     XAI_API_KEY: str = ""  # xAI Grok — https://x.ai/api
     DEEPSEEK_API_KEY: str = ""  # DeepSeek — https://platform.deepseek.com

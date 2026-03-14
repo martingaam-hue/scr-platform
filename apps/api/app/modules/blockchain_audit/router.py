@@ -62,7 +62,12 @@ async def batch_submit(
     current_user: CurrentUser = Depends(require_permission("manage", "admin")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Manually trigger batch anchor submission (normally done by Celery)."""
+    """Manually trigger batch anchor submission.
+
+    Deprecated: batch submission is now handled automatically by the
+    ``blockchain-audit-nightly`` Celery Beat task (02:00 UTC daily).
+    This endpoint is kept for emergency use only.
+    """
     return await service.batch_submit(db)
 
 

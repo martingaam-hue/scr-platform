@@ -127,9 +127,10 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(minute="*/15"),  # every 15 minutes
     },
     # ── Blockchain anchor batching ────────────────────────────────────────────
-    "batch-blockchain-anchors": {
-        "task": "tasks.batch_blockchain_anchors",
-        "schedule": crontab(hour="*/6", minute=0),  # every 6 hours
+    "blockchain-audit-nightly": {
+        "task": "app.tasks.blockchain.submit_audit_batch",
+        "schedule": crontab(hour=2, minute=0),  # nightly 02:00 UTC
+        "options": {"queue": "default"},
     },
     # ── Nightly benchmark aggregation ─────────────────────────────────────────
     "compute-nightly-benchmarks": {

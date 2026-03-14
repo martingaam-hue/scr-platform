@@ -1,7 +1,12 @@
-"""Blockchain audit trail — SHA-256 hashing, Merkle tree, Polygon anchoring."""
+"""Blockchain audit trail — SHA-256 hashing, Merkle tree, Polygon anchoring.
+
+All synchronous Web3 / network calls are executed in a thread-pool executor
+so they never block the FastAPI event loop.
+"""
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import uuid
@@ -37,6 +42,51 @@ def _build_merkle_root(hashes: list[bytes]) -> bytes:
         combined = hashlib.sha256(hashes[i] + hashes[i + 1]).digest()
         next_level.append(combined)
     return _build_merkle_root(next_level)
+
+
+def _submit_to_polygon_sync(
+    polygon_rpc: str,
+    private_key: str,
+    contract_address: str,
+    merkle_root_hex: str,
+) -> tuple[str, int]:
+    """All synchronous Web3 calls in one function — executed in a thread pool.
+
+    Never call this directly from async code; use ``_submit_to_polygon`` below.
+    """
+    from web3 import Web3
+
+    w3 = Web3(Web3.HTTPProvider(polygon_rpc))
+    account = w3.eth.account.from_key(private_key)
+    nonce = w3.eth.get_transaction_count(account.address)
+    tx = {
+        "to": contract_address,
+        "data": "0x" + merkle_root_hex,
+        "gas": 50000,
+        "gasPrice": w3.eth.gas_price,
+        "nonce": nonce,
+        "chainId": 137,  # Polygon mainnet
+    }
+    signed = w3.eth.account.sign_transaction(tx, private_key)
+    tx_hash_bytes = w3.eth.send_raw_transaction(signed.rawTransaction)
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash_bytes, timeout=120)
+    return receipt.transactionHash.hex(), receipt.blockNumber
+
+
+async def _submit_to_polygon(
+    polygon_rpc: str,
+    private_key: str,
+    contract_address: str,
+    merkle_root_hex: str,
+) -> tuple[str, int]:
+    """Async wrapper — runs the blocking Web3 calls in the default thread pool."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(
+        None,
+        lambda: _submit_to_polygon_sync(
+            polygon_rpc, private_key, contract_address, merkle_root_hex
+        ),
+    )
 
 
 async def queue_anchor(
@@ -79,7 +129,11 @@ async def get_pending_anchors(db: AsyncSession) -> list[BlockchainAnchor]:
 
 
 async def batch_submit(db: AsyncSession) -> dict[str, Any]:
-    """Group pending anchors into a Merkle tree and submit to Polygon."""
+    """Group pending anchors into a Merkle tree and submit to Polygon.
+
+    All Web3 network calls run in a thread-pool executor so the event loop
+    is never blocked.
+    """
     pending = await get_pending_anchors(db)
     if not pending:
         return {"status": "no_pending", "count": 0}
@@ -89,41 +143,25 @@ async def batch_submit(db: AsyncSession) -> dict[str, Any]:
     merkle_root_hex = merkle_root.hex()
     batch_id = uuid.uuid4()
 
-    # Attempt on-chain submission if credentials available
     tx_hash: str | None = None
     block_number: int | None = None
 
-    try:
-        polygon_rpc = getattr(settings, "POLYGON_RPC_URL", None)
-        private_key = getattr(settings, "POLYGON_PRIVATE_KEY", None)
-        contract_address = getattr(settings, "POLYGON_ANCHOR_CONTRACT", None)
+    polygon_rpc = settings.POLYGON_RPC_URL
+    private_key = settings.POLYGON_PRIVATE_KEY
+    contract_address = settings.POLYGON_CONTRACT_ADDRESS
 
-        if polygon_rpc and private_key and contract_address:
-            from web3 import Web3
-
-            w3 = Web3(Web3.HTTPProvider(polygon_rpc))
-            account = w3.eth.account.from_key(private_key)
-            nonce = w3.eth.get_transaction_count(account.address)
-            tx = {
-                "to": contract_address,
-                "data": "0x" + merkle_root_hex,
-                "gas": 50000,
-                "gasPrice": w3.eth.gas_price,
-                "nonce": nonce,
-                "chainId": 137,  # Polygon mainnet
-            }
-            signed = w3.eth.account.sign_transaction(tx, private_key)
-            tx_hash_bytes = w3.eth.send_raw_transaction(signed.rawTransaction)
-            receipt = w3.eth.wait_for_transaction_receipt(tx_hash_bytes, timeout=120)
-            tx_hash = receipt.transactionHash.hex()
-            block_number = receipt.blockNumber
+    if polygon_rpc and private_key and contract_address:
+        try:
+            tx_hash, block_number = await _submit_to_polygon(
+                polygon_rpc, private_key, contract_address, merkle_root_hex
+            )
             logger.info(
                 "blockchain.anchored", tx_hash=tx_hash, block=block_number, count=len(pending)
             )
-        else:
-            logger.warning("blockchain.no_credentials", msg="Anchors stored locally only")
-    except Exception as exc:
-        logger.error("blockchain.submit_failed", error=str(exc))
+        except Exception as exc:
+            logger.error("blockchain.submit_failed", error=str(exc))
+    else:
+        logger.warning("blockchain.no_credentials", msg="Anchors stored locally only")
 
     # Update all anchors in the batch
     now = datetime.utcnow()

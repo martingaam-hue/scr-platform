@@ -1,82 +1,107 @@
-"""Tokenization service — uses AITaskLog for metadata storage.
+"""Tokenization service — proper data model, immutable transfer audit trail."""
 
-Token records are stored as AITaskLog entries with:
-  agent_type = AIAgentType.REPORT
-  entity_type = "tokenization"
-  entity_id   = project_id
-  output_data = {all token fields}
-"""
+from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.models.ai import AITaskLog
-from app.models.enums import AIAgentType, AITaskStatus
 from app.models.projects import Project
-from app.modules.tokenization.schemas import (
+from app.models.tokenization import (
     TokenHolding,
+    TokenizationRecord,
+    TokenizationStatus,
+    TokenTransfer,
+    TransferType,
+)
+from app.modules.tokenization.schemas import (
+    HoldingRequest,
+    HoldingResponse,
+    StatusUpdateRequest,
     TokenizationRequest,
     TokenizationResponse,
     TransferRequest,
+    TransferResponse,
 )
 
 
-def _default_cap_table(total_supply: int, lock_up_days: int) -> list[dict[str, Any]]:
-    """Generate a default 60/20/20 cap table."""
-    now = datetime.now(UTC)
-    locked_until = (now + timedelta(days=lock_up_days)).date().isoformat()
+def _default_holdings(total_supply: Decimal, lock_up_days: int) -> list[HoldingRequest]:
+    """Generate a default 60/20/20 cap table if the caller didn't supply one."""
+    locked_until = datetime.now(UTC) + timedelta(days=lock_up_days)
     return [
-        {
-            "holder_name": "Founders",
-            "holder_type": "founder",
-            "tokens": int(total_supply * 0.60),
-            "percentage": 60.0,
-            "locked_until": locked_until,
-        },
-        {
-            "holder_name": "Treasury",
-            "holder_type": "treasury",
-            "tokens": int(total_supply * 0.20),
-            "percentage": 20.0,
-            "locked_until": None,
-        },
-        {
-            "holder_name": "Investors",
-            "holder_type": "investor",
-            "tokens": int(total_supply * 0.20),
-            "percentage": 20.0,
-            "locked_until": None,
-        },
+        HoldingRequest(
+            holder_name="Founders",
+            holder_type="GP",
+            tokens=total_supply * Decimal("0.60"),
+            percentage=Decimal("60"),
+            locked_until=locked_until,
+        ),
+        HoldingRequest(
+            holder_name="Treasury",
+            holder_type="Institutional",
+            tokens=total_supply * Decimal("0.20"),
+            percentage=Decimal("20"),
+            locked_until=None,
+        ),
+        HoldingRequest(
+            holder_name="Investors",
+            holder_type="LP",
+            tokens=total_supply * Decimal("0.20"),
+            percentage=Decimal("20"),
+            locked_until=None,
+        ),
     ]
 
 
-def _log_to_response(log: AITaskLog) -> TokenizationResponse:
-    """Convert an AITaskLog record to a TokenizationResponse."""
-    data: dict[str, Any] = log.output_data or {}
-    cap_table = [TokenHolding(**h) for h in data.get("cap_table", [])]
+def _record_to_response(record: TokenizationRecord) -> TokenizationResponse:
+    holdings = [HoldingResponse.model_validate(h) for h in (record.holdings or [])]
     return TokenizationResponse(
-        id=log.id,
-        project_id=uuid.UUID(str(data.get("project_id", log.entity_id))),
-        token_name=data.get("token_name", ""),
-        token_symbol=data.get("token_symbol", ""),
-        total_supply=int(data.get("total_supply", 0)),
-        token_price_usd=float(data.get("token_price_usd", 0.0)),
-        market_cap_usd=float(data.get("token_price_usd", 0.0)) * int(data.get("total_supply", 0)),
-        blockchain=data.get("blockchain", "Ethereum"),
-        token_type=data.get("token_type", "security"),
-        regulatory_framework=data.get("regulatory_framework", "Reg D"),
-        minimum_investment_usd=float(data.get("minimum_investment_usd", 1000.0)),
-        lock_up_period_days=int(data.get("lock_up_period_days", 365)),
-        status=data.get("status", "draft"),
-        cap_table=cap_table,
-        transfer_history=data.get("transfer_history", []),
-        created_at=log.created_at,
-        updated_at=log.updated_at,
+        id=record.id,
+        org_id=record.org_id,
+        project_id=record.project_id,
+        token_name=record.token_name,
+        token_symbol=record.token_symbol,
+        total_supply=Decimal(str(record.total_supply)),
+        token_price_usd=Decimal(str(record.token_price_usd)),
+        market_cap_usd=Decimal(str(record.total_supply)) * Decimal(str(record.token_price_usd)),
+        blockchain=record.blockchain,
+        token_type=record.token_type,
+        regulatory_framework=record.regulatory_framework,
+        minimum_investment_usd=Decimal(str(record.minimum_investment_usd)),
+        lock_up_period_days=record.lock_up_period_days,
+        status=record.status,
+        status_changed_at=record.status_changed_at,
+        created_by=record.created_by,
+        created_at=record.created_at,
+        updated_at=record.updated_at,
+        holdings=holdings,
     )
+
+
+async def _load_record(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    record_id: uuid.UUID,
+) -> TokenizationRecord:
+    stmt = (
+        select(TokenizationRecord)
+        .options(
+            selectinload(TokenizationRecord.holdings),
+        )
+        .where(
+            TokenizationRecord.id == record_id,
+            TokenizationRecord.org_id == org_id,
+            TokenizationRecord.is_deleted.is_(False),
+        )
+    )
+    record: TokenizationRecord | None = (await db.execute(stmt)).scalar_one_or_none()
+    if not record:
+        raise LookupError("Tokenization record not found")
+    return record
 
 
 async def create_tokenization(
@@ -85,8 +110,7 @@ async def create_tokenization(
     user_id: uuid.UUID,
     body: TokenizationRequest,
 ) -> TokenizationResponse:
-    """Create a tokenization record for a project."""
-    # Verify project exists and belongs to org
+    """Create a TokenizationRecord + initial TokenHolding rows + mint TokenTransfers."""
     stmt = select(Project).where(
         Project.id == body.project_id,
         Project.org_id == org_id,
@@ -96,122 +120,166 @@ async def create_tokenization(
     if not project:
         raise LookupError("Project not found")
 
-    output_data: dict[str, Any] = {
-        "project_id": str(body.project_id),
-        "token_name": body.token_name,
-        "token_symbol": body.token_symbol,
-        "total_supply": body.total_supply,
-        "token_price_usd": body.token_price_usd,
-        "blockchain": body.blockchain,
-        "token_type": body.token_type,
-        "regulatory_framework": body.regulatory_framework,
-        "minimum_investment_usd": body.minimum_investment_usd,
-        "lock_up_period_days": body.lock_up_period_days,
-        "status": "draft",
-        "cap_table": _default_cap_table(body.total_supply, body.lock_up_period_days),
-        "transfer_history": [],
-        "metadata": body.metadata or {},
-    }
-
-    log = AITaskLog(
+    now = datetime.now(UTC)
+    record = TokenizationRecord(
         org_id=org_id,
-        agent_type=AIAgentType.REPORT,
-        entity_type="tokenization",
-        entity_id=body.project_id,
-        status=AITaskStatus.COMPLETED,
-        output_data=output_data,
-        triggered_by=user_id,
-        model_used="deterministic",
+        project_id=body.project_id,
+        token_name=body.token_name,
+        token_symbol=body.token_symbol,
+        total_supply=body.total_supply,
+        token_price_usd=body.token_price_usd,
+        blockchain=body.blockchain,
+        token_type=body.token_type,
+        regulatory_framework=body.regulatory_framework,
+        minimum_investment_usd=body.minimum_investment_usd,
+        lock_up_period_days=body.lock_up_period_days,
+        status=TokenizationStatus.DRAFT.value,
+        status_changed_at=now,
+        created_by=user_id,
+        record_metadata=body.metadata or {},
     )
-    db.add(log)
+    db.add(record)
     await db.flush()
-    await db.refresh(log)
-    return _log_to_response(log)
+
+    holding_specs = body.holdings or _default_holdings(body.total_supply, body.lock_up_period_days)
+    holding_objs: list[TokenHolding] = []
+    for spec in holding_specs:
+        holding = TokenHolding(
+            tokenization_id=record.id,
+            holder_name=spec.holder_name,
+            holder_type=spec.holder_type,
+            tokens=spec.tokens,
+            percentage=spec.percentage,
+            locked_until=spec.locked_until,
+        )
+        db.add(holding)
+        holding_objs.append(holding)
+
+    await db.flush()
+
+    # Mint record for each initial holding (immutable audit trail)
+    for holding in holding_objs:
+        mint = TokenTransfer(
+            tokenization_id=record.id,
+            from_holding_id=None,
+            to_holding_id=holding.id,
+            amount=holding.tokens,
+            transfer_type=TransferType.MINT.value,
+            executed_at=now,
+            executed_by=user_id,
+        )
+        db.add(mint)
+
+    await db.flush()
+    await db.refresh(record)
+    return _record_to_response(record)
 
 
 async def get_tokenization(
     db: AsyncSession,
     org_id: uuid.UUID,
-    project_id: uuid.UUID,
+    record_id: uuid.UUID,
 ) -> TokenizationResponse | None:
-    """Get the latest tokenization record for a project."""
+    """Get a single tokenization record by its ID."""
     stmt = (
-        select(AITaskLog)
+        select(TokenizationRecord)
+        .options(selectinload(TokenizationRecord.holdings))
         .where(
-            AITaskLog.entity_type == "tokenization",
-            AITaskLog.entity_id == project_id,
-            AITaskLog.org_id == org_id,
+            TokenizationRecord.id == record_id,
+            TokenizationRecord.org_id == org_id,
+            TokenizationRecord.is_deleted.is_(False),
         )
-        .order_by(AITaskLog.created_at.desc())
-        .limit(1)
     )
-    log: AITaskLog | None = (await db.execute(stmt)).scalar_one_or_none()
-    if not log:
+    record: TokenizationRecord | None = (await db.execute(stmt)).scalar_one_or_none()
+    if not record:
         return None
-    return _log_to_response(log)
+    return _record_to_response(record)
 
 
 async def list_tokenizations(
     db: AsyncSession,
     org_id: uuid.UUID,
 ) -> list[TokenizationResponse]:
-    """List all tokenization records for an org."""
+    """List all active tokenization records for an org."""
     stmt = (
-        select(AITaskLog)
+        select(TokenizationRecord)
+        .options(selectinload(TokenizationRecord.holdings))
         .where(
-            AITaskLog.entity_type == "tokenization",
-            AITaskLog.org_id == org_id,
+            TokenizationRecord.org_id == org_id,
+            TokenizationRecord.is_deleted.is_(False),
         )
-        .order_by(AITaskLog.created_at.desc())
+        .order_by(TokenizationRecord.created_at.desc())
     )
     rows = (await db.execute(stmt)).scalars().all()
-    # Deduplicate by project_id — keep latest per project
-    seen: set[str] = set()
-    results: list[TokenizationResponse] = []
-    for log in rows:
-        pid = str(log.entity_id)
-        if pid not in seen:
-            seen.add(pid)
-            results.append(_log_to_response(log))
-    return results
+    return [_record_to_response(r) for r in rows]
 
 
 async def add_transfer(
     db: AsyncSession,
     org_id: uuid.UUID,
-    project_id: uuid.UUID,
+    record_id: uuid.UUID,
     body: TransferRequest,
-) -> TokenizationResponse:
-    """Append a transfer to the tokenization transfer_history."""
-    stmt = (
-        select(AITaskLog)
-        .where(
-            AITaskLog.entity_type == "tokenization",
-            AITaskLog.entity_id == project_id,
-            AITaskLog.org_id == org_id,
-        )
-        .order_by(AITaskLog.created_at.desc())
-        .limit(1)
-    )
-    log: AITaskLog | None = (await db.execute(stmt)).scalar_one_or_none()
-    if not log:
-        raise LookupError("Tokenization record not found for this project")
+    user_id: uuid.UUID,
+) -> TransferResponse:
+    """Create an immutable TokenTransfer and update affected holdings."""
+    record = await _load_record(db, org_id, record_id)
 
-    data: dict[str, Any] = dict(log.output_data or {})
-    transfer_history: list[dict[str, Any]] = list(data.get("transfer_history", []))
-    transfer_history.append(
-        {
-            "id": str(uuid.uuid4()),
-            "from_holder": body.from_holder,
-            "to_holder": body.to_holder,
-            "tokens": body.tokens,
-            "price_per_token_usd": body.price_per_token_usd,
-            "notes": body.notes,
-            "timestamp": datetime.now(UTC).isoformat(),
-        }
+    # Validate that referenced holdings belong to this tokenization
+    if body.from_holding_id:
+        from_h = next((h for h in record.holdings if h.id == body.from_holding_id), None)
+        if not from_h:
+            raise LookupError("from_holding_id not found on this tokenization")
+    if body.to_holding_id:
+        to_h = next((h for h in record.holdings if h.id == body.to_holding_id), None)
+        if not to_h:
+            raise LookupError("to_holding_id not found on this tokenization")
+
+    now = datetime.now(UTC)
+    transfer = TokenTransfer(
+        tokenization_id=record.id,
+        from_holding_id=body.from_holding_id,
+        to_holding_id=body.to_holding_id,
+        amount=body.amount,
+        transfer_type=body.transfer_type.value,
+        executed_at=now,
+        executed_by=user_id,
+        tx_hash=body.tx_hash,
     )
-    data["transfer_history"] = transfer_history
-    log.output_data = data
+    db.add(transfer)
+
+    # Update current holdings (transfers are the source of truth, but we maintain
+    # denormalised current balances for fast reads)
+    if body.transfer_type == TransferType.TRANSFER and body.from_holding_id and body.to_holding_id:
+        from_h = next(h for h in record.holdings if h.id == body.from_holding_id)
+        to_h = next(h for h in record.holdings if h.id == body.to_holding_id)
+        from_h.tokens = Decimal(str(from_h.tokens)) - body.amount
+        to_h.tokens = Decimal(str(to_h.tokens)) + body.amount
+        # Recalculate percentages
+        total = Decimal(str(record.total_supply))
+        if total > 0:
+            from_h.percentage = (Decimal(str(from_h.tokens)) / total * 100).quantize(
+                Decimal("0.01")
+            )
+            to_h.percentage = (Decimal(str(to_h.tokens)) / total * 100).quantize(Decimal("0.01"))
+    elif body.transfer_type == TransferType.BURN and body.from_holding_id:
+        from_h = next(h for h in record.holdings if h.id == body.from_holding_id)
+        from_h.tokens = Decimal(str(from_h.tokens)) - body.amount
+
     await db.flush()
-    await db.refresh(log)
-    return _log_to_response(log)
+    await db.refresh(transfer)
+    return TransferResponse.model_validate(transfer)
+
+
+async def update_status(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    record_id: uuid.UUID,
+    body: StatusUpdateRequest,
+) -> TokenizationResponse:
+    """Update the status and record the timestamp of the transition."""
+    record = await _load_record(db, org_id, record_id)
+    record.status = body.status.value
+    record.status_changed_at = datetime.now(UTC)
+    await db.flush()
+    await db.refresh(record)
+    return _record_to_response(record)

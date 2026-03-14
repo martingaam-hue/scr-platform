@@ -45,6 +45,10 @@ locals {
     # Market Data
     "FRED_API_KEY",
     "ALPHA_VANTAGE_API_KEY",
+    # Polygon blockchain anchoring
+    "POLYGON_RPC_URL",
+    "POLYGON_PRIVATE_KEY",
+    "POLYGON_CONTRACT_ADDRESS",
     # Flower
     "FLOWER_USER",
     "FLOWER_PASSWORD",

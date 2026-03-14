@@ -131,7 +131,7 @@ class TestNonHttpScope:
         async def handler(scope, receive, send):
             called.append(True)
 
-        from starlette.types import Scope, Receive, Send
+        from starlette.types import Receive, Scope, Send
 
         async def _noop_receive():
             pass  # pragma: no cover
@@ -171,7 +171,9 @@ class TestCelerySignals:
     def test_bind_reads_from_task_headers(self):
         from app.core.celery_app import _bind_correlation_id
 
-        task = type("T", (), {"request": type("R", (), {"headers": {"correlation_id": "req-abc"}})()})()
+        task = type(
+            "T", (), {"request": type("R", (), {"headers": {"correlation_id": "req-abc"}})()}
+        )()
         structlog.contextvars.clear_contextvars()
         _bind_correlation_id(task=task)
         ctx = structlog.contextvars.get_contextvars()
