@@ -10,7 +10,11 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 
 from app.core.config import settings
+from app.core.logging import configure_logging
+from app.middleware.correlation import CorrelationIdMiddleware
 from app.routers import completions, embeddings, feeds, search
+
+configure_logging("ai-gateway")
 
 logger = structlog.get_logger()
 
@@ -61,6 +65,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(CorrelationIdMiddleware)  # type: ignore[arg-type]
 
 # Mount all routers under /v1
 app.include_router(completions.router, prefix="/v1", tags=["completions"])

@@ -10,9 +10,11 @@ from celery.schedules import crontab
 
 from app.core.celery_app import celery_app
 from app.core.config import settings
+from app.core.logging import configure_logging
 from app.core.sentry import init_sentry
 
-# Sentry must be initialised before Celery tasks are registered
+# Configure structlog and Sentry before tasks are registered
+configure_logging("worker")
 init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
 
 celery_app.conf.include = [

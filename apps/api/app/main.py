@@ -11,14 +11,19 @@ from app.auth.router import router as auth_router
 from app.core.config import settings
 from app.core.elasticsearch import close_es_client, setup_indices
 from app.core.errors import global_exception_handler, http_exception_handler
+from app.core.logging import configure_logging
 from app.core.sentry import init_sentry
 from app.middleware.audit import AuditMiddleware
+from app.middleware.correlation import CorrelationIdMiddleware
 from app.middleware.security import (
     RateLimitMiddleware,
     RequestBodySizeLimitMiddleware,
     SecurityHeadersMiddleware,
 )
 from app.middleware.tenant import TenantMiddleware
+
+# Configure structlog before any logger is used.
+configure_logging("api")
 from app.modules.admin.prompts.router import router as admin_prompts_router
 from app.modules.admin.router import router as admin_router
 from app.modules.ai_feedback.router import router as ai_feedback_router
@@ -211,12 +216,12 @@ app.add_middleware(
     allow_origins=[settings.FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
-    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Window"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID", "X-Correlation-ID"],
+    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Window", "X-Correlation-ID"],
 )
 app.add_middleware(AuditMiddleware)
 app.add_middleware(TenantMiddleware)
-# Security middleware (added last = outermost = first to see requests, last to touch responses)
+# Security + correlation middleware (added last = outermost = first to see requests)
 app.add_middleware(
     RequestBodySizeLimitMiddleware,  # type: ignore[arg-type]
     max_bytes=settings.MAX_REQUEST_BODY_BYTES,
@@ -230,6 +235,9 @@ app.add_middleware(
     SecurityHeadersMiddleware,  # type: ignore[arg-type]
     is_production=_is_prod,
 )
+# CorrelationIdMiddleware is outermost: generates/reads the ID before rate
+# limiting, auth, or any handler runs, so all logs carry the correlation_id.
+app.add_middleware(CorrelationIdMiddleware)  # type: ignore[arg-type]
 
 
 # ── X-API-Version response header ────────────────────────────────────────────
