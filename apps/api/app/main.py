@@ -29,94 +29,10 @@ from app.middleware.tenant import TenantMiddleware
 
 # Configure structlog before any logger is used.
 configure_logging("api")
-from app.modules.admin.prompts.router import router as admin_prompts_router  # noqa: E402
-from app.modules.admin.router import router as admin_router  # noqa: E402
-from app.modules.ai_feedback.router import router as ai_feedback_router  # noqa: E402
-from app.modules.alley.advisor.router import router as alley_advisor_router  # noqa: E402
-from app.modules.alley.analytics.router import router as alley_analytics_router  # noqa: E402
-from app.modules.alley.risk.router import router as alley_risk_router  # noqa: E402
-from app.modules.alley.score_performance.router import (  # noqa: E402
-    router as alley_score_performance_router,
-)
-from app.modules.alley.signal_score.router import router as alley_signal_score_router  # noqa: E402
-from app.modules.backtesting.router import router as backtesting_router  # noqa: E402
-from app.modules.blockchain_audit.router import router as blockchain_audit_router  # noqa: E402
-from app.modules.board_advisor.router import router as board_advisor_router  # noqa: E402
-from app.modules.business_plans.router import router as business_plans_router  # noqa: E402
-from app.modules.capital_efficiency.router import router as capital_efficiency_router  # noqa: E402
-from app.modules.carbon_credits.router import router as carbon_credits_router  # noqa: E402
-from app.modules.certification.router import router as certification_router  # noqa: E402
-from app.modules.citations.router import router as citations_router  # noqa: E402
-from app.modules.collaboration.router import router as collaboration_router  # noqa: E402
-from app.modules.compliance.router import router as compliance_router  # noqa: E402
-from app.modules.comps.router import router as comps_router  # noqa: E402
-from app.modules.connectors.router import router as connectors_router  # noqa: E402
-from app.modules.crm_sync.router import router as crm_sync_router  # noqa: E402
-from app.modules.custom_domain.router import router as custom_domain_router  # noqa: E402
-from app.modules.dataroom.router import router as dataroom_router  # noqa: E402
-from app.modules.deal_flow.router import router as deal_flow_router  # noqa: E402
-from app.modules.deal_intelligence.router import router as deal_intelligence_router  # noqa: E402
-from app.modules.deal_rooms.router import router as deal_rooms_router  # noqa: E402
-from app.modules.development_os.router import router as development_os_router  # noqa: E402
-from app.modules.digest.router import router as digest_router  # noqa: E402
-from app.modules.doc_versions.router import router as doc_versions_router  # noqa: E402
-from app.modules.document_annotations.router import (  # noqa: E402
-    router as document_annotations_router,
-)
-from app.modules.due_diligence.router import router as due_diligence_router  # noqa: E402
-from app.modules.ecosystem.router import router as ecosystem_router  # noqa: E402
-from app.modules.engagement.router import router as engagement_router  # noqa: E402
-from app.modules.equity_calculator.router import router as equity_calculator_router  # noqa: E402
-from app.modules.esg.router import router as esg_router  # noqa: E402
-from app.modules.excel_api.router import router as excel_api_router  # noqa: E402
-from app.modules.expert_insights.router import router as expert_insights_router  # noqa: E402
-from app.modules.financial_templates.router import (  # noqa: E402
-    router as financial_templates_router,
-)
-from app.modules.fx.router import router as fx_router  # noqa: E402
-from app.modules.gamification.router import router as gamification_router  # noqa: E402
-from app.modules.impact.router import router as impact_router  # noqa: E402
-from app.modules.insurance.router import router as insurance_router  # noqa: E402
-from app.modules.investor_personas.router import router as investor_personas_router  # noqa: E402
-from app.modules.investor_signal_score.router import (  # noqa: E402
-    router as investor_signal_score_router,
-)
-from app.modules.launch.router import router as launch_router  # noqa: E402
-from app.modules.legal.router import router as legal_router  # noqa: E402
-from app.modules.lineage.router import router as lineage_router  # noqa: E402
-from app.modules.lp_reporting.router import router as lp_reporting_router  # noqa: E402
-from app.modules.market_data.router import router as market_data_router  # noqa: E402
-from app.modules.market_enrichment.router import router as market_enrichment_router  # noqa: E402
-from app.modules.marketplace.router import router as marketplace_router  # noqa: E402
-from app.modules.matching.router import router as matching_router  # noqa: E402
-from app.modules.meeting_prep.router import router as meeting_prep_router  # noqa: E402
-from app.modules.metrics.router import router as metrics_router  # noqa: E402
-from app.modules.monitoring.router import router as monitoring_router  # noqa: E402
-from app.modules.notifications.router import router as notifications_router  # noqa: E402
-from app.modules.onboarding.router import router as onboarding_router  # noqa: E402
-from app.modules.pacing.router import router as pacing_router  # noqa: E402
-from app.modules.portfolio.router import router as portfolio_router  # noqa: E402
-from app.modules.projects.router import router as projects_router  # noqa: E402
-from app.modules.qa_workflow.router import router as qa_workflow_router  # noqa: E402
-from app.modules.ralph_ai.router import router as ralph_ai_router  # noqa: E402
-from app.modules.redaction.router import router as redaction_router  # noqa: E402
-from app.modules.reporting.router import router as reporting_router  # noqa: E402
-from app.modules.risk.router import router as risk_router  # noqa: E402
-from app.modules.risk_profile.router import router as risk_profile_router  # noqa: E402
-from app.modules.search.router import router as search_router  # noqa: E402
-from app.modules.settings.router import router as settings_router  # noqa: E402
-from app.modules.signal_score.router import router as signal_score_router  # noqa: E402
-from app.modules.smart_screener.router import router as smart_screener_router  # noqa: E402
-from app.modules.stress_test.router import router as stress_test_router  # noqa: E402
-from app.modules.tax_credits.router import router as tax_credits_router  # noqa: E402
-from app.modules.taxonomy.router import router as taxonomy_router  # noqa: E402
-from app.modules.tokenization.router import router as tokenization_router  # noqa: E402
-from app.modules.valuation.router import router as valuation_router  # noqa: E402
-from app.modules.value_quantifier.router import router as value_quantifier_router  # noqa: E402
-from app.modules.voice_input.router import router as voice_input_router  # noqa: E402
-from app.modules.warm_intros.router import router as warm_intros_router  # noqa: E402
-from app.modules.watchlists.router import router as watchlists_router  # noqa: E402
-from app.modules.webhooks.router import router as webhooks_router  # noqa: E402
+
+# Module routers are auto-discovered — no manual imports needed here.
+# To disable a module: add its label to app.core.module_discovery.DISABLED_MODULES
+from app.core.module_discovery import discover_routers  # noqa: E402
 
 # ── Sentry — must be initialised BEFORE FastAPI app is created ────────────────
 init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT, settings.APP_VERSION)
@@ -374,86 +290,12 @@ async def health_ai() -> dict:
 
 api_v1 = APIRouter(prefix="/v1")
 
+# Auth router lives outside app/modules/ so it is registered manually.
 api_v1.include_router(auth_router)
-api_v1.include_router(dataroom_router)
-api_v1.include_router(projects_router)
-api_v1.include_router(portfolio_router)
-api_v1.include_router(onboarding_router)
-api_v1.include_router(reporting_router)
-api_v1.include_router(collaboration_router)
-api_v1.include_router(notifications_router)
-api_v1.include_router(signal_score_router)
-api_v1.include_router(deal_intelligence_router)
-api_v1.include_router(risk_router)
-api_v1.include_router(matching_router)
-api_v1.include_router(settings_router)
-api_v1.include_router(impact_router)
-api_v1.include_router(valuation_router)
-api_v1.include_router(marketplace_router)
-api_v1.include_router(tax_credits_router)
-api_v1.include_router(legal_router)
-api_v1.include_router(carbon_credits_router)
-api_v1.include_router(board_advisor_router)
-api_v1.include_router(investor_personas_router)
-api_v1.include_router(equity_calculator_router)
-api_v1.include_router(capital_efficiency_router)
-api_v1.include_router(investor_signal_score_router)
-api_v1.include_router(value_quantifier_router)
-api_v1.include_router(tokenization_router)
-api_v1.include_router(development_os_router)
-api_v1.include_router(ecosystem_router)
-api_v1.include_router(ralph_ai_router)
-api_v1.include_router(admin_router)
-api_v1.include_router(admin_prompts_router)
-api_v1.include_router(search_router)
-api_v1.include_router(ai_feedback_router)
-api_v1.include_router(smart_screener_router)
-api_v1.include_router(risk_profile_router)
-api_v1.include_router(certification_router)
-api_v1.include_router(deal_flow_router)
-api_v1.include_router(due_diligence_router)
-api_v1.include_router(esg_router)
-api_v1.include_router(lp_reporting_router)
-api_v1.include_router(comps_router)
-api_v1.include_router(warm_intros_router)
-api_v1.include_router(doc_versions_router)
-api_v1.include_router(fx_router)
-api_v1.include_router(meeting_prep_router)
-api_v1.include_router(compliance_router)
-api_v1.include_router(stress_test_router)
-api_v1.include_router(connectors_router)
-api_v1.include_router(deal_rooms_router)
-api_v1.include_router(watchlists_router)
-api_v1.include_router(blockchain_audit_router)
-api_v1.include_router(voice_input_router)
-api_v1.include_router(gamification_router)
-api_v1.include_router(insurance_router)
-api_v1.include_router(digest_router)
-api_v1.include_router(metrics_router)
-api_v1.include_router(citations_router)
-api_v1.include_router(lineage_router)
-api_v1.include_router(qa_workflow_router)
-api_v1.include_router(engagement_router)
-api_v1.include_router(monitoring_router)
-api_v1.include_router(excel_api_router)
-api_v1.include_router(crm_sync_router)
-api_v1.include_router(pacing_router)
-api_v1.include_router(taxonomy_router)
-api_v1.include_router(financial_templates_router)
-api_v1.include_router(business_plans_router)
-api_v1.include_router(backtesting_router)
-api_v1.include_router(expert_insights_router)
-api_v1.include_router(webhooks_router)
-api_v1.include_router(document_annotations_router)
-api_v1.include_router(redaction_router)
-api_v1.include_router(market_data_router)
-api_v1.include_router(market_enrichment_router)
-api_v1.include_router(launch_router)
-api_v1.include_router(custom_domain_router)
-api_v1.include_router(alley_signal_score_router)
-api_v1.include_router(alley_risk_router)
-api_v1.include_router(alley_advisor_router)
-api_v1.include_router(alley_analytics_router)
-api_v1.include_router(alley_score_performance_router)
+
+# Auto-discover and register all module routers.
+# Each router already declares its own prefix and tags — no extra prefix added.
+for _module_name, _router in discover_routers():
+    api_v1.include_router(_router)
 
 app.include_router(api_v1)
