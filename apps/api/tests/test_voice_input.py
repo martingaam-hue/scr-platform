@@ -20,8 +20,8 @@ class TestConfig:
         assert "OPENAI_API_KEY" in Settings.model_fields
 
     def test_openai_api_key_default_is_none(self):
-        s = Settings()
-        assert s.OPENAI_API_KEY is None
+        """The declared default for OPENAI_API_KEY is None (may differ from runtime value)."""
+        assert Settings.model_fields["OPENAI_API_KEY"].default is None
 
     def test_openai_api_key_accepts_string(self):
         s = Settings(OPENAI_API_KEY="sk-test-key")
