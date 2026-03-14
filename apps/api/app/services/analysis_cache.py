@@ -31,6 +31,7 @@ import structlog
 from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.circuit_breaker import ai_gateway_cb
 from app.models.dataroom import Document, DocumentExtraction
 
 logger = structlog.get_logger()
@@ -45,6 +46,21 @@ class AsyncGatewayClient:
 
     async def complete(self, task_type: str, context: dict[str, Any]) -> dict[str, Any]:
         """Call gateway and return normalised result dict."""
+        _unavailable = {
+            "content": "",
+            "validated_data": None,
+            "confidence": 0.0,
+            "model_used": "unavailable",
+            "usage": {},
+        }
+        if not await ai_gateway_cb.allow_request():
+            logger.warning(
+                "async_gateway_client_blocked",
+                task_type=task_type,
+                reason="circuit_breaker_open",
+            )
+            return _unavailable
+
         doc_text = context.get("document_text", "")
         doc_name = context.get("document_name", "document")
         prompt = (
@@ -66,6 +82,7 @@ class AsyncGatewayClient:
                     headers={"Authorization": f"Bearer {self._key}"},
                 )
                 resp.raise_for_status()
+                await ai_gateway_cb.record_success()
                 data = resp.json()
                 content = data.get("content", "")
                 # Try to parse JSON out of the response
@@ -81,15 +98,13 @@ class AsyncGatewayClient:
                     "model_used": data.get("model_used", "claude"),
                     "usage": data.get("usage", {}),
                 }
+        except (httpx.TimeoutException, httpx.ConnectError) as exc:
+            await ai_gateway_cb.record_failure()
+            logger.warning("async_gateway_client_failed", task_type=task_type, error=str(exc))
+            return _unavailable
         except Exception as exc:
             logger.warning("async_gateway_client_failed", task_type=task_type, error=str(exc))
-            return {
-                "content": "",
-                "validated_data": None,
-                "confidence": 0.0,
-                "model_used": "unavailable",
-                "usage": {},
-            }
+            return _unavailable
 
 
 def make_analysis_cache(db: AsyncSession) -> DocumentAnalysisCache:

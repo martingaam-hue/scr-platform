@@ -10,7 +10,12 @@ import app.models
 from app.auth.router import router as auth_router
 from app.core.config import settings
 from app.core.elasticsearch import close_es_client, setup_indices
-from app.core.errors import global_exception_handler, http_exception_handler
+from app.core.circuit_breaker import AIGatewayUnavailableError
+from app.core.errors import (
+    ai_gateway_unavailable_handler,
+    global_exception_handler,
+    http_exception_handler,
+)
 from app.core.logging import configure_logging
 from app.core.sentry import init_sentry
 from app.middleware.audit import AuditMiddleware
@@ -210,6 +215,7 @@ app = FastAPI(
 
 app.add_exception_handler(Exception, global_exception_handler)  # type: ignore[arg-type]
 app.add_exception_handler(HTTPException, http_exception_handler)  # type: ignore[arg-type]
+app.add_exception_handler(AIGatewayUnavailableError, ai_gateway_unavailable_handler)  # type: ignore[arg-type]
 
 app.add_middleware(
     CORSMiddleware,
@@ -323,6 +329,14 @@ async def health_check() -> dict:
 
     overall = "healthy" if all(c["status"] == "healthy" for c in checks.values()) else "degraded"
     return {"status": overall, "service": "scr-api", "checks": checks}
+
+
+@app.get("/health/ai")
+async def health_ai() -> dict:
+    """Circuit-breaker status for the AI Gateway."""
+    from app.core.circuit_breaker import ai_gateway_cb
+
+    return await ai_gateway_cb.get_status()
 
 
 # ── /v1 versioned router ──────────────────────────────────────────────────────

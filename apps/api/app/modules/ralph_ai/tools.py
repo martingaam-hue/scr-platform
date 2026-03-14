@@ -8,6 +8,7 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.circuit_breaker import ai_gateway_cb
 from app.core.config import settings
 
 logger = structlog.get_logger()
@@ -171,6 +172,8 @@ class RalphTools:
         self, query: str, project_id: str | None = None
     ) -> dict[str, Any]:
         """Search documents via AI gateway RAG endpoint."""
+        if not await ai_gateway_cb.allow_request():
+            return {"results": [], "error": "AI service temporarily unavailable"}
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 payload: dict[str, Any] = {
@@ -186,8 +189,12 @@ class RalphTools:
                     headers={"Authorization": f"Bearer {self._gateway_key}"},
                 )
                 if resp.status_code == 200:
+                    await ai_gateway_cb.record_success()
                     return resp.json()
                 return {"results": [], "error": f"Search unavailable (status {resp.status_code})"}
+        except (httpx.TimeoutException, httpx.ConnectError) as e:
+            await ai_gateway_cb.record_failure()
+            return {"results": [], "error": str(e)}
         except Exception as e:
             return {"results": [], "error": str(e)}
 
@@ -195,6 +202,8 @@ class RalphTools:
         self, topic: str, context: str, section_type: str = "analysis"
     ) -> dict[str, Any]:
         """Generate a report section via AI gateway."""
+        if not await ai_gateway_cb.allow_request():
+            return {"content": "", "error": "AI service temporarily unavailable"}
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
                 resp = await client.post(
@@ -207,9 +216,13 @@ class RalphTools:
                     headers={"Authorization": f"Bearer {self._gateway_key}"},
                 )
                 if resp.status_code == 200:
+                    await ai_gateway_cb.record_success()
                     data = resp.json()
                     return {"content": data.get("content", ""), "model": data.get("model_used")}
                 return {"content": "", "error": f"Generation failed (status {resp.status_code})"}
+        except (httpx.TimeoutException, httpx.ConnectError) as e:
+            await ai_gateway_cb.record_failure()
+            return {"content": "", "error": str(e)}
         except Exception as e:
             return {"content": "", "error": str(e)}
 

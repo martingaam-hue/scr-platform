@@ -24,6 +24,8 @@ from typing import Any
 import httpx
 import structlog
 
+from app.core.circuit_breaker import AIGatewayUnavailableError, ai_gateway_cb
+
 logger = structlog.get_logger()
 
 
@@ -49,6 +51,9 @@ class GatewayAIClient:
         max_tokens: int = 200,
         temperature: float = 0.1,
     ) -> _CompletionResult:
+        if not await ai_gateway_cb.allow_request():
+            raise AIGatewayUnavailableError()
+
         payload = {
             "messages": messages,
             "model": model,
@@ -64,8 +69,15 @@ class GatewayAIClient:
                     headers={"Authorization": f"Bearer {self._key}"},
                 )
                 resp.raise_for_status()
+                await ai_gateway_cb.record_success()
                 data = resp.json()
                 return _CompletionResult(content=data.get("content", ""))
+        except (httpx.TimeoutException, httpx.ConnectError) as exc:
+            await ai_gateway_cb.record_failure()
+            logger.warning("context_manager_summarize_failed", error=str(exc))
+            raise AIGatewayUnavailableError() from exc
+        except AIGatewayUnavailableError:
+            raise
         except Exception as exc:
             logger.warning("context_manager_summarize_failed", error=str(exc))
             raise

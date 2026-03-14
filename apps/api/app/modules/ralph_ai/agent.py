@@ -9,6 +9,7 @@ import httpx
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.circuit_breaker import AIGatewayUnavailableError, ai_gateway_cb
 from app.core.config import settings
 from app.models.ai import AIMessage
 from app.models.enums import AIMessageRole
@@ -66,6 +67,9 @@ async def _fetch_rag_context(
     org_id: uuid.UUID,
 ) -> str:
     """Search relevant documents via AI Gateway and return a condensed context string."""
+    if not await ai_gateway_cb.allow_request():
+        logger.debug("ralph_rag_skipped", reason="circuit_breaker_open")
+        return ""
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(
@@ -75,6 +79,7 @@ async def _fetch_rag_context(
             )
             if resp.status_code != 200:
                 return ""
+            await ai_gateway_cb.record_success()
             data = resp.json()
             chunks: list[dict] = data.get("results", data.get("chunks", []))
             if not chunks:
@@ -88,6 +93,10 @@ async def _fetch_rag_context(
                     parts.append(f"{header}\n{text}".strip())
             combined = "\n\n---\n\n".join(parts)
             return combined[:RAG_MAX_CHARS]
+    except (httpx.TimeoutException, httpx.ConnectError) as e:
+        await ai_gateway_cb.record_failure()
+        logger.debug("ralph_rag_fetch_failed", error=str(e))
+        return ""
     except Exception as e:
         logger.debug("ralph_rag_fetch_failed", error=str(e))
         return ""
@@ -314,6 +323,8 @@ class RalphAgent:
 
         # Phase 2: Stream final response
         final_content_parts: list[str] = []
+        if not await ai_gateway_cb.allow_request():
+            raise AIGatewayUnavailableError()
         try:
             async with (
                 httpx.AsyncClient(timeout=120.0) as client,
@@ -340,6 +351,7 @@ class RalphAgent:
                     tokens_out += fallback.get("usage", {}).get("completion_tokens", 0)
                     yield {"type": "token", "content": content}
                 else:
+                    await ai_gateway_cb.record_success()
                     async for line in resp.aiter_lines():
                         if line.startswith("data: "):
                             raw = line[6:]
@@ -353,6 +365,12 @@ class RalphAgent:
                                     yield {"type": "token", "content": token}
                             except json.JSONDecodeError:
                                 pass
+        except (httpx.TimeoutException, httpx.ConnectError) as e:
+            await ai_gateway_cb.record_failure()
+            logger.warning("ralph_stream_error", error=str(e))
+            raise AIGatewayUnavailableError() from e
+        except AIGatewayUnavailableError:
+            raise
         except Exception as e:
             logger.warning("ralph_stream_error", error=str(e))
             # Non-streaming fallback
@@ -444,6 +462,9 @@ async def _call_gateway_with_tools(
     tools: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Call the AI gateway completions endpoint with optional tools."""
+    if not await ai_gateway_cb.allow_request():
+        raise AIGatewayUnavailableError()
+
     payload: dict[str, Any] = {
         "messages": messages,
         "task_type": "chat_with_tools",
@@ -460,7 +481,12 @@ async def _call_gateway_with_tools(
                 headers={"Authorization": f"Bearer {gateway_key}"},
             )
             resp.raise_for_status()
+            await ai_gateway_cb.record_success()
             return resp.json()
+    except (httpx.TimeoutException, httpx.ConnectError) as e:
+        await ai_gateway_cb.record_failure()
+        logger.error("gateway_call_failed", error=str(e))
+        raise AIGatewayUnavailableError() from e
     except Exception as e:
         logger.error("gateway_call_failed", error=str(e))
         return {

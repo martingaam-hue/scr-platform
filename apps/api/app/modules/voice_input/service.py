@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 import structlog
 
+from app.core.circuit_breaker import AIGatewayUnavailableError, ai_gateway_cb
 from app.core.config import settings
 
 logger = structlog.get_logger()
@@ -33,18 +34,25 @@ async def transcribe_audio(audio_bytes: bytes, filename: str, content_type: str)
 
 async def extract_project_data(transcript: str) -> dict[str, Any]:
     """Use AI to extract structured project data from a spoken transcript."""
-    async with httpx.AsyncClient(timeout=60) as client:
-        resp = await client.post(
-            f"{settings.AI_GATEWAY_URL}/v1/completions",
-            headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
-            json={
-                "task_type": "extract_project_from_voice",
-                "context": {"transcript": transcript},
-                "model": "claude-sonnet-4-20250514",
-            },
-        )
-        resp.raise_for_status()
-        return resp.json().get("validated_data", {})
+    if not await ai_gateway_cb.allow_request():
+        raise AIGatewayUnavailableError()
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                f"{settings.AI_GATEWAY_URL}/v1/completions",
+                headers={"Authorization": f"Bearer {settings.AI_GATEWAY_API_KEY}"},
+                json={
+                    "task_type": "extract_project_from_voice",
+                    "context": {"transcript": transcript},
+                    "model": "claude-sonnet-4-20250514",
+                },
+            )
+            resp.raise_for_status()
+            await ai_gateway_cb.record_success()
+            return resp.json().get("validated_data", {})
+    except (httpx.TimeoutException, httpx.ConnectError) as exc:
+        await ai_gateway_cb.record_failure()
+        raise AIGatewayUnavailableError() from exc
 
 
 async def process_audio(audio_bytes: bytes, filename: str, content_type: str) -> dict[str, Any]:

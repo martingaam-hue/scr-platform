@@ -8,6 +8,8 @@ from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from app.core.circuit_breaker import AIGatewayUnavailableError
+
 
 class ErrorResponse(BaseModel):
     """Standard error envelope returned by all API error handlers."""
@@ -43,6 +45,27 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
             "message": "An unexpected error occurred. Our team has been notified.",
             "request_id": request_id,
         },
+    )
+
+
+async def ai_gateway_unavailable_handler(
+    request: Request, exc: AIGatewayUnavailableError
+) -> JSONResponse:
+    """Return 503 with Retry-After when the AI Gateway circuit breaker is open."""
+    request_id = request.headers.get("x-request-id", "unknown")
+    logger.warning(
+        "ai_gateway_unavailable",
+        path=request.url.path,
+        request_id=request_id,
+    )
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error": "ai_gateway_unavailable",
+            "message": str(exc),
+            "request_id": request_id,
+        },
+        headers={"Retry-After": str(exc.retry_after)},
     )
 
 
