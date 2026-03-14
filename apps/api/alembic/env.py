@@ -43,7 +43,12 @@ def run_migrations_online() -> None:
     # with URL-encoded passwords containing % characters.
     connectable = create_engine(settings.DATABASE_URL_SYNC, poolclass=pool.NullPool)
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=False,
+            compare_server_default=False,
+        )
         with context.begin_transaction():
             context.run_migrations()
 

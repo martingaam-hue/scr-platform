@@ -81,6 +81,7 @@ ignore = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 filterwarnings = ["ignore::DeprecationWarning"]
+norecursedirs = ["tests/load"]
 
 [tool.mypy]
 python_version = "3.12"

@@ -16,6 +16,10 @@ from app.models.advisory import (
 # AI
 from app.models.ai import AIConversation, AIMessage, AITaskLog
 
+# AI Citations & Data Lineage
+from app.models.citations import AICitation
+from app.models.lineage import DataLineage
+
 # Alley-side models
 from app.models.alley import RiskMitigationStatus
 
@@ -264,6 +268,9 @@ __all__ = [
     "AIConversation",
     "AIMessage",
     "AITaskLog",
+    # AI Citations & Data Lineage
+    "AICitation",
+    "DataLineage",
     "Activity",
     "AuditLog",
     "AuditMixin",
