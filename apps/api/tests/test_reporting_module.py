@@ -10,7 +10,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_db
 from app.main import app
 from app.models.core import Organization, User
 from app.models.enums import (
@@ -128,10 +128,12 @@ async def rp_report(
 async def rp_client(db: AsyncSession, rp_user: User) -> AsyncClient:
     app.dependency_overrides[get_current_user] = lambda: RP_CURRENT_USER
     app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_readonly_db] = lambda: db
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_readonly_db, None)
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────

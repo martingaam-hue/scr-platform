@@ -2,6 +2,7 @@
 
 import uuid
 
+import redis.asyncio as aioredis
 import sentry_sdk
 import structlog
 from fastapi import Depends, HTTPException, Request, status
@@ -12,8 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.clerk_jwt import verify_clerk_token
 from app.auth.rbac import check_object_permission, check_permission
+from app.core.config import settings
 from app.core.database import get_db
-from app.models.core import User
+from app.models.core import Organization, User
 from app.models.enums import UserRole
 from app.schemas.auth import CurrentUser
 
@@ -79,6 +81,24 @@ async def get_current_user(
     sentry_sdk.set_user({"id": str(user.id)})
     sentry_sdk.set_tag("org_id", str(user.org_id))
     sentry_sdk.set_tag("user_role", user.role.value)
+
+    # Cache org subscription tier in Redis so the rate limiter can apply tier-based
+    # limits without a DB lookup on every request (TTL 300 s, best-effort).
+    try:
+        org = (
+            await db.execute(select(Organization).where(Organization.id == user.org_id))
+        ).scalar_one_or_none()
+        if org:
+            r = aioredis.from_url(
+                settings.REDIS_URL,
+                decode_responses=True,
+                socket_connect_timeout=0.5,
+                socket_timeout=0.5,
+            )
+            await r.setex(f"org:tier:{user.org_id}", 300, org.subscription_tier.value)
+            await r.aclose()
+    except Exception:
+        pass  # Non-blocking: rate limiter falls back to foundation limits on cache miss
 
     return current_user
 

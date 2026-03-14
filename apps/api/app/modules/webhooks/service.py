@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import hmac
 import json
@@ -10,6 +11,7 @@ import uuid
 from datetime import datetime, timedelta
 
 import httpx
+import redis.asyncio as aioredis
 import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -163,7 +165,30 @@ class WebhookService:
         return "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
     async def deliver(self, delivery_id: uuid.UUID) -> bool:
-        """Attempt HTTP delivery with HMAC signature. Called from Celery."""
+        """Attempt HTTP delivery with HMAC signature. Called from Celery.
+
+        Uses a Redis idempotency key (TTL 24 h) to prevent duplicate deliveries
+        when Celery retries a task that already succeeded.
+        """
+        from app.core.config import settings
+
+        # ── Idempotency check ─────────────────────────────────────────────────
+        idem_key = f"webhook:idem:{delivery_id}"
+        _redis: aioredis.Redis | None = None
+        try:
+            _redis = aioredis.from_url(
+                settings.REDIS_URL,
+                decode_responses=True,
+                socket_connect_timeout=1.0,
+                socket_timeout=1.0,
+            )
+            if await _redis.exists(idem_key):
+                logger.info("webhook_delivery_idempotent_skip", delivery_id=str(delivery_id))
+                return True  # Already delivered successfully
+        except Exception as exc:
+            logger.warning("webhook_idempotency_redis_error", error=str(exc))
+            _redis = None  # Continue without idempotency protection
+
         stmt = select(WebhookDelivery).where(WebhookDelivery.id == delivery_id)
         delivery = (await self.db.execute(stmt)).scalar_one_or_none()
         if not delivery:
@@ -195,6 +220,7 @@ class WebhookService:
                         "X-SCR-Signature": signature,
                         "X-SCR-Event": delivery.event_type,
                         "X-SCR-Delivery": str(delivery.id),
+                        "Idempotency-Key": str(delivery.id),
                     },
                 )
             delivery.response_status_code = resp.status_code
@@ -205,6 +231,10 @@ class WebhookService:
                 delivery.delivered_at = datetime.utcnow()
                 # Reset failure count on success
                 sub.failure_count = max(0, sub.failure_count - 1)
+                # Set idempotency key so Celery retries skip re-delivery (TTL 24 h)
+                if _redis is not None:
+                    with contextlib.suppress(Exception):
+                        await _redis.setex(idem_key, 86400, "1")
             else:
                 raise Exception(f"HTTP {resp.status_code}")
 
@@ -235,6 +265,11 @@ class WebhookService:
             )
 
         await self.db.commit()
+
+        if _redis is not None:
+            with contextlib.suppress(Exception):
+                await _redis.aclose()
+
         return delivery.status == "delivered"
 
     # ── Deliveries list ───────────────────────────────────────────────────────

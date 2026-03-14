@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_permission
-from app.core.database import get_db
+from app.core.database import get_db, get_readonly_db
 from app.models.enums import ReportCategory, ReportStatus
 from app.modules.reporting import service
 from app.modules.reporting.schemas import (
@@ -94,7 +94,7 @@ def _schedule_to_response(s) -> ScheduledReportResponse:
 async def list_templates(
     category: ReportCategory | None = None,
     current_user: CurrentUser = Depends(require_permission("view", "report")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     templates = await service.list_templates(db, current_user.org_id, category)
     return ReportTemplateListResponse(
@@ -107,7 +107,7 @@ async def list_templates(
 async def get_template(
     template_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "report")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     template = await service.get_template(db, template_id, current_user.org_id)
     if not template:
@@ -165,7 +165,7 @@ async def generate_report(
 @router.get("/schedules", response_model=ScheduledReportListResponse)
 async def list_schedules(
     current_user: CurrentUser = Depends(require_permission("view", "report")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     schedules = await service.list_schedules(db, current_user.org_id)
     return ScheduledReportListResponse(
@@ -264,7 +264,7 @@ async def list_reports(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: CurrentUser = Depends(require_permission("view", "report")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     reports, total = await service.list_generated_reports(
         db,
@@ -288,7 +288,7 @@ async def list_reports(
 async def get_report(
     report_id: uuid.UUID,
     current_user: CurrentUser = Depends(require_permission("view", "report")),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_readonly_db),
 ):
     report = await service.get_generated_report(db, report_id, current_user.org_id)
     if not report:

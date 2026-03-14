@@ -46,7 +46,7 @@ jobs:
           restore-keys: api-poetry-
 
       - name: Install dependencies
-        run: poetry install --with dev
+        run: poetry install --with dev,blockchain
 
       - name: Ruff lint
         run: poetry run ruff check .
@@ -142,7 +142,7 @@ jobs:
           restore-keys: api-poetry-
 
       - name: Install dependencies
-        run: poetry install --with dev
+        run: poetry install --with dev,blockchain
 
       - name: Apply DB migrations
         run: poetry run alembic upgrade head
@@ -200,7 +200,7 @@ jobs:
           restore-keys: api-poetry-
 
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --with blockchain
 
       - name: Install pip-audit in venv
         run: poetry run pip install pip-audit

@@ -108,18 +108,27 @@ _RATE_RULES: list[tuple[str, int, int]] = [
 ]
 _DEFAULT_RATE: tuple[int, int] = (300, 60)  # 300 req/min default per IP
 
-# Org-level rate limits — applied to authenticated requests in addition to IP limits.
-# Higher thresholds than IP limits (legitimate orgs make many requests), but prevent
-# single-org abuse from affecting other tenants.
-# (path_prefix, requests_allowed, window_seconds)
-_ORG_RATE_RULES: list[tuple[str, int, int]] = [
-    ("/ralph/", 200, 60),  # 200 AI calls/min per org
-    ("/signal-score/calculate", 50, 60),  # 50 score calcs/min per org
-    ("/dataroom/bulk/analyze", 20, 60),  # 20 bulk analyses/min per org
-    ("/dataroom/upload", 100, 60),  # 100 uploads/min per org
-    ("/webhooks/", 500, 60),  # 500 webhook events/min per org
-    ("/", 1000, 60),  # 1000 req/min default per org
-]
+# Tier-based org-level rate limits.
+# General limit applies to all paths; AI limit applies to AI-heavy endpoints.
+# (general_req/min, ai_req/min)
+_TIER_LIMITS: dict[str, tuple[int, int]] = {
+    "free": (100, 10),
+    "trial": (100, 10),
+    "foundation": (300, 30),
+    "professional": (600, 60),
+    "enterprise": (1200, 120),
+}
+_DEFAULT_TIER = "foundation"
+
+# Paths that consume the AI quota instead of the general quota.
+_AI_PATHS: frozenset[str] = frozenset(
+    {
+        "/ralph/",
+        "/signal-score/calculate",
+        "/investor-signal-score/calculate",
+        "/dataroom/bulk/analyze",
+    }
+)
 
 _SKIP_PATHS: frozenset[str] = frozenset(
     ["/health", "/docs", "/redoc", "/openapi.json", "/favicon.ico"]
@@ -174,6 +183,20 @@ class RateLimitMiddleware:
             return claims.get("org_id") or claims.get("metadata", {}).get("org_id")
         except Exception:
             return None
+
+    @staticmethod
+    async def _get_org_tier(redis: aioredis.Redis, org_id: str) -> str:
+        """Read org subscription tier from Redis cache.
+
+        Returns the tier string (e.g. "foundation") or _DEFAULT_TIER if the key
+        is absent or Redis is unavailable.  The cache is populated by the auth
+        dependency after each successful JWT verification (TTL 300 s).
+        """
+        try:
+            tier = await redis.get(f"org:tier:{org_id}")
+            return tier if tier and tier in _TIER_LIMITS else _DEFAULT_TIER
+        except Exception:
+            return _DEFAULT_TIER
 
     @staticmethod
     async def _sliding_window(
@@ -247,15 +270,17 @@ class RateLimitMiddleware:
 
         # ── Org-level check (authenticated requests only) ──────────────────────
         org_id = self._extract_org_id(raw_headers)
-        org_limit, org_window = 1000, 60  # defaults
+        org_limit, org_window = _TIER_LIMITS[_DEFAULT_TIER][0], 60  # safe defaults
         org_remaining = org_limit
         if org_id:
-            for prefix, r_lim, r_win in _ORG_RATE_RULES:
-                if effective_path.startswith(prefix):
-                    org_limit, org_window = r_lim, r_win
-                    break
             try:
                 redis = self._client()
+                tier = await self._get_org_tier(redis, org_id)
+                general_limit, ai_limit = _TIER_LIMITS[tier]
+                is_ai_path = any(effective_path.startswith(p) for p in _AI_PATHS)
+                org_limit = ai_limit if is_ai_path else general_limit
+                org_window = 60
+                org_remaining = org_limit
                 org_allowed, org_remaining = await self._sliding_window(
                     redis, f"rl:org:{org_id}:{segment}", org_limit, org_window
                 )

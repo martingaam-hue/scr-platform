@@ -124,16 +124,18 @@ async def authenticated_client(
 ) -> AsyncGenerator[AsyncClient, None]:
     """AsyncClient with dependency overrides that bypass Clerk JWT verification."""
     from app.auth.dependencies import get_current_user
-    from app.core.database import get_db, get_readonly_session
+    from app.core.database import get_db, get_readonly_db, get_readonly_session
     from app.main import app as _app
 
     _app.dependency_overrides[get_current_user] = lambda: sample_current_user
     _app.dependency_overrides[get_db] = lambda: db
+    _app.dependency_overrides[get_readonly_db] = lambda: db
     _app.dependency_overrides[get_readonly_session] = lambda: db
     async with AsyncClient(transport=ASGITransport(app=_app), base_url="http://test") as ac:
         yield ac
     _app.dependency_overrides.pop(get_current_user, None)
     _app.dependency_overrides.pop(get_db, None)
+    _app.dependency_overrides.pop(get_readonly_db, None)
     _app.dependency_overrides.pop(get_readonly_session, None)
 
 
