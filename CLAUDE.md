@@ -41,6 +41,13 @@ scr-platform/
 - Financial calculations: ALWAYS deterministic Python, NEVER LLM
 - All AI calls go through the AI Gateway service
 
+## Database Migration Rules
+- After modifying ANY SQLAlchemy model, generate a migration:
+  `poetry run alembic revision --autogenerate -m "description"`
+- Always verify single head: `poetry run alembic heads`
+- Never manually edit migration revision IDs
+- Run `poetry run alembic check` before pushing to catch missed migrations
+
 ## Running Locally
 ```bash
 docker compose up -d            # Start databases

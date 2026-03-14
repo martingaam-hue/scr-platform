@@ -57,6 +57,22 @@ jobs:
       - name: Mypy type check
         run: poetry run mypy app/ --ignore-missing-imports
 
+      - name: Verify single migration head
+        run: |
+          HEAD_COUNT=$(poetry run alembic heads 2>/dev/null | grep -c .)
+          if [ "$HEAD_COUNT" -ne 1 ]; then
+            echo "❌ Multiple migration heads detected ($HEAD_COUNT heads)!"
+            echo "Run: poetry run alembic merge heads -m 'merge heads'"
+            poetry run alembic heads
+            exit 1
+          fi
+          echo "✅ Single migration head confirmed"
+
+      - name: Verify migration chain integrity
+        run: |
+          poetry run alembic history --verbose > /dev/null
+          echo "✅ Migration chain clean"
+
   api-test:
     name: API — Tests
     runs-on: ubuntu-latest
@@ -130,6 +146,15 @@ jobs:
 
       - name: Apply DB migrations
         run: poetry run alembic upgrade head
+
+      - name: Check for missing migrations
+        run: |
+          poetry run alembic check 2>&1 || {
+            echo "❌ Model changes detected without a migration!"
+            echo "Run: poetry run alembic revision --autogenerate -m 'description'"
+            exit 1
+          }
+          echo "✅ No missing migrations"
 
       - name: Run tests with coverage
         run: |
