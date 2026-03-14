@@ -257,4 +257,9 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(hour="0,4,8,12,16,20", minute=30),
         "kwargs": {"tier": 2},
     },
+    # ── CloudWatch queue-depth metrics ────────────────────────────────────────
+    "publish-queue-metrics": {
+        "task": "app.tasks.monitoring.publish_queue_metrics",
+        "schedule": 60.0,  # every 60 seconds
+    },
 }

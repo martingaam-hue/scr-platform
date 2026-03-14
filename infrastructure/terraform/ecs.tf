@@ -68,6 +68,26 @@ resource "aws_iam_role" "ecs_task" {
   })
 }
 
+# Task role: CloudWatch custom metrics (Celery queue depths)
+resource "aws_iam_role_policy" "ecs_task_cloudwatch" {
+  name = "scr-${var.environment}-ecs-cloudwatch"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["cloudwatch:PutMetricData"]
+      Resource = "*"
+      Condition = {
+        StringEquals = {
+          "cloudwatch:namespace" = "SCR/Celery"
+        }
+      }
+    }]
+  })
+}
+
 # Task role: S3 access for document storage
 resource "aws_iam_role_policy" "ecs_task_s3" {
   name = "scr-${var.environment}-ecs-s3"
