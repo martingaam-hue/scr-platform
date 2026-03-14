@@ -22,7 +22,7 @@ import {
   useScreeningReport,
   useTriggerScreening,
   useTriggerMemo,
-  useMemo,
+  useMemo as useDealMemo,
   recommendationColor,
   type ScreeningReport,
 } from "@/lib/deals";
@@ -64,7 +64,7 @@ function ScreeningReportView({
 }) {
   const [memoId, setMemoId] = useState<string | undefined>();
   const triggerMemo = useTriggerMemo();
-  const { data: memo } = useMemo(projectId, memoId);
+  const { data: memo } = useDealMemo(projectId, memoId);
 
   const handleGenerateMemo = async () => {
     const result = await triggerMemo.mutateAsync(projectId);
