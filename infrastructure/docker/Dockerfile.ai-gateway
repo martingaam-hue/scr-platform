@@ -4,7 +4,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     POETRY_VIRTUALENVS_CREATE=false
 
-RUN pip install --no-cache-dir poetry==1.8.4
+RUN pip install --no-cache-dir poetry==1.8.4 \
+    && groupadd --gid 1001 scr \
+    && useradd --uid 1001 --gid scr --shell /bin/bash --create-home scr
 
 WORKDIR /app
 
@@ -14,7 +16,13 @@ RUN poetry install --no-interaction --no-ansi --only main
 
 # Copy application code
 COPY services/ai-gateway/ ./
+RUN chown -R scr:scr /app
+
+USER scr
 
 EXPOSE 8001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')" || exit 1
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "2"]

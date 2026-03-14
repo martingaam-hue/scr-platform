@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     # Application
     APP_ENV: str = "development"
-    APP_DEBUG: bool = True
+    APP_DEBUG: bool = False
     SECRET_KEY: str = _DEFAULT_SECRET
     API_URL: str = "http://localhost:8000"
     FRONTEND_URL: str = "http://localhost:3000"
@@ -44,6 +44,12 @@ class Settings(BaseSettings):
             if not self.CLERK_SECRET_KEY:
                 print(
                     "FATAL: CLERK_SECRET_KEY is required in production.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            if self.APP_DEBUG:
+                print(
+                    "FATAL: APP_DEBUG must be False in production.",
                     file=sys.stderr,
                 )
                 sys.exit(1)

@@ -100,7 +100,10 @@ async def verify_clerk_token(token: str) -> dict:
         algorithms=["RS256"],
         issuer=settings.CLERK_ISSUER_URL,
         options={
-            "verify_aud": False,  # Clerk may not set aud; enable if configured
+            # verify_aud=False: Clerk JWTs do not include an audience claim by
+            # default. If audience is configured in the Clerk dashboard in future,
+            # enable this and set CLERK_JWT_AUDIENCE in config.
+            "verify_aud": False,
             "verify_iss": bool(settings.CLERK_ISSUER_URL),
             "verify_exp": True,
         },
