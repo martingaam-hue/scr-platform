@@ -747,7 +747,23 @@ async def test_viewer_can_list_projects(viewer_client: AsyncClient, sample_proje
 
 
 @pytest.mark.asyncio
-async def test_viewer_can_view_project(viewer_client: AsyncClient, sample_project):
+async def test_viewer_can_view_project(
+    viewer_client: AsyncClient, sample_project, db: AsyncSession
+):
+    # Grant the viewer an ownership record so RBAC enforcement allows access
+    from app.models.resource_ownership import ResourceOwnership
+
+    rec = ResourceOwnership(
+        user_id=VIEWER_USER_ID,
+        org_id=ORG_ID,
+        resource_type="project",
+        resource_id=sample_project.id,
+        permission_level="viewer",
+        granted_by=USER_ID,
+    )
+    db.add(rec)
+    await db.flush()
+
     resp = await viewer_client.get(f"/v1/projects/{sample_project.id}")
     assert resp.status_code == 200
 

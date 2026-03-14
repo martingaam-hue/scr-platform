@@ -418,3 +418,27 @@ class TestRequireObjectPermissionDep:
             resp = await obj_viewer_client.get(self._url)
         # Audit mode: 200 even though there is no ownership record
         assert resp.status_code == 200
+
+    async def test_enforcement_is_active(
+        self,
+        obj_viewer_client: AsyncClient,
+        obj_conversation: AIConversation,
+    ):
+        """OBJECT_LEVEL_RBAC_ENABLED must be True — enforcement must be live.
+
+        This test uses the real config value (no patch). If OBJECT_LEVEL_RBAC_ENABLED
+        is False, a viewer without an ownership record would get 200 and this test
+        would fail, signalling that enforcement is still in audit mode.
+        """
+        from app.core.config import settings as real_settings
+
+        assert real_settings.OBJECT_LEVEL_RBAC_ENABLED is True, (
+            "OBJECT_LEVEL_RBAC_ENABLED must be True — "
+            "run app.scripts.seed_resource_ownership first, then set the flag."
+        )
+        # No ownership record granted — enforcement must reject
+        resp = await obj_viewer_client.get(self._url)
+        assert resp.status_code == 403, (
+            f"Expected 403 (enforcement active) but got {resp.status_code}. "
+            "Check that OBJECT_LEVEL_RBAC_ENABLED=True in config.py."
+        )
