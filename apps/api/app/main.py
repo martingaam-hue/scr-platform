@@ -128,7 +128,19 @@ _is_prod = settings.APP_ENV == "production"
 
 app = FastAPI(
     title="SCR Platform API",
-    description="Investment intelligence platform connecting impact project developers with investors.",
+    description="""
+SCR Platform — investment intelligence for impact capital markets.
+
+**Modules**: 77 auto-discovered feature modules across Deal Flow, Portfolio,
+AI-powered analysis (Ralph AI), Signal Scoring, Risk, Legal, ESG, and more.
+
+**Auth**: All endpoints require a valid Clerk JWT in the `Authorization: Bearer` header.
+
+**Multi-tenancy**: All data is isolated by `org_id`. Requests from one organisation
+cannot access another's data.
+
+**Permissions**: RBAC with roles `admin > manager > analyst > viewer`.
+""",
     version="0.1.0",
     # Disable interactive docs in production — use /openapi.json directly if needed
     docs_url=None if _is_prod else "/docs",
