@@ -18,7 +18,6 @@ import uuid
 
 from locust import HttpUser, between, task
 
-
 # Pre-configured test credentials — set via environment variables so secrets
 # are never committed.  Tests degrade gracefully when credentials are absent.
 _TEST_TOKEN = os.getenv("LOAD_TEST_JWT", "")
@@ -85,12 +84,8 @@ class SCRUser(HttpUser):
 
     @task(1)
     def list_notifications(self) -> None:
-        self.client.get(
-            "/v1/notifications", headers=self._auth, name="/v1/notifications"
-        )
+        self.client.get("/v1/notifications", headers=self._auth, name="/v1/notifications")
 
     @task(1)
     def list_watchlists(self) -> None:
-        self.client.get(
-            "/v1/watchlists", headers=self._auth, name="/v1/watchlists"
-        )
+        self.client.get("/v1/watchlists", headers=self._auth, name="/v1/watchlists")

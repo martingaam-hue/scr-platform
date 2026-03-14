@@ -16,10 +16,6 @@ from app.models.advisory import (
 # AI
 from app.models.ai import AIConversation, AIMessage, AITaskLog
 
-# AI Citations & Data Lineage
-from app.models.citations import AICitation
-from app.models.lineage import DataLineage
-
 # Alley-side models
 from app.models.alley import RiskMitigationStatus
 
@@ -35,6 +31,9 @@ from app.models.blockchain import BlockchainAnchor
 
 # Certification
 from app.models.certification import InvestorReadinessCertification
+
+# AI Citations & Data Lineage
+from app.models.citations import AICitation
 
 # Collaboration
 from app.models.collaboration import Activity, Comment
@@ -198,6 +197,7 @@ from app.models.launch import FeatureFlag, FeatureFlagOverride, UsageEvent, Wait
 
 # Legal
 from app.models.legal import LegalDocument, LegalTemplate
+from app.models.lineage import DataLineage
 
 # LP Reporting
 from app.models.lp_report import LPReport
