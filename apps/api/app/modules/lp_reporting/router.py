@@ -142,7 +142,9 @@ async def list_reports(
 async def get_report(
     report_id: uuid.UUID,
     current_user: CurrentUser = Depends(
-        require_object_permission("view", "lp_report", id_param="report_id", rbac_resource_type="report")
+        require_object_permission(
+            "view", "lp_report", id_param="report_id", rbac_resource_type="report"
+        )
     ),
     db: AsyncSession = Depends(get_db),
 ):
@@ -275,7 +277,9 @@ async def generate_pdf(
 async def download_report(
     report_id: uuid.UUID,
     current_user: CurrentUser = Depends(
-        require_object_permission("view", "lp_report", id_param="report_id", rbac_resource_type="report")
+        require_object_permission(
+            "view", "lp_report", id_param="report_id", rbac_resource_type="report"
+        )
     ),
     db: AsyncSession = Depends(get_db),
 ):

@@ -234,11 +234,11 @@ from app.models.qa import QAAnswer, QAQuestion
 # AI Document Redaction
 from app.models.redaction import RedactionJob
 
-# Resource Ownership (object-level RBAC)
-from app.models.resource_ownership import PermissionLevel, ResourceOwnership
-
 # Reporting
 from app.models.reporting import GeneratedReport, ReportTemplate, ScheduledReport
+
+# Resource Ownership (object-level RBAC)
+from app.models.resource_ownership import PermissionLevel, ResourceOwnership
 
 # Smart Screener
 from app.models.screener import SavedSearch

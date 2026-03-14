@@ -50,7 +50,11 @@ async def list_rooms(
 @router.get("/{room_id}", response_model=RoomResponse)
 async def get_room(
     room_id: uuid.UUID,
-    current_user: CurrentUser = Depends(require_object_permission("view", "deal_room", id_param="room_id", rbac_resource_type="project")),
+    current_user: CurrentUser = Depends(
+        require_object_permission(
+            "view", "deal_room", id_param="room_id", rbac_resource_type="project"
+        )
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     room = await service.get_room(db, room_id, current_user.org_id)

@@ -174,9 +174,7 @@ async def create_project(
     "/{project_id}",
     summary="Get project",
     response_model=ProjectDetailResponse,
-    dependencies=[
-        Depends(require_object_permission("view", "project", id_param="project_id"))
-    ],
+    dependencies=[Depends(require_object_permission("view", "project", id_param="project_id"))],
 )
 async def get_project(
     project_id: uuid.UUID,
