@@ -46,7 +46,7 @@ class AsyncGatewayClient:
 
     async def complete(self, task_type: str, context: dict[str, Any]) -> dict[str, Any]:
         """Call gateway and return normalised result dict."""
-        _unavailable = {
+        _unavailable: dict[str, Any] = {
             "content": "",
             "validated_data": None,
             "confidence": 0.0,
