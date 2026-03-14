@@ -17,6 +17,7 @@ Usage (from apps/api directory):
     poetry run python -m app.scripts.seed_resource_ownership
     poetry run python -m app.scripts.seed_resource_ownership --dry-run
 """
+
 from __future__ import annotations
 
 import argparse
@@ -171,9 +172,7 @@ def seed(dry_run: bool = False) -> None:
 
         # ── 3. AI Conversations ───────────────────────────────────────────────
         print("Seeding conversations...")
-        convs = conn.execute(
-            text("SELECT id, org_id, user_id FROM ai_conversations")
-        ).fetchall()
+        convs = conn.execute(text("SELECT id, org_id, user_id FROM ai_conversations")).fetchall()
         for conv_id, org_id, user_id in convs:
             _upsert(
                 conn,

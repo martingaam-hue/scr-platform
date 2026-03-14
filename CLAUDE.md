@@ -74,6 +74,10 @@ poetry run alembic revision --autogenerate -m "description"  # New migration
 - Always run `ruff check .` before committing Python code.
 - All pre-commit hooks must pass before pushing.
 
+## CRITICAL — Format Before Every Commit
+ALWAYS run `cd apps/api && poetry run ruff format .` before committing ANY Python file. This is non-negotiable.
+The pre-push hook auto-formats, but formatting during commit avoids diff noise in code review.
+
 ## CRITICAL — Type Check Before Every Push
 ALWAYS run `cd apps/web && pnpm exec tsc --noEmit` before pushing.
 If it shows ANY errors, fix them before pushing. NEVER push with type errors — they will fail CI and block the Vercel deploy.
