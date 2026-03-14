@@ -1,0 +1,64 @@
+name: Performance Test
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6 AM UTC
+  workflow_dispatch:
+    inputs:
+      users:
+        description: 'Number of concurrent users'
+        default: '30'
+      run_time:
+        description: 'Test duration (e.g. 3m, 5m)'
+        default: '3m'
+
+jobs:
+  load-test:
+    name: Load Test — Staging
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locust
+        run: pip install locust==2.43.3
+
+      - name: General load test
+        env:
+          LOAD_TEST_JWT: ${{ secrets.LOAD_TEST_JWT }}
+          LOAD_TEST_PROJECT_ID: ${{ secrets.LOAD_TEST_PROJECT_ID }}
+        run: |
+          locust -f apps/api/tests/load/locustfile.py \
+            --host=${{ secrets.STAGING_API_URL }} \
+            --users=${{ inputs.users || '30' }} \
+            --spawn-rate=3 \
+            --run-time=${{ inputs.run_time || '3m' }} \
+            --headless \
+            --csv=results/general \
+            --csv-full-history \
+            --only-summary
+
+      - name: AI latency test
+        env:
+          LOAD_TEST_JWT: ${{ secrets.LOAD_TEST_JWT }}
+          LOAD_TEST_PROJECT_ID: ${{ secrets.LOAD_TEST_PROJECT_ID }}
+        run: |
+          locust -f apps/api/tests/load/test_ai_latency.py \
+            --host=${{ secrets.STAGING_API_URL }} \
+            --users=10 --spawn-rate=1 \
+            --run-time=${{ inputs.run_time || '3m' }} \
+            --headless \
+            --csv=results/ai_latency \
+            --only-summary
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-results-${{ github.run_id }}
+          path: results/
+          retention-days: 90

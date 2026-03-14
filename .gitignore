@@ -48,3 +48,4 @@ logs/
 # OS
 Thumbs.db
 .vercel
+apps/api/tests/load/results/*.csv
